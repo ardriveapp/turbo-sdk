@@ -1,0 +1,26 @@
+name: Node.js CI
+
+on: [push]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Read .nvmrc
+              id: node_version
+              run: echo ::set-output name=NODE_VERSION::$(cat .nvmrc)
+
+            - name: Set Up node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: ${{ steps.node_version.outputs.NODE_VERSION }}
+                  cache: 'yarn'
+
+            - name: Install dependencies
+              run: yarn --immutable --immutable-cache
+
+            - name: Test and Build Codebase
+              run: yarn ci

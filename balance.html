@@ -1,0 +1,45 @@
+<html>
+  <head>
+    <script src="./bundles/bundle.js"></script>
+    <style>
+      /* Center the button */
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      /* Style the button */
+      button {
+        padding: 20px 40px;
+        font-size: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <button>Get Balance</button>
+
+    <script>
+      const turbo = new ArDriveTurboSDK.AuthArDriveTurbo({
+        jwk: {
+          stub: "wallet",
+        },
+      });
+      // Access the library functions from the global scope
+      console.log(turbo);
+
+      async function getBalance() {
+        // Make an API call or perform necessary calculations to get the balance
+        // Replace this with your actual logic to retrieve the balance
+        const balance = await turbo.getWincBalance();
+
+        // Display the balance
+        alert("Your winc balance is: " + balance);
+      }
+
+      // Add an event listener to the button
+      document.querySelector("button").addEventListener("click", getBalance);
+    </script>
+  </body>
+</html>

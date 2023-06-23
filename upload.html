@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <script src="./lib-bundles/bundle.js"></script>
+    <style>
+      /* Center the button */
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      /* Style the button */
+      button {
+        padding: 20px 40px;
+        font-size: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <input type="file" id="fileInput" multiple style="display: none" />
+    <button onclick="openFilePicker()">Choose File(s)</button>
+
+    <script>
+      const turbo = new ArDriveTurboSDK.AuthArDriveTurbo({
+        jwk: {
+          stub: "wallet",
+        },
+      });
+      // Access the library functions from the global scope
+      console.log(turbo);
+    </script>
+    <script>
+      function openFilePicker() {
+        // Trigger the file picker dialog
+        document.getElementById("fileInput").click();
+      }
+
+      // Handle the selected file(s)
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", function (event) {
+          const files = event.target.files; // Get the selected files
+
+          // Create an array to store the file paths
+          const filePaths = [];
+
+          // Iterate through the files and store their paths
+          for (let i = 0; i < files.length; i++) {
+            const filePath = URL.createObjectURL(files[i]);
+            filePaths.push({ filePath });
+          }
+
+          console.log(filePaths); // Display the file paths in the console
+
+          // You can now use the 'filePaths' array as per your requirements
+        });
+    </script>
+  </body>
+</html>
