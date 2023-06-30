@@ -1,6 +1,6 @@
 <html>
   <head>
-    <script src="./bundles/bundle.js"></script>
+    <script src="./lib-bundles/bundle.js"></script>
     <style>
       /* Center the button */
       body {
@@ -21,7 +21,7 @@
     <button>Get Balance</button>
 
     <script>
-      const turbo = new ArDriveTurboSDK.AuthArDriveTurbo({
+      const turbo = new AuthArDriveTurbo({
         jwk: {
           stub: "wallet",
         },
@@ -41,5 +41,30 @@
       // Add an event listener to the button
       document.querySelector("button").addEventListener("click", getBalance);
     </script>
+
+    <!-- 
+<script type="module">
+  import { AuthArDriveTurbo } from "./lib-bundles/bundle.js";
+
+  const turbo = new AuthArDriveTurbo({
+    jwk: {
+      stub: "wallet",
+    },
+  });
+  // Access the library functions from the global scope
+  console.log(turbo);
+
+  async function getBalance() {
+    // Make an API call or perform necessary calculations to get the balance
+    // Replace this with your actual logic to retrieve the balance
+    const balance = await turbo.getWincBalance();
+
+    // Display the balance
+    alert("Your winc balance is: " + balance);
+  }
+
+  // Add an event listener to the button
+  document.querySelector("button").addEventListener("click", getBalance);
+</script> -->
   </body>
 </html>
