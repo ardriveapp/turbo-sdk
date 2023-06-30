@@ -8,6 +8,7 @@ import {
 } from "./types";
 import { JWKInterface } from "arbundles";
 import { Payment } from "./payment";
+import { AxiosInstance } from "axios";
 
 export interface PaymentIntent {}
 
@@ -76,6 +77,7 @@ export interface UploadResult {
 export interface TurboSettings {
   paymentUrl?: string;
   uploadUrl?: string;
+  axiosClient?: AxiosInstance;
 }
 
 export interface AuthTurboSettings extends TurboSettings {
