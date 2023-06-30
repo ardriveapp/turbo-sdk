@@ -1,28 +1,46 @@
 import { expect } from "chai";
 import Turbo from "../src";
-import { JWKInterface } from "arbundles/node";
-
-const jwk = { stub: "wallet" } as unknown as JWKInterface;
+import Arweave from "arweave";
+import { JWKInterface } from "../src/utils/jwkTypes";
+import { base64URLRegex } from "../src/utils/regex";
 
 describe("ArDrive Turbo", () => {
-  const turbo = new Turbo({ jwk });
+  let jwk: JWKInterface;
+  let turbo: Turbo;
+
+  before(async () => {
+    jwk = await Arweave.crypto.generateJWK();
+    turbo = new Turbo({ jwk });
+  });
 
   describe("getWincBalance", () => {
     it("works", async () => {
-      const turbo = new Turbo({ jwk });
+      const turbo = new Turbo({
+        jwk,
+      });
       const balance = await turbo.getWincBalance();
 
-      expect(balance.toString()).to.equal("2471066334217");
+      expect(balance.toString()).to.equal("0");
     });
   });
 
   describe("upload files", () => {
     it("works", async () => {
-      const res = await turbo.upload([
+      const { dataItems, ownerAddress } = await turbo.upload([
         { filePath: "tests/stubFiles/1KiB.txt" },
       ]);
 
-      console.log("res", res);
+      expect(ownerAddress).to.have.match(base64URLRegex);
+      const entries = Object.entries(dataItems);
+
+      expect(entries.length).to.equal(1);
+
+      const dataItemId = entries[0][0];
+      expect(dataItemId).to.match(base64URLRegex);
+
+      expect(entries[0][1].byteCount.toString()).to.equal("2068");
+      expect(entries[0][1].dataCaches).to.deep.equal(["arweave.net"]);
+      expect(entries[0][1].fastFinalityIndexes).to.deep.equal(["arweave.net"]);
     });
   });
 });
