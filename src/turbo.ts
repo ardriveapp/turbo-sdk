@@ -20,7 +20,7 @@ import {
 import { jwkToPublicArweaveAddress } from "./utils/base64";
 import { signedRequestHeadersFromJwk } from "./utils/signData";
 import { createReadStream } from "fs";
-import { ArweaveSigner } from "arbundles/node";
+import { ArweaveSigner } from "arbundles/web";
 import { createAxiosInstance } from "./utils/axiosClient";
 import { AxiosInstance } from "axios";
 

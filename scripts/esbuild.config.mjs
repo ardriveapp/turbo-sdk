@@ -1,5 +1,5 @@
 import esbuild from "esbuild";
-import { nodeBuiltIns } from "esbuild-node-builtins";
+import { polyfillNode } from "esbuild-plugin-polyfill-node";
 
 const streamPolyfillPlugin = {
   name: "polyfill-stream",
@@ -20,14 +20,21 @@ const streamPolyfillPlugin = {
 esbuild
   .build({
     platform: "browser",
-    entryPoints: [`lib-esm/index.js`],
+    entryPoints: [`src/index.ts`],
+    tsconfig: "tsconfig.esm.json",
     target: ["chrome58", "firefox57", "safari11", "edge18"],
     bundle: true,
     minify: true,
     sourcemap: true,
-    format: "esm",
-    plugins: [nodeBuiltIns(), streamPolyfillPlugin],
+    format: "iife",
+    globalName: "Turbo",
+    plugins: [
+      polyfillNode({
+        polyfills: { fs: true, crypto: true },
+      }),
+    ],
     outfile: "lib-bundles/bundle.js",
-    external: ["stream"],
+    external: ["stream/promises"],
+    treeShaking: true,
   })
   .catch(() => process.exit(1));

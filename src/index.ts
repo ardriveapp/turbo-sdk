@@ -1,5 +1,3 @@
-import { ArDriveTurbo, AuthArDriveTurbo } from "./turbo";
-
-export { ArDriveTurbo };
+import { AuthArDriveTurbo } from "./turbo";
 
 export default AuthArDriveTurbo;
