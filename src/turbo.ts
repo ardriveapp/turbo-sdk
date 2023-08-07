@@ -1,5 +1,5 @@
 import { JWKInterface } from "arweave/node/lib/wallet";
-import { createData } from "arbundles/file";
+import { createData } from "arbundles";
 import { W, Winc } from "./types/winc";
 import { ByteCount } from "./types/byteCount";
 import { Payment } from "./types/payment";
@@ -19,10 +19,11 @@ import {
 } from "./types/turboTypes";
 import { jwkToPublicArweaveAddress } from "./utils/base64";
 import { signedRequestHeadersFromJwk } from "./utils/signData";
-import { createReadStream } from "fs";
-import { ArweaveSigner } from "arbundles/web";
+import { readFileSync } from "fs";
+import { ArweaveSigner } from "arbundles";
 import { createAxiosInstance } from "./utils/axiosClient";
 import { AxiosInstance } from "axios";
+import { isBrowser } from "./constants";
 
 export class ArDriveTurbo implements Turbo {
   protected readonly paymentUrl: string;
@@ -117,26 +118,33 @@ export class AuthArDriveTurbo extends ArDriveTurbo implements AuthTurbo {
     const signer = new ArweaveSigner(this.jwk);
 
     for (const file of files) {
-      const dataItem = await createData(
-        createReadStream(file.filePath),
-        signer,
-        file.options
-      );
+      let fileData: Uint8Array;
+
+      if (isBrowser && file.data instanceof Blob) {
+        fileData = new Uint8Array(await file.data.arrayBuffer()); // Convert Blob to Uint8Array
+      } else {
+        fileData = readFileSync(file.filePath);
+      }
+
+      const dataItem = createData(fileData, signer, file.options);
       await dataItem.sign(signer);
 
-      const size = await dataItem.size();
+      const size = dataItem.data.length;
+
+      let requestData: any = dataItem.getRaw();
 
       const { data } = await this.axios.post<{
         id: string;
         owner: string;
         dataCaches: string[];
         fastFinalityIndexes: string[];
-      }>(`${this.uploadUrl}/v1/tx`, createReadStream(dataItem.filename), {
+      }>(`${this.uploadUrl}/v1/tx`, requestData, {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Length": size,
         },
       });
+
       const { dataCaches, fastFinalityIndexes, id } = data;
 
       uploadResult.dataItems[id] = {

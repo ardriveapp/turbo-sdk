@@ -59,6 +59,7 @@ export interface AuthTurbo extends Turbo {
 
 export interface UploadParams {
   filePath: string;
+  data: ReadableStream | Blob;
   options?: Partial<TransactionInterface>;
 }
 
