@@ -4,6 +4,7 @@
   "main": "index.js",
   "author": "Derek Sonnenberg <derek@ardrive.io>",
   "type": "commonjs",
+  "license": "Apache-2.0",
   "files": [
     "lib-esm",
     "lib-cjs",
