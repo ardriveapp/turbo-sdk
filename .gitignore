@@ -3,3 +3,8 @@ lib*
 coverage
 .nyc_output
 dist
+.husky/_
+
+# IDEs and editors
+.vscode
+.DS_Store

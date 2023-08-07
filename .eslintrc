@@ -1,0 +1,32 @@
+{
+    "root": true,
+    "plugins": ["@typescript-eslint", "header", "mocha", "prettier"],
+    "extends": [
+      "standard-with-typescript",
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:mocha/recommended",
+      "prettier"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "project": "tsconfig.json"
+    },
+    "rules": {
+      "header/header": ["error", "./resources/license.header.js"],
+      "@typescript-eslint/consistent-type-imports": "off",
+      "@typescript-eslint/no-floating-promises": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/return-await": "off",
+      "mocha/no-mocha-arrows": "off",
+      "@typescript-eslint/strict-boolean-expressions": [
+        "error",
+        {
+          "allowNullableObject": true,
+          "allowNullableBoolean": true,
+          "allowAny": true
+        }
+      ]
+    }
+  }
