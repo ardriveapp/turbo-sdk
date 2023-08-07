@@ -1,6 +1,6 @@
 <html>
   <head>
-    <script src="./lib-bundles/bundle.js"></script>
+    <script src="./dist/ardrive-turbo-sdk.umd.cjs"></script>
     <style>
       /* Center the button */
       body {
@@ -21,7 +21,7 @@
     <button>Get Balance</button>
 
     <script>
-      const turbo = new AuthArDriveTurbo({
+      const turbo = new Turbo({
         jwk: {
           stub: "wallet",
         },
