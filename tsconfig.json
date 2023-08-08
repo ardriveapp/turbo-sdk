@@ -20,5 +20,8 @@
     "strictNullChecks": true
   },
   "include": ["src", "tests"],
-  "exclude": ["dist", "**/*.test.ts", "node_modules"]
+  "exclude": ["dist", "**/*.test.ts", "node_modules"],
+  "ts-node": {
+    "experimentalSpecifierResolution": "node"
+  }
 }

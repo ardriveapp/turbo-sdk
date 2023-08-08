@@ -131,7 +131,7 @@ export class AuthArDriveTurbo extends ArDriveTurbo implements AuthTurbo {
 
       const size = dataItem.data.length;
 
-      let requestData: any = dataItem.getRaw();
+      const requestData: any = dataItem.getRaw();
 
       const { data } = await this.axios.post<{
         id: string;
@@ -153,7 +153,7 @@ export class AuthArDriveTurbo extends ArDriveTurbo implements AuthTurbo {
         fastFinalityIndexes,
       };
     }
-
+    
     return uploadResult;
   }
 }
