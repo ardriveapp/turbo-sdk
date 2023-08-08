@@ -1,5 +1,5 @@
 import { JWKInterface } from "arweave/node/lib/wallet";
-import { createData } from "arbundles";
+import { createData , ArweaveSigner } from "arbundles";
 import { W, Winc } from "./types/winc";
 import { ByteCount } from "./types/byteCount";
 import { Payment } from "./types/payment";
@@ -20,7 +20,6 @@ import {
 import { jwkToPublicArweaveAddress } from "./utils/base64";
 import { signedRequestHeadersFromJwk } from "./utils/signData";
 import { readFileSync } from "fs";
-import { ArweaveSigner } from "arbundles";
 import { createAxiosInstance } from "./utils/axiosClient";
 import { AxiosInstance } from "axios";
 import { isBrowser } from "./constants";
@@ -32,7 +31,7 @@ export class ArDriveTurbo implements Turbo {
 
   constructor({
     paymentUrl = "https://payment.ardrive.dev",
-    uploadUrl = /* "http://localhost:3000",*/ "https://upload.ardrive.dev",
+    uploadUrl = /* "http://localhost:3000", */ "https://upload.ardrive.dev",
     axiosClient = createAxiosInstance({
       config: { validateStatus: () => true },
     }),
@@ -48,10 +47,12 @@ export class ArDriveTurbo implements Turbo {
     // TODO
     return W(byteCount.toString());
   }
+
   public async getWincEstimationForPayment(payment: Payment): Promise<Winc> {
     // TODO
     return W(payment.amount);
   }
+
   public async getTopUpCheckoutSession({
     destinationAddress,
     payment,
@@ -131,7 +132,7 @@ export class AuthArDriveTurbo extends ArDriveTurbo implements AuthTurbo {
 
       const size = dataItem.data.length;
 
-      const requestData: any = dataItem.getRaw();
+      const requestData: unknown = dataItem.getRaw();
 
       const { data } = await this.axios.post<{
         id: string;
