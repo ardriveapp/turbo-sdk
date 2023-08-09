@@ -2,7 +2,11 @@
   "name": "ardrive-turbo-sdk",
   "version": "1.0.0",
   "main": "index.js",
-  "author": "Derek Sonnenberg <derek@ardrive.io>",
+  "author": {
+		"name": "Permanent Data Solutions Inc",
+		"email": "info@ardrive.io",
+		"website": "https://ardrive.io"
+	},
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
