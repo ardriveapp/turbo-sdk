@@ -24,3 +24,17 @@ jobs:
 
             - name: Test and Build Codebase
               run: yarn ci
+    
+    release:
+      runs-on: ubuntu-latest
+      needs: build
+      if: github.ref == 'refs/heads/main'
+      steps:
+        - uses: actions/checkout@v3
+        - run: yarn build
+        - name: Release
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            NPM_TOKEN: ${{ secrets.npm_token }}
+          run: yarn semantic-release
+

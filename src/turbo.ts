@@ -1,5 +1,21 @@
+/**
+ * Copyright (C) 2022-2023 Permanent Data Solutions, Inc. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 import { JWKInterface } from "arweave/node/lib/wallet";
-import { createData } from "arbundles/file";
+import { createData , ArweaveSigner } from "arbundles";
 import { W, Winc } from "./types/winc";
 import { ByteCount } from "./types/byteCount";
 import { Payment } from "./types/payment";
@@ -19,10 +35,10 @@ import {
 } from "./types/turboTypes";
 import { jwkToPublicArweaveAddress } from "./utils/base64";
 import { signedRequestHeadersFromJwk } from "./utils/signData";
-import { createReadStream } from "fs";
-import { ArweaveSigner } from "arbundles/web";
+import { readFileSync } from "fs";
 import { createAxiosInstance } from "./utils/axiosClient";
 import { AxiosInstance } from "axios";
+import { isBrowser } from "./constants";
 
 export class ArDriveTurbo implements Turbo {
   protected readonly paymentUrl: string;
@@ -31,7 +47,7 @@ export class ArDriveTurbo implements Turbo {
 
   constructor({
     paymentUrl = "https://payment.ardrive.dev",
-    uploadUrl = /* "http://localhost:3000",*/ "https://upload.ardrive.dev",
+    uploadUrl = /* "http://localhost:3000", */ "https://upload.ardrive.dev",
     axiosClient = createAxiosInstance({
       config: { validateStatus: () => true },
     }),
@@ -47,10 +63,12 @@ export class ArDriveTurbo implements Turbo {
     // TODO
     return W(byteCount.toString());
   }
+
   public async getWincEstimationForPayment(payment: Payment): Promise<Winc> {
     // TODO
     return W(payment.amount);
   }
+
   public async getTopUpCheckoutSession({
     destinationAddress,
     payment,
@@ -70,7 +88,9 @@ export class ArDriveTurbo implements Turbo {
   }): Promise<TopUpPaymentIntent> {
     // TODO
     return {
-      paymentIntent: {},
+      paymentIntent: {
+        id: "TODO",
+      },
       topUpQuote: { destinationAddress, paymentAmount: payment.amount },
     };
   }
@@ -117,26 +137,33 @@ export class AuthArDriveTurbo extends ArDriveTurbo implements AuthTurbo {
     const signer = new ArweaveSigner(this.jwk);
 
     for (const file of files) {
-      const dataItem = await createData(
-        createReadStream(file.filePath),
-        signer,
-        file.options
-      );
+      let fileData: Uint8Array;
+
+      if (isBrowser && file.data instanceof Blob) {
+        fileData = new Uint8Array(await file.data.arrayBuffer()); // Convert Blob to Uint8Array
+      } else {
+        fileData = readFileSync(file.filePath);
+      }
+
+      const dataItem = createData(fileData, signer, file.options);
       await dataItem.sign(signer);
 
-      const size = await dataItem.size();
+      const size = dataItem.data.length;
+
+      const requestData: unknown = dataItem.getRaw();
 
       const { data } = await this.axios.post<{
         id: string;
         owner: string;
         dataCaches: string[];
         fastFinalityIndexes: string[];
-      }>(`${this.uploadUrl}/v1/tx`, createReadStream(dataItem.filename), {
+      }>(`${this.uploadUrl}/v1/tx`, requestData, {
         headers: {
           "Content-Type": "application/octet-stream",
           "Content-Length": size,
         },
       });
+
       const { dataCaches, fastFinalityIndexes, id } = data;
 
       uploadResult.dataItems[id] = {
@@ -145,7 +172,7 @@ export class AuthArDriveTurbo extends ArDriveTurbo implements AuthTurbo {
         fastFinalityIndexes,
       };
     }
-
+    
     return uploadResult;
   }
 }

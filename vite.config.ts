@@ -1,27 +1,24 @@
-import path from "path";
 import { defineConfig } from "vite";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
-  base: "./",
-  plugins: [nodePolyfills({})],
   build: {
-    sourcemap: true,
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: "src/index.ts",
       name: "Turbo",
-      // formats: ["es", "cjs", "umd", "iife"],
-      fileName: (format) => `index.${format}.js`,
+      formats: ["es", "cjs", "umd"],
     },
-    outDir: "lib",
     rollupOptions: {
-      // Manually polyfill the 'stream' module with Promises
-      external: ["stream"],
+      external: ["fs", /^node_modules/],
       output: {
         globals: {
-          stream: "stream",
+          // add here any external dependency
         },
       },
+    },
+  },
+  resolve: {
+    alias: {
+      crypto: "crypto-browserify",
     },
   },
 });

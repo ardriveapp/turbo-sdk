@@ -3,8 +3,8 @@
     "target": "es6",
     "module": "CommonJS",
     "declaration": true,
-    "moduleResolution": "NodeNext",
-    "outDir": "./lib",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
     "alwaysStrict": true,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
@@ -19,5 +19,9 @@
     "skipLibCheck": true,
     "strictNullChecks": true
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests"],
+  "exclude": ["dist", "**/*.test.ts", "node_modules"],
+  "ts-node": {
+    "experimentalSpecifierResolution": "node"
+  }
 }

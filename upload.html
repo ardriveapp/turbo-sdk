@@ -1,6 +1,6 @@
 <html>
   <head>
-    <script src="./lib-bundles/bundle.js"></script>
+    <script src="./dist/ardrive-turbo-sdk.umd.cjs"></script>
     <style>
       /* Center the button */
       body {
@@ -22,7 +22,7 @@
     <button onclick="openFilePicker()">Choose File(s)</button>
 
     <script>
-      const turbo = new ArDriveTurboSDK.AuthArDriveTurbo({
+      const turbo = new Turbo({
         jwk: {
           stub: "wallet",
         },
