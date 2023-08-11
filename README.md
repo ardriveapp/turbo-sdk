@@ -29,6 +29,67 @@ import Turbo from 'ardrive-turbo-sdk'
 const turbo = {}
 ```
 
+Creating a wallet
+
+```javascript
+
+```
+
+Funding a wallet
+
+```javascript
+
+```
+
+Uploading a file
+
+```javascript
+
+```
+
+Uploading a folder
+
+```javascript
+
+```
+
+Uploading multiple files
+
+```javascript
+
+```
+
+Retrieving balance
+
+```javascript
+
+```
+
+Gifting balance
+
+```javascript
+
+```
+
+Retriving and using promotions
+
+```javascript
+
+```
+
+List uploaded files
+
+```javascript
+
+```
+
+Get file data
+
+```javascript
+
+```
+
+
 
 ## Contributing
 
@@ -62,16 +123,36 @@ Here are some related projects
 
 ## FAQ
 
-#### Question 1
+#### What is Arweave?
 
-Answer 1
+Answer 
 
-#### Question 2
+#### What is Turbo?
 
-Answer 2
+Answer 
+
+#### How do I create a wallet? How does it work?
+
+Answer 
+
+#### What are the benefits of using turbo?
+
+Answer 
+
+#### What are the benefits of using turbo?
+
+Answer 
+
+#### Where can I use this SDK?
+
+Answer 
+
+#### Which countries and currencies are supported?
+
+Answer 
 
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+[AGPL](https://choosealicense.com/licenses/agpl-3.0/)
 
