@@ -1,26 +1,26 @@
 {
-    "root": true,
-    "plugins": ["@typescript-eslint", "mocha", "prettier", "header"],
-    "extends": [
-      "standard-with-typescript",
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:mocha/recommended",
-      "prettier"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "rules": {
-      "@typescript-eslint/consistent-type-imports": "off",
-      "mocha/no-mocha-arrows": "off",
-      "header/header": ["error", "resources/license.header.js"],
-      "@typescript-eslint/strict-boolean-expressions": [
-        "error",
-        {
-          "allowNullableObject": true,
-          "allowNullableBoolean": true,
-          "allowAny": true
-        }
-      ]
-    }
+  "root": true,
+  "plugins": ["@typescript-eslint", "mocha", "prettier", "header"],
+  "extends": [
+    "standard-with-typescript",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:mocha/recommended",
+    "prettier"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "rules": {
+    "@typescript-eslint/consistent-type-imports": "off",
+    "mocha/no-mocha-arrows": "off",
+    "header/header": ["error", "resources/license.header.js"],
+    "@typescript-eslint/strict-boolean-expressions": [
+      "error",
+      {
+        "allowNullableObject": true,
+        "allowNullableBoolean": true,
+        "allowAny": true
+      }
+    ]
   }
+}

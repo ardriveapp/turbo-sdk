@@ -8,8 +8,8 @@ describe("PositiveFiniteInteger class", () => {
       const posPositiveFiniteIntegerInputs = [0, 1, Number.MAX_SAFE_INTEGER];
       posPositiveFiniteIntegerInputs.forEach((posPositiveFiniteInteger) =>
         expect(
-          () => new PositiveFiniteInteger(posPositiveFiniteInteger)
-        ).to.not.throw(Error)
+          () => new PositiveFiniteInteger(posPositiveFiniteInteger),
+        ).to.not.throw(Error),
       );
     });
 
@@ -24,8 +24,8 @@ describe("PositiveFiniteInteger class", () => {
       posPositiveFiniteIntegerInputs.forEach((posPositiveFiniteInteger) =>
         expect(
           () => new PositiveFiniteInteger(posPositiveFiniteInteger),
-          `${posPositiveFiniteInteger} should throw`
-        ).to.throw(Error)
+          `${posPositiveFiniteInteger} should throw`,
+        ).to.throw(Error),
       );
     });
   });
@@ -74,7 +74,7 @@ describe("PositiveFiniteInteger class", () => {
     it("returns the correct JSON value", () => {
       const posPositiveFiniteInteger = new PositiveFiniteInteger(12345);
       expect(JSON.stringify({ posPositiveFiniteInteger })).to.equal(
-        '{"posPositiveFiniteInteger":12345}'
+        '{"posPositiveFiniteInteger":12345}',
       );
     });
   });
@@ -84,7 +84,7 @@ describe("PositiveFiniteInteger class", () => {
       expect(
         new PositiveFiniteInteger(1)
           .plus(new PositiveFiniteInteger(2))
-          .toString()
+          .toString(),
       ).to.equal("3");
     });
   });
@@ -94,13 +94,13 @@ describe("PositiveFiniteInteger class", () => {
       expect(
         new PositiveFiniteInteger(2)
           .minus(new PositiveFiniteInteger(1))
-          .toString()
+          .toString(),
       ).to.equal("1");
     });
 
     it("throws an error when the subtraction result is less than 0", () => {
       expect(() =>
-        new PositiveFiniteInteger(1).minus(new PositiveFiniteInteger(2))
+        new PositiveFiniteInteger(1).minus(new PositiveFiniteInteger(2)),
       ).to.throw(Error);
     });
   });
@@ -108,19 +108,25 @@ describe("PositiveFiniteInteger class", () => {
   describe("isGreaterThan function", () => {
     it("returns false when other PositiveFiniteInteger is greater", () => {
       expect(
-        new PositiveFiniteInteger(1).isGreaterThan(new PositiveFiniteInteger(2))
+        new PositiveFiniteInteger(1).isGreaterThan(
+          new PositiveFiniteInteger(2),
+        ),
       ).to.be.false;
     });
 
     it("returns true when other PositiveFiniteInteger is lesser", () => {
       expect(
-        new PositiveFiniteInteger(2).isGreaterThan(new PositiveFiniteInteger(1))
+        new PositiveFiniteInteger(2).isGreaterThan(
+          new PositiveFiniteInteger(1),
+        ),
       ).to.be.true;
     });
 
     it("returns false when other PositiveFiniteInteger is equal", () => {
       expect(
-        new PositiveFiniteInteger(2).isGreaterThan(new PositiveFiniteInteger(2))
+        new PositiveFiniteInteger(2).isGreaterThan(
+          new PositiveFiniteInteger(2),
+        ),
       ).to.be.false;
     });
   });
@@ -129,24 +135,24 @@ describe("PositiveFiniteInteger class", () => {
     it("returns false when other PositiveFiniteInteger is greater", () => {
       expect(
         new PositiveFiniteInteger(1).isGreaterThanOrEqualTo(
-          new PositiveFiniteInteger(2)
-        )
+          new PositiveFiniteInteger(2),
+        ),
       ).to.be.false;
     });
 
     it("returns true when other PositiveFiniteInteger is lesser", () => {
       expect(
         new PositiveFiniteInteger(2).isGreaterThanOrEqualTo(
-          new PositiveFiniteInteger(1)
-        )
+          new PositiveFiniteInteger(1),
+        ),
       ).to.be.true;
     });
 
     it("returns true when other PositiveFiniteInteger is equal", () => {
       expect(
         new PositiveFiniteInteger(2).isGreaterThanOrEqualTo(
-          new PositiveFiniteInteger(2)
-        )
+          new PositiveFiniteInteger(2),
+        ),
       ).to.be.true;
     });
   });

@@ -20,7 +20,7 @@ import { JWKInterface } from "./jwkTypes";
 import Arweave from "arweave";
 
 export function jwkToPublicArweaveAddress(
-  jwk: JWKInterface
+  jwk: JWKInterface,
 ): PublicArweaveAddress {
   return ownerToAddress(jwk.n);
 }

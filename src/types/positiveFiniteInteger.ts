@@ -37,13 +37,13 @@ export class PositiveFiniteInteger implements Equatable<PositiveFiniteInteger> {
 
   plus(positiveFiniteInteger: PositiveFiniteInteger): PositiveFiniteInteger {
     return new PositiveFiniteInteger(
-      this.positiveFiniteInteger + positiveFiniteInteger.positiveFiniteInteger
+      this.positiveFiniteInteger + positiveFiniteInteger.positiveFiniteInteger,
     );
   }
 
   minus(positiveFiniteInteger: PositiveFiniteInteger): PositiveFiniteInteger {
     return new PositiveFiniteInteger(
-      this.positiveFiniteInteger - positiveFiniteInteger.positiveFiniteInteger
+      this.positiveFiniteInteger - positiveFiniteInteger.positiveFiniteInteger,
     );
   }
 
@@ -54,7 +54,7 @@ export class PositiveFiniteInteger implements Equatable<PositiveFiniteInteger> {
   }
 
   isGreaterThanOrEqualTo(
-    positiveFiniteInteger: PositiveFiniteInteger
+    positiveFiniteInteger: PositiveFiniteInteger,
   ): boolean {
     return (
       this.positiveFiniteInteger >= positiveFiniteInteger.positiveFiniteInteger

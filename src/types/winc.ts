@@ -35,13 +35,13 @@ export class Winc {
 
   times(multiplier: BigNumber.Value): Winc {
     return W(
-      this.amount.times(multiplier).decimalPlaces(0, BigNumber.ROUND_DOWN)
+      this.amount.times(multiplier).decimalPlaces(0, BigNumber.ROUND_DOWN),
     );
   }
 
   dividedBy(
     divisor: BigNumber.Value,
-    round: "ROUND_DOWN" | "ROUND_CEIL" = "ROUND_CEIL"
+    round: "ROUND_DOWN" | "ROUND_CEIL" = "ROUND_CEIL",
   ): Winc {
     // TODO: Best rounding strategy? Up or down?
     return W(
@@ -49,8 +49,8 @@ export class Winc {
         .dividedBy(divisor)
         .decimalPlaces(
           0,
-          round === "ROUND_DOWN" ? BigNumber.ROUND_DOWN : BigNumber.ROUND_CEIL
-        )
+          round === "ROUND_DOWN" ? BigNumber.ROUND_DOWN : BigNumber.ROUND_CEIL,
+        ),
     );
   }
 
@@ -81,7 +81,7 @@ export class Winc {
   static max(...Wincs: Winc[]): Winc {
     BigNumber.max();
     return Wincs.reduce((max, next) =>
-      next.amount.isGreaterThan(max.amount) ? next : max
+      next.amount.isGreaterThan(max.amount) ? next : max,
     );
   }
 }

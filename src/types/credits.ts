@@ -28,7 +28,7 @@ export class AR {
       throw new Error(
         `The AR amount must have a maximum of 12 digits of precision, but got ${
           numDecimalPlaces + 12
-        }`
+        }`,
       );
     }
     return new AR(W(bigWinc));

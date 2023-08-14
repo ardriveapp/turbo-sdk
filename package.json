@@ -4,10 +4,10 @@
   "main": "index.js",
   "files": "dist",
   "author": {
-		"name": "Permanent Data Solutions Inc",
-		"email": "info@ardrive.io",
-		"website": "https://ardrive.io"
-	},
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ardrive.io",
+    "website": "https://ardrive.io"
+  },
   "type": "module",
   "license": "AGPL-3.0-or-later",
   "scripts": {
@@ -25,7 +25,8 @@
     "arbundles": "^0.9.8",
     "arweave": "^1.13.7",
     "axios": "^1.4.0",
-    "axios-retry": "^3.5.0"
+    "axios-retry": "^3.5.0",
+    "winston": "^3.10.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",
@@ -52,8 +53,8 @@
     "eslint": "^8.46.0",
     "eslint-config-prettier": "^8.10.0",
     "eslint-config-standard-with-typescript": "^37.0.0",
-    "eslint-plugin-import": "^2.28.0",
     "eslint-plugin-header": "^3.1.1",
+    "eslint-plugin-import": "^2.28.0",
     "eslint-plugin-mocha": "^10.1.0",
     "eslint-plugin-n": "^16.0.1",
     "eslint-plugin-prettier": "^5.0.0",
@@ -73,6 +74,7 @@
     "stream-browserify": "^3.0.0",
     "ts-loader": "^9.4.4",
     "ts-node": "^10.9.1",
+    "ts-node-esm": "^0.0.6",
     "typescript": "^5.1.6",
     "vite": "^4.3.9",
     "vite-plugin-node-polyfills": "^0.9.0"

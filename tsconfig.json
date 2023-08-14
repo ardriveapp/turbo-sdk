@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "module": "CommonJS",
+    "module": "es6",
     "declaration": true,
     "moduleResolution": "Node",
     "outDir": "./dist",
@@ -22,6 +22,7 @@
   "include": ["src", "tests"],
   "exclude": ["dist", "**/*.test.ts", "node_modules"],
   "ts-node": {
-    "experimentalSpecifierResolution": "node"
+    "experimentalSpecifierResolution": "node",
+    "esm": true
   }
 }

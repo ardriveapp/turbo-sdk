@@ -9,9 +9,7 @@ module.exports = {
   spec: ["tests/**/*.test.ts", "src/**/*.test.ts"], // Add this to target spec files: ,"tests/**/*.spec.ts"
   require: ["ts-node/register/transpile-only"],
   timeout: "10000", // 10 seconds
-  parallel: true,
+  parallel: false,
   recursive: true,
-  afterEach() {
-    restore();
-  },
+  loader: "ts-node/esm",
 };

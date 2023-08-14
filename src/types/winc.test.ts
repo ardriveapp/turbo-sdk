@@ -44,7 +44,7 @@ describe("Winc class", () => {
       expect(
         new Winc(Number.MAX_SAFE_INTEGER)
           .plus(new Winc(Number.MAX_SAFE_INTEGER))
-          .toString()
+          .toString(),
       ).to.equal("18014398509481982");
     });
   });
@@ -58,7 +58,7 @@ describe("Winc class", () => {
       expect(
         new Winc("18014398509481982")
           .minus(new Winc(Number.MAX_SAFE_INTEGER))
-          .toString()
+          .toString(),
       ).to.equal("9007199254740991");
     });
 
@@ -75,17 +75,17 @@ describe("Winc class", () => {
 
     it("correctly multiplies Winc values by whole and fractional BigNumbers", () => {
       expect(new Winc(2).times(Number.MAX_SAFE_INTEGER).toString()).to.equal(
-        "18014398509481982"
+        "18014398509481982",
       );
       expect(new Winc(2).times("18014398509481982").toString()).to.equal(
-        "36028797018963964"
+        "36028797018963964",
       );
     });
 
     it("rounds down multiplications that result in fractional numbers", () => {
       expect(new Winc(2).times(1.6).toString()).to.equal("3");
       expect(new Winc(Number.MAX_SAFE_INTEGER).times(1.5).toString()).to.equal(
-        "13510798882111486"
+        "13510798882111486",
       );
     });
 
@@ -104,26 +104,26 @@ describe("Winc class", () => {
       expect(
         new Winc("18014398509481982")
           .dividedBy(Number.MAX_SAFE_INTEGER)
-          .toString()
+          .toString(),
       ).to.equal("2");
       expect(
         new Winc("36028797018963965")
           .dividedBy("18014398509481982.5")
-          .toString()
+          .toString(),
       ).to.equal("2");
     });
 
     it("rounds up divisions that result in fractional numbers by default", () => {
       expect(new Winc(3).dividedBy(2).toString()).to.equal("2");
       expect(new Winc("13510798882111487").dividedBy(2).toString()).to.equal(
-        "6755399441055744"
+        "6755399441055744",
       );
     });
 
     it("rounds down divisions that result in fractional numbers when ROUND_DOWN is specified", () => {
       expect(new Winc(3).dividedBy(2, "ROUND_DOWN").toString()).to.equal("1");
       expect(new Winc("13510798882111487").dividedBy(2).toString()).to.equal(
-        "6755399441055744"
+        "6755399441055744",
       );
     });
 
@@ -175,7 +175,7 @@ describe("Winc class", () => {
       expect(new Winc(0).toString()).to.equal("0");
       expect(new Winc(1).toString()).to.equal("1");
       expect(new Winc("18014398509481982").toString()).to.equal(
-        "18014398509481982"
+        "18014398509481982",
       );
     });
   });
@@ -185,7 +185,7 @@ describe("Winc class", () => {
       expect(new Winc(0).valueOf()).to.equal("0");
       expect(new Winc(1).valueOf()).to.equal("1");
       expect(new Winc("18014398509481982").valueOf()).to.equal(
-        "18014398509481982"
+        "18014398509481982",
       );
     });
   });
@@ -197,8 +197,8 @@ describe("Winc class", () => {
           new Winc("18014398509481982"),
           new Winc(Number.MAX_SAFE_INTEGER),
           new Winc(1),
-          new Winc(0)
-        )}`
+          new Winc(0),
+        )}`,
       ).to.equal("18014398509481982");
     });
   });

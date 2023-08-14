@@ -18,7 +18,7 @@ describe("AR class", () => {
       expect(() => AR.from("1.123456789012")).to.not.throw(Error);
       expect(() => AR.from("18014398509481982")).to.not.throw(Error);
       expect(() => AR.from("18014398509481982.123456789012")).to.not.throw(
-        Error
+        Error,
       );
     });
 
@@ -45,10 +45,10 @@ describe("AR class", () => {
     it("returns the AR value as a BigNumber string", () => {
       expect(AR.from(0).toString()).to.equal("0");
       expect(AR.from("18014398509481982").toString()).to.equal(
-        "18014398509481982"
+        "18014398509481982",
       );
       expect(AR.from("18014398509481982.123456789012").toString()).to.equal(
-        "18014398509481982.123456789012"
+        "18014398509481982.123456789012",
       );
     });
   });
@@ -57,10 +57,10 @@ describe("AR class", () => {
     it("returns the AR value as a BigNumber string", () => {
       expect(AR.from(0).valueOf()).to.equal("0");
       expect(AR.from("18014398509481982").valueOf()).to.equal(
-        "18014398509481982"
+        "18014398509481982",
       );
       expect(AR.from("18014398509481982.123456789012").valueOf()).to.equal(
-        "18014398509481982.123456789012"
+        "18014398509481982.123456789012",
       );
     });
   });
@@ -68,7 +68,7 @@ describe("AR class", () => {
   describe("toWinc function", () => {
     it("returns the Winc value as a BigNumber string", () => {
       expect(
-        AR.from("18014398509481982.123456789012").toWinc().toString()
+        AR.from("18014398509481982.123456789012").toWinc().toString(),
       ).to.equal("18014398509481982123456789012");
     });
   });

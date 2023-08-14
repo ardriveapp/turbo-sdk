@@ -18,16 +18,16 @@ import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import axiosRetry from "axios-retry";
 
 export interface CreateAxiosInstanceParams {
-  config?: AxiosRequestConfig;
-  retries?: number;
-  retryDelay?: (retryNumber: number) => number;
+  config: AxiosRequestConfig;
+  retries: number;
+  retryDelay: (retryNumber: number) => number;
 }
 
 export const createAxiosInstance = ({
   config = {},
-  retries = 8,
+  retries = 3,
   retryDelay = axiosRetry.exponentialDelay,
-}: CreateAxiosInstanceParams): AxiosInstance => {
+}: Partial<CreateAxiosInstanceParams>): AxiosInstance => {
   const axiosInstance = axios.create(config);
   if (retries > 0) {
     axiosRetry(axiosInstance, {
