@@ -1,14 +1,15 @@
 {
   "name": "ardrive-turbo-sdk",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "main": "index.js",
+  "files": "dist",
   "author": {
 		"name": "Permanent Data Solutions Inc",
 		"email": "info@ardrive.io",
 		"website": "https://ardrive.io"
 	},
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "build": "vite build",
     "postinstall": "husky install",
@@ -17,7 +18,8 @@
     "format": "prettier --write .",
     "test": "nyc mocha",
     "docker-test": "bash \"tests/docker-test.sh\"",
-    "ci": "yarn build && yarn docker-test"
+    "ci": "yarn build && yarn docker-test",
+    "prepare": "husky install"
   },
   "dependencies": {
     "arbundles": "^0.9.8",

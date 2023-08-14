@@ -10,14 +10,8 @@
       "prettier"
     ],
     "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-      "project": "tsconfig.json"
-    },
     "rules": {
       "@typescript-eslint/consistent-type-imports": "off",
-      "@typescript-eslint/no-floating-promises": "off",
-      "@typescript-eslint/no-unused-expressions": "off",
-      "@typescript-eslint/return-await": "off",
       "mocha/no-mocha-arrows": "off",
       "header/header": ["error", "resources/license.header.js"],
       "@typescript-eslint/strict-boolean-expressions": [
