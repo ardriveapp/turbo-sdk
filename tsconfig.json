@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "lib": ["esnext", "dom"],
+    "outDir": "./lib",
+    "listEmittedFiles": false,
+    "listFiles": false,
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
+    "alwaysStrict": true,
+    "types": ["node", "mocha"],
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    /* Additional Checks */
+    "pretty": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true
+  },
+  "include": ["src", "**/*.cjs"],
+  "exclude": ["lib", "node_modules"]
+}
