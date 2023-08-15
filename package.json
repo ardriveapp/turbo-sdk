@@ -37,6 +37,7 @@
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "@trivago/prettier-plugin-sort-imports": "^4.2.0",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.4.8",

@@ -2,21 +2,22 @@
   "root": true,
   "plugins": ["@typescript-eslint", "mocha", "prettier", "header"],
   "extends": [
-    "standard-with-typescript",
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:mocha/recommended",
-    "prettier"
+    "plugin:prettier/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "project": "./tsconfig.json"
   },
   "rules": {
-    "@typescript-eslint/consistent-type-imports": "off",
     "mocha/no-mocha-arrows": "off",
     "header/header": ["error", "resources/license.header.js"],
+    "@typescript-eslint/consistent-type-imports": "off",
     "@typescript-eslint/strict-boolean-expressions": [
       "error",
       {
