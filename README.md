@@ -1,3 +1,3 @@
-# ardrive-turbo-sdk
+# turbo-sdk
 
 Hello developer, welcome to this SDK!!
