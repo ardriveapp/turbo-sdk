@@ -1,11 +1,15 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "module": "es6",
+    "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "moduleResolution": "Node",
-    "outDir": "./dist",
+    "lib": ["esnext", "dom"],
+    "outDir": "./lib/cjs",
+    "listEmittedFiles": false,
+    "listFiles": false,
+    "moduleResolution": "node",
     "alwaysStrict": true,
+    "types": ["node", "mocha"],
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -19,10 +23,6 @@
     "skipLibCheck": true,
     "strictNullChecks": true
   },
-  "include": ["src", "tests"],
-  "exclude": ["dist", "**/*.test.ts", "node_modules"],
-  "ts-node": {
-    "experimentalSpecifierResolution": "node",
-    "esm": true
-  }
+  "include": ["src"],
+  "exclude": ["lib", "**/*.test.ts", "node_modules"],
 }

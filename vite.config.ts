@@ -1,20 +1,26 @@
 import { defineConfig } from "vite";
-import path from "path";
+import nodeResolve from "@rollup/plugin-node-resolve";
 
 export default defineConfig({
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
       name: "Turbo",
-      formats: ["es", "cjs", "umd"],
+      formats: ["es", "cjs"],
+      entry: "src/node/index.ts",
     },
     rollupOptions: {
-      external: ["fs", /^node_modules/],
-      output: {
-        globals: {
-          // add here any external dependency
+      output: [
+        {
+          dir: "lib/esm", // For ES Modules format (browser and modern JS)
+          entryFileNames: "[name].es.mjs",
+          plugins: [nodeResolve],
         },
-      },
+        {
+          dir: "lib/cjs", // For ES Modules format (browser and modern JS)
+          entryFileNames: "[name].cjs.js",
+          plugins: [nodeResolve],
+        },
+      ],
     },
   },
   resolve: {

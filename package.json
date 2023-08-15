@@ -1,24 +1,35 @@
 {
-  "name": "ardrive-turbo-sdk",
+  "name": "@ardriveapp/turbo-sdk",
   "version": "0.0.1",
-  "main": "index.js",
-  "files": "dist",
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/cjs/index.js",
+  "browser": "./lib/esm/index.js",
+  "files": [
+    "lib"
+  ],
   "author": {
     "name": "Permanent Data Solutions Inc",
     "email": "info@ardrive.io",
     "website": "https://ardrive.io"
   },
-  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./lib/esm/index.js",
+      "require": "./lib/cjs/index.js"
+    }
+  },
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "build": "vite build",
+    "build": "yarn clean && yarn build:cjs && yarn build:esm && ./fixup.sh && cp package.json README.md LICENSE.md ./lib",
+    "clean": "rimraf [ lib coverage .nyc_output ]",
+    "build:cjs": "tsc -p tsconfig.json && vite build",
+    "build:esm": "tsc -p tsconfig.esm.json && vite build",
     "postinstall": "husky install",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "format": "prettier --write .",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
     "test": "nyc mocha",
-    "docker-test": "bash \"tests/docker-test.sh\"",
-    "ci": "yarn build && yarn docker-test",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -26,6 +37,9 @@
     "arweave": "^1.13.7",
     "axios": "^1.4.0",
     "axios-retry": "^3.5.0",
+    "stream-to": "^2.0.0",
+    "stream-to-array": "^2.3.0",
+    "stream-to-buffer": "^0.1.0",
     "winston": "^3.10.0"
   },
   "devDependencies": {
@@ -35,6 +49,7 @@
     "@commitlint/config-conventional": "^17.1.0",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@rollup/plugin-node-resolve": "^15.1.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@solana/wallet-adapter-base": "^0.9.22",
@@ -77,7 +92,8 @@
     "ts-node-esm": "^0.0.6",
     "typescript": "^5.1.6",
     "vite": "^4.3.9",
-    "vite-plugin-node-polyfills": "^0.9.0"
+    "vite-plugin-node-polyfills": "^0.9.0",
+    "web-streams-polyfill": "^3.2.1"
   },
   "repository": "https://github.com/ardriveapp/ardrive-turbo-sdk.git"
 }
