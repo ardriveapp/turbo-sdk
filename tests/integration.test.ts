@@ -1,21 +1,22 @@
 import { expect } from "chai";
-import Turbo from "../src";
 import Arweave from "arweave";
 import { JWKInterface } from "../src/utils/jwkTypes";
 import { base64URLRegex } from "../src/utils/regex";
-
+import { TurboClient as NodeTurboClient } from "../src/node";
+import { TurboClient as WebTurboClient } from "../src/web";
+import path from "path";
 describe("ArDrive Turbo", () => {
   let jwk: JWKInterface;
-  let turbo: Turbo;
+  let turbo: NodeTurboClient;
 
   before(async () => {
     jwk = await Arweave.crypto.generateJWK();
-    turbo = new Turbo({ jwk });
+    turbo = new NodeTurboClient({ jwk });
   });
 
-  describe("getWincBalance", () => {
-    it("works", async () => {
-      const turbo = new Turbo({
+  describe("public methods", () => {
+    it("getWincBalance()", async () => {
+      const turbo = new NodeTurboClient({
         jwk,
       });
       const balance = await turbo.getWincBalance();
@@ -26,21 +27,63 @@ describe("ArDrive Turbo", () => {
 
   describe("upload files", () => {
     it("works", async () => {
-      const { dataItems, ownerAddress } = await turbo.upload([
-        { filePath: "tests/stubFiles/1KiB.txt" },
-      ]);
-
+      const localDataItems = [
+        { filePath: path.join(__dirname, "stubFiles/1KiB.txt") },
+      ];
+      const uploadDataItemsResponse = await turbo.upload(localDataItems);
+      const { ownerAddress, dataItems } = uploadDataItemsResponse;
+      const dataItemIds = Object.keys(dataItems);
       expect(ownerAddress).to.have.match(base64URLRegex);
-      const entries = Object.entries(dataItems);
+      expect(dataItemIds.length).to.equal(localDataItems.length);
+      for (const [dataItemId, uploadResults] of Object.entries(dataItems)) {
+        expect(dataItemId).to.match(base64URLRegex);
+        expect(uploadResults.dataCaches).to.deep.equal(["arweave.net"]);
+        expect(uploadResults.fastFinalityIndexes).to.deep.equal([
+          "arweave.net",
+        ]);
+      }
+    });
+  });
+});
 
-      expect(entries.length).to.equal(1);
+describe("WebTurboClient", () => {
+  let jwk: JWKInterface;
+  let turbo: WebTurboClient;
 
-      const dataItemId = entries[0][0];
-      expect(dataItemId).to.match(base64URLRegex);
+  before(async () => {
+    jwk = await Arweave.crypto.generateJWK();
+    turbo = new WebTurboClient({ jwk });
+  });
 
-      expect(entries[0][1].byteCount.toString()).to.equal("2068");
-      expect(entries[0][1].dataCaches).to.deep.equal(["arweave.net"]);
-      expect(entries[0][1].fastFinalityIndexes).to.deep.equal(["arweave.net"]);
+  describe("public methods", () => {
+    it("getWincBalance()", async () => {
+      const balance = await turbo.getWincBalance();
+
+      expect(balance.toString()).to.equal("0");
+    });
+  });
+
+  describe("private methods", () => {
+    it("upload() with a blob", async () => {
+      const dataItemBuffer = Buffer.from("hello world");
+      const blob = new Blob([dataItemBuffer], { type: "text/plain" });
+      const localDataItems = [
+        {
+          data: blob,
+        },
+      ];
+      const uploadDataItemsResponse = await turbo.upload(localDataItems);
+      const { ownerAddress, dataItems } = uploadDataItemsResponse;
+      const dataItemIds = Object.keys(dataItems);
+      expect(ownerAddress).to.have.match(base64URLRegex);
+      expect(dataItemIds.length).to.equal(localDataItems.length);
+      for (const [dataItemId, uploadResults] of Object.entries(dataItems)) {
+        expect(dataItemId).to.match(base64URLRegex);
+        expect(uploadResults.dataCaches).to.deep.equal(["arweave.net"]);
+        expect(uploadResults.fastFinalityIndexes).to.deep.equal([
+          "arweave.net",
+        ]);
+      }
     });
   });
 });
