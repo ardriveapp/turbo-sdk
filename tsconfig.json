@@ -4,10 +4,11 @@
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "lib": ["esnext", "dom"],
-    "outDir": "./lib/cjs",
+    "outDir": "./lib",
     "listEmittedFiles": false,
     "listFiles": false,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
     "alwaysStrict": true,
     "types": ["node", "mocha"],
     "forceConsistentCasingInFileNames": true,
@@ -24,5 +25,5 @@
     "strictNullChecks": true
   },
   "include": ["src"],
-  "exclude": ["lib", "**/*.test.ts", "node_modules"],
+  "exclude": ["lib", "**/*.test.ts", "node_modules"]
 }

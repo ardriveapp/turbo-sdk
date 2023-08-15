@@ -1,9 +1,8 @@
 {
-  "name": "@ardriveapp/turbo-sdk",
+  "name": "@ardrive/turbo-sdk",
   "version": "0.0.1",
-  "main": "./lib/cjs/index.js",
-  "module": "./lib/cjs/index.js",
-  "browser": "./lib/esm/index.js",
+  "main": "./lib/node/index.js",
+  "type": "module",
   "files": [
     "lib"
   ],
@@ -20,26 +19,21 @@
   },
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "build": "yarn clean && yarn build:cjs && yarn build:esm && ./fixup.sh && cp package.json README.md LICENSE.md ./lib",
+    "build": "yarn clean && yarn tsc -p tsconfig.json && cp package.json README.md LICENSE.md ./lib",
     "clean": "rimraf [ lib coverage .nyc_output ]",
-    "build:cjs": "tsc -p tsconfig.json && vite build",
-    "build:esm": "tsc -p tsconfig.esm.json && vite build",
     "postinstall": "husky install",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "test": "nyc mocha",
+    "test": "c8 mocha",
     "prepare": "husky install"
   },
   "dependencies": {
     "arbundles": "^0.9.8",
     "arweave": "^1.13.7",
     "axios": "^1.4.0",
-    "axios-retry": "^3.5.0",
-    "stream-to": "^2.0.0",
-    "stream-to-array": "^2.3.0",
-    "stream-to-buffer": "^0.1.0",
+    "retry-axios": "^3.0.0",
     "winston": "^3.10.0"
   },
   "devDependencies": {
@@ -62,6 +56,7 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "babel-preset-es2015": "^6.24.1",
     "browserify-fs": "^1.0.0",
+    "c8": "^8.0.1",
     "chai": "^4.3.7",
     "concurrently": "^8.2.0",
     "crypto-browserify": "^3.12.0",
@@ -91,7 +86,6 @@
     "ts-node": "^10.9.1",
     "ts-node-esm": "^0.0.6",
     "typescript": "^5.1.6",
-    "vite": "^4.3.9",
     "vite-plugin-node-polyfills": "^0.9.0",
     "web-streams-polyfill": "^3.2.1"
   },
