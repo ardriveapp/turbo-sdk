@@ -24,24 +24,9 @@ import {
 } from "./types";
 import { JWKInterface } from "arbundles";
 import { Payment } from "./payment";
-import { AxiosInstance } from "axios";
 
 export interface PaymentIntent {
   id: string;
-}
-
-export interface TopUpCheckoutSession {
-  checkoutUrl: string;
-  topUpQuote: TopUpQuote;
-}
-
-export interface TopUpPaymentIntent {
-  paymentIntent: PaymentIntent;
-  topUpQuote: TopUpQuote;
-}
-
-export interface CardDetails {
-  cardNumber: string;
 }
 
 export interface PaymentConfirmation {
@@ -53,54 +38,78 @@ export interface PaymentSessionParams {
   payment: Payment;
 }
 
-export interface Turbo {
-  getTopUpCheckoutSession: (
-    p: PaymentSessionParams
-  ) => Promise<TopUpCheckoutSession>;
+export type TopUpResponse = {
+  paymentIntent: PaymentIntent;
+  status: "success" | "failed";
+  error?: string;
+} & PaymentSessionParams;
 
-  getTopUpPaymentIntent: (p: {
-    destinationAddress: UserAddress;
-    payment: Payment;
-  }) => Promise<TopUpPaymentIntent>;
+export interface AuthenticatedTurboPaymentService {
+  getWincBalance: () => Promise<Winc>;
+}
 
-  confirmPaymentIntent: (
-    cardDetails: CardDetails
-  ) => Promise<PaymentConfirmation>;
-
+export interface UnauthenticatedTurboPaymentService {
+  topUp: (topUpQuote: TopUpQuote) => Promise<TopUpResponse>;
   getWincEstimationForByteCount: (byteCount: ByteCount) => Promise<Winc>;
-
   getWincEstimationForPayment: (payment: Payment) => Promise<Winc>;
 }
 
-export interface AuthTurbo extends Turbo {
-  getWincBalance: () => Promise<Winc>;
-  upload: (files: UploadParams[]) => Promise<UploadResult>;
+export interface TurboPaymentService
+  extends AuthenticatedTurboPaymentService,
+    UnauthenticatedTurboPaymentService {}
+
+export interface TurboUploadService {
+  upload: (files: TurboFileUpload[]) => Promise<UploadDataItemsResult>;
 }
 
-export interface UploadParams {
+export interface TurboService extends TurboPaymentService, TurboUploadService {}
+
+export type TurboFilePath = {
   filePath: string;
+};
+
+export type TurboRawData = {
   data: ReadableStream | Blob;
-  options?: Partial<TransactionInterface>;
-}
+};
 
-export interface UploadResult {
-  dataItems: Record<
-    TransactionId,
-    {
-      byteCount: number;
-      dataCaches: string[];
-      fastFinalityIndexes: string[];
-    }
-  >;
+export type TurboUploadOptions = {
+  options: Partial<TransactionInterface>;
+};
+
+export type TurboFileUpload = TurboFilePath & Partial<TurboUploadOptions>;
+export type TurboBlobUpload = TurboRawData & Partial<TurboUploadOptions>;
+
+export type TurboRequestHeaders = {
+  "x-public-key": string;
+  "x-nonce": string;
+  "x-signature": string;
+};
+
+export type DataItemCacheResult = {
+  byteCount: number;
+  dataCaches: string[];
+  fastFinalityIndexes: string[];
+};
+
+export type UploadDataItemResponse = Record<"id", TransactionId> &
+  DataItemCacheResult;
+export type UploadDataItemResultMap = Record<
+  TransactionId,
+  DataItemCacheResult
+>;
+
+export type UploadDataItemsResult = {
+  dataItems: UploadDataItemResultMap;
   ownerAddress: string;
-}
+};
 
-export interface TurboSettings {
-  paymentUrl?: string;
-  uploadUrl?: string;
-  axiosClient?: AxiosInstance;
-}
-
-export interface AuthTurboSettings extends TurboSettings {
+export type AuthTurboSettings = {
   jwk: JWKInterface;
-}
+};
+
+export type TurboSettings = Partial<{
+  paymentUrl: string;
+  uploadUrl: string;
+  retries: number;
+}> &
+  Partial<AuthTurboSettings>;
