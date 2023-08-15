@@ -22,7 +22,7 @@
     <button onclick="openFilePicker()">Choose File(s)</button>
 
     <script>
-      const turbo = new Turbo({
+      const turbo = TurboFactory.init({
         jwk: {
           stub: "wallet",
         },

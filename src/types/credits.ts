@@ -16,7 +16,7 @@
  */
 import { BigNumber } from "bignumber.js";
 
-import { W, Winc } from "./winc";
+import { W, Winc } from "./winc.js";
 
 export class AR {
   constructor(readonly winc: Winc) {}

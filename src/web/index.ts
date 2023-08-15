@@ -1,8 +1,8 @@
-import { BaseTurboClient } from "../common";
-import { TurboBlobUpload, TurboSettings } from "../types/turboTypes";
+import { TurboClient } from "../common/index.js";
+import { TurboBlobUpload, TurboSettings } from "../types/turboTypes.js";
 import { ArweaveSigner, createData } from "arbundles";
 
-class WebTurboClient extends BaseTurboClient {
+class TurboWebClient extends TurboClient {
   constructor(settings: TurboSettings) {
     super(settings);
   }
@@ -32,4 +32,4 @@ class WebTurboClient extends BaseTurboClient {
   }
 }
 
-export { WebTurboClient as TurboClient };
+export default TurboWebClient;

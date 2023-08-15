@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { toB64Url } from "./base64";
-import { signData } from "./signData";
+import { toB64Url } from "./base64.js";
+import { signData } from "./signData.js";
 import Arweave from "arweave";
 
 describe("signData", () => {

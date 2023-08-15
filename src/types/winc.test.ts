@@ -1,6 +1,6 @@
 import { expect } from "chai";
 
-import { Winc } from "./winc";
+import { Winc } from "./winc.js";
 
 describe("Winc class", () => {
   describe("constructor", () => {

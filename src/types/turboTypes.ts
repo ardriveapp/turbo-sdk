@@ -14,16 +14,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TransactionInterface } from "arweave/node/lib/transaction";
+import { TransactionInterface } from "arweave/node/lib/transaction.js";
 import {
   ByteCount,
   TopUpQuote,
   TransactionId,
   UserAddress,
   Winc,
-} from "./types";
+} from "./index.js";
 import { JWKInterface } from "arbundles";
-import { Payment } from "./payment";
+import { Payment } from "./payment.js";
+import { Readable } from "stream";
+import { RetryConfig } from "retry-axios";
 
 export interface PaymentIntent {
   id: string;
@@ -65,19 +67,26 @@ export interface TurboUploadService {
 export interface TurboService extends TurboPaymentService, TurboUploadService {}
 
 export type TurboFilePath = {
-  filePath: string;
+  filePath: URL;
 };
 
-export type TurboRawData = {
-  data: ReadableStream | Blob;
+export type TurboDataItem = {
+  data: TurboRawDataItem;
+  stream: TurboDataItemStream;
 };
+
+export type TurboDataItemStream = Readable;
+export type TurboRawDataItem = Blob | Uint8Array;
 
 export type TurboUploadOptions = {
   options: Partial<TransactionInterface>;
 };
 
 export type TurboFileUpload = TurboFilePath & Partial<TurboUploadOptions>;
-export type TurboBlobUpload = TurboRawData & Partial<TurboUploadOptions>;
+export type TurboStreamUpload = Pick<TurboDataItem, "stream"> &
+  Partial<TurboUploadOptions>;
+export type TurboBlobUpload = Pick<TurboDataItem, "data"> &
+  Partial<TurboUploadOptions>;
 
 export type TurboRequestHeaders = {
   "x-public-key": string;
@@ -110,6 +119,6 @@ export type AuthTurboSettings = {
 export type TurboSettings = Partial<{
   paymentUrl: string;
   uploadUrl: string;
-  retries: number;
+  retryConfig?: RetryConfig;
 }> &
   Partial<AuthTurboSettings>;

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Equatable } from "./equatable";
+import { Equatable } from "./equatable.js";
 
 export class PositiveFiniteInteger implements Equatable<PositiveFiniteInteger> {
   constructor(private readonly positiveFiniteInteger: number) {

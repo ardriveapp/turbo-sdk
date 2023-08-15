@@ -8,19 +8,19 @@ import {
   UploadDataItemResponse,
   UploadDataItemResultMap,
   UploadDataItemsResult,
-} from "../types/turboTypes";
+} from "../types/turboTypes.js";
 import { JWKInterface } from "arbundles";
 import winston from "winston";
-import { createAxiosInstance } from "../utils/axiosClient";
-import { ByteCount } from "../types/byteCount";
-import { Winc, W } from "../types/winc";
-import { signedRequestHeadersFromJwk } from "../utils/signData";
-import { Payment } from "../types/payment";
-import { TopUpQuote } from "../types/types";
+import { createAxiosInstance } from "../utils/axiosClient.js";
+import { ByteCount } from "../types/byteCount.js";
+import { Winc, W } from "../types/winc.js";
+import { signedRequestHeadersFromJwk } from "../utils/signData.js";
+import { Payment } from "../types/payment.js";
+import { TopUpQuote } from "../types/index.js";
 import { PassThrough } from "stream";
-import { jwkToPublicArweaveAddress } from "../utils/base64";
+import { jwkToPublicArweaveAddress } from "../utils/base64.js";
 
-export abstract class BaseTurboClient implements TurboService {
+export abstract class TurboClient implements TurboService {
   readonly jwk: JWKInterface | undefined;
   readonly paymentService: AxiosInstance;
   readonly uploadService: AxiosInstance;
@@ -38,24 +38,36 @@ export abstract class BaseTurboClient implements TurboService {
   constructor({
     paymentUrl = "https://payment.ardrive.dev",
     uploadUrl = "https://upload.ardrive.dev",
-    retries = 3,
+    retryConfig,
     jwk,
   }: TurboSettings) {
     this.paymentService = createAxiosInstance({
-      config: {
+      logger: this.logger,
+      axiosConfig: {
         baseURL: `${paymentUrl}/v1`,
-        validateStatus: () => true,
       },
-      retries,
+      retryConfig,
     });
     this.uploadService = createAxiosInstance({
-      config: {
+      logger: this.logger,
+      axiosConfig: {
         baseURL: `${uploadUrl}/v1`,
-        validateStatus: () => true,
       },
-      retries,
+      retryConfig,
     });
     this.jwk = jwk;
+  }
+
+  async getRates(): Promise<Record<string, number>> {
+    const { status, statusText, data } = await this.paymentService.get(
+      `/rates`,
+    );
+
+    if (status !== 200) {
+      throw new Error(statusText);
+    }
+
+    return data;
   }
 
   async getWincEstimationForByteCount(byteCount: ByteCount): Promise<Winc> {

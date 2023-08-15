@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { createHash } from "crypto";
-import { Base64String, PublicArweaveAddress } from "../types/types";
-import { JWKInterface } from "./jwkTypes";
+import { Base64String, PublicArweaveAddress } from "../types/index.js";
+import { JWKInterface } from "./jwkTypes.js";
 import Arweave from "arweave";
 
 export function jwkToPublicArweaveAddress(

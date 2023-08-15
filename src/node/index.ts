@@ -1,10 +1,14 @@
 import { ArweaveSigner, streamSigner } from "arbundles";
-import { BaseTurboClient } from "../common";
-import { TurboFileUpload, TurboSettings } from "../types/turboTypes";
+import { TurboClient } from "../common/index.js";
+import {
+  TurboDataItemStream,
+  TurboFileUpload,
+  TurboSettings,
+} from "../types/turboTypes.js";
 import internal from "stream";
 import fs from "fs";
 
-class NodeTurboClient extends BaseTurboClient {
+class TurboNodeClient extends TurboClient {
   constructor(settings: TurboSettings) {
     super(settings);
   }
@@ -21,13 +25,15 @@ class NodeTurboClient extends BaseTurboClient {
     // concurrently upload files
     // TODO: use p-limit to avoid overwhelming resources
     const signedDataItemStreams = files.map(async (file: TurboFileUpload) => {
-      const [fileStream1, fileStream2] = [
-        fs.createReadStream(file.filePath),
-        fs.createReadStream(file.filePath),
-      ];
+      let dataItemStream1: TurboDataItemStream;
+      let dataItemSTream2: TurboDataItemStream;
+
+      dataItemStream1 = fs.createReadStream(file.filePath);
+      dataItemSTream2 = fs.createReadStream(file.filePath);
+
       const signedDataItem = await streamSigner(
-        fileStream1,
-        fileStream2,
+        dataItemStream1,
+        dataItemSTream2,
         signer,
         file.options,
       );
@@ -38,4 +44,4 @@ class NodeTurboClient extends BaseTurboClient {
   }
 }
 
-export { NodeTurboClient as TurboClient };
+export default TurboNodeClient;

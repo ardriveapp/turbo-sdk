@@ -1,6 +1,6 @@
 import { expect } from "chai";
 
-import { AR } from "./credits";
+import { AR } from "./credits.js";
 
 describe("AR class", () => {
   describe("from function", () => {

@@ -18,8 +18,8 @@ import {
   InvalidPaymentAmount,
   PaymentAmountTooLarge,
   PaymentAmountTooSmall,
-} from "../utils/errors";
-import { PaymentAmount, CurrencyType, CurrencyLimitations } from "./types";
+} from "../utils/errors.js";
+import { PaymentAmount, CurrencyType, CurrencyLimitations } from "./index.js";
 
 interface PaymentConstructorParams {
   amount: PaymentAmount;

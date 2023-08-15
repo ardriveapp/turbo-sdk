@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { InvalidPaymentAmount } from "../utils/errors";
-import { Payment } from "./payment";
+import { InvalidPaymentAmount } from "../utils/errors.js";
+import { Payment } from "./payment.js";
 
 describe("Payment class", () => {
   describe("constructor", () => {

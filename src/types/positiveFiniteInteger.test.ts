@@ -1,6 +1,6 @@
 import { expect } from "chai";
 
-import { PositiveFiniteInteger } from "./positiveFiniteInteger";
+import { PositiveFiniteInteger } from "./positiveFiniteInteger.js";
 
 describe("PositiveFiniteInteger class", () => {
   describe("constructor", () => {

@@ -17,10 +17,10 @@
 import { JWKInterface } from "arbundles";
 import { Buffer } from "buffer";
 import { randomBytes } from "crypto";
-import { toB64Url } from "./base64";
+import { toB64Url } from "./base64.js";
 import Arweave from "arweave";
-import { stringToBuffer } from "arweave/node/lib/utils";
-import { TurboRequestHeaders } from "../types/turboTypes";
+import { stringToBuffer } from "arweave/node/lib/utils.js";
+import { TurboRequestHeaders } from "../types/turboTypes.js";
 
 export async function signData(
   jwk: JWKInterface,

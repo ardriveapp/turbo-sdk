@@ -15,25 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
-import axiosRetry from "axios-retry";
+import * as rax from "retry-axios";
+import winston from "winston";
 
-export interface CreateAxiosInstanceParams {
-  config: AxiosRequestConfig;
-  retries: number;
-  retryDelay: (retryNumber: number) => number;
+export interface AxiosInstanceParameters {
+  axiosConfig?: Omit<AxiosRequestConfig, "validateStatus">;
+  retryConfig?: rax.RetryConfig;
+  logger: winston.Logger;
 }
 
 export const createAxiosInstance = ({
-  config = {},
-  retries = 3,
-  retryDelay = axiosRetry.exponentialDelay,
-}: Partial<CreateAxiosInstanceParams>): AxiosInstance => {
-  const axiosInstance = axios.create(config);
-  if (retries > 0) {
-    axiosRetry(axiosInstance, {
-      retries,
-      retryDelay,
-    });
-  }
+  logger,
+  axiosConfig = {},
+  retryConfig = {
+    backoffType: "exponential",
+    retry: 3,
+    onRetryAttempt: (err) => {
+      const cfg = rax.getConfig(err);
+      logger.debug(`Retry attempt #${cfg?.currentRetryAttempt}`);
+    },
+  },
+}: AxiosInstanceParameters): AxiosInstance => {
+  const axiosInstance = axios.create({
+    ...axiosConfig,
+    validateStatus: () => true, // don't throw on non-200 status codes
+  });
+  axiosInstance.defaults.raxConfig = {
+    instance: axiosInstance,
+    ...retryConfig,
+  };
   return axiosInstance;
 };
