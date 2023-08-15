@@ -17,6 +17,9 @@
       "require": "./lib/index.js"
     }
   },
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build": "yarn clean && yarn tsc -p tsconfig.json && cp package.json README.md LICENSE.md ./lib",
@@ -26,7 +29,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "test": "c8 mocha",
+    "test": "c8 mocha --config .mocharc",
     "prepare": "husky install"
   },
   "dependencies": {},
@@ -34,7 +37,6 @@
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
-    "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^4.2.0",

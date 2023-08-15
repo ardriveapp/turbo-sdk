@@ -1,6 +1,6 @@
 {
   "branches": "main",
-  "repositoryUrl": "https://github.com/ardriveapp/turbo-sdk/",
+  "repositoryUrl": "https://github.com/ardriveapp/turbo-sdk",
   "debug": "false",
   "plugins": [
     "@semantic-release/commit-analyzer",
