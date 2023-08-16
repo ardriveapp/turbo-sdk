@@ -14,21 +14,43 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import TurboNodeClient from './node/index.js';
-import { TurboSettings } from './types/turboTypes.js';
-import TurboWebClient from './web/index.js';
+import { KeyObject, createPrivateKey, createPublicKey } from "crypto";
 
-export class TurboFactory {
-  static init(settings: TurboSettings = {}) {
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.document !== 'undefined'
-    ) {
-      return new TurboWebClient(settings);
-    } else if (typeof global !== 'undefined' && global.process.versions.node) {
-      return new TurboNodeClient(settings);
-    } else {
-      throw new Error('Unknown environment.');
-    }
-  }
+export interface JWKPublicInterface {
+  kty: string;
+  e: string;
+  n: string;
+}
+
+export interface JWKInterface extends JWKPublicInterface {
+  d?: string;
+  p?: string;
+  q?: string;
+  dp?: string;
+  dq?: string;
+  qi?: string;
+}
+
+export function jwkInterfaceToPublicKey(jwk: JWKInterface): KeyObject {
+  const publicKey = createPublicKey({
+    key: {
+      ...jwk,
+      kty: "RSA",
+    },
+    format: "jwk",
+  });
+
+  return publicKey;
+}
+
+export function jwkInterfaceToPrivateKey(jwk: JWKInterface): KeyObject {
+  const privateKey = createPrivateKey({
+    key: {
+      ...jwk,
+      kty: "RSA",
+    },
+    format: "jwk",
+  });
+
+  return privateKey;
 }

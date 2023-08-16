@@ -14,21 +14,4 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import TurboNodeClient from './node/index.js';
-import { TurboSettings } from './types/turboTypes.js';
-import TurboWebClient from './web/index.js';
-
-export class TurboFactory {
-  static init(settings: TurboSettings = {}) {
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.document !== 'undefined'
-    ) {
-      return new TurboWebClient(settings);
-    } else if (typeof global !== 'undefined' && global.process.versions.node) {
-      return new TurboNodeClient(settings);
-    } else {
-      throw new Error('Unknown environment.');
-    }
-  }
-}
+export const base64URLRegex = /^[a-zA-Z0-9_-]{43}$/;

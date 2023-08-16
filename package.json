@@ -32,7 +32,13 @@
     "test": "c8 mocha --config .mocharc",
     "prepare": "husky install"
   },
-  "dependencies": {},
+  "dependencies": {
+    "arbundles": "^0.9.8",
+    "arweave": "^1.14.4",
+    "axios": "^1.4.0",
+    "retry-axios": "^3.0.0",
+    "winston": "^3.10.0"
+  },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
