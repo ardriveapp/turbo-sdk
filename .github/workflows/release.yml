@@ -3,6 +3,8 @@ name: Release
 on:
   push:
     branches:
+      - alpha
+      - beta
       - main
 
 jobs:
@@ -25,6 +27,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn --immutable --immutable-cache
+
+      - name: Build
+        run: yarn build
 
       - name: Release
         env:
