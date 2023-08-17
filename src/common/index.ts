@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { JWKInterface } from 'arbundles';
 import { AxiosInstance } from 'axios';
 import winston from 'winston';
 
+import { JWKInterface } from '../types/index.js';
 import {
   Turbo,
   TurboConfiguration,
@@ -80,7 +80,7 @@ export abstract class TurboClient implements Turbo {
     return rates as TurboRatesResponse;
   }
 
-  async getWincBalance(): Promise<number> {
+  async getBalance(): Promise<number> {
     if (!this.jwk) {
       throw new UnauthenticatedRequestError();
     }

@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { JWKInterface } from 'arbundles';
 import { KeyObject, createPrivateKey, createPublicKey } from 'crypto';
+
+import { JWKInterface } from '../types/index.js';
 
 export function jwkInterfaceToPublicKey(jwk: JWKInterface): KeyObject {
   const publicKey = createPublicKey({

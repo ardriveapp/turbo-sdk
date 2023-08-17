@@ -14,5 +14,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export * from './arweave.js';
-export * from './turbo.js';
+export interface JWKPublicInterface {
+  kty: string;
+  e: string;
+  n: string;
+}
+export interface JWKInterface extends JWKPublicInterface {
+  d?: string;
+  p?: string;
+  q?: string;
+  dp?: string;
+  dq?: string;
+  qi?: string;
+}

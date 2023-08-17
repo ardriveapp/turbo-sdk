@@ -21,8 +21,8 @@ import { TurboConfiguration } from '../types/turbo.js';
  * This client will be responsible for implementing functions specific to the node environment.
  */
 class TurboNodeClient extends TurboClient {
-  constructor(settings: TurboConfiguration) {
-    super(settings);
+  constructor(config: TurboConfiguration) {
+    super(config);
   }
 }
 

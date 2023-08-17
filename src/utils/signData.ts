@@ -14,12 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { JWKInterface } from 'arbundles';
 import Arweave from 'arweave';
 import { stringToBuffer } from 'arweave/node/lib/utils.js';
 import { Buffer } from 'buffer';
 import { randomBytes } from 'crypto';
 
+import { JWKInterface } from '../types/index.js';
 import { TurboRequestHeaders } from '../types/turbo.js';
 import { toB64Url } from './base64.js';
 

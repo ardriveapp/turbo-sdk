@@ -1,10 +1,10 @@
-import { JWKInterface } from 'arbundles';
 import Arweave from 'arweave';
 import { expect } from 'chai';
 
 import { TurboClient } from '../src/common/index.js';
 import { TurboFactory } from '../src/index.js';
 import TurboNodeClient from '../src/node/index.js';
+import { JWKInterface } from '../src/types/index.js';
 import TurboWebClient from '../src/web/index.js';
 
 describe('TurboFactory', () => {
@@ -44,9 +44,9 @@ describe('TurboNodeClient', () => {
       turbo = TurboFactory.init({ jwk });
     });
 
-    it('getWincBalance()', async () => {
-      const balance = await turbo.getWincBalance();
-      expect(balance.toString()).to.equal('0');
+    it('getBalance()', async () => {
+      const balance = await turbo.getBalance();
+      expect(balance).to.equal(0);
     });
   });
 });
@@ -75,9 +75,9 @@ describe('TurboWebClient', () => {
       turbo = TurboFactory.init({ jwk });
     });
 
-    it('getWincBalance()', async () => {
-      const balance = await turbo.getWincBalance();
-      expect(balance.toString()).to.equal('0');
+    it('getBalance()', async () => {
+      const balance = await turbo.getBalance();
+      expect(balance).to.equal(0);
     });
   });
 });

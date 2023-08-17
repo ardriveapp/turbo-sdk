@@ -6,6 +6,9 @@ coverage
 dist
 .husky/_
 
+# Example files
+*.min.js
+
 # IDEs and editors
 .vscode
 .DS_Store

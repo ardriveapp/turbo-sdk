@@ -14,9 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { JWKInterface } from 'arbundles';
 import { RetryConfig } from 'retry-axios';
 
+import { JWKInterface } from './arweave.js';
+
+export type Base64String = string;
+export type PublicArweaveAddress = Base64String;
+export type TransactionId = Base64String;
+export type UserAddress = string | PublicArweaveAddress;
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'NZD' | 'JPY';
 export type TurboRates = Record<Currency, number>;
 
@@ -43,7 +48,7 @@ export type TurboConfiguration = {
 } & TurboAuthSettings;
 
 export interface AuthenticatedTurboPaymentService {
-  getWincBalance: () => Promise<number>;
+  getBalance: () => Promise<number>;
 }
 
 export interface UnauthenticatedTurboPaymentService {

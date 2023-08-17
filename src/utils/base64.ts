@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { JWKInterface } from 'arbundles';
 import Arweave from 'arweave';
 import { createHash } from 'crypto';
 
+import { JWKInterface } from '../types/index.js';
 import { Base64String, PublicArweaveAddress } from '../types/index.js';
 
 export const base64URLRegex = /^[a-zA-Z0-9_-]{43}$/;
