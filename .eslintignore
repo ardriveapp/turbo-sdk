@@ -2,3 +2,4 @@ tests
 src/**/*.test.ts
 lib
 **/*.cjs
+**/*.mjs

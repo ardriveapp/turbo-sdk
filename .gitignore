@@ -1,5 +1,6 @@
 node_modules
-lib*
+lib
+bundles
 coverage
 .nyc_output
 dist
@@ -9,3 +10,6 @@ dist
 .vscode
 .DS_Store
 yarn-error.log
+
+# Build files
+**/*.min.js
