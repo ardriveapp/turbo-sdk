@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <script type="module" src="./web.bundle.min.js"></script>
+    <style>
+      /* Center the button */
+      body {
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import { TurboClient } from './web.bundle.min.js';
+
+      // set up our factory
+      const turbo = new TurboClient();
+
+      // print the client to the console
+      console.log(turbo);
+    </script>
+  </body>
+</html>
