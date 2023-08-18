@@ -21,6 +21,10 @@ import { JWKInterface } from '../types/index.js';
 import {
   Turbo,
   TurboConfiguration,
+  TurboCountriesResponse,
+  TurboCurrenciesResponse,
+  TurboPriceResponse,
+  TurboRateResponse,
   TurboRatesResponse,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
@@ -77,7 +81,80 @@ export abstract class TurboClient implements Turbo {
     if (status !== 200) {
       throw new Error(`Status: ${status} ${statusText}`);
     }
+
+    // TODO: should we return just the fiat rates instead of the whole response?
     return rates as TurboRatesResponse;
+  }
+
+  async getRate(currency: string): Promise<TurboRateResponse> {
+    const {
+      status,
+      statusText,
+      data: rate,
+    } = await this.paymentService.get(`/rates/${currency}`);
+
+    if (status !== 200) {
+      throw new Error(`Status: ${status} ${statusText}`);
+    }
+
+    // TODO: should we return just the fiat rates instead of the whole response?
+    return rate as TurboRateResponse;
+  }
+
+  async getCountries(): Promise<TurboCountriesResponse> {
+    const {
+      status,
+      statusText,
+      data: countries,
+    } = await this.paymentService.get('/countries');
+
+    if (status !== 200) {
+      throw new Error(`Status: ${status} ${statusText}`);
+    }
+
+    return countries as TurboCountriesResponse;
+  }
+
+  async getCurrencies(): Promise<TurboCurrenciesResponse> {
+    const {
+      status,
+      statusText,
+      data: currencies,
+    } = await this.paymentService.get('/currencies');
+
+    if (status !== 200) {
+      throw new Error(`Status: ${status} ${statusText}`);
+    }
+
+    return currencies as TurboCurrenciesResponse;
+  }
+
+  async getWincPriceForBytes(bytes: number): Promise<TurboPriceResponse> {
+    const {
+      status,
+      statusText,
+      data: wincForBytes,
+    } = await this.paymentService.get(`/price/bytes/${bytes}`);
+
+    if (status !== 200) {
+      throw new Error(`Status: ${status} ${statusText}`);
+    }
+
+    return wincForBytes as TurboPriceResponse;
+  }
+
+  async getWincPriceForFiat({ amount, currency }): Promise<TurboPriceResponse> {
+    const {
+      status,
+      statusText,
+      data: wincForFiat,
+    } = await this.paymentService.get(`/price/${currency}/${amount}`);
+
+    if (status !== 200) {
+      throw new Error(`Status: ${status} ${statusText}`);
+    }
+
+    return wincForFiat as TurboPriceResponse;
   }
 
   async getBalance(): Promise<number> {

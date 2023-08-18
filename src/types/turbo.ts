@@ -22,13 +22,30 @@ export type Base64String = string;
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'NZD' | 'JPY';
-export type TurboRates = Record<Currency, number>;
+export type Currency = 'usd' | 'eur' | 'gbp' | 'cad' | 'aud' | 'nzd' | 'jpy';
+export type Country = 'United States' | 'United Kingdom' | 'Canada';
 
-export type TurboRatesResponse = {
-  winc: number;
-  fiat: TurboRates;
+export type CurrencyLimit = {
+  minimumPaymentAmount: number;
+  maximumPaymentAmount: number;
+  suggestedPaymentAmount: number[];
+  zeroDecimalCurrency: boolean;
+};
+
+export type TurboPriceResponse = {
+  winc: string;
   adjustments: any; // TODO: type this
+};
+export type TurboRateResponse = {
+  currency: Currency;
+  rate: number;
+};
+export type TurboRatesResponse = TurboPriceResponse &
+  Record<'fiat', Record<Currency, number>>;
+export type TurboCountriesResponse = Country[];
+export type TurboCurrenciesResponse = {
+  supportedCurrencies: Currency[];
+  limits: Record<Currency, CurrencyLimit>;
 };
 
 export type TurboRequestHeaders = {
@@ -52,7 +69,15 @@ export interface AuthenticatedTurboPaymentService {
 }
 
 export interface UnauthenticatedTurboPaymentService {
+  getCurrencies(): Promise<TurboCurrenciesResponse>;
+  getCountries(): Promise<TurboCountriesResponse>;
+  getRate(currency: Currency): Promise<TurboRateResponse>;
   getRates(): Promise<TurboRatesResponse>;
+  getWincPriceForFiat({
+    amount,
+    currency,
+  }): Promise<Omit<TurboPriceResponse, 'adjustments'>>;
+  getWincPriceForBytes(bytes: number): Promise<TurboPriceResponse>;
 }
 
 export interface TurboPaymentService
