@@ -39,9 +39,7 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Fetches the latest conversion rate for a specified currency. The returned rate includes
-   * all related fees and adjustments. For example, if 'USD' is specified, it will return the
-   * most recent rate of converting USD to the platform's primary currency.
+   * Fetches the latest conversion rate for a specified currency for 1GiB of data, including all adjustments and fees.
    */
   async getRate({
     currency,
@@ -52,33 +50,28 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Retrieves the latest conversion rates for all the fiat currencies that the platform
-   * supports. This provides an overview of the conversion values, inclusive of any associated
-   * fees and adjustments.
+   * Retrieves the latest conversion rates to purchase 1GiB of data for all supported currencies, including all adjustments and fees.
    */
   async getRates(): Promise<TurboRatesResponse> {
     return this.paymentService.getRates();
   }
 
   /**
-   * Provides a comprehensive list of countries that the platform recognizes and supports.
-   * This is useful to understand the geographic reach and limitations of the platform.
+   * Provides a comprehensive list of supported countries that can purchase credits through the Turbo Payment Service.
    */
   async getSupportedCountries(): Promise<TurboCountriesResponse> {
     return this.paymentService.getSupportedCountries();
   }
 
   /**
-   * Fetches a list of all fiat currencies recognized and supported by the platform.
-   * This gives an idea about the platform's versatility in handling various currency types.
+   * Fetches a list of all supported fiat currencies.
    */
   async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
     return this.paymentService.getSupportedCurrencies();
   }
 
   /**
-   * Determines the equivalent price in 'winc' for a specified number of bytes.
-   * This conversion will factor in all relevant fees and adjustments to give an accurate pricing.
+   * Determines the equivalent price in 'winc' for a specified number of bytes, including all adjustments and fees.
    */
   async getWincPriceForBytes({
     bytes,
@@ -89,9 +82,7 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Calculates the corresponding price in 'winc' for a given fiat amount. The result offers
-   * a clear understanding of how much 'winc' a specific fiat value can fetch, after considering
-   * all related fees and adjustments.
+   * Calculates the corresponding price in 'winc' for a given fiat amount, including all adjustments and fees.
    */
   async getWincPriceForFiat({
     amount,
@@ -104,8 +95,7 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Fetches the present balance of the user's wallet, denominated in 'winc'. This allows users
-   * to stay updated about their financial standing within the platform.
+   * Fetches the present balance of the user's wallet, denominated in 'winc'. Requires privateKey be provided in the constructor to use.
    */
   async getBalance(): Promise<number> {
     return this.paymentService.getBalance();

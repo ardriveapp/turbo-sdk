@@ -20,9 +20,25 @@ import { TurboNodeUploadService } from './node/upload.js';
 import { TurboConfiguration } from './types/turbo.js';
 import { TurboWebUploadService } from './web/upload.js';
 
+const defaultTurboConfig = {
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+  },
+};
+
 export class TurboFactory {
-  static init(config: TurboConfiguration) {
-    const { privateKey, paymentServiceConfig, uploadServiceConfig } = config;
+  static init(config: TurboConfiguration = defaultTurboConfig) {
+    const {
+      privateKey = undefined,
+      paymentServiceConfig,
+      uploadServiceConfig,
+    } = {
+      ...defaultTurboConfig,
+      ...config,
+    };
     const paymentService = new TurboPaymentServiceClient({
       ...paymentServiceConfig,
       privateKey,

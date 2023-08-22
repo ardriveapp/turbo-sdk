@@ -14,11 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { BaseTurboUploadClient } from '../common/upload.js';
-import { TurboUploadServiceConfiguration } from '../types/turbo.js';
+import {
+  TurboUploadService,
+  TurboUploadServiceConfiguration,
+} from '../types/index.js';
 
-export class TurboWebUploadService extends BaseTurboUploadClient {
-  constructor(config: TurboUploadServiceConfiguration) {
-    super(config);
-  }
+/* eslint-disable */
+export class TurboWebUploadService implements TurboUploadService {
+  // @ts-ignore
+  constructor(config: TurboUploadServiceConfiguration) {}
 }

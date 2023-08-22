@@ -10,12 +10,20 @@ const TurboFactory = require('../../lib/index.js');
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
   /**
-   * Fetching balance using an authenticated Turbo client.
+   * Create a new arweave private key
    */
   const arweave = Arweave.init();
   const jwk = await Arweave.crypto.generateJWK();
   const address = await arweave.wallets.jwkToAddress(jwk);
-  const turboAuthClient = TurboFactory.init({ jwk });
+
+  /**
+   * Use the arweave key to create an authenticated turbo client
+   */
+  const turboAuthClient = TurboFactory.init({ privateKey: jwk });
+
+  /**
+   * Fetch the balance for the private key.
+   */
   const balance = await turboAuthClient.getBalance();
   console.log(
     'Balance:',
