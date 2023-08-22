@@ -20,7 +20,7 @@ import { Buffer } from 'buffer';
 import { randomBytes } from 'crypto';
 
 import { JWKInterface } from '../types/index.js';
-import { TurboRequestHeaders } from '../types/turbo.js';
+import { TurboSignedRequestHeaders } from '../types/turbo.js';
 import { toB64Url } from './base64.js';
 
 export async function signData(
@@ -34,7 +34,7 @@ export async function signedRequestHeadersFromJwk(
   jwk: JWKInterface,
   nonce: string = randomBytes(16).toString('hex'),
   data = '',
-): Promise<TurboRequestHeaders> {
+): Promise<TurboSignedRequestHeaders> {
   const signature = await signData(jwk, data + nonce);
 
   return {

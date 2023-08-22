@@ -22,8 +22,8 @@ export type Base64String = string;
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
-export type Currency = 'usd' | 'eur' | 'gbp' | 'cad' | 'aud' | 'nzd' | 'jpy';
-export type Country = 'United States' | 'United Kingdom' | 'Canada';
+export type Currency = 'usd' | 'eur' | 'gbp' | 'cad' | 'aud' | 'nzd' | 'jpy'; // TODO: add full list
+export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
 export type CurrencyLimit = {
   minimumPaymentAmount: number;
@@ -48,7 +48,7 @@ export type TurboCurrenciesResponse = {
   limits: Record<Currency, CurrencyLimit>;
 };
 
-export type TurboRequestHeaders = {
+export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
   'x-signature': string;
@@ -77,7 +77,7 @@ export interface UnauthenticatedTurboPaymentService {
   getWincPriceForFiat({
     amount,
     currency,
-  }): Promise<Omit<TurboPriceResponse, 'adjustments'>>;
+  }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
   getWincPriceForBytes(bytes: number): Promise<TurboPriceResponse>;
 }
 
