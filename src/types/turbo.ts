@@ -54,6 +54,7 @@ export type TurboRequestHeaders = {
   'x-signature': string;
 };
 
+// TODO: integration with arconnect will likely require different auth settings
 export type TurboAuthSettings = {
   jwk?: JWKInterface;
 };
