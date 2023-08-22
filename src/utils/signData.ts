@@ -27,9 +27,7 @@ export async function signData(
   jwk: JWKInterface,
   dataToSign: string,
 ): Promise<Uint8Array> {
-  return await Arweave.crypto.sign(jwk, stringToBuffer(dataToSign), {
-    saltLength: 0, // We do not need to salt the signature since we combine with a random UUID
-  });
+  return Arweave.crypto.sign(jwk, stringToBuffer(dataToSign));
 }
 
 export async function signedRequestHeadersFromJwk(
