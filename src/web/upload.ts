@@ -14,16 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TurboClient } from '../common/index.js';
-import { TurboConfiguration } from '../types/turbo.js';
+import { BaseTurboUploadClient } from '../common/upload.js';
+import { TurboUploadServiceConfiguration } from '../types/turbo.js';
 
-/**
- * This client will be responsible for implementing functions specific to the node environment.
- */
-class TurboNodeClient extends TurboClient {
-  constructor(config: TurboConfiguration) {
+export class TurboWebUploadService extends BaseTurboUploadClient {
+  constructor(config: TurboUploadServiceConfiguration) {
     super(config);
   }
 }
-
-export default TurboNodeClient;

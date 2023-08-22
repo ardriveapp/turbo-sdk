@@ -14,16 +14,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TurboClient } from '../common/index.js';
-import { TurboConfiguration } from '../types/turbo.js';
+import { AxiosInstance } from 'axios';
 
-/**
- * This client will be responsible for implementing functions specific to the browser environment.
- */
-class TurboWebClient extends TurboClient {
-  constructor(config: TurboConfiguration) {
-    super(config);
+import {
+  TurboUploadService,
+  TurboUploadServiceConfiguration,
+} from '../types/turbo.js';
+import { createAxiosInstance } from '../utils/axiosClient.js';
+
+export abstract class BaseTurboUploadClient implements TurboUploadService {
+  protected axios: AxiosInstance;
+
+  constructor({
+    url = 'https://upload.ardrive.dev',
+    retryConfig,
+  }: TurboUploadServiceConfiguration) {
+    this.axios = createAxiosInstance({
+      axiosConfig: {
+        baseURL: `${url}/v1`,
+      },
+      retryConfig,
+    });
   }
 }
-
-export default TurboWebClient;
