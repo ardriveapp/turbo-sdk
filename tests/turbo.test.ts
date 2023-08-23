@@ -36,15 +36,15 @@ describe('TurboClient', () => {
   });
 
   describe('unauthenticated requests', () => {
-    it('getRates()', async () => {
-      const { winc, fiat, adjustments } = await turbo.getRates();
+    it('getFiatRates()', async () => {
+      const { winc, fiat, adjustments } = await turbo.getFiatRates();
       expect(winc).to.not.be.undefined.and.to.be.a('number');
       expect(fiat).to.have.property('usd').that.is.a('number');
       expect(adjustments).to.not.be.undefined;
     });
 
-    it('getRate()', async () => {
-      const { currency, rate } = await turbo.getRate({ currency: 'usd' });
+    it('getFiatToAR()', async () => {
+      const { currency, rate } = await turbo.getFiatToAR({ currency: 'usd' });
       expect(currency).to.equal('usd');
       expect(rate).to.be.a('number');
     });
