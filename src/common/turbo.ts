@@ -39,7 +39,7 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Fetches the latest conversion rate for a specified currency for 1GiB of data, including all adjustments and fees.
+   * Returns the supported fiat currency conversion rate for 1AR based on current market prices.
    */
   async getRate({
     currency,
