@@ -106,25 +106,4 @@ describe('TurboClient', () => {
       expect(balance).to.equal(0);
     });
   });
-
-  describe('TurboNodeClient', () => {
-    before(async () => {
-      turbo = TurboFactory.init(defaultConfig);
-    });
-
-    // node client specific tests
-  });
-
-  describe('TurboWebClient', () => {
-    before(async () => {
-      (global as any).window = { document: {} };
-      turbo = TurboFactory.init(defaultConfig);
-    });
-
-    after(() => {
-      delete (global as any).window;
-    });
-
-    // web client specific tests
-  });
 });
