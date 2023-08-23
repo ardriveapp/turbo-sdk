@@ -85,8 +85,8 @@ export interface AuthenticatedTurboPaymentService {
 export interface UnauthenticatedTurboPaymentService {
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
-  getRate({ currency }: { currency: Currency }): Promise<TurboRateResponse>;
-  getRates(): Promise<TurboRatesResponse>;
+  getFiatToAR({ currency }: { currency: Currency }): Promise<TurboRateResponse>;
+  getFiatRates(): Promise<TurboRatesResponse>;
   getWincPriceForFiat({
     amount,
     currency,

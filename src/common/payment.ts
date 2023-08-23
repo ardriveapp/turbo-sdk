@@ -34,7 +34,7 @@ import {
 } from '../utils/errors.js';
 import { signedRequestHeadersFromJwk } from '../utils/signData.js';
 
-export class TurboPaymentServiceClient implements TurboPaymentService {
+export class TurboDefaultPaymentService implements TurboPaymentService {
   protected readonly axios: AxiosInstance;
   protected readonly privateKey: JWKInterface | undefined;
 
@@ -52,7 +52,7 @@ export class TurboPaymentServiceClient implements TurboPaymentService {
     });
   }
 
-  async getRates(): Promise<TurboRatesResponse> {
+  async getFiatRates(): Promise<TurboRatesResponse> {
     const { status, statusText, data: rates } = await this.axios.get('/rates');
 
     if (status !== 200) {
@@ -63,7 +63,7 @@ export class TurboPaymentServiceClient implements TurboPaymentService {
     return rates as TurboRatesResponse;
   }
 
-  async getRate({
+  async getFiatToAR({
     currency,
   }: {
     currency: Currency;
@@ -78,7 +78,6 @@ export class TurboPaymentServiceClient implements TurboPaymentService {
       throw new FailedRequestError(status, statusText);
     }
 
-    // TODO: should we return just the fiat rates instead of the whole response?
     return rate as TurboRateResponse;
   }
 

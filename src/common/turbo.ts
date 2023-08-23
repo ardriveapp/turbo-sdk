@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { TurboNodeUploadService } from '../node/upload.js';
 import { JWKInterface } from '../types/index.js';
 import {
   Currency,
@@ -26,14 +27,22 @@ import {
   TurboRateResponse,
   TurboRatesResponse,
   TurboUploadService,
-} from '../types/turbo.js';
+} from '../types/index.js';
+import { TurboDefaultPaymentService } from './payment.js';
 
 export class TurboClient implements Turbo {
   protected readonly jwk: JWKInterface | undefined;
   protected readonly paymentService: TurboPaymentService;
   protected readonly uploadService: TurboUploadService;
 
-  constructor({ uploadService, paymentService }: TurboClientConfiguration) {
+  constructor({
+    uploadService = new TurboNodeUploadService({
+      url: 'https://turbo.ardrive.dev',
+    }),
+    paymentService = new TurboDefaultPaymentService({
+      url: 'https://payment.ardrive.dev',
+    }),
+  }: TurboClientConfiguration) {
     this.paymentService = paymentService;
     this.uploadService = uploadService;
   }
@@ -41,37 +50,40 @@ export class TurboClient implements Turbo {
   /**
    * Returns the supported fiat currency conversion rate for 1AR based on current market prices.
    */
-  async getRate({
+  async getFiatToAR({
     currency,
   }: {
     currency: Currency;
   }): Promise<TurboRateResponse> {
-    return this.paymentService.getRate({ currency });
+    return this.paymentService.getFiatToAR({ currency });
   }
 
   /**
-   * Retrieves the latest conversion rates to purchase 1GiB of data for all supported currencies, including all adjustments and fees.
+   * Returns the latest conversion rates to purchase 1GiB of data for all supported currencies, including all adjustments and fees.
+   *
+   * Note: this does not take into account varying adjustments and promotions for different sizes of data. If you want to calculate the total
+   * cost in 'winc' for a given number of bytes, use getWincPriceForBytes.
    */
-  async getRates(): Promise<TurboRatesResponse> {
-    return this.paymentService.getRates();
+  async getFiatRates(): Promise<TurboRatesResponse> {
+    return this.paymentService.getFiatRates();
   }
 
   /**
-   * Provides a comprehensive list of supported countries that can purchase credits through the Turbo Payment Service.
+   * Returns a comprehensive list of supported countries that can purchase credits through the Turbo Payment Service.
    */
   async getSupportedCountries(): Promise<TurboCountriesResponse> {
     return this.paymentService.getSupportedCountries();
   }
 
   /**
-   * Fetches a list of all supported fiat currencies.
+   * Returns a list of all supported fiat currencies.
    */
   async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
     return this.paymentService.getSupportedCurrencies();
   }
 
   /**
-   * Determines the equivalent price in 'winc' for a specified number of bytes, including all adjustments and fees.
+   * Determines the price in 'winc' to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
    */
   async getWincPriceForBytes({
     bytes,
@@ -82,7 +94,7 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Calculates the corresponding price in 'winc' for a given fiat amount, including all adjustments and fees.
+   * Determines the amount of 'winc' that would be returned for a given currency and amount, including all Turbo cost adjustments and fees.
    */
   async getWincPriceForFiat({
     amount,
@@ -95,7 +107,9 @@ export class TurboClient implements Turbo {
   }
 
   /**
-   * Fetches the present balance of the user's wallet, denominated in 'winc'. Requires privateKey be provided in the constructor to use.
+   * Returns the current balance of the user's wallet in 'winc'.
+   *
+   * Note: 'privateKey' must be provided to use.
    */
   async getBalance(): Promise<number> {
     return this.paymentService.getBalance();
