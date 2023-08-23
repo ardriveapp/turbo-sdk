@@ -16,23 +16,20 @@
  */
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import * as rax from 'retry-axios';
-import winston from 'winston';
 
 export interface AxiosInstanceParameters {
   axiosConfig?: Omit<AxiosRequestConfig, 'validateStatus'>;
   retryConfig?: rax.RetryConfig;
-  logger: winston.Logger;
 }
 
 export const createAxiosInstance = ({
-  logger,
   axiosConfig = {},
   retryConfig = {
     backoffType: 'exponential',
     retry: 3,
     onRetryAttempt: (err) => {
       const cfg = rax.getConfig(err);
-      logger.debug(`Retry attempt #${cfg?.currentRetryAttempt}`);
+      console.debug(`Retry attempt #${cfg?.currentRetryAttempt}`);
     },
   },
 }: AxiosInstanceParameters): AxiosInstance => {

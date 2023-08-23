@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { RetryConfig } from 'retry-axios';
+import winston from 'winston';
 
 import { JWKInterface } from './arweave.js';
 
@@ -54,31 +55,50 @@ export type TurboSignedRequestHeaders = {
   'x-signature': string;
 };
 
-// TODO: integration with arconnect will likely require different auth settings
 export type TurboAuthSettings = {
-  jwk?: JWKInterface;
+  privateKey?: JWKInterface; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
 };
 
-export type TurboConfiguration = {
-  paymentUrl?: string;
-  uploadUrl?: string;
+type TurboServiceConfiguration = {
+  url: string;
   retryConfig?: RetryConfig;
+  logger?: winston.Logger;
 } & TurboAuthSettings;
+
+export type TurboUploadServiceConfiguration = TurboServiceConfiguration;
+export type TurboPaymentServiceConfiguration = TurboServiceConfiguration;
+
+export type TurboConfiguration = {
+  paymentServiceConfig: TurboPaymentServiceConfiguration;
+  uploadServiceConfig: TurboUploadServiceConfiguration;
+} & TurboAuthSettings;
+
+export type TurboClientConfiguration = {
+  paymentService: TurboPaymentService;
+  uploadService: TurboUploadService;
+};
 
 export interface AuthenticatedTurboPaymentService {
   getBalance: () => Promise<number>;
 }
 
 export interface UnauthenticatedTurboPaymentService {
-  getCurrencies(): Promise<TurboCurrenciesResponse>;
-  getCountries(): Promise<TurboCountriesResponse>;
-  getRate(currency: Currency): Promise<TurboRateResponse>;
+  getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
+  getSupportedCountries(): Promise<TurboCountriesResponse>;
+  getRate({ currency }: { currency: Currency }): Promise<TurboRateResponse>;
   getRates(): Promise<TurboRatesResponse>;
   getWincPriceForFiat({
     amount,
     currency,
+  }: {
+    amount: number;
+    currency: Currency;
   }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
-  getWincPriceForBytes(bytes: number): Promise<TurboPriceResponse>;
+  getWincPriceForBytes({
+    bytes,
+  }: {
+    bytes: number;
+  }): Promise<TurboPriceResponse>;
 }
 
 export interface TurboPaymentService

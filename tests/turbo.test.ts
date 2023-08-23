@@ -1,21 +1,29 @@
 import Arweave from 'arweave';
 import { expect } from 'chai';
 
-import { TurboClient } from '../src/common/index.js';
+import { TurboClient } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/index.js';
-import TurboNodeClient from '../src/node/index.js';
 import { JWKInterface } from '../src/types/index.js';
-import TurboWebClient from '../src/web/index.js';
+
+// TODO: move these to local services
+const defaultConfig = {
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+  },
+};
 
 describe('TurboFactory', () => {
-  it('should return a TurboNodeClient when running in node', () => {
-    const turbo = TurboFactory.init();
-    expect(turbo).to.be.instanceOf(TurboNodeClient);
+  it('should return a TurboClient when running in node', () => {
+    const turbo = TurboFactory.init(defaultConfig);
+    expect(turbo).to.be.instanceOf(TurboClient);
   });
-  it('should be a TurboWebClient when running in the browser', () => {
+  it('should be a TurboClient when running in the browser', () => {
     (global as any).window = { document: {} };
-    const turbo = TurboFactory.init();
-    expect(turbo).to.be.instanceOf(TurboWebClient);
+    const turbo = TurboFactory.init(defaultConfig);
+    expect(turbo).to.be.instanceOf(TurboClient);
     delete (global as any).window;
   });
 });
@@ -24,7 +32,7 @@ describe('TurboClient', () => {
   let turbo: TurboClient;
 
   before(async () => {
-    turbo = TurboFactory.init();
+    turbo = TurboFactory.init(defaultConfig);
   });
 
   describe('unauthenticated requests', () => {
@@ -36,20 +44,21 @@ describe('TurboClient', () => {
     });
 
     it('getRate()', async () => {
-      const { currency, rate } = await turbo.getRate('usd');
+      const { currency, rate } = await turbo.getRate({ currency: 'usd' });
       expect(currency).to.equal('usd');
       expect(rate).to.be.a('number');
     });
 
-    it('getCountries()', async () => {
-      const countries = await turbo.getCountries();
+    it('getSupportedCountries()', async () => {
+      const countries = await turbo.getSupportedCountries();
       expect(countries).to.be.an('array');
       expect(countries.length).to.be.greaterThan(0);
       expect(countries).to.include('United States');
     });
 
-    it('getCurrencies()', async () => {
-      const { supportedCurrencies, limits } = await turbo.getCurrencies();
+    it('getSupportedCurrencies()', async () => {
+      const { supportedCurrencies, limits } =
+        await turbo.getSupportedCurrencies();
       expect(supportedCurrencies).to.not.be.undefined;
       expect(supportedCurrencies).to.be.an('array');
       expect(supportedCurrencies.length).to.be.greaterThan(0);
@@ -64,7 +73,9 @@ describe('TurboClient', () => {
     });
 
     it('getWincPriceForBytes()', async () => {
-      const { winc, adjustments } = await turbo.getWincPriceForBytes(1024);
+      const { winc, adjustments } = await turbo.getWincPriceForBytes({
+        bytes: 1024,
+      });
       expect(winc).to.not.be.undefined;
       expect(+winc).to.be.greaterThan(0);
       expect(adjustments).to.not.be.undefined;
@@ -82,12 +93,12 @@ describe('TurboClient', () => {
   });
 
   describe('authenticated requests', () => {
-    let jwk: JWKInterface;
+    let privateKey: JWKInterface;
     let turbo: TurboClient;
 
     before(async () => {
-      jwk = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.init({ jwk });
+      privateKey = await Arweave.crypto.generateJWK();
+      turbo = TurboFactory.init({ ...defaultConfig, privateKey });
     });
 
     it('getBalance()', async () => {
@@ -98,7 +109,7 @@ describe('TurboClient', () => {
 
   describe('TurboNodeClient', () => {
     before(async () => {
-      turbo = TurboFactory.init();
+      turbo = TurboFactory.init(defaultConfig);
     });
 
     // node client specific tests
@@ -107,7 +118,7 @@ describe('TurboClient', () => {
   describe('TurboWebClient', () => {
     before(async () => {
       (global as any).window = { document: {} };
-      turbo = TurboFactory.init();
+      turbo = TurboFactory.init(defaultConfig);
     });
 
     after(() => {
