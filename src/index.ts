@@ -14,10 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TurboPaymentServiceClient } from './common/payment.js';
-import { TurboClient } from './common/turbo.js';
+import {
+  TurboClient,
+  TurboDefaultPaymentService as TurboPaymentService,
+} from './common/index.js';
 import { TurboNodeUploadService } from './node/upload.js';
-import { TurboConfiguration } from './types/turbo.js';
+import { TurboConfiguration } from './types/index.js';
+import { isBrowser } from './utils/browser.js';
 import { TurboWebUploadService } from './web/upload.js';
 
 const defaultTurboConfig = {
@@ -39,27 +42,22 @@ export class TurboFactory {
       ...defaultTurboConfig,
       ...config,
     };
-    const paymentService = new TurboPaymentServiceClient({
+    const paymentService = new TurboPaymentService({
       ...paymentServiceConfig,
       privateKey,
     });
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.document !== 'undefined'
-    ) {
+    if (isBrowser()) {
       const uploadService = new TurboWebUploadService({
         ...uploadServiceConfig,
         privateKey,
       });
       return new TurboClient({ uploadService, paymentService });
-    } else if (typeof global !== 'undefined' && global.process.versions.node) {
+    } else {
       const uploadService = new TurboNodeUploadService({
         ...uploadServiceConfig,
         privateKey,
       });
       return new TurboClient({ uploadService, paymentService });
-    } else {
-      throw new Error('Unknown environment.');
     }
   }
 }
