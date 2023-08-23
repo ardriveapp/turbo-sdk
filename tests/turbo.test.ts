@@ -1,9 +1,11 @@
 import Arweave from 'arweave';
 import { expect } from 'chai';
+import fs from 'fs';
 
 import { TurboClient } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/index.js';
 import { JWKInterface } from '../src/types/index.js';
+import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 
 // TODO: move these to local services
 const defaultConfig = {
@@ -104,6 +106,28 @@ describe('TurboClient', () => {
     it('getBalance()', async () => {
       const balance = await turbo.getBalance();
       expect(+balance.winc).to.equal(0);
+    });
+
+    it('uploadFiles()', async () => {
+      const file = new URL('files/0_kb.txt', import.meta.url).pathname;
+      const streamGenerator = [() => fs.createReadStream(file)];
+      const response = await turbo.uploadFiles({
+        fileStreamGenerator: streamGenerator,
+      });
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('ownerAddress');
+      expect(response).to.have.property('dataItems');
+      expect(response['ownerAddress']).to.equal(
+        jwkToPublicArweaveAddress(privateKey),
+      );
+      expect(Object.keys(response['dataItems']).length).to.equal(
+        streamGenerator.length,
+      );
+      for (const dataItem of Object.values(response['dataItems'])) {
+        expect(dataItem).to.have.property('fastFinalityIndexes');
+        expect(dataItem).to.have.property('dataCaches');
+        expect(dataItem).to.have.property('owner');
+      }
     });
   });
 });

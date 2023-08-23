@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { RetryConfig } from 'retry-axios';
+import { Readable } from 'stream';
 import winston from 'winston';
 
 import { JWKInterface } from './arweave.js';
@@ -50,6 +51,17 @@ export type TurboCountriesResponse = Country[];
 export type TurboCurrenciesResponse = {
   supportedCurrencies: Currency[];
   limits: Record<Currency, CurrencyLimit>;
+};
+export type TurboUploadDataItemResponse = {
+  byteCount: number;
+  dataCaches: string[];
+  fastFinalityIndexes: string[];
+  id: TransactionId;
+};
+
+export type TurboUploadDataItemsResponse = {
+  ownerAddress: UserAddress;
+  dataItems: Record<string, Omit<TurboUploadDataItemResponse, 'id'>>;
 };
 
 export type TurboSignedRequestHeaders = {
@@ -108,7 +120,14 @@ export interface TurboPaymentService
   extends AuthenticatedTurboPaymentService,
     UnauthenticatedTurboPaymentService {}
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TurboUploadService {}
+export interface TurboUploadService {
+  uploadFiles({
+    fileStreamGenerator,
+    bundle,
+  }: {
+    fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
+    bundle?: boolean;
+  }): Promise<TurboUploadDataItemsResponse>;
+}
 
 export interface Turbo extends TurboPaymentService, TurboUploadService {}

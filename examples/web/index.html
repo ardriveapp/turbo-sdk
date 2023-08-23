@@ -18,11 +18,39 @@
       <h1>Balance</h1>
       <span id="balance">Fetching balance for generated wallet...</span>
     </div>
+    <div>
+      <h1>Upload File</h1>
+
+      <form
+        id="uploadForm"
+        action="/upload"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <label for="file">Choose file to upload:</label>
+        <input type="file" id="file" name="file" />
+        <br /><br />
+        <input type="submit" value="Upload File" />
+        <br /><br />
+        <span id="uploadStatus"></span>
+      </form>
+    </div>
     <script type="module">
       import { TurboFactory } from './web.bundle.min.js';
 
-      // set up our factory
-      const turbo = TurboFactory.init();
+      /**
+       * Set up our authenticated client factory
+       */
+      const arweave = new Arweave({
+        host: 'ar-io.dev',
+        port: 443,
+        protocol: 'https',
+      });
+      const jwk = await arweave.crypto.generateJWK();
+      const address = await arweave.wallets.jwkToAddress(jwk);
+      const turbo = TurboFactory.init({
+        privateKey: jwk,
+      });
 
       // print the client to the console
       console.log(turbo);
@@ -42,16 +70,50 @@
         .join('\n');
       document.getElementById('rates').innerText = ratesString;
 
-      const arweave = Arweave.init();
-      const jwk = await Arweave.crypto.generateJWK();
-      const address = await arweave.wallets.jwkToAddress(jwk);
-      const turboAuth = TurboFactory.init({ privateKey: jwk });
-      const balance = await turboAuth.getBalance();
+      /**
+       * Fetch wallet balance.
+       */
+      const balance = await turbo.getBalance();
       document.getElementById('balance').innerText = JSON.stringify(
         balance,
         null,
         2,
       );
+
+      /**
+       * Handle file uploads
+       */
+      document
+        .getElementById('uploadForm')
+        .addEventListener('submit', function (e) {
+          e.preventDefault(); // Stop the form from submitting
+
+          const fileInput = document.getElementById('file');
+          const selectedFiles = fileInput.files;
+
+          if (selectedFiles.length) {
+            const blobFileGenerators = Object.values(selectedFiles).map(
+              (file) => () => file.stream(),
+            );
+            const response = turbo
+              .uploadFiles({
+                fileStreamGenerator: blobFileGenerators,
+              })
+              .then((res) => {
+                console.log('Successfully uploaded files!', res);
+                document.getElementById(
+                  'uploadStatus',
+                ).innerText = `Successfully uploaded files! ${JSON.stringify(
+                  res,
+                  null,
+                  2,
+                )}`;
+              })
+              .catch((err) => console.log('Error uploading file!', err));
+          } else {
+            console.log('No file selected');
+          }
+        });
     </script>
   </body>
 </html>

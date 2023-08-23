@@ -1,4 +1,5 @@
 import Arweave from 'arweave';
+import fs from 'fs';
 
 import { TurboFactory } from '../../lib/index.js';
 
@@ -38,4 +39,17 @@ import { TurboFactory } from '../../lib/index.js';
     currency: 'usd',
   });
   console.log('10 USD to winc:', estimatedWinc);
+
+  /**
+   * Post some local data items to the Turbo service.
+   */
+  console.log('Posting data items to Turbo service...');
+  const files = [new URL('files/0_kb.txt', import.meta.url).pathname];
+  const fileStreamGenerator = files.map(
+    (dataItem) => () => fs.createReadStream(dataItem),
+  );
+  const uploadResult = await turboAuthClient.uploadFiles({
+    fileStreamGenerator: fileStreamGenerator,
+  });
+  console.log(JSON.stringify(uploadResult, null, 2));
 })();

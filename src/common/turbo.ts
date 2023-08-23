@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Readable } from 'stream';
+
 import { TurboNodeUploadService } from '../node/upload.js';
 import { JWKInterface, TurboBalanceResponse } from '../types/index.js';
 import {
@@ -26,6 +28,7 @@ import {
   TurboPaymentService,
   TurboPriceResponse,
   TurboRatesResponse,
+  TurboUploadDataItemsResponse,
   TurboUploadService,
 } from '../types/index.js';
 import { TurboDefaultPaymentService } from './payment.js';
@@ -113,5 +116,18 @@ export class TurboClient implements Turbo {
    */
   async getBalance(): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance();
+  }
+
+  /**
+   * Signs and uploads data to the upload service.
+   */
+  async uploadFiles({
+    fileStreamGenerator,
+    bundle = false,
+  }: {
+    fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
+    bundle?: boolean;
+  }): Promise<TurboUploadDataItemsResponse> {
+    return this.uploadService.uploadFiles({ fileStreamGenerator, bundle });
   }
 }
