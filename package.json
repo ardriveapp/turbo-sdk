@@ -2,6 +2,7 @@
   "name": "@ardrive/turbo-sdk",
   "version": "0.0.1",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "type": "module",
   "files": [
     "lib",
@@ -15,10 +16,11 @@
     "website": "https://ardrive.io"
   },
   "exports": {
-    "./web": "./bundles/web.bundle.min.js",
     ".": {
       "import": "./lib/index.js",
-      "require": "./lib/index.js"
+      "require": "./lib/index.js",
+      "types": "./lib/index.d.ts",
+      "browser": "./bundles/web.bundle.min.js"
     }
   },
   "engines": {
