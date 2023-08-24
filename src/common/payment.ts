@@ -19,12 +19,14 @@ import { AxiosInstance } from 'axios';
 import { JWKInterface } from '../types/arweave.js';
 import {
   Currency,
+  Turbo,
+  TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
+  TurboFiatToArResponse,
   TurboPaymentService,
   TurboPaymentServiceConfiguration,
   TurboPriceResponse,
-  TurboRateResponse,
   TurboRatesResponse,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
@@ -67,7 +69,7 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
     currency,
   }: {
     currency: Currency;
-  }): Promise<TurboRateResponse> {
+  }): Promise<TurboFiatToArResponse> {
     const {
       status,
       statusText,
@@ -78,7 +80,7 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       throw new FailedRequestError(status, statusText);
     }
 
-    return rate as TurboRateResponse;
+    return rate as TurboFiatToArResponse;
   }
 
   async getSupportedCountries(): Promise<TurboCountriesResponse> {
@@ -141,7 +143,7 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
     return wincForFiat as TurboPriceResponse;
   }
 
-  async getBalance(): Promise<number> {
+  async getBalance(): Promise<TurboBalanceResponse> {
     if (!this.privateKey) {
       throw new UnauthenticatedRequestError();
     }
@@ -157,13 +159,15 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
     });
 
     if (status === 404) {
-      return 0;
+      return {
+        winc: 0,
+      };
     }
 
     if (status !== 200) {
       throw new FailedRequestError(status, statusText);
     }
 
-    return +balance;
+    return balance as TurboBalanceResponse;
   }
 }

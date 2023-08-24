@@ -7,7 +7,7 @@ import { TurboFactory } from '../../lib/index.js';
    * Fetching rates using an unauthenticated Turbo client.
    */
   const turbo = TurboFactory.init();
-  const rates = await turbo.getRates();
+  const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
   /**
@@ -16,7 +16,7 @@ import { TurboFactory } from '../../lib/index.js';
   const arweave = Arweave.init();
   const jwk = await Arweave.crypto.generateJWK();
   const address = await arweave.wallets.jwkToAddress(jwk);
-  const turboAuthClient = TurboFactory.init({ jwk });
+  const turboAuthClient = TurboFactory.init({ privateKey: jwk });
   const balance = await turboAuthClient.getBalance();
   console.log(
     'Balance:',

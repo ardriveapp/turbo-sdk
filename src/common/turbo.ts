@@ -15,16 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { TurboNodeUploadService } from '../node/upload.js';
-import { JWKInterface } from '../types/index.js';
+import { JWKInterface, TurboBalanceResponse } from '../types/index.js';
 import {
   Currency,
   Turbo,
   TurboClientConfiguration,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
+  TurboFiatToArResponse,
   TurboPaymentService,
   TurboPriceResponse,
-  TurboRateResponse,
   TurboRatesResponse,
   TurboUploadService,
 } from '../types/index.js';
@@ -54,7 +54,7 @@ export class TurboClient implements Turbo {
     currency,
   }: {
     currency: Currency;
-  }): Promise<TurboRateResponse> {
+  }): Promise<TurboFiatToArResponse> {
     return this.paymentService.getFiatToAR({ currency });
   }
 
@@ -111,7 +111,7 @@ export class TurboClient implements Turbo {
    *
    * Note: 'privateKey' must be provided to use.
    */
-  async getBalance(): Promise<number> {
+  async getBalance(): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance();
   }
 }

@@ -34,10 +34,13 @@ export type CurrencyLimit = {
 };
 
 export type TurboPriceResponse = {
-  winc: string;
+  winc: number;
   adjustments: any; // TODO: type this
 };
-export type TurboRateResponse = {
+
+export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
+
+export type TurboFiatToArResponse = {
   currency: Currency;
   rate: number;
 };
@@ -79,13 +82,17 @@ export type TurboClientConfiguration = {
 };
 
 export interface AuthenticatedTurboPaymentService {
-  getBalance: () => Promise<number>;
+  getBalance: () => Promise<TurboBalanceResponse>;
 }
 
 export interface UnauthenticatedTurboPaymentService {
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
-  getFiatToAR({ currency }: { currency: Currency }): Promise<TurboRateResponse>;
+  getFiatToAR({
+    currency,
+  }: {
+    currency: Currency;
+  }): Promise<TurboFiatToArResponse>;
   getFiatRates(): Promise<TurboRatesResponse>;
   getWincPriceForFiat({
     amount,
