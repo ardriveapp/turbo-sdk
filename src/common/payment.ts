@@ -54,14 +54,18 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
   }
 
   async getFiatRates(): Promise<TurboRatesResponse> {
-    const { status, statusText, data: rates } = await this.axios.get('/rates');
+    const {
+      status,
+      statusText,
+      data: rates,
+    } = await this.axios.get<TurboRatesResponse>('/rates');
 
     if (status !== 200) {
       throw new FailedRequestError(status, statusText);
     }
 
     // TODO: should we return just the fiat rates instead of the whole response?
-    return rates as TurboRatesResponse;
+    return rates;
   }
 
   async getFiatToAR({
@@ -73,13 +77,13 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       status,
       statusText,
       data: rate,
-    } = await this.axios.get(`/rates/${currency}`);
+    } = await this.axios.get<TurboFiatToArResponse>(`/rates/${currency}`);
 
     if (status !== 200) {
       throw new FailedRequestError(status, statusText);
     }
 
-    return rate as TurboFiatToArResponse;
+    return rate;
   }
 
   async getSupportedCountries(): Promise<TurboCountriesResponse> {
@@ -87,13 +91,13 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       status,
       statusText,
       data: countries,
-    } = await this.axios.get('/countries');
+    } = await this.axios.get<TurboCountriesResponse>('/countries');
 
     if (status !== 200) {
       throw new FailedRequestError(status, statusText);
     }
 
-    return countries as TurboCountriesResponse;
+    return countries;
   }
 
   async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
@@ -101,13 +105,13 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       status,
       statusText,
       data: currencies,
-    } = await this.axios.get('/currencies');
+    } = await this.axios.get<TurboCurrenciesResponse>('/currencies');
 
     if (status !== 200) {
       throw new FailedRequestError(status, statusText);
     }
 
-    return currencies as TurboCurrenciesResponse;
+    return currencies;
   }
 
   async getWincPriceForBytes({
@@ -119,13 +123,13 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       status,
       statusText,
       data: wincForBytes,
-    } = await this.axios.get(`/price/bytes/${bytes}`);
+    } = await this.axios.get<TurboPriceResponse>(`/price/bytes/${bytes}`);
 
     if (status !== 200) {
       throw new Error(`Status: ${status} ${statusText}`);
     }
 
-    return wincForBytes as TurboPriceResponse;
+    return wincForBytes;
   }
 
   async getWincPriceForFiat({ amount, currency }): Promise<TurboPriceResponse> {
@@ -133,13 +137,15 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       status,
       statusText,
       data: wincForFiat,
-    } = await this.axios.get(`/price/${currency}/${amount}`);
+    } = await this.axios.get<TurboPriceResponse>(
+      `/price/${currency}/${amount}`,
+    );
 
     if (status !== 200) {
       throw new FailedRequestError(status, statusText);
     }
 
-    return wincForFiat as TurboPriceResponse;
+    return wincForFiat;
   }
 
   async getBalance(): Promise<TurboBalanceResponse> {
@@ -153,7 +159,7 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       status,
       statusText,
       data: balance,
-    } = await this.axios.get('/balance', {
+    } = await this.axios.get<TurboBalanceResponse>('/balance', {
       headers,
     });
 
@@ -167,6 +173,6 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
       throw new FailedRequestError(status, statusText);
     }
 
-    return balance as TurboBalanceResponse;
+    return balance;
   }
 }
