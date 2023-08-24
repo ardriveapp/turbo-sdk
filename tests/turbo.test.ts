@@ -83,7 +83,7 @@ describe('TurboClient', () => {
     });
 
     it('getPriceForFiat()', async () => {
-      const { winc } = await turbo.getWincPriceForFiat({
+      const { winc } = await turbo.getWincForFiat({
         amount: 1000, // 10 USD
         currency: 'usd',
       });

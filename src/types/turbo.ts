@@ -94,7 +94,7 @@ export interface UnauthenticatedTurboPaymentService {
     currency: Currency;
   }): Promise<TurboFiatToArResponse>;
   getFiatRates(): Promise<TurboRatesResponse>;
-  getWincPriceForFiat({
+  getWincForFiat({
     amount,
     currency,
   }: {

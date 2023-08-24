@@ -96,14 +96,14 @@ export class TurboClient implements Turbo {
   /**
    * Determines the amount of 'winc' that would be returned for a given currency and amount, including all Turbo cost adjustments and fees.
    */
-  async getWincPriceForFiat({
+  async getWincForFiat({
     amount,
     currency,
   }: {
     amount: number;
     currency: Currency;
   }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
-    return this.paymentService.getWincPriceForFiat({ amount, currency });
+    return this.paymentService.getWincForFiat({ amount, currency });
   }
 
   /**

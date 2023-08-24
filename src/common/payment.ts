@@ -132,7 +132,7 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
     return wincForBytes;
   }
 
-  async getWincPriceForFiat({ amount, currency }): Promise<TurboPriceResponse> {
+  async getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {
     const {
       status,
       statusText,

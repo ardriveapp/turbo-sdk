@@ -36,4 +36,13 @@ const TurboFactory = require('../../lib/index.js');
       2,
     ),
   );
+
+  /**
+   * Fetch the estimated of winc $1 USD would return
+   */
+  const estimatedWinc = await turboAuthClient.getWincForFiat({
+    amount: 1000,
+    currency: 'usd',
+  });
+  console.log('10 USD to winc:', estimatedWinc);
 })();
