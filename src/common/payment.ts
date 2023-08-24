@@ -159,7 +159,7 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
 
     if (status === 404) {
       return {
-        winc: 0,
+        winc: '0',
       };
     }
 

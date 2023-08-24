@@ -34,7 +34,7 @@ export type CurrencyLimit = {
 };
 
 export type TurboPriceResponse = {
-  winc: number;
+  winc: string; // TODO: the service returns BigNumbers as strings
   adjustments: any; // TODO: type this
 };
 

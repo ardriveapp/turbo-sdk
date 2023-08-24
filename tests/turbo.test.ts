@@ -103,7 +103,7 @@ describe('TurboClient', () => {
 
     it('getBalance()', async () => {
       const balance = await turbo.getBalance();
-      expect(balance).to.equal(0);
+      expect(+balance.winc).to.equal(0);
     });
   });
 });
