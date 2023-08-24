@@ -19,7 +19,6 @@ import { AxiosInstance } from 'axios';
 import { JWKInterface } from '../types/arweave.js';
 import {
   Currency,
-  Turbo,
   TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
