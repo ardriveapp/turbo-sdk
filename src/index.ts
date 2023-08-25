@@ -14,6 +14,50 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import {
+  TurboClient,
+  TurboDefaultPaymentService as TurboPaymentService,
+} from './common/index.js';
+import { TurboNodeUploadService } from './node/upload.js';
+import { TurboConfiguration } from './types/index.js';
+import { isBrowser } from './utils/browser.js';
+import { TurboWebUploadService } from './web/upload.js';
 
-// eslint-disable-next-line
-export class TurboClient {}
+const defaultTurboConfig = {
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+  },
+};
+
+export class TurboFactory {
+  static init(config: TurboConfiguration = defaultTurboConfig) {
+    const {
+      privateKey = undefined,
+      paymentServiceConfig,
+      uploadServiceConfig,
+    } = {
+      ...defaultTurboConfig,
+      ...config,
+    };
+    const paymentService = new TurboPaymentService({
+      ...paymentServiceConfig,
+      privateKey,
+    });
+    if (isBrowser()) {
+      const uploadService = new TurboWebUploadService({
+        ...uploadServiceConfig,
+        privateKey,
+      });
+      return new TurboClient({ uploadService, paymentService });
+    } else {
+      const uploadService = new TurboNodeUploadService({
+        ...uploadServiceConfig,
+        privateKey,
+      });
+      return new TurboClient({ uploadService, paymentService });
+    }
+  }
+}
