@@ -72,9 +72,9 @@ describe('TurboClient', () => {
       expect(limits.usd).to.have.property('zeroDecimalCurrency');
     });
 
-    it('getWincPriceForBytes()', async () => {
-      const { winc, adjustments } = await turbo.getWincPriceForBytes({
-        bytes: 1024,
+    it('getUploadCosts()', async () => {
+      const [{ winc, adjustments }] = await turbo.getUploadCosts({
+        bytes: [1024],
       });
       expect(winc).to.not.be.undefined;
       expect(+winc).to.be.greaterThan(0);

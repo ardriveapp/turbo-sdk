@@ -101,11 +101,7 @@ export interface UnauthenticatedTurboPaymentService {
     amount: number;
     currency: Currency;
   }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
-  getWincPriceForBytes({
-    bytes,
-  }: {
-    bytes: number;
-  }): Promise<TurboPriceResponse>;
+  getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
 }
 
 export interface TurboPaymentService
