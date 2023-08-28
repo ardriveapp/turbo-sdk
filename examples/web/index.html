@@ -1,6 +1,7 @@
 <html>
   <head>
     <script type="module" src="./web.bundle.min.js"></script>
+    <script src="https://unpkg.com/arweave/bundles/web.bundle.min.js"></script>
     <style>
       /* Center the button */
       body {
@@ -10,8 +11,12 @@
   </head>
   <body>
     <div>
-      <h1 id="header" display="none">Rates</h1>
+      <h1>Rates</h1>
       <span id="rates">Fetching rates...</span>
+    </div>
+    <div>
+      <h1>Balance</h1>
+      <span id="balance">Fetching balance for generated wallet...</span>
     </div>
     <script type="module">
       import { TurboFactory } from './web.bundle.min.js';
@@ -22,7 +27,7 @@
       // print the client to the console
       console.log(turbo);
 
-      const rates = await turbo.getRates();
+      const rates = await turbo.getFiatRates();
 
       console.log(
         'Successfully fetched rates!',
@@ -36,7 +41,17 @@
         })
         .join('\n');
       document.getElementById('rates').innerText = ratesString;
-      document.getElementById('header').style.display = 'block';
+
+      const arweave = Arweave.init();
+      const jwk = await Arweave.crypto.generateJWK();
+      const address = await arweave.wallets.jwkToAddress(jwk);
+      const turboAuth = TurboFactory.init({ privateKey: jwk });
+      const balance = await turboAuth.getBalance();
+      document.getElementById('balance').innerText = JSON.stringify(
+        balance,
+        null,
+        2,
+      );
     </script>
   </body>
 </html>

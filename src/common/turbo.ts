@@ -62,7 +62,7 @@ export class TurboClient implements Turbo {
    * Returns the latest conversion rates to purchase 1GiB of data for all supported currencies, including all adjustments and fees.
    *
    * Note: this does not take into account varying adjustments and promotions for different sizes of data. If you want to calculate the total
-   * cost in 'winc' for a given number of bytes, use getWincPriceForBytes.
+   * cost in 'winc' for a given number of bytes, use getUploadCosts.
    */
   async getFiatRates(): Promise<TurboRatesResponse> {
     return this.paymentService.getFiatRates();
@@ -85,12 +85,12 @@ export class TurboClient implements Turbo {
   /**
    * Determines the price in 'winc' to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
    */
-  async getWincPriceForBytes({
+  async getUploadCosts({
     bytes,
   }: {
-    bytes: number;
-  }): Promise<TurboPriceResponse> {
-    return this.paymentService.getWincPriceForBytes({ bytes });
+    bytes: number[];
+  }): Promise<TurboPriceResponse[]> {
+    return this.paymentService.getUploadCosts({ bytes });
   }
 
   /**

@@ -114,22 +114,33 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
     return currencies;
   }
 
-  async getWincPriceForBytes({
+  async getUploadCosts({
     bytes,
   }: {
-    bytes: number;
-  }): Promise<TurboPriceResponse> {
-    const {
-      status,
-      statusText,
-      data: wincForBytes,
-    } = await this.axios.get<TurboPriceResponse>(`/price/bytes/${bytes}`);
+    bytes: number[];
+  }): Promise<TurboPriceResponse[]> {
+    const fetchPricePromises = bytes.map((byteCount: number) =>
+      this.axios.get<TurboPriceResponse>(`/price/bytes/${byteCount}`),
+    );
+    const responses = await Promise.all(fetchPricePromises);
+    const wincCostsForBytes = responses.map(
+      ({
+        status,
+        statusText,
+        data,
+      }: {
+        status: number;
+        statusText: string;
+        data: TurboPriceResponse;
+      }) => {
+        if (status !== 200) {
+          throw new FailedRequestError(status, statusText);
+        }
+        return data;
+      },
+    );
 
-    if (status !== 200) {
-      throw new Error(`Status: ${status} ${statusText}`);
-    }
-
-    return wincForBytes;
+    return wincCostsForBytes;
   }
 
   async getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {

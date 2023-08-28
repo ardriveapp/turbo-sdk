@@ -31,7 +31,7 @@ import { TurboFactory } from '../../lib/index.js';
   );
 
   /**
-   * Fetch the estimated of winc $1 USD would return
+   * Fetch the estimated amount of winc returned for $1 USD
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
     amount: 1000,
