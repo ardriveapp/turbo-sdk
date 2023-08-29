@@ -44,7 +44,7 @@
     "test": "c8 mocha --config .mocharc",
     "prepare": "husky install",
     "example:mjs": "yarn build:esm && node examples/node/index.mjs",
-    "example:cjs": "yarn build:esm && node examples/node/index.mjs",
+    "example:cjs": "yarn build:esm && node examples/node/index.cjs",
     "example:web": "yarn build:web && cp -r bundles/* examples/web && http-server --port 8080 --host -o examples/web"
   },
   "dependencies": {

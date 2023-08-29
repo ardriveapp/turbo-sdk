@@ -34,7 +34,7 @@ export class TurboFactory {
   static public({
     paymentServiceConfig = {},
     uploadServiceConfig = {},
-  }: TurboPublicConfiguration) {
+  }: TurboPublicConfiguration = {}) {
     const paymentService = new TurboUnauthenticatedPaymentService({
       ...paymentServiceConfig,
     });
@@ -76,3 +76,6 @@ export class TurboFactory {
     });
   }
 }
+
+// additionally export classes
+export * from './common/index.js';

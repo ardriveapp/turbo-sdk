@@ -1,25 +1,38 @@
-const Arweave = require('arweave');
-const TurboFactory = require('../../lib/index.js');
-
 (async () => {
+  const { default: Arweave } = await import('arweave');
+  const { TurboFactory, TurboUnauthenticatedPaymentService } = await import(
+    '../../lib/index.js'
+  );
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
-  const turbo = TurboFactory.init();
-  const rates = await turbo.getRates();
+  const turbo = TurboFactory.public();
+  const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
+
+  /**
+   * Alternatively instantiate your own clients independently.
+   */
+  const paymentService = new TurboUnauthenticatedPaymentService({
+    url: 'https://payment.ardrive.dev',
+  });
+  const supportedCurrencies = await paymentService.getSupportedCurrencies();
+  console.log(
+    'Supported currencies:',
+    JSON.stringify(supportedCurrencies, null, 2),
+  );
 
   /**
    * Create a new arweave private key
    */
-  const arweave = Arweave.init();
+  const arweave = new Arweave({});
   const jwk = await Arweave.crypto.generateJWK();
   const address = await arweave.wallets.jwkToAddress(jwk);
 
   /**
    * Use the arweave key to create an authenticated turbo client
    */
-  const turboAuthClient = TurboFactory.init({ privateKey: jwk });
+  const turboAuthClient = TurboFactory.private({ privateKey: jwk });
 
   /**
    * Fetch the balance for the private key.
