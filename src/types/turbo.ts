@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { RetryConfig } from 'retry-axios';
-import { Readable } from 'stream';
+import { PassThrough, Readable } from 'stream';
 import winston from 'winston';
 
 import { JWKInterface } from './arweave.js';
@@ -70,34 +70,58 @@ export type TurboSignedRequestHeaders = {
   'x-signature': string;
 };
 
-export type TurboAuthSettings = {
-  privateKey?: JWKInterface; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
+type TurboAuthConfiguration = {
+  privateKey: JWKInterface; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
 };
 
 type TurboServiceConfiguration = {
-  url: string;
+  url?: string;
   retryConfig?: RetryConfig;
   logger?: winston.Logger;
-} & TurboAuthSettings;
-
-export type TurboUploadServiceConfiguration = TurboServiceConfiguration;
-export type TurboPaymentServiceConfiguration = TurboServiceConfiguration;
-
-export type TurboConfiguration = {
-  paymentServiceConfig: TurboPaymentServiceConfiguration;
-  uploadServiceConfig: TurboUploadServiceConfiguration;
-} & TurboAuthSettings;
-
-export type TurboClientConfiguration = {
-  paymentService: TurboPaymentService;
-  uploadService: TurboUploadService;
 };
 
-export interface AuthenticatedTurboPaymentService {
-  getBalance: () => Promise<TurboBalanceResponse>;
+export type TurboPublicUploadServiceConfiguration = TurboServiceConfiguration;
+export type TurboPrivateUploadServiceConfiguration = TurboServiceConfiguration &
+  TurboAuthConfiguration & {
+    dataItemSigner: TurboDataItemSigner;
+  };
+
+export type TurboPublicPaymentServiceConfiguration = TurboServiceConfiguration;
+export type TurboPrivatePaymentServiceConfiguration =
+  TurboServiceConfiguration & TurboAuthConfiguration;
+
+export type TurboPublicConfiguration = {
+  paymentServiceConfig?: TurboPublicPaymentServiceConfiguration;
+  uploadServiceConfig?: TurboPublicUploadServiceConfiguration;
+};
+
+export type TurboPrivateConfiguration = TurboPublicConfiguration &
+  TurboAuthConfiguration;
+
+export type TurboPublicClientConfiguration = {
+  paymentService: TurboPublicPaymentService;
+  uploadService: TurboPublicUploadService;
+};
+
+export type TurboPrivateClientConfiguration = {
+  paymentService: TurboPrivatePaymentService;
+  uploadService: TurboPrivateUploadService;
+} & TurboAuthConfiguration;
+
+export type TurboDataItemFactory = {
+  fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
+  bundle?: boolean;
+  // todo: add payload size
+};
+
+export interface TurboDataItemSigner {
+  signDataItems({
+    fileStreamGenerator,
+    bundle,
+  }: TurboDataItemFactory): Promise<PassThrough>[] | Promise<Buffer>[];
 }
 
-export interface UnauthenticatedTurboPaymentService {
+export interface TurboPublicPaymentService {
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getFiatToAR({
@@ -116,18 +140,24 @@ export interface UnauthenticatedTurboPaymentService {
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
 }
 
-export interface TurboPaymentService
-  extends AuthenticatedTurboPaymentService,
-    UnauthenticatedTurboPaymentService {}
+export interface TurboPrivatePaymentService extends TurboPublicPaymentService {
+  getBalance: () => Promise<TurboBalanceResponse>;
+}
 
-export interface TurboUploadService {
+// TODO: any public upload service APIS
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface TurboPublicUploadService {}
+
+export interface TurboPrivateUploadService extends TurboPublicUploadService {
   uploadFiles({
     fileStreamGenerator,
     bundle,
-  }: {
-    fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
-    bundle?: boolean;
-  }): Promise<TurboUploadDataItemsResponse>;
+  }: TurboDataItemFactory): Promise<TurboUploadDataItemsResponse>;
 }
 
-export interface Turbo extends TurboPaymentService, TurboUploadService {}
+export interface TurboPublicClient
+  extends TurboPublicPaymentService,
+    TurboPublicUploadService {}
+export interface TurboPrivateClient
+  extends TurboPrivatePaymentService,
+    TurboPrivateUploadService {}

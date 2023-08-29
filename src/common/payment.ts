@@ -23,28 +23,26 @@ import {
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
-  TurboPaymentService,
-  TurboPaymentServiceConfiguration,
   TurboPriceResponse,
+  TurboPrivatePaymentService,
+  TurboPrivatePaymentServiceConfiguration,
+  TurboPublicPaymentService,
+  TurboPublicPaymentServiceConfiguration,
   TurboRatesResponse,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
-import {
-  FailedRequestError,
-  UnauthenticatedRequestError,
-} from '../utils/errors.js';
+import { FailedRequestError } from '../utils/errors.js';
 import { signedRequestHeadersFromJwk } from '../utils/signData.js';
 
-export class TurboDefaultPaymentService implements TurboPaymentService {
+export class TurboUnauthenticatedPaymentService
+  implements TurboPublicPaymentService
+{
   protected readonly axios: AxiosInstance;
-  protected readonly privateKey: JWKInterface | undefined;
 
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,
-    privateKey,
-  }: TurboPaymentServiceConfiguration) {
-    this.privateKey = privateKey;
+  }: TurboPublicPaymentServiceConfiguration) {
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -158,12 +156,62 @@ export class TurboDefaultPaymentService implements TurboPaymentService {
 
     return wincForFiat;
   }
+}
+
+// NOTE: we could use an abstract class here, but for consistency sake we'll directly call the public payment service APIs
+export class TurboAuthenticatedPaymentService
+  implements TurboPrivatePaymentService
+{
+  protected readonly axios: AxiosInstance;
+  protected readonly privateKey: JWKInterface;
+  protected readonly publicPaymentService: TurboPublicPaymentService;
+
+  constructor({
+    url = 'https://payment.ardrive.dev',
+    retryConfig,
+    privateKey,
+  }: TurboPrivatePaymentServiceConfiguration) {
+    this.privateKey = privateKey;
+    this.axios = createAxiosInstance({
+      axiosConfig: {
+        baseURL: `${url}/v1`,
+      },
+      retryConfig,
+    });
+    this.publicPaymentService = new TurboUnauthenticatedPaymentService({
+      url,
+      retryConfig,
+    });
+  }
+
+  getFiatRates(): Promise<TurboRatesResponse> {
+    return this.publicPaymentService.getFiatRates();
+  }
+
+  getFiatToAR({ currency }): Promise<TurboFiatToArResponse> {
+    return this.publicPaymentService.getFiatToAR({ currency });
+  }
+
+  getSupportedCountries(): Promise<TurboCountriesResponse> {
+    return this.publicPaymentService.getSupportedCountries();
+  }
+
+  getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
+    return this.publicPaymentService.getSupportedCurrencies();
+  }
+
+  getUploadCosts({ bytes }): Promise<TurboPriceResponse[]> {
+    return this.publicPaymentService.getUploadCosts({ bytes });
+  }
+
+  getWincForFiat({
+    amount,
+    currency,
+  }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
+    return this.publicPaymentService.getWincForFiat({ amount, currency });
+  }
 
   async getBalance(): Promise<TurboBalanceResponse> {
-    if (!this.privateKey) {
-      throw new UnauthenticatedRequestError();
-    }
-
     const headers = await signedRequestHeadersFromJwk(this.privateKey);
 
     const {

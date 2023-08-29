@@ -2,39 +2,52 @@ import Arweave from 'arweave';
 import { expect } from 'chai';
 import fs from 'fs';
 
-import { TurboClient } from '../src/common/turbo.js';
+import {
+  TurboAuthenticatedClient,
+  TurboUnauthenticatedClient,
+} from '../src/common/turbo.js';
 import { TurboFactory } from '../src/index.js';
 import { JWKInterface } from '../src/types/index.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 
-// TODO: move these to local services
-const defaultConfig = {
-  paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev',
-  },
-  uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev',
-  },
-};
-
 describe('TurboFactory', () => {
-  it('should return a TurboClient when running in node', () => {
-    const turbo = TurboFactory.init(defaultConfig);
-    expect(turbo).to.be.instanceOf(TurboClient);
+  describe('TurboUnauthenticatedClient', () => {
+    it('should return a TurboUnauthenticatedClient when running in node', () => {
+      const turbo = TurboFactory.public({});
+      expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+    });
+    it('should be a TurboUnauthenticatedClient running in the browser', () => {
+      (global as any).window = { document: {} };
+      const turbo = TurboFactory.public({});
+      expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+      delete (global as any).window;
+    });
   });
-  it('should be a TurboClient when running in the browser', () => {
-    (global as any).window = { document: {} };
-    const turbo = TurboFactory.init(defaultConfig);
-    expect(turbo).to.be.instanceOf(TurboClient);
-    delete (global as any).window;
+
+  describe('TurboAuthenticatedClient', () => {
+    let jwk: JWKInterface;
+    before(async () => {
+      jwk = await Arweave.crypto.generateJWK();
+    });
+
+    it('should return a TurboUnauthenticatedClient when running in node', () => {
+      const turbo = TurboFactory.private({ privateKey: jwk });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+    it('should be a TurboUnauthenticatedClient running in the browser', () => {
+      (global as any).window = { document: {} };
+      const turbo = TurboFactory.private({ privateKey: jwk });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      delete (global as any).window;
+    });
   });
 });
 
-describe('TurboClient', () => {
-  let turbo: TurboClient;
+describe('TurboUnauthenticatedClient', () => {
+  let turbo: TurboUnauthenticatedClient;
 
   before(async () => {
-    turbo = TurboFactory.init(defaultConfig);
+    turbo = TurboFactory.public({});
   });
 
   describe('unauthenticated requests', () => {
@@ -93,14 +106,16 @@ describe('TurboClient', () => {
       expect(+winc).to.be.greaterThan(0);
     });
   });
+});
 
+describe('TurboAuthenticatedClient', () => {
   describe('authenticated requests', () => {
-    let privateKey: JWKInterface;
-    let turbo: TurboClient;
+    let jwk: JWKInterface;
+    let turbo: TurboAuthenticatedClient;
 
     before(async () => {
-      privateKey = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.init({ ...defaultConfig, privateKey });
+      jwk = await Arweave.crypto.generateJWK();
+      turbo = TurboFactory.private({ privateKey: jwk });
     });
 
     it('getBalance()', async () => {
@@ -117,9 +132,7 @@ describe('TurboClient', () => {
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('ownerAddress');
       expect(response).to.have.property('dataItems');
-      expect(response['ownerAddress']).to.equal(
-        jwkToPublicArweaveAddress(privateKey),
-      );
+      expect(response['ownerAddress']).to.equal(jwkToPublicArweaveAddress(jwk));
       expect(Object.keys(response['dataItems']).length).to.equal(
         streamGenerator.length,
       );

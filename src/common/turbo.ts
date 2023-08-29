@@ -16,36 +16,118 @@
  */
 import { Readable } from 'stream';
 
-import { TurboNodeUploadService } from '../node/upload.js';
-import { JWKInterface, TurboBalanceResponse } from '../types/index.js';
+import { TurboNodeDataItemSigner } from '../node/signer.js';
 import {
   Currency,
-  Turbo,
-  TurboClientConfiguration,
+  TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
-  TurboPaymentService,
   TurboPriceResponse,
+  TurboPrivateClient,
+  TurboPrivateClientConfiguration,
+  TurboPrivatePaymentService,
+  TurboPrivateUploadService,
+  TurboPublicClient,
+  TurboPublicClientConfiguration,
+  TurboPublicPaymentService,
+  TurboPublicUploadService,
   TurboRatesResponse,
   TurboUploadDataItemsResponse,
-  TurboUploadService,
 } from '../types/index.js';
-import { TurboDefaultPaymentService } from './payment.js';
+import {
+  TurboAuthenticatedPaymentService,
+  TurboUnauthenticatedPaymentService,
+} from './payment.js';
+import {
+  TurboAuthenticatedUploadService,
+  TurboUnauthenticatedUploadService,
+} from './upload.js';
 
-export class TurboClient implements Turbo {
-  protected readonly jwk: JWKInterface | undefined;
-  protected readonly paymentService: TurboPaymentService;
-  protected readonly uploadService: TurboUploadService;
+export class TurboUnauthenticatedClient implements TurboPublicClient {
+  protected readonly paymentService: TurboPublicPaymentService;
+  protected readonly uploadService: TurboPublicUploadService;
 
   constructor({
-    uploadService = new TurboNodeUploadService({
-      url: 'https://turbo.ardrive.dev',
+    uploadService = new TurboUnauthenticatedUploadService({}),
+    paymentService = new TurboUnauthenticatedPaymentService({}),
+  }: TurboPublicClientConfiguration) {
+    this.paymentService = paymentService;
+    this.uploadService = uploadService;
+  }
+
+  /**
+   * Returns the supported fiat currency conversion rate for 1AR based on current market prices.
+   */
+  async getFiatToAR({
+    currency,
+  }: {
+    currency: Currency;
+  }): Promise<TurboFiatToArResponse> {
+    return this.paymentService.getFiatToAR({ currency });
+  }
+
+  /**
+   * Returns the latest conversion rates to purchase 1GiB of data for all supported currencies, including all adjustments and fees.
+   *
+   * Note: this does not take into account varying adjustments and promotions for different sizes of data. If you want to calculate the total
+   * cost in 'winc' for a given number of bytes, use getUploadCosts.
+   */
+  async getFiatRates(): Promise<TurboRatesResponse> {
+    return this.paymentService.getFiatRates();
+  }
+
+  /**
+   * Returns a comprehensive list of supported countries that can purchase credits through the Turbo Payment Service.
+   */
+  async getSupportedCountries(): Promise<TurboCountriesResponse> {
+    return this.paymentService.getSupportedCountries();
+  }
+
+  /**
+   * Returns a list of all supported fiat currencies.
+   */
+  async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
+    return this.paymentService.getSupportedCurrencies();
+  }
+
+  /**
+   * Determines the price in 'winc' to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
+   */
+  async getUploadCosts({
+    bytes,
+  }: {
+    bytes: number[];
+  }): Promise<TurboPriceResponse[]> {
+    return this.paymentService.getUploadCosts({ bytes });
+  }
+
+  /**
+   * Determines the amount of 'winc' that would be returned for a given currency and amount, including all Turbo cost adjustments and fees.
+   */
+  async getWincForFiat({
+    amount,
+    currency,
+  }: {
+    amount: number;
+    currency: Currency;
+  }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
+    return this.paymentService.getWincForFiat({ amount, currency });
+  }
+}
+
+export class TurboAuthenticatedClient implements TurboPrivateClient {
+  protected readonly paymentService: TurboPrivatePaymentService;
+  protected readonly uploadService: TurboPrivateUploadService;
+
+  constructor({
+    privateKey,
+    paymentService = new TurboAuthenticatedPaymentService({ privateKey }),
+    uploadService = new TurboAuthenticatedUploadService({
+      privateKey,
+      dataItemSigner: new TurboNodeDataItemSigner({ privateKey }),
     }),
-    paymentService = new TurboDefaultPaymentService({
-      url: 'https://payment.ardrive.dev',
-    }),
-  }: TurboClientConfiguration) {
+  }: TurboPrivateClientConfiguration) {
     this.paymentService = paymentService;
     this.uploadService = uploadService;
   }

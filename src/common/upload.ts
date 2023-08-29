@@ -14,31 +14,57 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, streamSigner } from 'arbundles';
 import { AxiosInstance, AxiosResponse } from 'axios';
 import { Readable } from 'stream';
 
+import { TurboNodeDataItemSigner } from '../node/signer.js';
 import { JWKInterface } from '../types/arweave.js';
 import {
   TransactionId,
+  TurboDataItemSigner,
+  TurboPrivateUploadService,
+  TurboPrivateUploadServiceConfiguration,
+  TurboPublicUploadService,
+  TurboPublicUploadServiceConfiguration,
   TurboUploadDataItemResponse,
   TurboUploadDataItemsResponse,
-  TurboUploadService,
-  TurboUploadServiceConfiguration,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { jwkToPublicArweaveAddress } from '../utils/base64.js';
 import { UnauthenticatedRequestError } from '../utils/errors.js';
 
-export class TurboNodeUploadService implements TurboUploadService {
+export class TurboUnauthenticatedUploadService
+  implements TurboPublicUploadService
+{
+  protected axios: AxiosInstance;
+  constructor({
+    url = 'https://upload.ardrive.dev',
+    retryConfig,
+  }: TurboPublicUploadServiceConfiguration) {
+    this.axios = createAxiosInstance({
+      axiosConfig: {
+        baseURL: `${url}/v1`,
+      },
+      retryConfig,
+    });
+  }
+
+  // TODO: any public upload service APIS
+}
+
+export class TurboAuthenticatedUploadService
+  implements TurboPrivateUploadService
+{
   protected axios: AxiosInstance;
   protected privateKey: JWKInterface | undefined;
+  protected dataItemSigner: TurboDataItemSigner;
 
   constructor({
     url = 'https://upload.ardrive.dev',
     privateKey,
+    dataItemSigner = new TurboNodeDataItemSigner({ privateKey }),
     retryConfig,
-  }: TurboUploadServiceConfiguration) {
+  }: TurboPrivateUploadServiceConfiguration) {
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -46,6 +72,7 @@ export class TurboNodeUploadService implements TurboUploadService {
       retryConfig,
     });
     this.privateKey = privateKey;
+    this.dataItemSigner = dataItemSigner;
   }
 
   async uploadFiles({
@@ -59,22 +86,10 @@ export class TurboNodeUploadService implements TurboUploadService {
       throw new UnauthenticatedRequestError();
     }
 
-    if (bundle) {
-      console.log('Data items will be bundled.', fileStreamGenerator);
-    }
-
-    const signer = new ArweaveSigner(this.privateKey);
-
-    const signedDataItemPromises = fileStreamGenerator.map(
-      (fileStreamGenerator) => {
-        const [stream1, stream2] = [
-          fileStreamGenerator(),
-          fileStreamGenerator(),
-        ];
-        // TODO: this will not work with BDIs as is, we may need to add an additional stream signer
-        return streamSigner(stream1, stream2, signer);
-      },
-    );
+    const signedDataItemPromises = this.dataItemSigner.signDataItems({
+      fileStreamGenerator,
+      bundle,
+    });
 
     // TODO: we probably don't want to Promise.all, do .allSettled and only return successful signed data items
     const signedDataItems = await Promise.all(signedDataItemPromises);
