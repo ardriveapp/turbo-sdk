@@ -1,6 +1,8 @@
+import { ArweaveSigner, createData, streamSigner } from 'arbundles';
 import Arweave from 'arweave';
 import { expect } from 'chai';
 import fs from 'fs';
+import { Readable } from 'stream';
 
 import {
   TurboAuthenticatedClient,
@@ -136,6 +138,35 @@ describe('TurboAuthenticatedClient', () => {
       expect(Object.keys(response['dataItems']).length).to.equal(
         streamGenerator.length,
       );
+      for (const dataItem of Object.values(response['dataItems'])) {
+        expect(dataItem).to.have.property('fastFinalityIndexes');
+        expect(dataItem).to.have.property('dataCaches');
+        expect(dataItem).to.have.property('owner');
+      }
+    });
+
+    it('uploadSignedDataItems()', async () => {
+      const signer = new ArweaveSigner(jwk);
+      // TODO: move to helper function
+      const readableGenerator = () => Readable.from('test stream');
+
+      const signedDataItem = await streamSigner(
+        readableGenerator(),
+        readableGenerator(),
+        signer,
+      );
+
+      const signature = await createData('signature', signer).sign(signer);
+
+      const response = await turbo.uploadSignedDataItems({
+        dataItemGenerator: [() => signedDataItem],
+        signature: signature,
+        publicKey: jwkToPublicArweaveAddress(jwk),
+      });
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('ownerAddress');
+      expect(response).to.have.property('dataItems');
+      expect(response['ownerAddress']).to.equal(jwkToPublicArweaveAddress(jwk));
       for (const dataItem of Object.values(response['dataItems'])) {
         expect(dataItem).to.have.property('fastFinalityIndexes');
         expect(dataItem).to.have.property('dataCaches');

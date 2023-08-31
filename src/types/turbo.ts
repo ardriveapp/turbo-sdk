@@ -78,13 +78,13 @@ type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: RetryConfig;
   logger?: winston.Logger;
+  dataItemSigner?: TurboDataItemSigner;
+  dataItemVerifier?: TurboDataItemVerifier;
 };
 
 export type TurboPublicUploadServiceConfiguration = TurboServiceConfiguration;
-export type TurboPrivateUploadServiceConfiguration = TurboServiceConfiguration &
-  TurboAuthConfiguration & {
-    dataItemSigner: TurboDataItemSigner;
-  };
+export type TurboPrivateUploadServiceConfiguration =
+  TurboPublicUploadServiceConfiguration & TurboAuthConfiguration;
 
 export type TurboPublicPaymentServiceConfiguration = TurboServiceConfiguration;
 export type TurboPrivatePaymentServiceConfiguration =
@@ -108,17 +108,32 @@ export type TurboPrivateClientConfiguration = {
   uploadService: TurboPrivateUploadService;
 } & TurboAuthConfiguration;
 
-export type TurboDataItemFactory = {
+export type TurboFileFactory = {
   fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
   bundle?: boolean;
   // todo: add payload size
 };
 
+// TODO: add web one for ReadableStream
+export type TurboSignedDataItemFactory = {
+  dataItemGenerator: (() => Readable)[];
+  publicKey: string; // TODO add type
+  signature: Buffer; // TODO: could also be a buffer
+};
+
+export interface TurboDataItemVerifier {
+  verifySignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: TurboSignedDataItemFactory): Promise<boolean>;
+}
+
 export interface TurboDataItemSigner {
   signDataItems({
     fileStreamGenerator,
     bundle,
-  }: TurboDataItemFactory): Promise<PassThrough>[] | Promise<Buffer>[];
+  }: TurboFileFactory): Promise<Readable>[] | Promise<Buffer>[];
 }
 
 export interface TurboPublicPaymentService {
@@ -144,15 +159,19 @@ export interface TurboPrivatePaymentService extends TurboPublicPaymentService {
   getBalance: () => Promise<TurboBalanceResponse>;
 }
 
-// TODO: any public upload service APIS
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TurboPublicUploadService {}
+export interface TurboPublicUploadService {
+  uploadSignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse>;
+}
 
 export interface TurboPrivateUploadService extends TurboPublicUploadService {
   uploadFiles({
     fileStreamGenerator,
     bundle,
-  }: TurboDataItemFactory): Promise<TurboUploadDataItemsResponse>;
+  }: TurboFileFactory): Promise<TurboUploadDataItemsResponse>;
 }
 
 export interface TurboPublicClient

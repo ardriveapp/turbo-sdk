@@ -17,7 +17,10 @@
 import { AxiosInstance, AxiosResponse } from 'axios';
 import { Readable } from 'stream';
 
-import { TurboNodeDataItemSigner } from '../node/signer.js';
+import {
+  TurboNodeDataItemSigner,
+  TurboNodeDataItemVerifier,
+} from '../node/signer.js';
 import { JWKInterface } from '../types/arweave.js';
 import {
   TransactionId,
@@ -26,6 +29,7 @@ import {
   TurboPrivateUploadServiceConfiguration,
   TurboPublicUploadService,
   TurboPublicUploadServiceConfiguration,
+  TurboSignedDataItemFactory,
   TurboUploadDataItemResponse,
   TurboUploadDataItemsResponse,
 } from '../types/turbo.js';
@@ -37,8 +41,11 @@ export class TurboUnauthenticatedUploadService
   implements TurboPublicUploadService
 {
   protected axios: AxiosInstance;
+  protected dataItemVerifier: TurboNodeDataItemVerifier;
+
   constructor({
     url = 'https://upload.ardrive.dev',
+    dataItemVerifier = new TurboNodeDataItemVerifier(),
     retryConfig,
   }: TurboPublicUploadServiceConfiguration) {
     this.axios = createAxiosInstance({
@@ -47,9 +54,27 @@ export class TurboUnauthenticatedUploadService
       },
       retryConfig,
     });
+    this.dataItemVerifier = dataItemVerifier;
   }
 
   // TODO: any public upload service APIS
+  async uploadSignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
+    const verified = await this.dataItemVerifier.verifySignedDataItems({
+      dataItemGenerator,
+      signature,
+      publicKey,
+    });
+    if (!verified) {
+      throw new Error('One or more data items failed signature validation');
+    }
+
+    // TODO: upload the files
+    return {} as TurboUploadDataItemsResponse;
+  }
 }
 
 export class TurboAuthenticatedUploadService
@@ -58,11 +83,13 @@ export class TurboAuthenticatedUploadService
   protected axios: AxiosInstance;
   protected privateKey: JWKInterface | undefined;
   protected dataItemSigner: TurboDataItemSigner;
+  protected dataItemVerifier: TurboNodeDataItemVerifier;
 
   constructor({
     url = 'https://upload.ardrive.dev',
     privateKey,
     dataItemSigner = new TurboNodeDataItemSigner({ privateKey }),
+    dataItemVerifier = new TurboNodeDataItemVerifier(),
     retryConfig,
   }: TurboPrivateUploadServiceConfiguration) {
     this.axios = createAxiosInstance({
@@ -73,6 +100,67 @@ export class TurboAuthenticatedUploadService
     });
     this.privateKey = privateKey;
     this.dataItemSigner = dataItemSigner;
+    this.dataItemVerifier = dataItemVerifier;
+  }
+
+  async uploadSignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
+    const verified = await this.dataItemVerifier.verifySignedDataItems({
+      dataItemGenerator,
+      signature,
+      publicKey,
+    });
+    if (!verified) {
+      throw new Error('One or more data items failed signature validation');
+    }
+
+    const signedDataItems: Readable[] = dataItemGenerator.map((dataItem) =>
+      dataItem(),
+    );
+
+    // TODO: add p-limit constraint
+    const uploadPromises = signedDataItems.map((signedDataItem) => {
+      return this.axios.post<TurboUploadDataItemResponse>(
+        `/tx`,
+        signedDataItem,
+        {
+          headers: {
+            'content-type': 'application/octet-stream',
+          },
+        },
+      );
+    });
+
+    // NOTE: our axios config (validateStatus) swallows errors, so failed data items will be ignored
+    const dataItemResponses = await Promise.all(uploadPromises);
+    const postedDataItems = dataItemResponses.reduce(
+      (
+        postedDataItemsMap: Record<
+          TransactionId,
+          Omit<TurboUploadDataItemResponse, 'id'>
+        >,
+        dataItemResponse: AxiosResponse<TurboUploadDataItemResponse, 'id'>,
+      ) => {
+        // handle the fulfilled response
+        const { status, data } = dataItemResponse;
+        if (![200, 202].includes(status)) {
+          // TODO: add to failed data items array
+          return postedDataItemsMap;
+        }
+        const { id, ...dataItemCache } = data;
+        postedDataItemsMap[id] = dataItemCache;
+        return postedDataItemsMap;
+      },
+      {},
+    );
+
+    return {
+      ownerAddress: publicKey,
+      dataItems: postedDataItems,
+    };
   }
 
   async uploadFiles({
@@ -107,25 +195,18 @@ export class TurboAuthenticatedUploadService
       );
     });
 
-    const dataItemResponses = await Promise.allSettled(uploadPromises);
+    // NOTE: our axios config (validateStatus) swallows errors, so failed data items will be ignored
+    const dataItemResponses = await Promise.all(uploadPromises);
     const postedDataItems = dataItemResponses.reduce(
       (
         postedDataItemsMap: Record<
           TransactionId,
           Omit<TurboUploadDataItemResponse, 'id'>
         >,
-        dataItemResponse:
-          | PromiseFulfilledResult<
-              AxiosResponse<TurboUploadDataItemResponse, 'id'>
-            >
-          | PromiseRejectedResult,
+        dataItemResponse: AxiosResponse<TurboUploadDataItemResponse, 'id'>,
       ) => {
-        // NOTE: with validateStatus set to true on the axios config we could use Promise.all and remove this check
-        if (dataItemResponse.status === 'rejected') {
-          return postedDataItemsMap;
-        }
         // handle the fulfilled response
-        const { status, data } = dataItemResponse.value;
+        const { status, data } = dataItemResponse;
         if (![200, 202].includes(status)) {
           // TODO: add to failed data items array
           return postedDataItemsMap;

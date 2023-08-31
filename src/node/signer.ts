@@ -16,16 +16,64 @@
  */
 import { ArweaveSigner, streamSigner } from 'arbundles';
 import { AxiosInstance } from 'axios';
-import { PassThrough, Readable } from 'stream';
+import crypto from 'crypto';
+import jwkToPem from 'jwk-to-pem';
+import { Readable } from 'stream';
 
 import { JWKInterface } from '../types/arweave.js';
-import { TurboDataItemSigner } from '../types/turbo.js';
+import {
+  TurboDataItemSigner,
+  TurboDataItemVerifier,
+  TurboSignedDataItemFactory,
+} from '../types/turbo.js';
+import { UnauthenticatedRequestError } from '../utils/errors.js';
+
+export class TurboNodeDataItemVerifier implements TurboDataItemVerifier {
+  async verifySignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: TurboSignedDataItemFactory): Promise<boolean> {
+    const fullKey = {
+      kty: 'RSA',
+      e: 'AQAB',
+      n: publicKey,
+    };
+
+    const pem = jwkToPem(fullKey);
+    const verifiedDataItems: boolean[] = [];
+
+    // TODO: do this in parallel
+    for (const generateDataItem of dataItemGenerator) {
+      const verify = crypto.createVerify('sha256');
+      const signedDataItem = generateDataItem();
+      signedDataItem.on('data', (chunk) => {
+        verify.update(chunk);
+      });
+      signedDataItem.on('end', () => {
+        const dataItemVerified = verify.verify(
+          {
+            key: pem,
+            padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+          },
+          signature,
+        );
+        verifiedDataItems.push(dataItemVerified);
+      });
+      signedDataItem.on('error', () => {
+        verifiedDataItems.push(false);
+      });
+    }
+
+    return verifiedDataItems.every((dataItem) => dataItem);
+  }
+}
 
 export class TurboNodeDataItemSigner implements TurboDataItemSigner {
   protected axios: AxiosInstance;
-  protected privateKey: JWKInterface;
+  protected privateKey: JWKInterface | undefined; // TODO: break into separate classes
 
-  constructor({ privateKey }: { privateKey: JWKInterface }) {
+  constructor({ privateKey }: { privateKey?: JWKInterface } = {}) {
     this.privateKey = privateKey;
   }
 
@@ -35,13 +83,19 @@ export class TurboNodeDataItemSigner implements TurboDataItemSigner {
   }: {
     fileStreamGenerator: (() => Readable)[];
     bundle?: boolean;
-  }): Promise<PassThrough>[] {
+  }): Promise<Readable>[] {
+    // TODO: break this into separate classes
+    if (!this.privateKey) {
+      throw new UnauthenticatedRequestError();
+    }
+
     if (bundle) {
       throw new Error('Not implemented!');
     }
 
     const signer = new ArweaveSigner(this.privateKey);
 
+    // these are technically PassThrough's which are subclasses of streams
     const signedDataItemPromises = fileStreamGenerator.map(
       (fileStreamGenerator) => {
         const [stream1, stream2] = [

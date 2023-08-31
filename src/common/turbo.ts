@@ -16,7 +16,6 @@
  */
 import { Readable } from 'stream';
 
-import { TurboNodeDataItemSigner } from '../node/signer.js';
 import {
   Currency,
   TurboBalanceResponse,
@@ -33,6 +32,7 @@ import {
   TurboPublicPaymentService,
   TurboPublicUploadService,
   TurboRatesResponse,
+  TurboSignedDataItemFactory,
   TurboUploadDataItemsResponse,
 } from '../types/index.js';
 import {
@@ -114,6 +114,21 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
   }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
     return this.paymentService.getWincForFiat({ amount, currency });
   }
+
+  /**
+   * Verifies signature of signed data items and uploads to the upload service.
+   */
+  async uploadSignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }): Promise<TurboUploadDataItemsResponse> {
+    return this.uploadService.uploadSignedDataItems({
+      dataItemGenerator,
+      signature,
+      publicKey,
+    });
+  }
 }
 
 export class TurboAuthenticatedClient implements TurboPrivateClient {
@@ -125,7 +140,6 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
     paymentService = new TurboAuthenticatedPaymentService({ privateKey }),
     uploadService = new TurboAuthenticatedUploadService({
       privateKey,
-      dataItemSigner: new TurboNodeDataItemSigner({ privateKey }),
     }),
   }: TurboPrivateClientConfiguration) {
     this.paymentService = paymentService;
@@ -211,5 +225,20 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
     bundle?: boolean;
   }): Promise<TurboUploadDataItemsResponse> {
     return this.uploadService.uploadFiles({ fileStreamGenerator, bundle });
+  }
+
+  /**
+   * Verifies signature of signed data items and uploads to the upload service.
+   */
+  async uploadSignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
+    return this.uploadService.uploadSignedDataItems({
+      dataItemGenerator,
+      signature,
+      publicKey,
+    });
   }
 }

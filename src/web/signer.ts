@@ -29,6 +29,19 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
     this.privateKey = privateKey;
   }
 
+  verifySignedDataItems({
+    dataItemGenerator,
+    signature,
+    publicKey,
+  }: {
+    dataItemGenerator: (() => ReadableStream)[];
+    signature: string;
+    publicKey: string;
+  }): boolean {
+    console.log(dataItemGenerator, signature, publicKey);
+    throw new Error('Not implemented!');
+  }
+
   signDataItems({
     fileStreamGenerator,
     bundle = false,
@@ -48,9 +61,7 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
         const buffer = await readableStreamToBuffer({
           stream: streamGenerator(),
         });
-        const arrayBuffer = Uint8Array.from(buffer);
-        // convert the blob to a Uint8Array
-        const dataItem = createData(arrayBuffer, signer);
+        const dataItem = createData(buffer, signer);
         await dataItem.sign(signer);
         return dataItem.getRaw();
       },

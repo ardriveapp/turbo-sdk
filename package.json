@@ -51,6 +51,8 @@
     "arbundles": "^0.9.9",
     "arweave": "^1.14.4",
     "axios": "^1.4.0",
+    "elliptic": "^6.5.4",
+    "jwk-to-pem": "^2.0.5",
     "retry-axios": "^3.0.0",
     "winston": "^3.10.0"
   },
