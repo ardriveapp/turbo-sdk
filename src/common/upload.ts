@@ -25,6 +25,8 @@ import { JWKInterface } from '../types/arweave.js';
 import {
   TransactionId,
   TurboDataItemSigner,
+  TurboDataItemVerifier,
+  TurboFileFactory,
   TurboPrivateUploadService,
   TurboPrivateUploadServiceConfiguration,
   TurboPublicUploadService,
@@ -41,7 +43,7 @@ export class TurboUnauthenticatedUploadService
   implements TurboPublicUploadService
 {
   protected axios: AxiosInstance;
-  protected dataItemVerifier: TurboNodeDataItemVerifier;
+  protected dataItemVerifier: TurboDataItemVerifier;
 
   constructor({
     url = 'https://upload.ardrive.dev',
@@ -72,8 +74,50 @@ export class TurboUnauthenticatedUploadService
       throw new Error('One or more data items failed signature validation');
     }
 
-    // TODO: upload the files
-    return {} as TurboUploadDataItemsResponse;
+    const signedDataItems: Readable[] = dataItemGenerator.map((dataItem) =>
+      dataItem(),
+    );
+
+    // TODO: add p-limit constraint
+    const uploadPromises = signedDataItems.map((signedDataItem) => {
+      return this.axios.post<TurboUploadDataItemResponse>(
+        `/tx`,
+        signedDataItem,
+        {
+          headers: {
+            'content-type': 'application/octet-stream',
+          },
+        },
+      );
+    });
+
+    // NOTE: our axios config (validateStatus) swallows errors, so failed data items will be ignored
+    const dataItemResponses = await Promise.all(uploadPromises);
+    const postedDataItems = dataItemResponses.reduce(
+      (
+        postedDataItemsMap: Record<
+          TransactionId,
+          Omit<TurboUploadDataItemResponse, 'id'>
+        >,
+        dataItemResponse: AxiosResponse<TurboUploadDataItemResponse, 'id'>,
+      ) => {
+        // handle the fulfilled response
+        const { status, data } = dataItemResponse;
+        if (![200, 202].includes(status)) {
+          // TODO: add to failed data items array
+          return postedDataItemsMap;
+        }
+        const { id, ...dataItemCache } = data;
+        postedDataItemsMap[id] = dataItemCache;
+        return postedDataItemsMap;
+      },
+      {},
+    );
+
+    return {
+      ownerAddress: publicKey,
+      dataItems: postedDataItems,
+    };
   }
 }
 
@@ -83,7 +127,7 @@ export class TurboAuthenticatedUploadService
   protected axios: AxiosInstance;
   protected privateKey: JWKInterface | undefined;
   protected dataItemSigner: TurboDataItemSigner;
-  protected dataItemVerifier: TurboNodeDataItemVerifier;
+  protected dataItemVerifier: TurboDataItemVerifier;
 
   constructor({
     url = 'https://upload.ardrive.dev',
@@ -166,10 +210,7 @@ export class TurboAuthenticatedUploadService
   async uploadFiles({
     fileStreamGenerator,
     bundle = false, // TODO: add bundle param to allow for creating BDI of data items
-  }: {
-    fileStreamGenerator: (() => Readable)[];
-    bundle?: boolean;
-  }): Promise<TurboUploadDataItemsResponse> {
+  }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
     if (!this.privateKey) {
       throw new UnauthenticatedRequestError();
     }

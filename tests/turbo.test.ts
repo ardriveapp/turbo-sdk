@@ -45,133 +45,288 @@ describe('TurboFactory', () => {
   });
 });
 
-describe('TurboUnauthenticatedClient', () => {
-  let turbo: TurboUnauthenticatedClient;
+describe('Node environment', () => {
+  describe('TurboFactory', () => {
+    describe('TurboUnauthenticatedClient', () => {
+      it('should return a TurboUnauthenticatedClient', () => {
+        const turbo = TurboFactory.public({});
+        expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+      });
+    });
 
-  before(async () => {
-    turbo = TurboFactory.public({});
+    describe('TurboAuthenticatedClient', () => {
+      let jwk: JWKInterface;
+      before(async () => {
+        jwk = await Arweave.crypto.generateJWK();
+      });
+
+      it('should return a TurboUnauthenticatedClient when running in node', () => {
+        const turbo = TurboFactory.private({ privateKey: jwk });
+        expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      });
+    });
   });
 
-  describe('unauthenticated requests', () => {
-    it('getFiatRates()', async () => {
-      const { winc, fiat, adjustments } = await turbo.getFiatRates();
-      expect(winc).to.not.be.undefined.and.to.be.a('number');
-      expect(fiat).to.have.property('usd').that.is.a('number');
-      expect(adjustments).to.not.be.undefined;
+  describe('TurboUnauthenticatedNodeClient', () => {
+    let turbo: TurboUnauthenticatedClient;
+
+    before(async () => {
+      turbo = TurboFactory.public({});
     });
 
-    it('getFiatToAR()', async () => {
-      const { currency, rate } = await turbo.getFiatToAR({ currency: 'usd' });
-      expect(currency).to.equal('usd');
-      expect(rate).to.be.a('number');
-    });
-
-    it('getSupportedCountries()', async () => {
-      const countries = await turbo.getSupportedCountries();
-      expect(countries).to.be.an('array');
-      expect(countries.length).to.be.greaterThan(0);
-      expect(countries).to.include('United States');
-    });
-
-    it('getSupportedCurrencies()', async () => {
-      const { supportedCurrencies, limits } =
-        await turbo.getSupportedCurrencies();
-      expect(supportedCurrencies).to.not.be.undefined;
-      expect(supportedCurrencies).to.be.an('array');
-      expect(supportedCurrencies.length).to.be.greaterThan(0);
-      expect(supportedCurrencies).to.include('usd');
-      expect(limits).to.not.be.undefined;
-      expect(limits).to.be.an('object');
-      expect(limits).to.have.property('usd');
-      expect(limits.usd).to.have.property('minimumPaymentAmount');
-      expect(limits.usd).to.have.property('maximumPaymentAmount');
-      expect(limits.usd).to.have.property('suggestedPaymentAmounts');
-      expect(limits.usd).to.have.property('zeroDecimalCurrency');
-    });
-
-    it('getUploadCosts()', async () => {
-      const [{ winc, adjustments }] = await turbo.getUploadCosts({
-        bytes: [1024],
+    describe('unauthenticated requests', () => {
+      it('getFiatRates()', async () => {
+        const { winc, fiat, adjustments } = await turbo.getFiatRates();
+        expect(winc).to.not.be.undefined.and.to.be.a('number');
+        expect(fiat).to.have.property('usd').that.is.a('number');
+        expect(adjustments).to.not.be.undefined;
       });
-      expect(winc).to.not.be.undefined;
-      expect(+winc).to.be.greaterThan(0);
-      expect(adjustments).to.not.be.undefined;
-      expect(adjustments).to.be.an('array');
-    });
 
-    it('getPriceForFiat()', async () => {
-      const { winc } = await turbo.getWincForFiat({
-        amount: 1000, // 10 USD
-        currency: 'usd',
+      it('getFiatToAR()', async () => {
+        const { currency, rate } = await turbo.getFiatToAR({ currency: 'usd' });
+        expect(currency).to.equal('usd');
+        expect(rate).to.be.a('number');
       });
-      expect(winc).to.not.be.undefined;
-      expect(+winc).to.be.greaterThan(0);
+
+      it('getSupportedCountries()', async () => {
+        const countries = await turbo.getSupportedCountries();
+        expect(countries).to.be.an('array');
+        expect(countries.length).to.be.greaterThan(0);
+        expect(countries).to.include('United States');
+      });
+
+      it('getSupportedCurrencies()', async () => {
+        const { supportedCurrencies, limits } =
+          await turbo.getSupportedCurrencies();
+        expect(supportedCurrencies).to.not.be.undefined;
+        expect(supportedCurrencies).to.be.an('array');
+        expect(supportedCurrencies.length).to.be.greaterThan(0);
+        expect(supportedCurrencies).to.include('usd');
+        expect(limits).to.not.be.undefined;
+        expect(limits).to.be.an('object');
+        expect(limits).to.have.property('usd');
+        expect(limits.usd).to.have.property('minimumPaymentAmount');
+        expect(limits.usd).to.have.property('maximumPaymentAmount');
+        expect(limits.usd).to.have.property('suggestedPaymentAmounts');
+        expect(limits.usd).to.have.property('zeroDecimalCurrency');
+      });
+
+      it('getUploadCosts()', async () => {
+        const [{ winc, adjustments }] = await turbo.getUploadCosts({
+          bytes: [1024],
+        });
+        expect(winc).to.not.be.undefined;
+        expect(+winc).to.be.greaterThan(0);
+        expect(adjustments).to.not.be.undefined;
+        expect(adjustments).to.be.an('array');
+      });
+
+      it('getPriceForFiat()', async () => {
+        const { winc } = await turbo.getWincForFiat({
+          amount: 1000, // 10 USD
+          currency: 'usd',
+        });
+        expect(winc).to.not.be.undefined;
+        expect(+winc).to.be.greaterThan(0);
+      });
+
+      it('uploadSignedDataItems()', async () => {
+        const jwk = await Arweave.crypto.generateJWK();
+        const signer = new ArweaveSigner(jwk);
+        // TODO: move to helper function
+        const readableGenerator = () => Readable.from('test stream');
+
+        const signedDataItem = await streamSigner(
+          readableGenerator(),
+          readableGenerator(),
+          signer,
+        );
+
+        const signature = await createData('signature', signer).sign(signer);
+
+        const response = await turbo.uploadSignedDataItems({
+          dataItemGenerator: [() => signedDataItem],
+          signature: signature,
+          publicKey: jwkToPublicArweaveAddress(jwk),
+        });
+        expect(response).to.not.be.undefined;
+        expect(response).to.have.property('ownerAddress');
+        expect(response).to.have.property('dataItems');
+        expect(response['ownerAddress']).to.equal(
+          jwkToPublicArweaveAddress(jwk),
+        );
+        for (const dataItem of Object.values(response['dataItems'])) {
+          expect(dataItem).to.have.property('fastFinalityIndexes');
+          expect(dataItem).to.have.property('dataCaches');
+          expect(dataItem).to.have.property('owner');
+        }
+      });
+    });
+  });
+
+  describe('TurboAuthenticatedNodeClient', () => {
+    describe('authenticated requests', () => {
+      let jwk: JWKInterface;
+      let turbo: TurboAuthenticatedClient;
+
+      before(async () => {
+        jwk = await Arweave.crypto.generateJWK();
+        turbo = TurboFactory.private({ privateKey: jwk });
+      });
+
+      it('getBalance()', async () => {
+        const balance = await turbo.getBalance();
+        expect(+balance.winc).to.equal(0);
+      });
+
+      it('uploadFiles()', async () => {
+        const file = new URL('files/0_kb.txt', import.meta.url).pathname;
+        const streamGenerator = [() => fs.createReadStream(file)];
+        const response = await turbo.uploadFiles({
+          fileStreamGenerator: streamGenerator,
+        });
+        expect(response).to.not.be.undefined;
+        expect(response).to.have.property('ownerAddress');
+        expect(response).to.have.property('dataItems');
+        expect(response['ownerAddress']).to.equal(
+          jwkToPublicArweaveAddress(jwk),
+        );
+        expect(Object.keys(response['dataItems']).length).to.equal(
+          streamGenerator.length,
+        );
+        for (const dataItem of Object.values(response['dataItems'])) {
+          expect(dataItem).to.have.property('fastFinalityIndexes');
+          expect(dataItem).to.have.property('dataCaches');
+          expect(dataItem).to.have.property('owner');
+        }
+      });
+
+      it('uploadSignedDataItems()', async () => {
+        const signer = new ArweaveSigner(jwk);
+        // TODO: move to helper function
+        const readableGenerator = () => Readable.from('test stream');
+
+        const signedDataItem = await streamSigner(
+          readableGenerator(),
+          readableGenerator(),
+          signer,
+        );
+
+        const signature = await createData('signature', signer).sign(signer);
+
+        const response = await turbo.uploadSignedDataItems({
+          dataItemGenerator: [() => signedDataItem],
+          signature: signature,
+          publicKey: jwkToPublicArweaveAddress(jwk),
+        });
+        expect(response).to.not.be.undefined;
+        expect(response).to.have.property('ownerAddress');
+        expect(response).to.have.property('dataItems');
+        expect(response['ownerAddress']).to.equal(
+          jwkToPublicArweaveAddress(jwk),
+        );
+        for (const dataItem of Object.values(response['dataItems'])) {
+          expect(dataItem).to.have.property('fastFinalityIndexes');
+          expect(dataItem).to.have.property('dataCaches');
+          expect(dataItem).to.have.property('owner');
+        }
+      });
     });
   });
 });
 
-describe('TurboAuthenticatedClient', () => {
-  describe('authenticated requests', () => {
-    let jwk: JWKInterface;
-    let turbo: TurboAuthenticatedClient;
+describe('Browser environment', () => {
+  before(() => {
+    (global as any).window = { document: {} };
+  });
+
+  after(() => {
+    delete (global as any).window;
+  });
+
+  describe('TurboFactory', () => {
+    describe('TurboUnauthenticatedClient', () => {
+      it('should be a TurboUnauthenticatedClient running in the browser', () => {
+        const turbo = TurboFactory.public({});
+        expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+      });
+    });
+
+    describe('TurboAuthenticatedClient', () => {
+      let jwk: JWKInterface;
+      before(async () => {
+        jwk = await Arweave.crypto.generateJWK();
+      });
+
+      it('should be a TurboUnauthenticatedClient running in the browser', () => {
+        const turbo = TurboFactory.private({ privateKey: jwk });
+        expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      });
+    });
+  });
+
+  describe('TurboUnauthenticatedWebClient', () => {
+    let turbo: TurboUnauthenticatedClient;
 
     before(async () => {
-      jwk = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.private({ privateKey: jwk });
+      turbo = TurboFactory.public({});
     });
 
-    it('getBalance()', async () => {
-      const balance = await turbo.getBalance();
-      expect(+balance.winc).to.equal(0);
-    });
-
-    it('uploadFiles()', async () => {
-      const file = new URL('files/0_kb.txt', import.meta.url).pathname;
-      const streamGenerator = [() => fs.createReadStream(file)];
-      const response = await turbo.uploadFiles({
-        fileStreamGenerator: streamGenerator,
+    describe('unauthenticated requests', () => {
+      it('getFiatRates()', async () => {
+        const { winc, fiat, adjustments } = await turbo.getFiatRates();
+        expect(winc).to.not.be.undefined.and.to.be.a('number');
+        expect(fiat).to.have.property('usd').that.is.a('number');
+        expect(adjustments).to.not.be.undefined;
       });
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('ownerAddress');
-      expect(response).to.have.property('dataItems');
-      expect(response['ownerAddress']).to.equal(jwkToPublicArweaveAddress(jwk));
-      expect(Object.keys(response['dataItems']).length).to.equal(
-        streamGenerator.length,
-      );
-      for (const dataItem of Object.values(response['dataItems'])) {
-        expect(dataItem).to.have.property('fastFinalityIndexes');
-        expect(dataItem).to.have.property('dataCaches');
-        expect(dataItem).to.have.property('owner');
-      }
-    });
 
-    it('uploadSignedDataItems()', async () => {
-      const signer = new ArweaveSigner(jwk);
-      // TODO: move to helper function
-      const readableGenerator = () => Readable.from('test stream');
-
-      const signedDataItem = await streamSigner(
-        readableGenerator(),
-        readableGenerator(),
-        signer,
-      );
-
-      const signature = await createData('signature', signer).sign(signer);
-
-      const response = await turbo.uploadSignedDataItems({
-        dataItemGenerator: [() => signedDataItem],
-        signature: signature,
-        publicKey: jwkToPublicArweaveAddress(jwk),
+      it('getFiatToAR()', async () => {
+        const { currency, rate } = await turbo.getFiatToAR({ currency: 'usd' });
+        expect(currency).to.equal('usd');
+        expect(rate).to.be.a('number');
       });
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('ownerAddress');
-      expect(response).to.have.property('dataItems');
-      expect(response['ownerAddress']).to.equal(jwkToPublicArweaveAddress(jwk));
-      for (const dataItem of Object.values(response['dataItems'])) {
-        expect(dataItem).to.have.property('fastFinalityIndexes');
-        expect(dataItem).to.have.property('dataCaches');
-        expect(dataItem).to.have.property('owner');
-      }
+
+      it('getSupportedCountries()', async () => {
+        const countries = await turbo.getSupportedCountries();
+        expect(countries).to.be.an('array');
+        expect(countries.length).to.be.greaterThan(0);
+        expect(countries).to.include('United States');
+      });
+
+      it('getSupportedCurrencies()', async () => {
+        const { supportedCurrencies, limits } =
+          await turbo.getSupportedCurrencies();
+        expect(supportedCurrencies).to.not.be.undefined;
+        expect(supportedCurrencies).to.be.an('array');
+        expect(supportedCurrencies.length).to.be.greaterThan(0);
+        expect(supportedCurrencies).to.include('usd');
+        expect(limits).to.not.be.undefined;
+        expect(limits).to.be.an('object');
+        expect(limits).to.have.property('usd');
+        expect(limits.usd).to.have.property('minimumPaymentAmount');
+        expect(limits.usd).to.have.property('maximumPaymentAmount');
+        expect(limits.usd).to.have.property('suggestedPaymentAmounts');
+        expect(limits.usd).to.have.property('zeroDecimalCurrency');
+      });
+
+      it('getUploadCosts()', async () => {
+        const [{ winc, adjustments }] = await turbo.getUploadCosts({
+          bytes: [1024],
+        });
+        expect(winc).to.not.be.undefined;
+        expect(+winc).to.be.greaterThan(0);
+        expect(adjustments).to.not.be.undefined;
+        expect(adjustments).to.be.an('array');
+      });
+
+      it('getPriceForFiat()', async () => {
+        const { winc } = await turbo.getWincForFiat({
+          amount: 1000, // 10 USD
+          currency: 'usd',
+        });
+        expect(winc).to.not.be.undefined;
+        expect(+winc).to.be.greaterThan(0);
+      });
     });
   });
 });

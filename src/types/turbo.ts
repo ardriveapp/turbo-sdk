@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { RetryConfig } from 'retry-axios';
-import { PassThrough, Readable } from 'stream';
+import { Readable } from 'stream';
 import winston from 'winston';
 
 import { JWKInterface } from './arweave.js';
@@ -111,13 +111,13 @@ export type TurboPrivateClientConfiguration = {
 export type TurboFileFactory = {
   fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
   bundle?: boolean;
-  // todo: add payload size
+  // TODO: add payload size
 };
 
-// TODO: add web one for ReadableStream
+// TODO: add web one for ReadableStream or Buffer depending on how best to implement
 export type TurboSignedDataItemFactory = {
   dataItemGenerator: (() => Readable)[];
-  publicKey: string; // TODO add type
+  publicKey: string; // TODO: add type
   signature: Buffer; // TODO: could also be a buffer
 };
 

@@ -14,14 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Readable } from 'stream';
-
 import {
   Currency,
   TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
+  TurboFileFactory,
   TurboPriceResponse,
   TurboPrivateClient,
   TurboPrivateClientConfiguration,
@@ -220,10 +219,7 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
   async uploadFiles({
     fileStreamGenerator,
     bundle = false,
-  }: {
-    fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
-    bundle?: boolean;
-  }): Promise<TurboUploadDataItemsResponse> {
+  }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
     return this.uploadService.uploadFiles({ fileStreamGenerator, bundle });
   }
 

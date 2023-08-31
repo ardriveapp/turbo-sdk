@@ -24,6 +24,7 @@ import { JWKInterface } from '../types/arweave.js';
 import {
   TurboDataItemSigner,
   TurboDataItemVerifier,
+  TurboFileFactory,
   TurboSignedDataItemFactory,
 } from '../types/turbo.js';
 import { UnauthenticatedRequestError } from '../utils/errors.js';
@@ -33,7 +34,9 @@ export class TurboNodeDataItemVerifier implements TurboDataItemVerifier {
     dataItemGenerator,
     signature,
     publicKey,
-  }: TurboSignedDataItemFactory): Promise<boolean> {
+  }: Omit<TurboSignedDataItemFactory, 'dataItemGenerator'> & {
+    dataItemGenerator: (() => Readable)[];
+  }): Promise<boolean> {
     const fullKey = {
       kty: 'RSA',
       e: 'AQAB',
@@ -80,9 +83,8 @@ export class TurboNodeDataItemSigner implements TurboDataItemSigner {
   signDataItems({
     fileStreamGenerator,
     bundle = false, // TODO: add bundle param to allow for creating BDI of data items
-  }: {
+  }: Omit<TurboFileFactory, 'fileStreamGenerator'> & {
     fileStreamGenerator: (() => Readable)[];
-    bundle?: boolean;
   }): Promise<Readable>[] {
     // TODO: break this into separate classes
     if (!this.privateKey) {
