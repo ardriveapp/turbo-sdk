@@ -3,6 +3,8 @@
   const { TurboFactory, TurboUnauthenticatedPaymentService } = await import(
     '../../lib/index.js'
   );
+  const path = require('path');
+  const fs = require('fs');
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
@@ -51,11 +53,24 @@
   );
 
   /**
-   * Fetch the estimated amount of winc returned for $1 USD
+   * Fetch the estimated amount of winc returned for 10 USD (1000 cents).
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
     amount: 1000,
     currency: 'usd',
   });
   console.log('10 USD to winc:', estimatedWinc);
+
+  /**
+   * Post local files to the Turbo service.
+   */
+  console.log('Posting raw files to Turbo service...');
+  const filePaths = [path.join(__dirname, './files/0_kb.txt')];
+  const fileStreamGenerators = filePaths.map(
+    (filePath) => () => fs.createReadStream(filePath),
+  );
+  const uploadResult = await turboAuthClient.uploadFiles({
+    fileStreamGenerators: fileStreamGenerators,
+  });
+  console.log(JSON.stringify(uploadResult, null, 2));
 })();

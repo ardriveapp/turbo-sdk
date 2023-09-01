@@ -47,7 +47,7 @@ import {
   );
 
   /**
-   * Fetch the estimated amount of winc returned for 10 USD (1000 cents)
+   * Fetch the estimated amount of winc returned for 10 USD (1000 cents).
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
     amount: 1000,
@@ -56,12 +56,12 @@ import {
   console.log('10 USD to winc:', estimatedWinc);
 
   /**
-   * Post some local raw files to the Turbo service.
+   * Post local files to the Turbo service.
    */
   console.log('Posting raw files to Turbo service...');
-  const files = [new URL('files/0_kb.txt', import.meta.url).pathname];
-  const fileStreamGenerators = files.map(
-    (file) => () => fs.createReadStream(file),
+  const filePaths = [new URL('files/0_kb.txt', import.meta.url).pathname];
+  const fileStreamGenerators = filePaths.map(
+    (filePath) => () => fs.createReadStream(filePath),
   );
   const uploadResult = await turboAuthClient.uploadFiles({
     fileStreamGenerators: fileStreamGenerators,
