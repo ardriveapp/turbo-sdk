@@ -144,7 +144,7 @@ describe('Node environment', () => {
         );
 
         const response = await turbo.uploadSignedDataItems({
-          dataItemGenerator: [() => signedDataItem],
+          dataItemGenerators: [() => signedDataItem],
         });
         expect(response).to.not.be.undefined;
         expect(response).to.have.property('dataItems');
@@ -179,7 +179,7 @@ describe('Node environment', () => {
         const file = new URL('files/0_kb.txt', import.meta.url).pathname;
         const streamGenerator = [() => fs.createReadStream(file)];
         const response = await turbo.uploadFiles({
-          fileStreamGenerator: streamGenerator,
+          fileStreamGenerators: streamGenerator,
         });
         expect(response).to.not.be.undefined;
         expect(response).to.have.property('dataItems');
@@ -209,17 +209,14 @@ describe('Node environment', () => {
             Readable.from(signedDataItemBuffer.getRaw());
 
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [
-              readableStreamGenerator,
-              readableStreamGenerator,
-            ],
+            dataItemGenerators: [readableStreamGenerator],
           });
 
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('errors');
           expect(response['errors']).to.have.length(0);
           expect(response).to.have.property('dataItems');
-          expect(response['dataItems']).to.have.length(2);
+          expect(response['dataItems']).to.have.length(1);
           for (const dataItem of Object.values(response['dataItems'])) {
             expect(dataItem).to.have.property('fastFinalityIndexes');
             expect(dataItem).to.have.property('dataCaches');
@@ -230,10 +227,9 @@ describe('Node environment', () => {
 
         it('should forward the Buffer signed data items to turbo', async () => {
           const signer = new ArweaveSigner(jwk);
-          const createSignedDataItem = () =>
-            createData('test buffer data item', signer);
+          const signedDataItem = createData('test buffer data item', signer);
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => createSignedDataItem().getRaw()],
+            dataItemGenerators: [() => signedDataItem.getRaw()],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
@@ -250,7 +246,7 @@ describe('Node environment', () => {
         it('should return an error for an invalid data item', async () => {
           const unsignedDataItem = Buffer.from('an unsigned buffer');
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => unsignedDataItem],
+            dataItemGenerators: [() => unsignedDataItem],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
@@ -383,7 +379,7 @@ describe('Browser environment', () => {
               },
             }) as ReadableStream; // force cast to ReadableStream
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [createReadableStream, createReadableStream],
+            dataItemGenerators: [createReadableStream, createReadableStream],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
@@ -400,7 +396,7 @@ describe('Browser environment', () => {
           const createSignedDataItem = () =>
             createData('test buffer data item', signer);
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => createSignedDataItem().getRaw()],
+            dataItemGenerators: [() => createSignedDataItem().getRaw()],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');

@@ -31,9 +31,9 @@ export class TurboNodeDataItemSigner implements TurboDataItemSigner {
   }
 
   signDataItems({
-    fileStreamGenerator,
-  }: Omit<TurboFileFactory, 'fileStreamGenerator'> & {
-    fileStreamGenerator: (() => Readable)[];
+    fileStreamGenerators,
+  }: Omit<TurboFileFactory, 'fileStreamGenerators'> & {
+    fileStreamGenerators: (() => Readable)[];
   }): Promise<Readable>[] {
     // TODO: break this into separate classes
     if (!this.privateKey) {
@@ -43,11 +43,11 @@ export class TurboNodeDataItemSigner implements TurboDataItemSigner {
     const signer = new ArweaveSigner(this.privateKey);
 
     // these are technically PassThrough's which are subclasses of streams
-    const signedDataItemPromises = fileStreamGenerator.map(
-      (fileStreamGenerator) => {
+    const signedDataItemPromises = fileStreamGenerators.map(
+      (fileStreamGenerators) => {
         const [stream1, stream2] = [
-          fileStreamGenerator(),
-          fileStreamGenerator(),
+          fileStreamGenerators(),
+          fileStreamGenerators(),
         ];
         // TODO: this will not work with BDIs as is, we may need to add an additional stream signer
         return streamSigner(stream1, stream2, signer);

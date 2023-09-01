@@ -30,13 +30,13 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
   }
 
   signDataItems({
-    fileStreamGenerator,
-  }: Omit<TurboFileFactory, 'fileStreamGenerator'> & {
-    fileStreamGenerator: (() => ReadableStream)[];
+    fileStreamGenerators,
+  }: Omit<TurboFileFactory, 'fileStreamGenerators'> & {
+    fileStreamGenerators: (() => ReadableStream)[];
   }): Promise<Buffer>[] {
     const signer = new ArweaveSigner(this.privateKey);
 
-    const signedDataItemPromises = fileStreamGenerator.map(
+    const signedDataItemPromises = fileStreamGenerators.map(
       async (streamGenerator: () => ReadableStream) => {
         // Convert the readable stream to a buffer
         const buffer = await readableStreamToBuffer({

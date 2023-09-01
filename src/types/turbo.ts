@@ -108,19 +108,19 @@ export type TurboPrivateClientConfiguration = {
 } & TurboAuthConfiguration;
 
 export type TurboFileFactory = {
-  fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
+  fileStreamGenerators: (() => Readable)[] | (() => ReadableStream)[];
   // bundle?: boolean; // TODO: add bundling into BDIs
   // TODO: add payload size
 };
 
 // TODO: add web one for ReadableStream or Buffer depending on how best to implement
 export type TurboSignedDataItemFactory = {
-  dataItemGenerator: (() => Readable | Buffer | ReadableStream)[];
+  dataItemGenerators: (() => Readable | Buffer | ReadableStream)[];
 };
 
 export interface TurboDataItemSigner {
   signDataItems({
-    fileStreamGenerator,
+    fileStreamGenerators,
   }: TurboFileFactory): Promise<Readable>[] | Promise<Buffer>[];
 }
 
@@ -149,13 +149,13 @@ export interface TurboPrivatePaymentService extends TurboPublicPaymentService {
 
 export interface TurboPublicUploadService {
   uploadSignedDataItems({
-    dataItemGenerator,
+    dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse>;
 }
 
 export interface TurboPrivateUploadService extends TurboPublicUploadService {
   uploadFiles({
-    fileStreamGenerator,
+    fileStreamGenerators,
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse>;
 }
 

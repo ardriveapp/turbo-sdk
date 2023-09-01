@@ -118,10 +118,10 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
    * Verifies signature of signed data items and uploads to the upload service.
    */
   async uploadSignedDataItems({
-    dataItemGenerator,
+    dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
     return this.uploadService.uploadSignedDataItems({
-      dataItemGenerator,
+      dataItemGenerators,
     });
   }
 }
@@ -213,19 +213,19 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
    * Signs and uploads data to the upload service.
    */
   async uploadFiles({
-    fileStreamGenerator,
+    fileStreamGenerators,
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
-    return this.uploadService.uploadFiles({ fileStreamGenerator });
+    return this.uploadService.uploadFiles({ fileStreamGenerators });
   }
 
   /**
    * Verifies signature of signed data items and uploads to the upload service.
    */
   async uploadSignedDataItems({
-    dataItemGenerator,
+    dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
     return this.uploadService.uploadSignedDataItems({
-      dataItemGenerator,
+      dataItemGenerators,
     });
   }
 }

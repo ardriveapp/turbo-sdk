@@ -97,7 +97,7 @@
             );
             const response = turbo
               .uploadFiles({
-                fileStreamGenerator: blobFileGenerators,
+                fileStreamGenerators: blobFileGenerators,
               })
               .then((res) => {
                 console.log('Successfully uploaded files!', res);

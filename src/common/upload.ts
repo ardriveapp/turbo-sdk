@@ -51,9 +51,9 @@ export class TurboUnauthenticatedUploadService
 
   // TODO: any public upload service APIS
   async uploadSignedDataItems({
-    dataItemGenerator,
+    dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
-    const signedDataItems = dataItemGenerator.map((dataItem) => dataItem());
+    const signedDataItems = dataItemGenerators.map((dataItem) => dataItem());
 
     // TODO: add p-limit constraint
     const uploadPromises = signedDataItems.map((signedDataItem) => {
@@ -129,9 +129,9 @@ export class TurboAuthenticatedUploadService
   }
 
   async uploadSignedDataItems({
-    dataItemGenerator,
+    dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
-    const signedDataItems = dataItemGenerator.map((dataItem) => dataItem());
+    const signedDataItems = dataItemGenerators.map((dataItem) => dataItem());
 
     // TODO: add p-limit constraint
     const uploadPromises = signedDataItems.map((signedDataItem) => {
@@ -183,10 +183,10 @@ export class TurboAuthenticatedUploadService
   }
 
   async uploadFiles({
-    fileStreamGenerator,
+    fileStreamGenerators,
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
     const signedDataItemPromises = this.dataItemSigner.signDataItems({
-      fileStreamGenerator,
+      fileStreamGenerators,
     });
 
     // TODO: we probably don't want to Promise.all, do .allSettled and only return successful signed data items
