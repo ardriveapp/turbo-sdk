@@ -168,11 +168,9 @@ export class TurboAuthenticatedUploadService
 
   async uploadFiles({
     fileStreamGenerator,
-    bundle = false, // TODO: add bundle param to allow for creating BDI of data items
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
     const signedDataItemPromises = this.dataItemSigner.signDataItems({
       fileStreamGenerator,
-      bundle,
     });
 
     // TODO: we probably don't want to Promise.all, do .allSettled and only return successful signed data items

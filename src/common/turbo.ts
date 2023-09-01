@@ -214,9 +214,8 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
    */
   async uploadFiles({
     fileStreamGenerator,
-    bundle = false,
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
-    return this.uploadService.uploadFiles({ fileStreamGenerator, bundle });
+    return this.uploadService.uploadFiles({ fileStreamGenerator });
   }
 
   /**

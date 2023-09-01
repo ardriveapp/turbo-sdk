@@ -31,14 +31,9 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
 
   signDataItems({
     fileStreamGenerator,
-    bundle = false,
   }: Omit<TurboFileFactory, 'fileStreamGenerator'> & {
     fileStreamGenerator: (() => ReadableStream)[];
   }): Promise<Buffer>[] {
-    if (bundle) {
-      throw new Error('Not implemented!');
-    }
-
     const signer = new ArweaveSigner(this.privateKey);
 
     const signedDataItemPromises = fileStreamGenerator.map(

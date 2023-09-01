@@ -108,7 +108,7 @@ export type TurboPrivateClientConfiguration = {
 
 export type TurboFileFactory = {
   fileStreamGenerator: (() => Readable)[] | (() => ReadableStream)[];
-  bundle?: boolean;
+  // bundle?: boolean; // TODO: add bundling into BDIs
   // TODO: add payload size
 };
 
@@ -120,7 +120,6 @@ export type TurboSignedDataItemFactory = {
 export interface TurboDataItemSigner {
   signDataItems({
     fileStreamGenerator,
-    bundle,
   }: TurboFileFactory): Promise<Readable>[] | Promise<Buffer>[];
 }
 
@@ -156,7 +155,6 @@ export interface TurboPublicUploadService {
 export interface TurboPrivateUploadService extends TurboPublicUploadService {
   uploadFiles({
     fileStreamGenerator,
-    bundle,
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse>;
 }
 

@@ -195,17 +195,22 @@ describe('Node environment', () => {
       describe('uploadSignedDataItems()', () => {
         it('should forward the Readable signed data items to turbo', async () => {
           const signer = new ArweaveSigner(jwk);
-          // TODO: move to helper function
           const readableGenerator = () => Readable.from('test stream');
 
-          const signedDataItem = await streamSigner(
+          const signedDataItem1 = await streamSigner(
+            readableGenerator(),
+            readableGenerator(),
+            signer,
+          );
+
+          const signedDataItem2 = await streamSigner(
             readableGenerator(),
             readableGenerator(),
             signer,
           );
 
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => signedDataItem],
+            dataItemGenerator: [() => signedDataItem1, () => signedDataItem2],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
@@ -219,9 +224,10 @@ describe('Node environment', () => {
 
         it('should forward the Buffer signed data items to turbo', async () => {
           const signer = new ArweaveSigner(jwk);
-          const signedDataItem = createData('test buffer data item', signer);
+          const createSignedDataItem = () =>
+            createData('test buffer data item', signer);
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => signedDataItem.getRaw()],
+            dataItemGenerator: [() => createSignedDataItem().getRaw()],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
@@ -345,14 +351,15 @@ describe('Browser environment', () => {
             signer,
           );
 
-          const readableStream = new ReadableStreamPolyfill({
-            start(controller) {
-              controller.enqueue(signedDataItemBuffer.getRaw());
-              controller.close();
-            },
-          });
+          const createReadableStream = () =>
+            new ReadableStreamPolyfill({
+              start(controller) {
+                controller.enqueue(signedDataItemBuffer.getRaw());
+                controller.close();
+              },
+            }) as ReadableStream; // force cast to ReadableStream
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => readableStream as ReadableStream], // force cast to ReadableStream
+            dataItemGenerator: [createReadableStream, createReadableStream],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
@@ -366,9 +373,10 @@ describe('Browser environment', () => {
 
         it('should forward the Buffer signed data items to turbo', async () => {
           const signer = new ArweaveSigner(jwk);
-          const signedDataItem = createData('test buffer data item', signer);
+          const createSignedDataItem = () =>
+            createData('test buffer data item', signer);
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => signedDataItem.getRaw()],
+            dataItemGenerator: [() => createSignedDataItem().getRaw()],
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');

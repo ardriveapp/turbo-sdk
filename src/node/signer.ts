@@ -32,17 +32,12 @@ export class TurboNodeDataItemSigner implements TurboDataItemSigner {
 
   signDataItems({
     fileStreamGenerator,
-    bundle = false, // TODO: add bundle param to allow for creating BDI of data items
   }: Omit<TurboFileFactory, 'fileStreamGenerator'> & {
     fileStreamGenerator: (() => Readable)[];
   }): Promise<Readable>[] {
     // TODO: break this into separate classes
     if (!this.privateKey) {
       throw new UnauthenticatedRequestError();
-    }
-
-    if (bundle) {
-      throw new Error('Not implemented!');
     }
 
     const signer = new ArweaveSigner(this.privateKey);
