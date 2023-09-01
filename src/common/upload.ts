@@ -20,27 +20,27 @@ import { TurboNodeDataItemSigner } from '../node/signer.js';
 import { JWKInterface } from '../types/arweave.js';
 import {
   TransactionId,
+  TurboAuthenticatedUploadServiceConfiguration,
+  TurboAuthenticatedUploadServiceInterface,
   TurboDataItemSigner,
   TurboFileFactory,
-  TurboPrivateUploadService,
-  TurboPrivateUploadServiceConfiguration,
-  TurboPublicUploadService,
-  TurboPublicUploadServiceConfiguration,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedUploadServiceInterface,
+  TurboUnauthenticatedUploadServiceInterfaceConfiguration,
   TurboUploadDataItemResponse,
   TurboUploadDataItemsResponse,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 
 export class TurboUnauthenticatedUploadService
-  implements TurboPublicUploadService
+  implements TurboUnauthenticatedUploadServiceInterface
 {
   protected axios: AxiosInstance;
 
   constructor({
     url = 'https://upload.ardrive.dev',
     retryConfig,
-  }: TurboPublicUploadServiceConfiguration) {
+  }: TurboUnauthenticatedUploadServiceInterfaceConfiguration) {
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -49,7 +49,6 @@ export class TurboUnauthenticatedUploadService
     });
   }
 
-  // TODO: any public upload service APIS
   async uploadSignedDataItems({
     dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
@@ -106,7 +105,7 @@ export class TurboUnauthenticatedUploadService
 }
 
 export class TurboAuthenticatedUploadService
-  implements TurboPrivateUploadService
+  implements TurboAuthenticatedUploadServiceInterface
 {
   protected axios: AxiosInstance;
   protected privateKey: JWKInterface | undefined;
@@ -117,7 +116,7 @@ export class TurboAuthenticatedUploadService
     privateKey,
     dataItemSigner = new TurboNodeDataItemSigner({ privateKey }),
     retryConfig,
-  }: TurboPrivateUploadServiceConfiguration) {
+  }: TurboAuthenticatedUploadServiceConfiguration) {
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -133,6 +132,8 @@ export class TurboAuthenticatedUploadService
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
     const signedDataItems = dataItemGenerators.map((dataItem) => dataItem());
 
+    console.log('upload signed data items here');
+
     // TODO: add p-limit constraint
     const uploadPromises = signedDataItems.map((signedDataItem) => {
       return this.axios.post<TurboUploadDataItemResponse>(
@@ -141,7 +142,6 @@ export class TurboAuthenticatedUploadService
         {
           headers: {
             'content-type': 'application/octet-stream',
-            'content-length': 10,
           },
         },
       );

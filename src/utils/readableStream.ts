@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { ReadableStream } from 'node:stream/web';
+
 export async function readableStreamToBuffer({
   stream,
 }: {
@@ -30,6 +32,5 @@ export async function readableStreamToBuffer({
       chunks.push(value);
     }
   }
-
   return Buffer.concat(chunks);
 }

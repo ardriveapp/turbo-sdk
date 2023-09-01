@@ -19,30 +19,30 @@ import { AxiosInstance } from 'axios';
 import { JWKInterface } from '../types/arweave.js';
 import {
   Currency,
+  TurboAuthenticatedPaymentServiceInterface,
+  TurboAuthenticatedPaymentServiceInterfaceConfiguration,
   TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
   TurboPriceResponse,
-  TurboPrivatePaymentService,
-  TurboPrivatePaymentServiceConfiguration,
-  TurboPublicPaymentService,
-  TurboPublicPaymentServiceConfiguration,
   TurboRatesResponse,
+  TurboUnauthenticatedPaymentServiceInterface,
+  TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { signedRequestHeadersFromJwk } from '../utils/signData.js';
 
 export class TurboUnauthenticatedPaymentService
-  implements TurboPublicPaymentService
+  implements TurboUnauthenticatedPaymentServiceInterface
 {
   protected readonly axios: AxiosInstance;
 
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,
-  }: TurboPublicPaymentServiceConfiguration) {
+  }: TurboUnauthenticatedPaymentServiceInterfaceConfiguration) {
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -160,17 +160,17 @@ export class TurboUnauthenticatedPaymentService
 
 // NOTE: we could use an abstract class here, but for consistency sake we'll directly call the public payment service APIs
 export class TurboAuthenticatedPaymentService
-  implements TurboPrivatePaymentService
+  implements TurboAuthenticatedPaymentServiceInterface
 {
   protected readonly axios: AxiosInstance;
   protected readonly privateKey: JWKInterface;
-  protected readonly publicPaymentService: TurboPublicPaymentService;
+  protected readonly publicPaymentService: TurboUnauthenticatedPaymentServiceInterface;
 
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,
     privateKey,
-  }: TurboPrivatePaymentServiceConfiguration) {
+  }: TurboAuthenticatedPaymentServiceInterfaceConfiguration) {
     this.privateKey = privateKey;
     this.axios = createAxiosInstance({
       axiosConfig: {

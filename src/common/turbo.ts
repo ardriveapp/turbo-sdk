@@ -16,6 +16,8 @@
  */
 import {
   Currency,
+  TurboAuthenticatedPaymentServiceInterface,
+  TurboAuthenticatedUploadServiceInterface,
   TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
@@ -24,14 +26,12 @@ import {
   TurboPriceResponse,
   TurboPrivateClient,
   TurboPrivateClientConfiguration,
-  TurboPrivatePaymentService,
-  TurboPrivateUploadService,
   TurboPublicClient,
   TurboPublicClientConfiguration,
-  TurboPublicPaymentService,
-  TurboPublicUploadService,
   TurboRatesResponse,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedPaymentServiceInterface,
+  TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemsResponse,
 } from '../types/index.js';
 import {
@@ -44,8 +44,8 @@ import {
 } from './upload.js';
 
 export class TurboUnauthenticatedClient implements TurboPublicClient {
-  protected readonly paymentService: TurboPublicPaymentService;
-  protected readonly uploadService: TurboPublicUploadService;
+  protected readonly paymentService: TurboUnauthenticatedPaymentServiceInterface;
+  protected readonly uploadService: TurboUnauthenticatedUploadServiceInterface;
 
   constructor({
     uploadService = new TurboUnauthenticatedUploadService({}),
@@ -127,8 +127,8 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
 }
 
 export class TurboAuthenticatedClient implements TurboPrivateClient {
-  protected readonly paymentService: TurboPrivatePaymentService;
-  protected readonly uploadService: TurboPrivateUploadService;
+  protected readonly paymentService: TurboAuthenticatedPaymentServiceInterface;
+  protected readonly uploadService: TurboAuthenticatedUploadServiceInterface;
 
   constructor({
     privateKey,

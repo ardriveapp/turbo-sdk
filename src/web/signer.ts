@@ -16,6 +16,7 @@
  */
 import { ArweaveSigner, createData } from 'arbundles';
 import { AxiosInstance } from 'axios';
+import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../types/arweave.js';
 import { TurboDataItemSigner, TurboFileFactory } from '../types/turbo.js';

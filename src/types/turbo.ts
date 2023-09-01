@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Readable } from 'node:stream';
+import { ReadableStream } from 'node:stream/web';
 import { RetryConfig } from 'retry-axios';
-import { Readable } from 'stream';
 import winston from 'winston';
 
 import { JWKInterface } from './arweave.js';
@@ -81,30 +82,33 @@ type TurboServiceConfiguration = {
   dataItemSigner?: TurboDataItemSigner;
 };
 
-export type TurboPublicUploadServiceConfiguration = TurboServiceConfiguration;
-export type TurboPrivateUploadServiceConfiguration =
-  TurboPublicUploadServiceConfiguration & TurboAuthConfiguration;
+export type TurboUnauthenticatedUploadServiceInterfaceConfiguration =
+  TurboServiceConfiguration;
+export type TurboAuthenticatedUploadServiceConfiguration =
+  TurboUnauthenticatedUploadServiceInterfaceConfiguration &
+    TurboAuthConfiguration;
 
-export type TurboPublicPaymentServiceConfiguration = TurboServiceConfiguration;
-export type TurboPrivatePaymentServiceConfiguration =
+export type TurboUnauthenticatedPaymentServiceInterfaceConfiguration =
+  TurboServiceConfiguration;
+export type TurboAuthenticatedPaymentServiceInterfaceConfiguration =
   TurboServiceConfiguration & TurboAuthConfiguration;
 
 export type TurboPublicConfiguration = {
-  paymentServiceConfig?: TurboPublicPaymentServiceConfiguration;
-  uploadServiceConfig?: TurboPublicUploadServiceConfiguration;
+  paymentServiceConfig?: TurboUnauthenticatedPaymentServiceInterfaceConfiguration;
+  uploadServiceConfig?: TurboUnauthenticatedUploadServiceInterfaceConfiguration;
 };
 
 export type TurboPrivateConfiguration = TurboPublicConfiguration &
   TurboAuthConfiguration;
 
 export type TurboPublicClientConfiguration = {
-  paymentService: TurboPublicPaymentService;
-  uploadService: TurboPublicUploadService;
+  paymentService: TurboUnauthenticatedPaymentServiceInterface;
+  uploadService: TurboUnauthenticatedUploadServiceInterface;
 };
 
 export type TurboPrivateClientConfiguration = {
-  paymentService: TurboPrivatePaymentService;
-  uploadService: TurboPrivateUploadService;
+  paymentService: TurboAuthenticatedPaymentServiceInterface;
+  uploadService: TurboAuthenticatedUploadServiceInterface;
 } & TurboAuthConfiguration;
 
 export type TurboFileFactory = {
@@ -124,7 +128,7 @@ export interface TurboDataItemSigner {
   }: TurboFileFactory): Promise<Readable>[] | Promise<Buffer>[];
 }
 
-export interface TurboPublicPaymentService {
+export interface TurboUnauthenticatedPaymentServiceInterface {
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getFiatToAR({
@@ -143,25 +147,27 @@ export interface TurboPublicPaymentService {
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
 }
 
-export interface TurboPrivatePaymentService extends TurboPublicPaymentService {
+export interface TurboAuthenticatedPaymentServiceInterface
+  extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: () => Promise<TurboBalanceResponse>;
 }
 
-export interface TurboPublicUploadService {
+export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItems({
     dataItemGenerators,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse>;
 }
 
-export interface TurboPrivateUploadService extends TurboPublicUploadService {
+export interface TurboAuthenticatedUploadServiceInterface
+  extends TurboUnauthenticatedUploadServiceInterface {
   uploadFiles({
     fileStreamGenerators,
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse>;
 }
 
 export interface TurboPublicClient
-  extends TurboPublicPaymentService,
-    TurboPublicUploadService {}
+  extends TurboUnauthenticatedPaymentServiceInterface,
+    TurboUnauthenticatedUploadServiceInterface {}
 export interface TurboPrivateClient
-  extends TurboPrivatePaymentService,
-    TurboPrivateUploadService {}
+  extends TurboAuthenticatedPaymentServiceInterface,
+    TurboAuthenticatedUploadServiceInterface {}
