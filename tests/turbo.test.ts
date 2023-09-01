@@ -165,7 +165,9 @@ describe('Node environment', () => {
 
       before(async () => {
         jwk = await Arweave.crypto.generateJWK();
-        turbo = TurboFactory.private({ privateKey: jwk });
+        turbo = TurboFactory.private({
+          privateKey: jwk,
+        });
       });
 
       it('getBalance()', async () => {
@@ -184,6 +186,8 @@ describe('Node environment', () => {
         expect(Object.keys(response['dataItems']).length).to.equal(
           streamGenerator.length,
         );
+        expect(response).to.have.property('errors');
+        expect(response['errors']).to.have.length(0);
         for (const dataItem of Object.values(response['dataItems'])) {
           expect(dataItem).to.have.property('fastFinalityIndexes');
           expect(dataItem).to.have.property('dataCaches');
@@ -194,26 +198,28 @@ describe('Node environment', () => {
 
       describe('uploadSignedDataItems()', () => {
         it('should forward the Readable signed data items to turbo', async () => {
+          // hack - check balance to ensure the balance exists in the payment service database
           const signer = new ArweaveSigner(jwk);
-          const readableGenerator = () => Readable.from('test stream');
 
-          const signedDataItem1 = await streamSigner(
-            readableGenerator(),
-            readableGenerator(),
-            signer,
-          );
+          // create and sign a data item
+          const signedDataItemBuffer = createData('test stream', signer);
+          await signedDataItemBuffer.sign(signer);
 
-          const signedDataItem2 = await streamSigner(
-            readableGenerator(),
-            readableGenerator(),
-            signer,
-          );
+          const readableStreamGenerator = () =>
+            Readable.from(signedDataItemBuffer.getRaw());
 
           const response = await turbo.uploadSignedDataItems({
-            dataItemGenerator: [() => signedDataItem1, () => signedDataItem2],
+            dataItemGenerator: [
+              readableStreamGenerator,
+              readableStreamGenerator,
+            ],
           });
+
           expect(response).to.not.be.undefined;
+          expect(response).to.have.property('errors');
+          expect(response['errors']).to.have.length(0);
           expect(response).to.have.property('dataItems');
+          expect(response['dataItems']).to.have.length(2);
           for (const dataItem of Object.values(response['dataItems'])) {
             expect(dataItem).to.have.property('fastFinalityIndexes');
             expect(dataItem).to.have.property('dataCaches');
@@ -231,11 +237,29 @@ describe('Node environment', () => {
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('dataItems');
+          expect(response).to.have.property('errors');
+          expect(response['errors']).to.have.length(0);
           for (const dataItem of Object.values(response['dataItems'])) {
             expect(dataItem).to.have.property('fastFinalityIndexes');
             expect(dataItem).to.have.property('dataCaches');
             expect(dataItem).to.have.property('owner');
             expect(dataItem['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+          }
+        });
+
+        it('should return an error for an invalid data item', async () => {
+          const unsignedDataItem = Buffer.from('an unsigned buffer');
+          const response = await turbo.uploadSignedDataItems({
+            dataItemGenerator: [() => unsignedDataItem],
+          });
+          expect(response).to.not.be.undefined;
+          expect(response).to.have.property('dataItems');
+          expect(response).to.have.property('errors');
+          expect(Object.keys(response['dataItems']).length).to.equal(0);
+          for (const error of response['errors']) {
+            // TODO: check the values of these
+            expect(error).to.have.property('status');
+            expect(error).to.have.property('message');
           }
         });
       });

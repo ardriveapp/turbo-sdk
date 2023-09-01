@@ -61,6 +61,7 @@ export type TurboUploadDataItemResponse = {
 
 export type TurboUploadDataItemsResponse = {
   dataItems: Record<string, Omit<TurboUploadDataItemResponse, 'id'>>;
+  errors: { id: string; status: number; message: string }[];
 };
 
 export type TurboSignedRequestHeaders = {

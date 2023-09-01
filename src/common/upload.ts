@@ -70,6 +70,7 @@ export class TurboUnauthenticatedUploadService
 
     // NOTE: our axios config (validateStatus) swallows errors, so failed data items will be ignored
     const dataItemResponses = await Promise.all(uploadPromises);
+    const errors: { id: string; status: number; message: string }[] = [];
     const postedDataItems = dataItemResponses.reduce(
       (
         postedDataItemsMap: Record<
@@ -79,9 +80,15 @@ export class TurboUnauthenticatedUploadService
         dataItemResponse: AxiosResponse<TurboUploadDataItemResponse, 'id'>,
       ) => {
         // handle the fulfilled response
-        const { status, data } = dataItemResponse;
+        const { status, data, statusText } = dataItemResponse;
         if (![200, 202].includes(status)) {
           // TODO: add to failed data items array
+          errors.push({
+            id: data.id ?? 'unknown',
+
+            status,
+            message: statusText,
+          });
           return postedDataItemsMap;
         }
         const { id, ...dataItemCache } = data;
@@ -93,6 +100,7 @@ export class TurboUnauthenticatedUploadService
 
     return {
       dataItems: postedDataItems,
+      errors,
     };
   }
 }
@@ -133,6 +141,7 @@ export class TurboAuthenticatedUploadService
         {
           headers: {
             'content-type': 'application/octet-stream',
+            'content-length': 10,
           },
         },
       );
@@ -140,6 +149,7 @@ export class TurboAuthenticatedUploadService
 
     // NOTE: our axios config (validateStatus) swallows errors, so failed data items will be ignored
     const dataItemResponses = await Promise.all(uploadPromises);
+    const errors: { id: string; status: number; message: string }[] = [];
     const postedDataItems = dataItemResponses.reduce(
       (
         postedDataItemsMap: Record<
@@ -149,9 +159,14 @@ export class TurboAuthenticatedUploadService
         dataItemResponse: AxiosResponse<TurboUploadDataItemResponse, 'id'>,
       ) => {
         // handle the fulfilled response
-        const { status, data } = dataItemResponse;
+        const { status, data, statusText } = dataItemResponse;
         if (![200, 202].includes(status)) {
-          // TODO: add to failed data items array
+          errors.push({
+            id: data.id ?? 'unknown',
+
+            status,
+            message: statusText,
+          });
           return postedDataItemsMap;
         }
         const { id, ...dataItemCache } = data;
@@ -163,6 +178,7 @@ export class TurboAuthenticatedUploadService
 
     return {
       dataItems: postedDataItems,
+      errors,
     };
   }
 
@@ -191,6 +207,7 @@ export class TurboAuthenticatedUploadService
 
     // NOTE: our axios config (validateStatus) swallows errors, so failed data items will be ignored
     const dataItemResponses = await Promise.all(uploadPromises);
+    const errors: { id: string; status: number; message: string }[] = [];
     const postedDataItems = dataItemResponses.reduce(
       (
         postedDataItemsMap: Record<
@@ -200,9 +217,14 @@ export class TurboAuthenticatedUploadService
         dataItemResponse: AxiosResponse<TurboUploadDataItemResponse, 'id'>,
       ) => {
         // handle the fulfilled response
-        const { status, data } = dataItemResponse;
+        const { status, data, statusText } = dataItemResponse;
         if (![200, 202].includes(status)) {
           // TODO: add to failed data items array
+          errors.push({
+            id: data.id ?? 'unknown',
+            status,
+            message: statusText,
+          });
           return postedDataItemsMap;
         }
         const { id, ...dataItemCache } = data;
@@ -214,6 +236,7 @@ export class TurboAuthenticatedUploadService
 
     return {
       dataItems: postedDataItems,
+      errors,
     };
   }
 }
