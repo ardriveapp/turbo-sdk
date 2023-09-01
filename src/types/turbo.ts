@@ -60,7 +60,6 @@ export type TurboUploadDataItemResponse = {
 };
 
 export type TurboUploadDataItemsResponse = {
-  ownerAddress: UserAddress;
   dataItems: Record<string, Omit<TurboUploadDataItemResponse, 'id'>>;
 };
 
@@ -79,7 +78,6 @@ type TurboServiceConfiguration = {
   retryConfig?: RetryConfig;
   logger?: winston.Logger;
   dataItemSigner?: TurboDataItemSigner;
-  dataItemVerifier?: TurboDataItemVerifier;
 };
 
 export type TurboPublicUploadServiceConfiguration = TurboServiceConfiguration;
@@ -116,18 +114,8 @@ export type TurboFileFactory = {
 
 // TODO: add web one for ReadableStream or Buffer depending on how best to implement
 export type TurboSignedDataItemFactory = {
-  dataItemGenerator: (() => Readable)[];
-  publicKey: string; // TODO: add type
-  signature: Buffer; // TODO: could also be a buffer
+  dataItemGenerator: (() => Readable | Buffer | ReadableStream)[];
 };
-
-export interface TurboDataItemVerifier {
-  verifySignedDataItems({
-    dataItemGenerator,
-    signature,
-    publicKey,
-  }: TurboSignedDataItemFactory): Promise<boolean>;
-}
 
 export interface TurboDataItemSigner {
   signDataItems({
@@ -162,8 +150,6 @@ export interface TurboPrivatePaymentService extends TurboPublicPaymentService {
 export interface TurboPublicUploadService {
   uploadSignedDataItems({
     dataItemGenerator,
-    signature,
-    publicKey,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse>;
 }
 

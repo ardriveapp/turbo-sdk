@@ -15,17 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { AxiosInstance, AxiosResponse } from 'axios';
-import { Readable } from 'stream';
 
-import {
-  TurboNodeDataItemSigner,
-  TurboNodeDataItemVerifier,
-} from '../node/signer.js';
+import { TurboNodeDataItemSigner } from '../node/signer.js';
 import { JWKInterface } from '../types/arweave.js';
 import {
   TransactionId,
   TurboDataItemSigner,
-  TurboDataItemVerifier,
   TurboFileFactory,
   TurboPrivateUploadService,
   TurboPrivateUploadServiceConfiguration,
@@ -36,18 +31,14 @@ import {
   TurboUploadDataItemsResponse,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
-import { jwkToPublicArweaveAddress } from '../utils/base64.js';
-import { UnauthenticatedRequestError } from '../utils/errors.js';
 
 export class TurboUnauthenticatedUploadService
   implements TurboPublicUploadService
 {
   protected axios: AxiosInstance;
-  protected dataItemVerifier: TurboDataItemVerifier;
 
   constructor({
     url = 'https://upload.ardrive.dev',
-    dataItemVerifier = new TurboNodeDataItemVerifier(),
     retryConfig,
   }: TurboPublicUploadServiceConfiguration) {
     this.axios = createAxiosInstance({
@@ -56,27 +47,13 @@ export class TurboUnauthenticatedUploadService
       },
       retryConfig,
     });
-    this.dataItemVerifier = dataItemVerifier;
   }
 
   // TODO: any public upload service APIS
   async uploadSignedDataItems({
     dataItemGenerator,
-    signature,
-    publicKey,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
-    const verified = await this.dataItemVerifier.verifySignedDataItems({
-      dataItemGenerator,
-      signature,
-      publicKey,
-    });
-    if (!verified) {
-      throw new Error('One or more data items failed signature validation');
-    }
-
-    const signedDataItems: Readable[] = dataItemGenerator.map((dataItem) =>
-      dataItem(),
-    );
+    const signedDataItems = dataItemGenerator.map((dataItem) => dataItem());
 
     // TODO: add p-limit constraint
     const uploadPromises = signedDataItems.map((signedDataItem) => {
@@ -115,7 +92,6 @@ export class TurboUnauthenticatedUploadService
     );
 
     return {
-      ownerAddress: publicKey,
       dataItems: postedDataItems,
     };
   }
@@ -127,13 +103,11 @@ export class TurboAuthenticatedUploadService
   protected axios: AxiosInstance;
   protected privateKey: JWKInterface | undefined;
   protected dataItemSigner: TurboDataItemSigner;
-  protected dataItemVerifier: TurboDataItemVerifier;
 
   constructor({
     url = 'https://upload.ardrive.dev',
     privateKey,
     dataItemSigner = new TurboNodeDataItemSigner({ privateKey }),
-    dataItemVerifier = new TurboNodeDataItemVerifier(),
     retryConfig,
   }: TurboPrivateUploadServiceConfiguration) {
     this.axios = createAxiosInstance({
@@ -144,26 +118,12 @@ export class TurboAuthenticatedUploadService
     });
     this.privateKey = privateKey;
     this.dataItemSigner = dataItemSigner;
-    this.dataItemVerifier = dataItemVerifier;
   }
 
   async uploadSignedDataItems({
     dataItemGenerator,
-    signature,
-    publicKey,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
-    const verified = await this.dataItemVerifier.verifySignedDataItems({
-      dataItemGenerator,
-      signature,
-      publicKey,
-    });
-    if (!verified) {
-      throw new Error('One or more data items failed signature validation');
-    }
-
-    const signedDataItems: Readable[] = dataItemGenerator.map((dataItem) =>
-      dataItem(),
-    );
+    const signedDataItems = dataItemGenerator.map((dataItem) => dataItem());
 
     // TODO: add p-limit constraint
     const uploadPromises = signedDataItems.map((signedDataItem) => {
@@ -202,7 +162,6 @@ export class TurboAuthenticatedUploadService
     );
 
     return {
-      ownerAddress: publicKey,
       dataItems: postedDataItems,
     };
   }
@@ -211,10 +170,6 @@ export class TurboAuthenticatedUploadService
     fileStreamGenerator,
     bundle = false, // TODO: add bundle param to allow for creating BDI of data items
   }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
-    if (!this.privateKey) {
-      throw new UnauthenticatedRequestError();
-    }
-
     const signedDataItemPromises = this.dataItemSigner.signDataItems({
       fileStreamGenerator,
       bundle,
@@ -260,7 +215,6 @@ export class TurboAuthenticatedUploadService
     );
 
     return {
-      ownerAddress: jwkToPublicArweaveAddress(this.privateKey),
       dataItems: postedDataItems,
     };
   }

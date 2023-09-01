@@ -16,61 +16,11 @@
  */
 import { ArweaveSigner, streamSigner } from 'arbundles';
 import { AxiosInstance } from 'axios';
-import crypto from 'crypto';
-import jwkToPem from 'jwk-to-pem';
 import { Readable } from 'stream';
 
 import { JWKInterface } from '../types/arweave.js';
-import {
-  TurboDataItemSigner,
-  TurboDataItemVerifier,
-  TurboFileFactory,
-  TurboSignedDataItemFactory,
-} from '../types/turbo.js';
+import { TurboDataItemSigner, TurboFileFactory } from '../types/turbo.js';
 import { UnauthenticatedRequestError } from '../utils/errors.js';
-
-export class TurboNodeDataItemVerifier implements TurboDataItemVerifier {
-  async verifySignedDataItems({
-    dataItemGenerator,
-    signature,
-    publicKey,
-  }: Omit<TurboSignedDataItemFactory, 'dataItemGenerator'> & {
-    dataItemGenerator: (() => Readable)[];
-  }): Promise<boolean> {
-    const fullKey = {
-      kty: 'RSA',
-      e: 'AQAB',
-      n: publicKey,
-    };
-
-    const pem = jwkToPem(fullKey);
-    const verifiedDataItems: boolean[] = [];
-
-    // TODO: do this in parallel
-    for (const generateDataItem of dataItemGenerator) {
-      const verify = crypto.createVerify('sha256');
-      const signedDataItem = generateDataItem();
-      signedDataItem.on('data', (chunk) => {
-        verify.update(chunk);
-      });
-      signedDataItem.on('end', () => {
-        const dataItemVerified = verify.verify(
-          {
-            key: pem,
-            padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-          },
-          signature,
-        );
-        verifiedDataItems.push(dataItemVerified);
-      });
-      signedDataItem.on('error', () => {
-        verifiedDataItems.push(false);
-      });
-    }
-
-    return verifiedDataItems.every((dataItem) => dataItem);
-  }
-}
 
 export class TurboNodeDataItemSigner implements TurboDataItemSigner {
   protected axios: AxiosInstance;

@@ -18,11 +18,7 @@ import { ArweaveSigner, createData } from 'arbundles';
 import { AxiosInstance } from 'axios';
 
 import { JWKInterface } from '../types/arweave.js';
-import {
-  TurboDataItemSigner,
-  TurboFileFactory,
-  TurboSignedDataItemFactory,
-} from '../types/turbo.js';
+import { TurboDataItemSigner, TurboFileFactory } from '../types/turbo.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebDataItemSigner implements TurboDataItemSigner {
@@ -31,15 +27,6 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
 
   constructor({ privateKey }: { privateKey: JWKInterface }) {
     this.privateKey = privateKey;
-  }
-
-  verifySignedDataItems({
-    dataItemGenerator,
-    signature,
-    publicKey,
-  }: TurboSignedDataItemFactory): boolean {
-    console.log(dataItemGenerator, signature, publicKey);
-    throw new Error('Not implemented!');
   }
 
   signDataItems({

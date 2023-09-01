@@ -119,13 +119,9 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
    */
   async uploadSignedDataItems({
     dataItemGenerator,
-    signature,
-    publicKey,
-  }): Promise<TurboUploadDataItemsResponse> {
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
     return this.uploadService.uploadSignedDataItems({
       dataItemGenerator,
-      signature,
-      publicKey,
     });
   }
 }
@@ -228,13 +224,9 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
    */
   async uploadSignedDataItems({
     dataItemGenerator,
-    signature,
-    publicKey,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
     return this.uploadService.uploadSignedDataItems({
       dataItemGenerator,
-      signature,
-      publicKey,
     });
   }
 }
