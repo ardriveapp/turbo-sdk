@@ -15,19 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ArweaveSigner, createData } from 'arbundles';
-import { AxiosInstance } from 'axios';
+import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../types/arweave.js';
-import { TurboDataItemSigner } from '../types/turbo.js';
+import { TurboWalletSigner } from '../types/turbo.js';
+import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
-export class TurboWebDataItemSigner implements TurboDataItemSigner {
-  protected axios: AxiosInstance;
+export class TurboWebArweaveSigner implements TurboWalletSigner {
+  protected signer: ArweaveSigner;
   protected privateKey: JWKInterface;
 
   constructor({ privateKey }: { privateKey: JWKInterface }) {
-    this.privateKey = privateKey;
+    this.signer = new ArweaveSigner(privateKey);
   }
 
   async signDataItem({
@@ -35,14 +36,29 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
   }: {
     fileStreamFactory: () => ReadableStream;
   }): Promise<Buffer> {
-    // TODO: replace this with an internal signer class
-    const signer = new ArweaveSigner(this.privateKey);
-    // Convert the readable stream to a buffer
+    // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
     const buffer = await readableStreamToBuffer({
       stream: fileStreamFactory(),
     });
-    const dataItem = createData(buffer, signer);
-    await dataItem.sign(signer);
+    const dataItem = createData(buffer, this.signer);
+    await dataItem.sign(this.signer);
     return dataItem.getRaw();
+  }
+
+  async generateSignedRequestHeaders() {
+    const { default: arweave } = await import('arweave/web/index.js');
+    // TODO: we could move this to a class separate function
+    const nonce = randomBytes(16).toString('hex');
+    const buffer = Buffer.from(nonce);
+    const signature = await arweave.default.crypto.sign(
+      this.privateKey,
+      buffer,
+    );
+
+    return {
+      'x-public-key': this.privateKey.n,
+      'x-nonce': nonce,
+      'x-signature': toB64Url(Buffer.from(signature)),
+    };
   }
 }

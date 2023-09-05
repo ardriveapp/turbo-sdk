@@ -60,6 +60,7 @@ export type TurboUploadDataItemResponse = {
   id: TransactionId;
 };
 
+export type TurboWallet = JWKInterface; // TODO: add other wallet types
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
@@ -67,14 +68,13 @@ export type TurboSignedRequestHeaders = {
 };
 
 type TurboAuthConfiguration = {
-  privateKey: JWKInterface; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
+  signer: TurboWalletSigner; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
 };
 
 type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: RetryConfig;
   logger?: winston.Logger;
-  dataItemSigner?: TurboDataItemSigner;
 };
 
 export type TurboUnauthenticatedUploadServiceInterfaceConfiguration =
@@ -93,8 +93,9 @@ export type TurboPublicConfiguration = {
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceInterfaceConfiguration;
 };
 
-export type TurboPrivateConfiguration = TurboPublicConfiguration &
-  TurboAuthConfiguration;
+export type TurboPrivateConfiguration = TurboPublicConfiguration & {
+  privateKey: TurboWallet;
+};
 
 export type TurboPublicClientConfiguration = {
   paymentService: TurboUnauthenticatedPaymentServiceInterface;
@@ -104,7 +105,7 @@ export type TurboPublicClientConfiguration = {
 export type TurboPrivateClientConfiguration = {
   paymentService: TurboAuthenticatedPaymentServiceInterface;
   uploadService: TurboAuthenticatedUploadServiceInterface;
-} & TurboAuthConfiguration;
+};
 
 export type FileStreamFactory =
   | (() => Readable)
@@ -120,10 +121,16 @@ export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
 };
 
-export interface TurboDataItemSigner {
+export interface TurboHTTPRequestService {
+  get<T>(url: string): Promise<T>;
+  post<T>(url: string, data: Readable | Buffer): Promise<T>;
+}
+
+export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
   }: TurboFileFactory): Promise<Readable> | Promise<Buffer>;
+  generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {

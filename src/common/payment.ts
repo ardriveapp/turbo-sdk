@@ -16,7 +16,6 @@
  */
 import { AxiosInstance } from 'axios';
 
-import { JWKInterface } from '../types/arweave.js';
 import {
   Currency,
   TurboAuthenticatedPaymentServiceInterface,
@@ -29,10 +28,10 @@ import {
   TurboRatesResponse,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
+  TurboWalletSigner,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { FailedRequestError } from '../utils/errors.js';
-import { signedRequestHeadersFromJwk } from '../utils/signData.js';
 
 export class TurboUnauthenticatedPaymentService
   implements TurboUnauthenticatedPaymentServiceInterface
@@ -163,16 +162,17 @@ export class TurboAuthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
   protected readonly axios: AxiosInstance;
-  protected readonly privateKey: JWKInterface;
+  protected readonly signer: TurboWalletSigner;
   protected readonly publicPaymentService: TurboUnauthenticatedPaymentServiceInterface;
 
   // TODO: replace private key with an internal signer interface
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,
-    privateKey,
+    signer,
   }: TurboAuthenticatedPaymentServiceInterfaceConfiguration) {
-    this.privateKey = privateKey;
+    this.signer = signer;
+    // TODO: abstract this away to TurboHTTPService class
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -213,7 +213,7 @@ export class TurboAuthenticatedPaymentService
   }
 
   async getBalance(): Promise<TurboBalanceResponse> {
-    const headers = await signedRequestHeadersFromJwk(this.privateKey);
+    const headers = await this.signer.generateSignedRequestHeaders();
 
     const {
       status,

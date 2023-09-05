@@ -22,13 +22,14 @@ import {
   TurboUnauthenticatedPaymentService,
   TurboUnauthenticatedUploadService,
 } from './common/index.js';
-import { TurboNodeDataItemSigner } from './node/signer.js';
+import { TurboNodeArweaveSigner } from './node/signer.js';
 import {
   TurboPrivateConfiguration,
   TurboPublicConfiguration,
+  TurboWalletSigner,
 } from './types/index.js';
 import { isBrowser } from './utils/browser.js';
-import { TurboWebDataItemSigner } from './web/signer.js';
+import { TurboWebArweaveSigner } from './web/signer.js';
 
 export class TurboFactory {
   static public({
@@ -52,25 +53,23 @@ export class TurboFactory {
     paymentServiceConfig = {},
     uploadServiceConfig = {},
   }: TurboPrivateConfiguration) {
-    let dataItemSigner: TurboWebDataItemSigner | TurboNodeDataItemSigner;
+    let signer: TurboWalletSigner;
 
     if (isBrowser()) {
-      dataItemSigner = new TurboWebDataItemSigner({ privateKey });
+      signer = new TurboWebArweaveSigner({ privateKey });
     } else {
-      dataItemSigner = new TurboNodeDataItemSigner({ privateKey });
+      signer = new TurboNodeArweaveSigner({ privateKey });
     }
 
     const paymentService = new TurboAuthenticatedPaymentService({
       ...paymentServiceConfig,
-      privateKey,
+      signer,
     });
     const uploadService = new TurboAuthenticatedUploadService({
       ...uploadServiceConfig,
-      dataItemSigner,
-      privateKey,
+      signer,
     });
     return new TurboAuthenticatedClient({
-      privateKey,
       uploadService,
       paymentService,
     });

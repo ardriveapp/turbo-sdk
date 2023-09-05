@@ -34,14 +34,8 @@ import {
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
 } from '../types/index.js';
-import {
-  TurboAuthenticatedPaymentService,
-  TurboUnauthenticatedPaymentService,
-} from './payment.js';
-import {
-  TurboAuthenticatedUploadService,
-  TurboUnauthenticatedUploadService,
-} from './upload.js';
+import { TurboUnauthenticatedPaymentService } from './payment.js';
+import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboUnauthenticatedClient implements TurboPublicClient {
   protected readonly paymentService: TurboUnauthenticatedPaymentServiceInterface;
@@ -131,11 +125,8 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
   protected readonly uploadService: TurboAuthenticatedUploadServiceInterface;
 
   constructor({
-    privateKey,
-    paymentService = new TurboAuthenticatedPaymentService({ privateKey }),
-    uploadService = new TurboAuthenticatedUploadService({
-      privateKey,
-    }),
+    paymentService,
+    uploadService,
   }: TurboPrivateClientConfiguration) {
     this.paymentService = paymentService;
     this.uploadService = uploadService;

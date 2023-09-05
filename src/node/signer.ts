@@ -15,14 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ArweaveSigner, streamSigner } from 'arbundles';
-import { AxiosInstance } from 'axios';
+import Arweave from 'arweave/node/index.js';
+import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
 import { JWKInterface } from '../types/arweave.js';
-import { TurboDataItemSigner } from '../types/turbo.js';
+import { TurboWalletSigner } from '../types/turbo.js';
+import { toB64Url } from '../utils/base64.js';
 
-export class TurboNodeDataItemSigner implements TurboDataItemSigner {
-  protected axios: AxiosInstance;
+export class TurboNodeArweaveSigner implements TurboWalletSigner {
+  protected signer: ArweaveSigner;
   protected privateKey: JWKInterface;
 
   // TODO: replace with internal signer class
@@ -38,5 +40,18 @@ export class TurboNodeDataItemSigner implements TurboDataItemSigner {
     const signer = new ArweaveSigner(this.privateKey);
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
     return streamSigner(stream1, stream2, signer);
+  }
+
+  async generateSignedRequestHeaders() {
+    // TODO: we could move this to a class separate function
+    const nonce = randomBytes(16).toString('hex');
+    const buffer = Buffer.from(nonce);
+    const signature = await Arweave.crypto.sign(this.privateKey, buffer);
+
+    return {
+      'x-public-key': this.privateKey.n,
+      'x-nonce': nonce,
+      'x-signature': toB64Url(Buffer.from(signature)),
+    };
   }
 }

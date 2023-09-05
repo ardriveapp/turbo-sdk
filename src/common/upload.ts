@@ -16,17 +16,15 @@
  */
 import { AxiosInstance } from 'axios';
 
-import { TurboNodeDataItemSigner } from '../node/signer.js';
-import { JWKInterface } from '../types/arweave.js';
 import {
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
-  TurboDataItemSigner,
   TurboFileFactory,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUnauthenticatedUploadServiceInterfaceConfiguration,
   TurboUploadDataItemResponse,
+  TurboWalletSigner,
 } from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { FailedRequestError } from '../utils/errors.js';
@@ -40,6 +38,7 @@ export class TurboUnauthenticatedUploadService
     url = 'https://upload.ardrive.dev',
     retryConfig,
   }: TurboUnauthenticatedUploadServiceInterfaceConfiguration) {
+    //  TODO: abstract to TurboHTTPRequestService class
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
@@ -74,23 +73,21 @@ export class TurboAuthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
   protected axios: AxiosInstance;
-  protected privateKey: JWKInterface | undefined;
-  protected dataItemSigner: TurboDataItemSigner;
+  protected signer: TurboWalletSigner;
 
   constructor({
     url = 'https://upload.ardrive.dev',
-    privateKey,
-    dataItemSigner = new TurboNodeDataItemSigner({ privateKey }),
     retryConfig,
+    signer,
   }: TurboAuthenticatedUploadServiceConfiguration) {
+    //  TODO: abstract to TurboHTTPRequestService class
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: `${url}/v1`,
       },
       retryConfig,
     });
-    this.privateKey = privateKey;
-    this.dataItemSigner = dataItemSigner;
+    this.signer = signer;
   }
 
   async uploadSignedDataItem({
@@ -117,7 +114,7 @@ export class TurboAuthenticatedUploadService
   async uploadFile({
     fileStreamFactory,
   }: TurboFileFactory): Promise<TurboUploadDataItemResponse> {
-    const signedDataItem = await this.dataItemSigner.signDataItem({
+    const signedDataItem = await this.signer.signDataItem({
       fileStreamFactory,
     });
     // TODO: add p-limit constraint or replace with separate upload class
