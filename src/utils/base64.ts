@@ -50,9 +50,3 @@ export function toB64Url(buffer: Buffer): Base64String {
 export function sha256B64Url(input: Buffer): Base64String {
   return toB64Url(createHash('sha256').update(input).digest());
 }
-
-// check if it is a valid arweave base64url for a wallet public address, transaction id or smartweave contract
-export function isValidArweaveBase64URL(base64URL: string): boolean {
-  const base64URLRegex = /^[a-zA-Z0-9_-]{43}$/;
-  return base64URLRegex.test(base64URL);
-}
