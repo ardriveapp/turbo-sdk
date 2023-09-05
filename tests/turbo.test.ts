@@ -1,5 +1,6 @@
 import { ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave';
+import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import fs from 'fs';
 import { Readable } from 'node:stream';
@@ -130,8 +131,8 @@ describe('Node environment', () => {
         expect(+winc).to.be.greaterThan(0);
       });
 
-      describe('uploadSignedDataItem()', async () => {
-        it('supports sending a signed Buffer to turbo', async () => {
+      describe('uploadSignedDataItem()', () => {
+        it('should properly upload a signed Buffer to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
           const signedDataItem = createData('signed data item', signer, {});
@@ -147,7 +148,7 @@ describe('Node environment', () => {
           expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
         });
 
-        it('supports sending a signed Readable to turbo', async () => {
+        it('should properly upload signed Readable to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
           const signedDataItem = createData('signed data item', signer, {});
@@ -161,6 +162,20 @@ describe('Node environment', () => {
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+        });
+
+        it('should abort an upload when AbortController.signal is triggered', async () => {
+          const jwk = await Arweave.crypto.generateJWK();
+          const signer = new ArweaveSigner(jwk);
+          const signedDataItem = createData('signed data item', signer, {});
+          await signedDataItem.sign(signer);
+          const error = await turbo
+            .uploadSignedDataItem({
+              dataItemStreamFactory: () => signedDataItem.getRaw(),
+              signal: AbortSignal.timeout(0), // abort the request right away
+            })
+            .catch((err) => err);
+          expect(error).to.be.instanceOf(CanceledError);
         });
       });
     });
@@ -183,18 +198,30 @@ describe('Node environment', () => {
         expect(+balance.winc).to.equal(0);
       });
 
-      it('uploadFile()', async () => {
-        const file = new URL('files/0_kb.txt', import.meta.url).pathname;
-        const streamGenerator = () => fs.createReadStream(file);
-        const response = await turbo.uploadFile({
-          fileStreamFactory: streamGenerator,
+      describe('uploadFile()', () => {
+        it('should properly upload a Readable to turbo', async () => {
+          const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+          const response = await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(filePath),
+          });
+          expect(response).to.not.be.undefined;
+          expect(response).to.not.be.undefined;
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
         });
-        expect(response).to.not.be.undefined;
-        expect(response).to.not.be.undefined;
-        expect(response).to.have.property('fastFinalityIndexes');
-        expect(response).to.have.property('dataCaches');
-        expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+
+        it('should abort the upload when AbortController.signal is triggered', async () => {
+          const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+          const error = await turbo
+            .uploadFile({
+              fileStreamFactory: () => fs.createReadStream(filePath),
+              signal: AbortSignal.timeout(0), // abort the request right away
+            })
+            .catch((err) => err);
+          expect(error).to.be.instanceOf(CanceledError);
+        });
       });
     });
   });
@@ -293,7 +320,7 @@ describe('Browser environment', () => {
         expect(+winc).to.be.greaterThan(0);
       });
 
-      describe('uploadSignedDataItem()', async () => {
+      describe('uploadSignedDataItem()', () => {
         it('supports sending a signed Buffer to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
@@ -308,6 +335,20 @@ describe('Browser environment', () => {
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+        });
+
+        it('should abort the upload when AbortController.signal is triggered', async () => {
+          const jwk = await Arweave.crypto.generateJWK();
+          const signer = new ArweaveSigner(jwk);
+          const signedDataItem = createData('signed data item', signer);
+          await signedDataItem.sign(signer);
+          const error = await turbo
+            .uploadSignedDataItem({
+              dataItemStreamFactory: () => signedDataItem.getRaw(),
+              signal: AbortSignal.timeout(0), // abort the request right away
+            })
+            .catch((err) => err);
+          expect(error).be.instanceOf(CanceledError);
         });
 
         // TODO: add test that polyfills posting a signed ReadableStream to turbo

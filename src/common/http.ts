@@ -44,15 +44,18 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
   }
   async get<T>({
     endpoint,
+    signal,
     allowedStatuses = [200, 202],
     headers,
   }: {
     endpoint: string;
+    signal?: AbortSignal;
     allowedStatuses?: number[];
-    headers?: Partial<TurboSignedRequestHeaders>;
+    headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
   }): Promise<T> {
     const { status, statusText, data } = await this.axios.get<T>(endpoint, {
       headers,
+      signal,
     });
 
     if (!allowedStatuses.includes(status)) {
@@ -64,11 +67,13 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
 
   async post<T>({
     endpoint,
+    signal,
     allowedStatuses = [200, 202],
     headers,
     data,
   }: {
     endpoint: string;
+    signal?: AbortSignal;
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream;
@@ -79,6 +84,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       data: response,
     } = await this.axios.post<T>(endpoint, data, {
       headers,
+      signal,
     });
 
     if (!allowedStatuses.includes(status)) {

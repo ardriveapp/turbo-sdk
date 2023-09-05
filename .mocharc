@@ -9,7 +9,7 @@
   "require": [
     "ts-node/register/transpile-only"
   ],
-  "timeout": "10000",
+  "timeout": "5000",
   "parallel": false,
   "recursive": true,
   "loader": "ts-node/esm"

@@ -16,6 +16,7 @@
  */
 import {
   Currency,
+  TurboAbortSignal,
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
   TurboBalanceResponse,
@@ -113,9 +114,12 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
    */
   async uploadSignedDataItem({
     dataItemStreamFactory,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadSignedDataItem({
       dataItemStreamFactory,
+      signal,
     });
   }
 }
@@ -207,8 +211,10 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
    */
   async uploadFile({
     fileStreamFactory,
-  }: TurboFileFactory): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadFile({ fileStreamFactory });
+    signal,
+  }: TurboFileFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadFile({ fileStreamFactory, signal });
   }
 
   /**
@@ -216,9 +222,12 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
    */
   async uploadSignedDataItem({
     dataItemStreamFactory,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadSignedDataItem({
       dataItemStreamFactory,
+      signal,
     });
   }
 }

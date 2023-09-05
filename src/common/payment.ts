@@ -103,7 +103,6 @@ export class TurboAuthenticatedPaymentService
   protected readonly signer: TurboWalletSigner;
   protected readonly publicPaymentService: TurboUnauthenticatedPaymentServiceInterface;
 
-  // TODO: replace private key with an internal signer interface
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,

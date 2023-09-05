@@ -114,7 +114,6 @@ export type FileStreamFactory =
 export type SignedDataStreamFactory = FileStreamFactory;
 export type TurboFileFactory = {
   fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
-  abortController?: AbortController;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
@@ -122,23 +121,31 @@ export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
 };
 
+export type TurboAbortSignal = {
+  signal?: AbortSignal;
+};
+
 export interface TurboHTTPServiceInterface {
   get<T>({
     endpoint,
+    signal,
     headers,
     allowedStatuses,
   }: {
     endpoint: string;
+    signal?: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
   }): Promise<T>;
   post<T>({
     endpoint,
+    signal,
     headers,
     allowedStatuses,
     data,
   }: {
     endpoint: string;
+    signal: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
     data: Readable | ReadableStream | Buffer;
@@ -179,14 +186,16 @@ export interface TurboAuthenticatedPaymentServiceInterface
 export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse>;
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
   uploadFile({
     fileStreamFactory,
-  }: TurboFileFactory): Promise<TurboUploadDataItemResponse>;
+  }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboPublicClient

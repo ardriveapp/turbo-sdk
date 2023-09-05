@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {
+  TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
   TurboFileFactory,
@@ -43,10 +44,13 @@ export class TurboUnauthenticatedUploadService
 
   async uploadSignedDataItem({
     dataItemStreamFactory,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
+      signal,
       data: dataItemStreamFactory(),
       headers: {
         'content-type': 'application/octet-stream',
@@ -75,10 +79,13 @@ export class TurboAuthenticatedUploadService
 
   async uploadSignedDataItem({
     dataItemStreamFactory,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
+      signal,
       data: dataItemStreamFactory(),
       headers: {
         'content-type': 'application/octet-stream',
@@ -88,13 +95,16 @@ export class TurboAuthenticatedUploadService
 
   async uploadFile({
     fileStreamFactory,
-  }: TurboFileFactory): Promise<TurboUploadDataItemResponse> {
+    signal,
+  }: TurboFileFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     const signedDataItem = await this.signer.signDataItem({
       fileStreamFactory,
     });
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
+      signal,
       data: signedDataItem,
       headers: {
         'content-type': 'application/octet-stream',
