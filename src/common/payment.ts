@@ -95,55 +95,21 @@ export class TurboUnauthenticatedPaymentService
   }
 }
 
-// NOTE: we could use an abstract class here, but for consistency sake we'll directly call the public payment service APIs
+// NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
 export class TurboAuthenticatedPaymentService
+  extends TurboUnauthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
   protected readonly httpService: TurboHTTPService;
   protected readonly signer: TurboWalletSigner;
-  protected readonly publicPaymentService: TurboUnauthenticatedPaymentServiceInterface;
 
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,
     signer,
   }: TurboAuthenticatedPaymentServiceInterfaceConfiguration) {
-    this.httpService = new TurboHTTPService({
-      url: `${url}/v1`,
-      retryConfig,
-    });
-    this.publicPaymentService = new TurboUnauthenticatedPaymentService({
-      url,
-      retryConfig,
-    });
+    super({ url, retryConfig });
     this.signer = signer;
-  }
-
-  getFiatRates(): Promise<TurboRatesResponse> {
-    return this.publicPaymentService.getFiatRates();
-  }
-
-  getFiatToAR({ currency }): Promise<TurboFiatToArResponse> {
-    return this.publicPaymentService.getFiatToAR({ currency });
-  }
-
-  getSupportedCountries(): Promise<TurboCountriesResponse> {
-    return this.publicPaymentService.getSupportedCountries();
-  }
-
-  getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
-    return this.publicPaymentService.getSupportedCurrencies();
-  }
-
-  getUploadCosts({ bytes }): Promise<TurboPriceResponse[]> {
-    return this.publicPaymentService.getUploadCosts({ bytes });
-  }
-
-  getWincForFiat({
-    amount,
-    currency,
-  }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
-    return this.publicPaymentService.getWincForFiat({ amount, currency });
   }
 
   async getBalance(): Promise<TurboBalanceResponse> {

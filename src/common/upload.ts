@@ -59,7 +59,9 @@ export class TurboUnauthenticatedUploadService
   }
 }
 
+// NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
 export class TurboAuthenticatedUploadService
+  extends TurboUnauthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
   protected httpService: TurboHTTPService;
@@ -70,27 +72,8 @@ export class TurboAuthenticatedUploadService
     retryConfig,
     signer,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    this.httpService = new TurboHTTPService({
-      url: `${url}/v1`,
-      retryConfig,
-    });
+    super({ url, retryConfig });
     this.signer = signer;
-  }
-
-  async uploadSignedDataItem({
-    dataItemStreamFactory,
-    signal,
-  }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    // TODO: add p-limit constraint or replace with separate upload class
-    return this.httpService.post<TurboUploadDataItemResponse>({
-      endpoint: `/tx`,
-      signal,
-      data: dataItemStreamFactory(),
-      headers: {
-        'content-type': 'application/octet-stream',
-      },
-    });
   }
 
   async uploadFile({
