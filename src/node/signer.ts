@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, streamSigner } from 'arbundles';
+import { ArweaveSigner, streamSigner } from 'arbundles/node';
 import Arweave from 'arweave/node/index.js';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
@@ -24,12 +24,13 @@ import { TurboWalletSigner } from '../types/turbo.js';
 import { toB64Url } from '../utils/base64.js';
 
 export class TurboNodeArweaveSigner implements TurboWalletSigner {
-  protected signer: ArweaveSigner;
   protected privateKey: JWKInterface;
+  protected signer: ArweaveSigner; // TODO: replace with internal signer class
 
   // TODO: replace with internal signer class
   constructor({ privateKey }: { privateKey: JWKInterface }) {
     this.privateKey = privateKey;
+    this.signer = new ArweaveSigner(this.privateKey);
   }
 
   signDataItem({
@@ -37,9 +38,9 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   }: {
     fileStreamFactory: () => Readable;
   }): Promise<Readable> {
-    const signer = new ArweaveSigner(this.privateKey);
+    // TODO: replace with our own signer implementation
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
-    return streamSigner(stream1, stream2, signer);
+    return streamSigner(stream1, stream2, this.signer);
   }
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto

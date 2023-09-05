@@ -14,7 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, createData } from 'arbundles';
+import { createData } from 'arbundles/node';
+import { ArweaveSigner } from 'arbundles/web';
+import Arweave from 'arweave/web/index.js';
 import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
@@ -25,11 +27,11 @@ import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebArweaveSigner implements TurboWalletSigner {
   protected privateKey: JWKInterface;
-  protected signer: ArweaveSigner;
+  protected signer: ArweaveSigner; // TODO: replace with internal signer class
 
   constructor({ privateKey }: { privateKey: JWKInterface }) {
     this.privateKey = privateKey;
-    this.signer = new ArweaveSigner(privateKey);
+    this.signer = new ArweaveSigner(this.privateKey);
   }
 
   async signDataItem({
@@ -41,18 +43,16 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
     const buffer = await readableStreamToBuffer({
       stream: fileStreamFactory(),
     });
-    const dataItem = createData(buffer, this.signer);
-    await dataItem.sign(this.signer);
-    return dataItem.getRaw();
+    const signedDataItem = createData(buffer, this.signer);
+    await signedDataItem.sign(this.signer);
+    return signedDataItem.getRaw();
   }
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
-    const { default: arweave } = await import('arweave/web/index.js');
-    // TODO: we could move this to a class separate function
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    const signature = await arweave.default.crypto.sign(
+    const signature = await Arweave.default.crypto.sign(
       this.privateKey,
       buffer,
     );

@@ -6,7 +6,8 @@
     "tests/**/*.test.ts"
   ],
   "require": [
-    "ts-node/register/transpile-only"
+    "ts-node/register/transpile-only",
+    "./mocha.setup.cjs"
   ],
   "timeout": "10000",
   "parallel": false,

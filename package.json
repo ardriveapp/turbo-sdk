@@ -42,6 +42,8 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "test": "c8 mocha --config .mocharc",
+    "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts",
+    "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts",
     "prepare": "husky install",
     "example:mjs": "yarn build:esm && node examples/node/index.mjs",
     "example:cjs": "yarn build:esm && node examples/node/index.cjs",
