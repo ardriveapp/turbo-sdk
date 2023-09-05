@@ -68,6 +68,7 @@
   const filePath = path.join(__dirname, './files/0_kb.txt');
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
+    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   console.log(JSON.stringify(uploadResult, null, 2));
 })();
