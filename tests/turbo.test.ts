@@ -67,7 +67,7 @@ describe('Node environment', () => {
     });
   });
 
-  describe.only('TurboUnauthenticatedNodeClient', () => {
+  describe('TurboUnauthenticatedNodeClient', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(async () => {
@@ -130,7 +130,7 @@ describe('Node environment', () => {
         expect(+winc).to.be.greaterThan(0);
       });
 
-      describe.only('uploadSignedDataItems()', async () => {
+      describe('uploadSignedDataItems()', async () => {
         it('supports sending a signed Buffer to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
@@ -310,7 +310,7 @@ describe('Browser environment', () => {
         expect(+winc).to.be.greaterThan(0);
       });
 
-      describe.only('uploadSignedDataItems()', async () => {
+      describe('uploadSignedDataItems()', async () => {
         it('supports sending a signed Buffer to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
