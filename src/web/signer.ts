@@ -24,10 +24,11 @@ import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebArweaveSigner implements TurboWalletSigner {
-  protected signer: ArweaveSigner;
   protected privateKey: JWKInterface;
+  protected signer: ArweaveSigner;
 
   constructor({ privateKey }: { privateKey: JWKInterface }) {
+    this.privateKey = privateKey;
     this.signer = new ArweaveSigner(privateKey);
   }
 

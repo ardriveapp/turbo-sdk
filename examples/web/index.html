@@ -48,13 +48,13 @@
       });
       const jwk = await arweave.crypto.generateJWK();
       const address = await arweave.wallets.jwkToAddress(jwk);
-      const turbo = TurboFactory.private({
+      const turbo = TurboFactory.authenticated({
         privateKey: jwk,
       });
 
-      // print the client to the console
-      console.log(turbo);
-
+      /**
+       * Fetch fiat rates.
+       */
       const rates = await turbo.getFiatRates();
 
       console.log(
@@ -62,7 +62,6 @@
         JSON.stringify(rates, null, 2),
       );
 
-      // update the DOM
       const ratesString = Object.entries(rates['fiat'])
         .map(([key, value]) => {
           return `${key}: ${value}`;
@@ -81,7 +80,7 @@
       );
 
       /**
-       * Handle file uploads
+       * Handle file upload
        */
       document
         .getElementById('uploadForm')
@@ -102,7 +101,7 @@
                   console.log('Successfully uploaded files!', res);
                   document.getElementById(
                     'uploadStatus',
-                  ).innerText = `Successfully uploaded files! ${JSON.stringify(
+                  ).innerText = `Successfully uploaded file! ${JSON.stringify(
                     res,
                     null,
                     2,
