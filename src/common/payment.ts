@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { AxiosInstance } from 'axios';
-
 import {
   Currency,
   TurboAuthenticatedPaymentServiceInterface,
@@ -30,39 +28,27 @@ import {
   TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
   TurboWalletSigner,
 } from '../types/turbo.js';
-import { createAxiosInstance } from '../utils/axiosClient.js';
-import { FailedRequestError } from '../utils/errors.js';
+import { TurboHTTPService } from './http.js';
 
 export class TurboUnauthenticatedPaymentService
   implements TurboUnauthenticatedPaymentServiceInterface
 {
-  protected readonly axios: AxiosInstance;
+  protected readonly httpService: TurboHTTPService;
 
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,
   }: TurboUnauthenticatedPaymentServiceInterfaceConfiguration) {
-    this.axios = createAxiosInstance({
-      axiosConfig: {
-        baseURL: `${url}/v1`,
-      },
+    this.httpService = new TurboHTTPService({
+      url: `${url}/v1`,
       retryConfig,
     });
   }
 
   async getFiatRates(): Promise<TurboRatesResponse> {
-    const {
-      status,
-      statusText,
-      data: rates,
-    } = await this.axios.get<TurboRatesResponse>('/rates');
-
-    if (status !== 200) {
-      throw new FailedRequestError(status, statusText);
-    }
-
-    // TODO: should we return just the fiat rates instead of the whole response?
-    return rates;
+    return this.httpService.get<TurboRatesResponse>({
+      endpoint: '/rates',
+    });
   }
 
   async getFiatToAR({
@@ -70,45 +56,21 @@ export class TurboUnauthenticatedPaymentService
   }: {
     currency: Currency;
   }): Promise<TurboFiatToArResponse> {
-    const {
-      status,
-      statusText,
-      data: rate,
-    } = await this.axios.get<TurboFiatToArResponse>(`/rates/${currency}`);
-
-    if (status !== 200) {
-      throw new FailedRequestError(status, statusText);
-    }
-
-    return rate;
+    return this.httpService.get<TurboFiatToArResponse>({
+      endpoint: `/rates/${currency}`,
+    });
   }
 
   async getSupportedCountries(): Promise<TurboCountriesResponse> {
-    const {
-      status,
-      statusText,
-      data: countries,
-    } = await this.axios.get<TurboCountriesResponse>('/countries');
-
-    if (status !== 200) {
-      throw new FailedRequestError(status, statusText);
-    }
-
-    return countries;
+    return this.httpService.get<TurboCountriesResponse>({
+      endpoint: '/countries',
+    });
   }
 
   async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
-    const {
-      status,
-      statusText,
-      data: currencies,
-    } = await this.axios.get<TurboCurrenciesResponse>('/currencies');
-
-    if (status !== 200) {
-      throw new FailedRequestError(status, statusText);
-    }
-
-    return currencies;
+    return this.httpService.get<TurboCurrenciesResponse>({
+      endpoint: '/currencies',
+    });
   }
 
   async getUploadCosts({
@@ -117,43 +79,19 @@ export class TurboUnauthenticatedPaymentService
     bytes: number[];
   }): Promise<TurboPriceResponse[]> {
     const fetchPricePromises = bytes.map((byteCount: number) =>
-      this.axios.get<TurboPriceResponse>(`/price/bytes/${byteCount}`),
+      this.httpService.get<TurboPriceResponse>({
+        endpoint: `/price/bytes/${byteCount}`,
+      }),
     );
-    const responses = await Promise.all(fetchPricePromises);
-    const wincCostsForBytes = responses.map(
-      ({
-        status,
-        statusText,
-        data,
-      }: {
-        status: number;
-        statusText: string;
-        data: TurboPriceResponse;
-      }) => {
-        if (status !== 200) {
-          throw new FailedRequestError(status, statusText);
-        }
-        return data;
-      },
-    );
-
+    const wincCostsForBytes: TurboPriceResponse[] =
+      await Promise.all(fetchPricePromises);
     return wincCostsForBytes;
   }
 
   async getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {
-    const {
-      status,
-      statusText,
-      data: wincForFiat,
-    } = await this.axios.get<TurboPriceResponse>(
-      `/price/${currency}/${amount}`,
-    );
-
-    if (status !== 200) {
-      throw new FailedRequestError(status, statusText);
-    }
-
-    return wincForFiat;
+    return this.httpService.get<TurboPriceResponse>({
+      endpoint: `/price/${currency}/${amount}`,
+    });
   }
 }
 
@@ -161,7 +99,7 @@ export class TurboUnauthenticatedPaymentService
 export class TurboAuthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
-  protected readonly axios: AxiosInstance;
+  protected readonly httpService: TurboHTTPService;
   protected readonly signer: TurboWalletSigner;
   protected readonly publicPaymentService: TurboUnauthenticatedPaymentServiceInterface;
 
@@ -171,18 +109,15 @@ export class TurboAuthenticatedPaymentService
     retryConfig,
     signer,
   }: TurboAuthenticatedPaymentServiceInterfaceConfiguration) {
-    this.signer = signer;
-    // TODO: abstract this away to TurboHTTPService class
-    this.axios = createAxiosInstance({
-      axiosConfig: {
-        baseURL: `${url}/v1`,
-      },
+    this.httpService = new TurboHTTPService({
+      url: `${url}/v1`,
       retryConfig,
     });
     this.publicPaymentService = new TurboUnauthenticatedPaymentService({
       url,
       retryConfig,
     });
+    this.signer = signer;
   }
 
   getFiatRates(): Promise<TurboRatesResponse> {
@@ -214,25 +149,13 @@ export class TurboAuthenticatedPaymentService
 
   async getBalance(): Promise<TurboBalanceResponse> {
     const headers = await this.signer.generateSignedRequestHeaders();
-
-    const {
-      status,
-      statusText,
-      data: balance,
-    } = await this.axios.get<TurboBalanceResponse>('/balance', {
+    const balance = await this.httpService.get<TurboBalanceResponse>({
+      endpoint: '/balance',
       headers,
+      allowedStatuses: [200, 404],
     });
 
-    if (status === 404) {
-      return {
-        winc: '0',
-      };
-    }
-
-    if (status !== 200) {
-      throw new FailedRequestError(status, statusText);
-    }
-
-    return balance;
+    // 404's don't return a balance, so default to 0
+    return balance.winc ? balance : { winc: '0' };
   }
 }

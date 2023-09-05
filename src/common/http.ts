@@ -14,34 +14,48 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { AxiosInstance, AxiosRequestHeaders } from 'axios';
+import { AxiosInstance } from 'axios';
+import { RetryConfig } from 'retry-axios';
 import { Readable } from 'stream';
+import { ReadableStream } from 'stream/web';
 
+import {
+  TurboHTTPServiceInterface,
+  TurboSignedRequestHeaders,
+} from '../types/turbo.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { FailedRequestError } from '../utils/errors.js';
 
-export class TurboHTTPService implements TurboHTTPService {
+export class TurboHTTPService implements TurboHTTPServiceInterface {
   protected axios: AxiosInstance;
-  constructor({ url = 'https://payment.ardrive.dev', retryConfig }: any) {
+  constructor({
+    url,
+    retryConfig,
+  }: {
+    url: string;
+    retryConfig?: RetryConfig;
+  }) {
     this.axios = createAxiosInstance({
       axiosConfig: {
-        baseURL: `${url}/v1`,
+        baseURL: url,
       },
       retryConfig,
     });
   }
   async get<T>({
-    url,
+    endpoint,
+    allowedStatuses = [200, 202],
     headers,
   }: {
-    url: string;
-    headers?: Record<string, string>;
+    endpoint: string;
+    allowedStatuses?: number[];
+    headers?: Partial<TurboSignedRequestHeaders>;
   }): Promise<T> {
-    const { status, statusText, data } = await this.axios.get<T>(url, {
+    const { status, statusText, data } = await this.axios.get<T>(endpoint, {
       headers,
     });
 
-    if (status !== 200) {
+    if (!allowedStatuses.includes(status)) {
       throw new FailedRequestError(status, statusText);
     }
 
@@ -49,24 +63,25 @@ export class TurboHTTPService implements TurboHTTPService {
   }
 
   async post<T>({
-    url,
+    endpoint,
+    allowedStatuses = [200, 202],
     headers,
     data,
   }: {
-    url: string;
-    headers: AxiosRequestHeaders;
-    data: Readable | ReadableStream | Buffer;
+    endpoint: string;
+    allowedStatuses?: number[];
+    headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    data: Readable | Buffer | ReadableStream;
   }): Promise<T> {
     const {
       status,
       statusText,
       data: response,
-    } = await this.axios.post<T>(url, {
+    } = await this.axios.post<T>(endpoint, data, {
       headers,
-      data,
     });
 
-    if (status !== 200) {
+    if (!allowedStatuses.includes(status)) {
       throw new FailedRequestError(status, statusText);
     }
 

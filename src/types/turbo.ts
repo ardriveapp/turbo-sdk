@@ -114,6 +114,7 @@ export type FileStreamFactory =
 export type SignedDataStreamFactory = FileStreamFactory;
 export type TurboFileFactory = {
   fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
+  abortController?: AbortController;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
@@ -121,9 +122,27 @@ export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
 };
 
-export interface TurboHTTPRequestService {
-  get<T>(url: string): Promise<T>;
-  post<T>(url: string, data: Readable | Buffer): Promise<T>;
+export interface TurboHTTPServiceInterface {
+  get<T>({
+    endpoint,
+    headers,
+    allowedStatuses,
+  }: {
+    endpoint: string;
+    headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    allowedStatuses?: number[];
+  }): Promise<T>;
+  post<T>({
+    endpoint,
+    headers,
+    allowedStatuses,
+    data,
+  }: {
+    endpoint: string;
+    headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    allowedStatuses?: number[];
+    data: Readable | ReadableStream | Buffer;
+  }): Promise<T>;
 }
 
 export interface TurboWalletSigner {

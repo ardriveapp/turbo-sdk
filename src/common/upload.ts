@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { AxiosInstance } from 'axios';
-
 import {
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
@@ -26,23 +24,19 @@ import {
   TurboUploadDataItemResponse,
   TurboWalletSigner,
 } from '../types/turbo.js';
-import { createAxiosInstance } from '../utils/axiosClient.js';
-import { FailedRequestError } from '../utils/errors.js';
+import { TurboHTTPService } from './http.js';
 
 export class TurboUnauthenticatedUploadService
   implements TurboUnauthenticatedUploadServiceInterface
 {
-  protected axios: AxiosInstance;
+  protected httpService: TurboHTTPService;
 
   constructor({
     url = 'https://upload.ardrive.dev',
     retryConfig,
   }: TurboUnauthenticatedUploadServiceInterfaceConfiguration) {
-    //  TODO: abstract to TurboHTTPRequestService class
-    this.axios = createAxiosInstance({
-      axiosConfig: {
-        baseURL: `${url}/v1`,
-      },
+    this.httpService = new TurboHTTPService({
+      url: `${url}/v1`,
       retryConfig,
     });
   }
@@ -51,28 +45,20 @@ export class TurboUnauthenticatedUploadService
     dataItemStreamFactory,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
     // TODO: add p-limit constraint or replace with separate upload class
-    const { status, data, statusText } =
-      await this.axios.post<TurboUploadDataItemResponse>(
-        `/tx`,
-        dataItemStreamFactory(),
-        {
-          headers: {
-            'content-type': 'application/octet-stream',
-          },
-        },
-      );
-
-    if (![202, 200].includes(status)) {
-      throw new FailedRequestError(status, statusText);
-    }
-    return data;
+    return this.httpService.post<TurboUploadDataItemResponse>({
+      endpoint: `/tx`,
+      data: dataItemStreamFactory(),
+      headers: {
+        'content-type': 'application/octet-stream',
+      },
+    });
   }
 }
 
 export class TurboAuthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
-  protected axios: AxiosInstance;
+  protected httpService: TurboHTTPService;
   protected signer: TurboWalletSigner;
 
   constructor({
@@ -80,11 +66,8 @@ export class TurboAuthenticatedUploadService
     retryConfig,
     signer,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    //  TODO: abstract to TurboHTTPRequestService class
-    this.axios = createAxiosInstance({
-      axiosConfig: {
-        baseURL: `${url}/v1`,
-      },
+    this.httpService = new TurboHTTPService({
+      url: `${url}/v1`,
       retryConfig,
     });
     this.signer = signer;
@@ -94,21 +77,13 @@ export class TurboAuthenticatedUploadService
     dataItemStreamFactory,
   }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
     // TODO: add p-limit constraint or replace with separate upload class
-    const { status, data, statusText } =
-      await this.axios.post<TurboUploadDataItemResponse>(
-        `/tx`,
-        dataItemStreamFactory(),
-        {
-          headers: {
-            'content-type': 'application/octet-stream',
-          },
-        },
-      );
-
-    if (![202, 200].includes(status)) {
-      throw new FailedRequestError(status, statusText);
-    }
-    return data;
+    return this.httpService.post<TurboUploadDataItemResponse>({
+      endpoint: `/tx`,
+      data: dataItemStreamFactory(),
+      headers: {
+        'content-type': 'application/octet-stream',
+      },
+    });
   }
 
   async uploadFile({
@@ -118,20 +93,12 @@ export class TurboAuthenticatedUploadService
       fileStreamFactory,
     });
     // TODO: add p-limit constraint or replace with separate upload class
-    const { status, data, statusText } =
-      await this.axios.post<TurboUploadDataItemResponse>(
-        `/tx`,
-        signedDataItem,
-        {
-          headers: {
-            'content-type': 'application/octet-stream',
-          },
-        },
-      );
-
-    if (![202, 200].includes(status)) {
-      throw new FailedRequestError(status, statusText);
-    }
-    return data;
+    return this.httpService.post<TurboUploadDataItemResponse>({
+      endpoint: `/tx`,
+      data: signedDataItem,
+      headers: {
+        'content-type': 'application/octet-stream',
+      },
+    });
   }
 }
