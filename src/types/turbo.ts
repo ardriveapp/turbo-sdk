@@ -60,11 +60,6 @@ export type TurboUploadDataItemResponse = {
   id: TransactionId;
 };
 
-export type TurboUploadDataItemsResponse = {
-  dataItems: Record<string, Omit<TurboUploadDataItemResponse, 'id'>>;
-  errors: { id: string; status: number; message: string }[];
-};
-
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
@@ -111,21 +106,24 @@ export type TurboPrivateClientConfiguration = {
   uploadService: TurboAuthenticatedUploadServiceInterface;
 } & TurboAuthConfiguration;
 
+export type FileStreamFactory =
+  | (() => Readable)
+  | (() => ReadableStream)
+  | (() => Buffer);
+export type SignedDataStreamFactory = FileStreamFactory;
 export type TurboFileFactory = {
-  fileStreamGenerators: (() => Readable)[] | (() => ReadableStream)[];
+  fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
   // bundle?: boolean; // TODO: add bundling into BDIs
-  // TODO: add payload size
 };
 
-// TODO: add web one for ReadableStream or Buffer depending on how best to implement
 export type TurboSignedDataItemFactory = {
-  dataItemGenerators: (() => Readable | Buffer | ReadableStream)[];
+  dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
 };
 
 export interface TurboDataItemSigner {
-  signDataItems({
-    fileStreamGenerators,
-  }: TurboFileFactory): Promise<Readable>[] | Promise<Buffer>[];
+  signDataItem({
+    fileStreamFactory,
+  }: TurboFileFactory): Promise<Readable> | Promise<Buffer>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -153,16 +151,16 @@ export interface TurboAuthenticatedPaymentServiceInterface
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {
-  uploadSignedDataItems({
-    dataItemGenerators,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse>;
+  uploadSignedDataItem({
+    dataItemStreamFactory,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
-  uploadFiles({
-    fileStreamGenerators,
-  }: TurboFileFactory): Promise<TurboUploadDataItemsResponse>;
+  uploadFile({
+    fileStreamFactory,
+  }: TurboFileFactory): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboPublicClient

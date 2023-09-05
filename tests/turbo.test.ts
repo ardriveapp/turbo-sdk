@@ -130,26 +130,21 @@ describe('Node environment', () => {
         expect(+winc).to.be.greaterThan(0);
       });
 
-      describe('uploadSignedDataItems()', async () => {
+      describe('uploadSignedDataItem()', async () => {
         it('supports sending a signed Buffer to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
           const signedDataItem = createData('signed data item', signer, {});
           await signedDataItem.sign(signer);
 
-          const response = await turbo.uploadSignedDataItems({
-            dataItemGenerators: [() => signedDataItem.getRaw()],
+          const response = await turbo.uploadSignedDataItem({
+            dataItemStreamFactory: () => signedDataItem.getRaw(),
           });
           expect(response).to.not.be.undefined;
-          expect(response).to.have.property('dataItems');
-          expect(response).to.have.property('errors');
-          expect(response['errors']).to.have.length(0);
-          for (const dataItem of Object.values(response['dataItems'])) {
-            expect(dataItem).to.have.property('fastFinalityIndexes');
-            expect(dataItem).to.have.property('dataCaches');
-            expect(dataItem).to.have.property('owner');
-            expect(dataItem['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
-          }
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
         });
 
         it('supports sending a signed Readable to turbo', async () => {
@@ -158,19 +153,14 @@ describe('Node environment', () => {
           const signedDataItem = createData('signed data item', signer, {});
           await signedDataItem.sign(signer);
 
-          const response = await turbo.uploadSignedDataItems({
-            dataItemGenerators: [() => Readable.from(signedDataItem.getRaw())],
+          const response = await turbo.uploadSignedDataItem({
+            dataItemStreamFactory: () => Readable.from(signedDataItem.getRaw()),
           });
           expect(response).to.not.be.undefined;
-          expect(response).to.have.property('dataItems');
-          expect(response).to.have.property('errors');
-          expect(response['errors']).to.have.length(0);
-          for (const dataItem of Object.values(response['dataItems'])) {
-            expect(dataItem).to.have.property('fastFinalityIndexes');
-            expect(dataItem).to.have.property('dataCaches');
-            expect(dataItem).to.have.property('owner');
-            expect(dataItem['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
-          }
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
         });
       });
     });
@@ -193,25 +183,18 @@ describe('Node environment', () => {
         expect(+balance.winc).to.equal(0);
       });
 
-      it('uploadFiles()', async () => {
+      it('uploadFile()', async () => {
         const file = new URL('files/0_kb.txt', import.meta.url).pathname;
-        const streamGenerator = [() => fs.createReadStream(file)];
-        const response = await turbo.uploadFiles({
-          fileStreamGenerators: streamGenerator,
+        const streamGenerator = () => fs.createReadStream(file);
+        const response = await turbo.uploadFile({
+          fileStreamFactory: streamGenerator,
         });
         expect(response).to.not.be.undefined;
-        expect(response).to.have.property('dataItems');
-        expect(Object.keys(response['dataItems']).length).to.equal(
-          streamGenerator.length,
-        );
-        expect(response).to.have.property('errors');
-        expect(response['errors']).to.have.length(0);
-        for (const dataItem of Object.values(response['dataItems'])) {
-          expect(dataItem).to.have.property('fastFinalityIndexes');
-          expect(dataItem).to.have.property('dataCaches');
-          expect(dataItem).to.have.property('owner');
-          expect(dataItem['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
-        }
+        expect(response).to.not.be.undefined;
+        expect(response).to.have.property('fastFinalityIndexes');
+        expect(response).to.have.property('dataCaches');
+        expect(response).to.have.property('owner');
+        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
       });
     });
   });
@@ -310,26 +293,21 @@ describe('Browser environment', () => {
         expect(+winc).to.be.greaterThan(0);
       });
 
-      describe('uploadSignedDataItems()', async () => {
+      describe('uploadSignedDataItem()', async () => {
         it('supports sending a signed Buffer to turbo', async () => {
           const jwk = await Arweave.crypto.generateJWK();
           const signer = new ArweaveSigner(jwk);
           const signedDataItem = createData('signed data item', signer);
           await signedDataItem.sign(signer);
 
-          const response = await turbo.uploadSignedDataItems({
-            dataItemGenerators: [() => signedDataItem.getRaw()],
+          const response = await turbo.uploadSignedDataItem({
+            dataItemStreamFactory: () => signedDataItem.getRaw(),
           });
           expect(response).to.not.be.undefined;
-          expect(response).to.have.property('dataItems');
-          expect(response).to.have.property('errors');
-          expect(response['errors']).to.have.length(0);
-          for (const dataItem of Object.values(response['dataItems'])) {
-            expect(dataItem).to.have.property('fastFinalityIndexes');
-            expect(dataItem).to.have.property('dataCaches');
-            expect(dataItem).to.have.property('owner');
-            expect(dataItem['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
-          }
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
         });
 
         // TODO: add test that polyfills posting a signed ReadableStream to turbo

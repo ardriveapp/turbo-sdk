@@ -59,12 +59,9 @@ import {
    * Post local files to the Turbo service.
    */
   console.log('Posting raw files to Turbo service...');
-  const filePaths = [new URL('files/0_kb.txt', import.meta.url).pathname];
-  const fileStreamGenerators = filePaths.map(
-    (filePath) => () => fs.createReadStream(filePath),
-  );
-  const uploadResult = await turboAuthClient.uploadFiles({
-    fileStreamGenerators: fileStreamGenerators,
+  const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+  const uploadResult = await turboAuthClient.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(filePath),
   });
   console.log(JSON.stringify(uploadResult, null, 2));
 })();

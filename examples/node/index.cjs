@@ -64,13 +64,10 @@
   /**
    * Post local files to the Turbo service.
    */
-  console.log('Posting raw files to Turbo service...');
-  const filePaths = [path.join(__dirname, './files/0_kb.txt')];
-  const fileStreamGenerators = filePaths.map(
-    (filePath) => () => fs.createReadStream(filePath),
-  );
-  const uploadResult = await turboAuthClient.uploadFiles({
-    fileStreamGenerators: fileStreamGenerators,
+  console.log('Posting raw file to Turbo service...');
+  const filePath = path.join(__dirname, './files/0_kb.txt');
+  const uploadResult = await turboAuthClient.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(filePath),
   });
   console.log(JSON.stringify(uploadResult, null, 2));
 })();

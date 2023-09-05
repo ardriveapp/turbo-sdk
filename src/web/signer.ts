@@ -19,7 +19,7 @@ import { AxiosInstance } from 'axios';
 import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../types/arweave.js';
-import { TurboDataItemSigner, TurboFileFactory } from '../types/turbo.js';
+import { TurboDataItemSigner } from '../types/turbo.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebDataItemSigner implements TurboDataItemSigner {
@@ -30,25 +30,19 @@ export class TurboWebDataItemSigner implements TurboDataItemSigner {
     this.privateKey = privateKey;
   }
 
-  signDataItems({
-    fileStreamGenerators,
-  }: Omit<TurboFileFactory, 'fileStreamGenerators'> & {
-    fileStreamGenerators: (() => ReadableStream)[];
-  }): Promise<Buffer>[] {
+  async signDataItem({
+    fileStreamFactory,
+  }: {
+    fileStreamFactory: () => ReadableStream;
+  }): Promise<Buffer> {
+    // TODO: replace this with an internal signer class
     const signer = new ArweaveSigner(this.privateKey);
-
-    const signedDataItemPromises = fileStreamGenerators.map(
-      async (streamGenerator: () => ReadableStream) => {
-        // Convert the readable stream to a buffer
-        const buffer = await readableStreamToBuffer({
-          stream: streamGenerator(),
-        });
-        const dataItem = createData(buffer, signer);
-        await dataItem.sign(signer);
-        return dataItem.getRaw();
-      },
-    );
-
-    return signedDataItemPromises;
+    // Convert the readable stream to a buffer
+    const buffer = await readableStreamToBuffer({
+      stream: fileStreamFactory(),
+    });
+    const dataItem = createData(buffer, signer);
+    await dataItem.sign(signer);
+    return dataItem.getRaw();
   }
 }

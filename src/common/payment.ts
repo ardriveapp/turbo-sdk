@@ -166,6 +166,7 @@ export class TurboAuthenticatedPaymentService
   protected readonly privateKey: JWKInterface;
   protected readonly publicPaymentService: TurboUnauthenticatedPaymentServiceInterface;
 
+  // TODO: replace private key with an internal signer interface
   constructor({
     url = 'https://payment.ardrive.dev',
     retryConfig,

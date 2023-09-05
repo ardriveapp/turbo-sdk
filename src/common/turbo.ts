@@ -32,7 +32,7 @@ import {
   TurboSignedDataItemFactory,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
-  TurboUploadDataItemsResponse,
+  TurboUploadDataItemResponse,
 } from '../types/index.js';
 import {
   TurboAuthenticatedPaymentService,
@@ -115,13 +115,13 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
   }
 
   /**
-   * Verifies signature of signed data items and uploads to the upload service.
+   * Uploads a signed data item to the Turbo Upload Service.
    */
-  async uploadSignedDataItems({
-    dataItemGenerators,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
-    return this.uploadService.uploadSignedDataItems({
-      dataItemGenerators,
+  async uploadSignedDataItem({
+    dataItemStreamFactory,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadSignedDataItem({
+      dataItemStreamFactory,
     });
   }
 }
@@ -210,22 +210,24 @@ export class TurboAuthenticatedClient implements TurboPrivateClient {
   }
 
   /**
-   * Signs and uploads data to the upload service.
+   * Signs and uploads raw data to the Turbo Upload Service.
+   *
+   * Note: 'privateKey' must be provided to use.
    */
-  async uploadFiles({
-    fileStreamGenerators,
-  }: TurboFileFactory): Promise<TurboUploadDataItemsResponse> {
-    return this.uploadService.uploadFiles({ fileStreamGenerators });
+  async uploadFile({
+    fileStreamFactory,
+  }: TurboFileFactory): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadFile({ fileStreamFactory });
   }
 
   /**
-   * Verifies signature of signed data items and uploads to the upload service.
+   * Uploads a signed data item to the Turbo Upload Service.
    */
-  async uploadSignedDataItems({
-    dataItemGenerators,
-  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemsResponse> {
-    return this.uploadService.uploadSignedDataItems({
-      dataItemGenerators,
+  async uploadSignedDataItem({
+    dataItemStreamFactory,
+  }: TurboSignedDataItemFactory): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadSignedDataItem({
+      dataItemStreamFactory,
     });
   }
 }

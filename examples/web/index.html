@@ -92,24 +92,24 @@
           const selectedFiles = fileInput.files;
 
           if (selectedFiles.length) {
-            const blobFileGenerators = Object.values(selectedFiles).map(
-              (file) => () => file.stream(),
-            );
-            const response = turbo
-              .uploadFiles({
-                fileStreamGenerators: blobFileGenerators,
-              })
-              .then((res) => {
-                console.log('Successfully uploaded files!', res);
-                document.getElementById(
-                  'uploadStatus',
-                ).innerText = `Successfully uploaded files! ${JSON.stringify(
-                  res,
-                  null,
-                  2,
-                )}`;
-              })
-              .catch((err) => console.log('Error uploading file!', err));
+            // TODO: make this concurrent
+            for (const file of selectedFiles) {
+              const response = turbo
+                .uploadFile({
+                  fileStreamFactory: () => file.stream(),
+                })
+                .then((res) => {
+                  console.log('Successfully uploaded files!', res);
+                  document.getElementById(
+                    'uploadStatus',
+                  ).innerText = `Successfully uploaded files! ${JSON.stringify(
+                    res,
+                    null,
+                    2,
+                  )}`;
+                })
+                .catch((err) => console.log('Error uploading file!', err));
+            }
           } else {
             console.log('No file selected');
           }

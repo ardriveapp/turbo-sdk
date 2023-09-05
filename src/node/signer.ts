@@ -19,40 +19,24 @@ import { AxiosInstance } from 'axios';
 import { Readable } from 'node:stream';
 
 import { JWKInterface } from '../types/arweave.js';
-import { TurboDataItemSigner, TurboFileFactory } from '../types/turbo.js';
-import { UnauthenticatedRequestError } from '../utils/errors.js';
+import { TurboDataItemSigner } from '../types/turbo.js';
 
 export class TurboNodeDataItemSigner implements TurboDataItemSigner {
   protected axios: AxiosInstance;
-  protected privateKey: JWKInterface | undefined; // TODO: break into separate classes
+  protected privateKey: JWKInterface;
 
-  constructor({ privateKey }: { privateKey?: JWKInterface } = {}) {
+  // TODO: replace with internal signer class
+  constructor({ privateKey }: { privateKey: JWKInterface }) {
     this.privateKey = privateKey;
   }
 
-  signDataItems({
-    fileStreamGenerators,
-  }: Omit<TurboFileFactory, 'fileStreamGenerators'> & {
-    fileStreamGenerators: (() => Readable)[];
-  }): Promise<Readable>[] {
-    // TODO: break this into separate classes
-    if (!this.privateKey) {
-      throw new UnauthenticatedRequestError();
-    }
-
+  signDataItem({
+    fileStreamFactory,
+  }: {
+    fileStreamFactory: () => Readable;
+  }): Promise<Readable> {
     const signer = new ArweaveSigner(this.privateKey);
-
-    // these are technically PassThrough's which are subclasses of streams
-    const signedDataItemPromises = fileStreamGenerators.map(
-      (fileStreamGenerators) => {
-        const [stream1, stream2] = [
-          fileStreamGenerators(),
-          fileStreamGenerators(),
-        ];
-        // TODO: this will not work with BDIs as is, we may need to add an additional stream signer
-        return streamSigner(stream1, stream2, signer);
-      },
-    );
-    return signedDataItemPromises;
+    const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
+    return streamSigner(stream1, stream2, signer);
   }
 }
