@@ -42,8 +42,8 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     return streamSigner(stream1, stream2, signer);
   }
 
+  // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
-    // TODO: we could move this to a class separate function
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await Arweave.crypto.sign(this.privateKey, buffer);

@@ -46,6 +46,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
     return dataItem.getRaw();
   }
 
+  // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
     const { default: arweave } = await import('arweave/web/index.js');
     // TODO: we could move this to a class separate function
