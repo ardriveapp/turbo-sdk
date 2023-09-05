@@ -4,7 +4,7 @@ import fs from 'fs';
 import {
   TurboFactory,
   TurboUnauthenticatedPaymentService,
-} from '../../lib/index.js';
+} from '../../lib/node/index.js';
 
 (async () => {
   /**

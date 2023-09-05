@@ -1,7 +1,7 @@
 (async () => {
   const { default: Arweave } = await import('arweave');
   const { TurboFactory, TurboUnauthenticatedPaymentService } = await import(
-    '../../lib/index.js'
+    '../../lib/node/index.js'
   );
   const path = require('path');
   const fs = require('fs');

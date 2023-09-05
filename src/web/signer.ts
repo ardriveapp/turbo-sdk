@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ArweaveSigner, createData } from 'arbundles/web';
+import Arweave from 'arweave/web/index.js';
 import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
@@ -49,7 +50,6 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
     // due to exports of SubtleCrypto - we need to import the module dynamically
-    const { default: Arweave } = await import('arweave/web/index.js');
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await Arweave.default.crypto.sign(

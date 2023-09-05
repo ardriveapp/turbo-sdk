@@ -9,7 +9,7 @@ import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
-import { TurboFactory } from '../src/index.js';
+import { TurboFactory } from '../src/node/index.js';
 import { JWKInterface } from '../src/types/index.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 
