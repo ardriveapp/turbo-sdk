@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, streamSigner } from 'arbundles/node';
+import { ArweaveSigner, streamSigner } from 'arbundles';
 import Arweave from 'arweave/node/index.js';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
