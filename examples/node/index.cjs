@@ -8,7 +8,7 @@
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
-  const turbo = TurboFactory.public();
+  const turbo = TurboFactory.unauthenticated();
   const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
@@ -34,7 +34,7 @@
   /**
    * Use the arweave key to create an authenticated turbo client
    */
-  const turboAuthClient = TurboFactory.private({ privateKey: jwk });
+  const turboAuthClient = TurboFactory.authenticated({ privateKey: jwk });
 
   /**
    * Fetch the balance for the private key.

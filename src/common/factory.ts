@@ -20,7 +20,7 @@ import { TurboUnauthenticatedClient } from './turbo.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboBaseFactory {
-  static public({
+  static unauthenticated({
     paymentServiceConfig = {},
     uploadServiceConfig = {},
   }: TurboPublicConfiguration = {}) {

@@ -23,13 +23,13 @@ describe('Browser environment', () => {
 
   describe('TurboFactory', () => {
     it('should be a TurboUnauthenticatedClient running in the browser and not provided a privateKey', () => {
-      const turbo = TurboFactory.public({});
+      const turbo = TurboFactory.unauthenticated({});
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
 
     it('should be a TurboAuthenticatedClient running in the browser and provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
-      const turbo = TurboFactory.private({ privateKey: jwk });
+      const turbo = TurboFactory.authenticated({ privateKey: jwk });
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
   });
@@ -38,7 +38,7 @@ describe('Browser environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.public({});
+      turbo = TurboFactory.unauthenticated({});
     });
 
     describe('unauthenticated requests', () => {
@@ -135,7 +135,7 @@ describe('Browser environment', () => {
     let jwk: JWKInterface;
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.private({ privateKey: jwk });
+      turbo = TurboFactory.authenticated({ privateKey: jwk });
     });
 
     it('getBalance()', async () => {

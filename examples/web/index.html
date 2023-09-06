@@ -48,7 +48,7 @@
       });
       const jwk = await arweave.crypto.generateJWK();
       const address = await arweave.wallets.jwkToAddress(jwk);
-      const turbo = TurboFactory.private({
+      const turbo = TurboFactory.authenticated({
         privateKey: jwk,
       });
 

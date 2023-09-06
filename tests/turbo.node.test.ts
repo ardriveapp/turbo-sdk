@@ -9,19 +9,19 @@ import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
-import { TurboFactory } from '../src/node/index.js';
+import { TurboFactory } from '../src/node/factory.js';
 import { JWKInterface } from '../src/types/index.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 
 describe('Node environment', () => {
   describe('TurboFactory', () => {
     it('should return a TurboUnauthenticatedClient when running in Node environment and not provided a privateKey', () => {
-      const turbo = TurboFactory.public({});
+      const turbo = TurboFactory.unauthenticated({});
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
     it('should return a TurboAuthenticatedClient when running in Node environment and  provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
-      const turbo = TurboFactory.private({ privateKey: jwk });
+      const turbo = TurboFactory.authenticated({ privateKey: jwk });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
   });
@@ -30,7 +30,7 @@ describe('Node environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.public({});
+      turbo = TurboFactory.unauthenticated({});
     });
 
     it('getFiatRates()', async () => {
@@ -143,7 +143,7 @@ describe('Node environment', () => {
 
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.private({
+      turbo = TurboFactory.authenticated({
         privateKey: jwk,
       });
     });

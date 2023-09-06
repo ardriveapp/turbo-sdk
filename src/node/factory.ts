@@ -24,7 +24,7 @@ import { TurboPrivateConfiguration } from '../types/index.js';
 import { TurboNodeArweaveSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {
-  static private({
+  static authenticated({
     privateKey,
     paymentServiceConfig = {},
     uploadServiceConfig = {},

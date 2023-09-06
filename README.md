@@ -41,7 +41,7 @@ The SDK is available in both CommonJS and ESM formats and is compatible with bun
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
-const turbo = TurboFactory.public({});
+const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
 ```
 
@@ -50,7 +50,7 @@ const rates = await turbo.getFiatRates();
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@ardrive/turbo-sdk"></script>
 <script>
-  const turbo = TurboFactory.public({});
+  const turbo = TurboFactory.unauthenticated({});
   const rates = await turbo.getFiatRates();
 </script>
 ```
@@ -62,7 +62,7 @@ const rates = await turbo.getFiatRates();
 ```javascript
 const { TurboFactory } = require('@ardrive/turbo-sdk/node');
 
-const turbo = TurboFactory.public({});
+const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
 ```
 
@@ -71,7 +71,7 @@ const rates = await turbo.getFiatRates();
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/node';
 
-const turbo = TurboFactory.public({});
+const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
 ```
 
