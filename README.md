@@ -87,7 +87,7 @@ import Ardrive from '@ardrive/turbo-sdk/web';
 
 The provided typings (`./lib/types/index.d.ts`) will be automatically recognized, offering type checking and autocompletion benefits.
 
-# APIs
+# APIs (WIP)
 
 ## TurboFactory
 

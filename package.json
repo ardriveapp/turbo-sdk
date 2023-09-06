@@ -29,11 +29,13 @@
     "./node": {
       "import": "./lib/node/index.js",
       "require": "./lib/node/index.js",
-      "types": "./lib/index.d.ts"
+      "types": "./lib/types/index.d.ts"
     },
     "./web": {
-      "browser": "./bundles/web.bundle.min.js",
-      "types": "./lib/types/index.d.ts"
+      "import": "./lib/web/index.js",
+      "require": "./lib/web/index.js",
+      "types": "./lib/types/index.d.ts",
+      "browser": "./bundles/web.bundle.min.js"
     }
   },
   "engines": {
@@ -42,7 +44,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:web": "node bundle.cjs",
-    "build:esm": "yarn tsc -p tsconfig.node.json && cp package.json README.md LICENSE.md ./lib",
+    "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json && cp package.json README.md LICENSE.md ./lib",
     "build": "yarn clean && yarn build:web && yarn build:esm",
     "clean": "rimraf [ lib coverage bundles ]",
     "postinstall": "husky install",

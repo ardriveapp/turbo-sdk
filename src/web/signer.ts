@@ -41,6 +41,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
     // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
     const buffer = await readableStreamToBuffer({
       stream: fileStreamFactory(),
+      // TODO: add payload size to get performance improvements
     });
     const signedDataItem = createData(buffer, this.signer);
     await signedDataItem.sign(this.signer);
@@ -49,7 +50,6 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
-    // due to exports of SubtleCrypto - we need to import the module dynamically
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await Arweave.default.crypto.sign(
