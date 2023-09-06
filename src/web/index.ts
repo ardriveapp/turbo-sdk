@@ -14,57 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  TurboAuthenticatedClient,
-  TurboAuthenticatedPaymentService,
-  TurboAuthenticatedUploadService,
-  TurboUnauthenticatedClient,
-  TurboUnauthenticatedPaymentService,
-  TurboUnauthenticatedUploadService,
-} from '../common/index.js';
-import {
-  TurboPrivateConfiguration,
-  TurboPublicConfiguration,
-} from '../types/index.js';
-import { TurboWebArweaveSigner } from '../web/signer.js';
-
-export class TurboFactory {
-  static public({
-    paymentServiceConfig = {},
-    uploadServiceConfig = {},
-  }: TurboPublicConfiguration = {}) {
-    const paymentService = new TurboUnauthenticatedPaymentService({
-      ...paymentServiceConfig,
-    });
-    const uploadService = new TurboUnauthenticatedUploadService({
-      ...uploadServiceConfig,
-    });
-    return new TurboUnauthenticatedClient({
-      uploadService,
-      paymentService,
-    });
-  }
-
-  static private({
-    privateKey,
-    paymentServiceConfig = {},
-    uploadServiceConfig = {},
-  }: TurboPrivateConfiguration) {
-    const signer = new TurboWebArweaveSigner({ privateKey });
-    const paymentService = new TurboAuthenticatedPaymentService({
-      ...paymentServiceConfig,
-      signer,
-    });
-    const uploadService = new TurboAuthenticatedUploadService({
-      ...uploadServiceConfig,
-      signer,
-    });
-    return new TurboAuthenticatedClient({
-      uploadService,
-      paymentService,
-    });
-  }
-}
-
-// additionally export classes
+export * from './factory.js';
+export * from './signer.js';
 export * from '../common/index.js';
