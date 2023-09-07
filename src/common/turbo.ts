@@ -14,35 +14,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TurboNodeUploadService } from '../node/upload.js';
-import { JWKInterface, TurboBalanceResponse } from '../types/index.js';
 import {
   Currency,
-  Turbo,
-  TurboClientConfiguration,
+  TurboAbortSignal,
+  TurboAuthenticatedPaymentServiceInterface,
+  TurboAuthenticatedUploadServiceInterface,
+  TurboBalanceResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
-  TurboPaymentService,
+  TurboFileFactory,
   TurboPriceResponse,
+  TurboPrivateClient,
+  TurboPrivateClientConfiguration,
+  TurboPublicClient,
+  TurboPublicClientConfiguration,
   TurboRatesResponse,
-  TurboUploadService,
+  TurboSignedDataItemFactory,
+  TurboUnauthenticatedPaymentServiceInterface,
+  TurboUnauthenticatedUploadServiceInterface,
+  TurboUploadDataItemResponse,
 } from '../types/index.js';
-import { TurboDefaultPaymentService } from './payment.js';
+import { TurboUnauthenticatedPaymentService } from './payment.js';
+import { TurboUnauthenticatedUploadService } from './upload.js';
 
-export class TurboClient implements Turbo {
-  protected readonly jwk: JWKInterface | undefined;
-  protected readonly paymentService: TurboPaymentService;
-  protected readonly uploadService: TurboUploadService;
+export class TurboUnauthenticatedClient implements TurboPublicClient {
+  protected readonly paymentService: TurboUnauthenticatedPaymentServiceInterface;
+  protected readonly uploadService: TurboUnauthenticatedUploadServiceInterface;
 
   constructor({
-    uploadService = new TurboNodeUploadService({
-      url: 'https://turbo.ardrive.dev',
-    }),
-    paymentService = new TurboDefaultPaymentService({
-      url: 'https://payment.ardrive.dev',
-    }),
-  }: TurboClientConfiguration) {
+    uploadService = new TurboUnauthenticatedUploadService({}),
+    paymentService = new TurboUnauthenticatedPaymentService({}),
+  }: TurboPublicClientConfiguration) {
     this.paymentService = paymentService;
     this.uploadService = uploadService;
   }
@@ -107,11 +110,49 @@ export class TurboClient implements Turbo {
   }
 
   /**
+   * Uploads a signed data item to the Turbo Upload Service.
+   */
+  async uploadSignedDataItem({
+    dataItemStreamFactory,
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadSignedDataItem({
+      dataItemStreamFactory,
+      signal,
+    });
+  }
+}
+
+export class TurboAuthenticatedClient
+  extends TurboUnauthenticatedClient
+  implements TurboPrivateClient
+{
+  protected readonly paymentService: TurboAuthenticatedPaymentServiceInterface;
+  protected readonly uploadService: TurboAuthenticatedUploadServiceInterface;
+
+  constructor({
+    paymentService,
+    uploadService,
+  }: TurboPrivateClientConfiguration) {
+    super({ paymentService, uploadService });
+  }
+
+  /**
    * Returns the current balance of the user's wallet in 'winc'.
-   *
-   * Note: 'privateKey' must be provided to use.
    */
   async getBalance(): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance();
+  }
+
+  /**
+   * Signs and uploads raw data to the Turbo Upload Service.
+   */
+  async uploadFile({
+    fileStreamFactory,
+    signal,
+  }: TurboFileFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadFile({ fileStreamFactory, signal });
   }
 }

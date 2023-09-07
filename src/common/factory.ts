@@ -14,12 +14,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export function isBrowser() {
-  if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-    return true;
-  } else if (typeof global !== 'undefined' && global.process.versions.node) {
-    return false;
-  } else {
-    throw new Error('Unknown environment.');
+import { TurboPublicConfiguration } from '../types/turbo.js';
+import { TurboUnauthenticatedPaymentService } from './payment.js';
+import { TurboUnauthenticatedClient } from './turbo.js';
+import { TurboUnauthenticatedUploadService } from './upload.js';
+
+export class TurboBaseFactory {
+  static unauthenticated({
+    paymentServiceConfig = {},
+    uploadServiceConfig = {},
+  }: TurboPublicConfiguration = {}) {
+    const paymentService = new TurboUnauthenticatedPaymentService({
+      ...paymentServiceConfig,
+    });
+    const uploadService = new TurboUnauthenticatedUploadService({
+      ...uploadServiceConfig,
+    });
+    return new TurboUnauthenticatedClient({
+      uploadService,
+      paymentService,
+    });
   }
 }

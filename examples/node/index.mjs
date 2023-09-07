@@ -1,22 +1,38 @@
 import Arweave from 'arweave';
+import fs from 'fs';
 
-import { TurboFactory } from '../../lib/index.js';
+import {
+  TurboFactory,
+  TurboUnauthenticatedPaymentService,
+} from '../../lib/node/index.js';
 
 (async () => {
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
-  const turbo = TurboFactory.init();
+  const turbo = TurboFactory.unauthenticated();
   const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
+
+  /*
+   * Alternatively instantiate your own clients independently.
+   */
+  const paymentService = new TurboUnauthenticatedPaymentService({
+    url: 'https://payment.ardrive.dev',
+  });
+  const supportedCurrencies = await paymentService.getSupportedCurrencies();
+  console.log(
+    'Supported currencies:',
+    JSON.stringify(supportedCurrencies, null, 2),
+  );
 
   /**
    * Fetching balance using an authenticated Turbo client.
    */
-  const arweave = Arweave.init();
+  const arweave = new Arweave.init();
   const jwk = await Arweave.crypto.generateJWK();
   const address = await arweave.wallets.jwkToAddress(jwk);
-  const turboAuthClient = TurboFactory.init({ privateKey: jwk });
+  const turboAuthClient = TurboFactory.authenticated({ privateKey: jwk });
   const balance = await turboAuthClient.getBalance();
   console.log(
     'Balance:',
@@ -31,11 +47,22 @@ import { TurboFactory } from '../../lib/index.js';
   );
 
   /**
-   * Fetch the estimated amount of winc returned for $1 USD
+   * Fetch the estimated amount of winc returned for 10 USD (1000 cents).
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
     amount: 1000,
     currency: 'usd',
   });
   console.log('10 USD to winc:', estimatedWinc);
+
+  /**
+   * Post local files to the Turbo service.
+   */
+  console.log('Posting raw files to Turbo service...');
+  const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+  const uploadResult = await turboAuthClient.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(filePath),
+    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 second
+  });
+  console.log(JSON.stringify(uploadResult, null, 2));
 })();

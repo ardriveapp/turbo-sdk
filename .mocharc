@@ -1,7 +1,14 @@
 {
-  "extension": ["ts"],
-  "spec": ["tests/**/*.test.ts", "src/**/*.test.ts"],
-  "require": ["ts-node/register/transpile-only"],
+  "extension": [
+    "ts"
+  ],
+  "spec": [
+    "tests/**/*.test.ts"
+  ],
+  "require": [
+    "ts-node/register/transpile-only",
+    "./mocha.setup.cjs"
+  ],
   "timeout": "10000",
   "parallel": false,
   "recursive": true,

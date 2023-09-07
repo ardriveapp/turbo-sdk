@@ -14,30 +14,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { KeyObject, createPrivateKey, createPublicKey } from 'crypto';
+import { ReadableStream } from 'node:stream/web';
 
-import { JWKInterface } from '../types/index.js';
+export async function readableStreamToBuffer({
+  stream,
+}: {
+  stream: ReadableStream;
+}): Promise<Buffer> {
+  const reader = stream.getReader();
+  const chunks: any[] = [];
 
-export function jwkInterfaceToPublicKey(jwk: JWKInterface): KeyObject {
-  const publicKey = createPublicKey({
-    key: {
-      ...jwk,
-      kty: 'RSA',
-    },
-    format: 'jwk',
-  });
-
-  return publicKey;
-}
-
-export function jwkInterfaceToPrivateKey(jwk: JWKInterface): KeyObject {
-  const privateKey = createPrivateKey({
-    key: {
-      ...jwk,
-      kty: 'RSA',
-    },
-    format: 'jwk',
-  });
-
-  return privateKey;
+  let done = false;
+  while (!done) {
+    const { done: streamDone, value } = await reader.read();
+    done = streamDone;
+    if (!done) {
+      chunks.push(value);
+    }
+  }
+  return Buffer.concat(chunks);
 }

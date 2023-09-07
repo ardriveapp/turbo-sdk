@@ -1,8 +1,8 @@
 {
   "name": "@ardrive/turbo-sdk",
   "version": "0.0.1",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "main": "./lib/node/index.js",
+  "types": "./lib/types/index.d.ts",
   "type": "module",
   "repository": {
     "type": "git",
@@ -21,9 +21,20 @@
   },
   "exports": {
     ".": {
-      "import": "./lib/index.js",
-      "require": "./lib/index.js",
-      "types": "./lib/index.d.ts",
+      "import": "./lib/node/index.js",
+      "require": "./lib/node/index.js",
+      "types": "./lib/types/index.d.ts",
+      "browser": "./bundles/web.bundle.min.js"
+    },
+    "./node": {
+      "import": "./lib/node/index.js",
+      "require": "./lib/node/index.js",
+      "types": "./lib/types/index.d.ts"
+    },
+    "./web": {
+      "import": "./lib/web/index.js",
+      "require": "./lib/web/index.js",
+      "types": "./lib/types/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
     }
   },
@@ -33,7 +44,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:web": "node bundle.cjs",
-    "build:esm": "yarn tsc -p tsconfig.json && cp package.json README.md LICENSE.md ./lib",
+    "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json && cp package.json README.md LICENSE.md ./lib",
     "build": "yarn clean && yarn build:web && yarn build:esm",
     "clean": "rimraf [ lib coverage bundles ]",
     "postinstall": "husky install",
@@ -41,13 +52,16 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "test": "c8 mocha --config .mocharc",
+    "test": "c8 mocha --config .mocharc --exit",
+    "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
+    "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
     "prepare": "husky install",
     "example:mjs": "yarn build:esm && node examples/node/index.mjs",
-    "example:cjs": "yarn build:esm && node examples/node/index.mjs",
+    "example:cjs": "yarn build:esm && node examples/node/index.cjs",
     "example:web": "yarn build:web && cp -r bundles/* examples/web && http-server --port 8080 --host -o examples/web"
   },
   "dependencies": {
+    "arbundles": "^0.9.9",
     "arweave": "^1.14.4",
     "axios": "^1.4.0",
     "retry-axios": "^3.0.0",

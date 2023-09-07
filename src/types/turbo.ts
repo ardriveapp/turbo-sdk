@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Readable } from 'node:stream';
+import { ReadableStream } from 'node:stream/web';
 import { RetryConfig } from 'retry-axios';
 import winston from 'winston';
 
@@ -51,41 +53,113 @@ export type TurboCurrenciesResponse = {
   supportedCurrencies: Currency[];
   limits: Record<Currency, CurrencyLimit>;
 };
+export type TurboUploadDataItemResponse = {
+  byteCount: number;
+  dataCaches: string[];
+  fastFinalityIndexes: string[];
+  id: TransactionId;
+};
 
+export type TurboWallet = JWKInterface; // TODO: add other wallet types
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
   'x-signature': string;
 };
 
-export type TurboAuthSettings = {
-  privateKey?: JWKInterface; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
+type TurboAuthConfiguration = {
+  signer: TurboWalletSigner; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
 };
 
 type TurboServiceConfiguration = {
-  url: string;
+  url?: string;
   retryConfig?: RetryConfig;
   logger?: winston.Logger;
-} & TurboAuthSettings;
-
-export type TurboUploadServiceConfiguration = TurboServiceConfiguration;
-export type TurboPaymentServiceConfiguration = TurboServiceConfiguration;
-
-export type TurboConfiguration = {
-  paymentServiceConfig: TurboPaymentServiceConfiguration;
-  uploadServiceConfig: TurboUploadServiceConfiguration;
-} & TurboAuthSettings;
-
-export type TurboClientConfiguration = {
-  paymentService: TurboPaymentService;
-  uploadService: TurboUploadService;
 };
 
-export interface AuthenticatedTurboPaymentService {
-  getBalance: () => Promise<TurboBalanceResponse>;
+export type TurboUnauthenticatedUploadServiceInterfaceConfiguration =
+  TurboServiceConfiguration;
+export type TurboAuthenticatedUploadServiceConfiguration =
+  TurboUnauthenticatedUploadServiceInterfaceConfiguration &
+    TurboAuthConfiguration;
+
+export type TurboUnauthenticatedPaymentServiceInterfaceConfiguration =
+  TurboServiceConfiguration;
+export type TurboAuthenticatedPaymentServiceInterfaceConfiguration =
+  TurboServiceConfiguration & TurboAuthConfiguration;
+
+export type TurboPublicConfiguration = {
+  paymentServiceConfig?: TurboUnauthenticatedPaymentServiceInterfaceConfiguration;
+  uploadServiceConfig?: TurboUnauthenticatedUploadServiceInterfaceConfiguration;
+};
+
+export type TurboPrivateConfiguration = TurboPublicConfiguration & {
+  privateKey: TurboWallet;
+};
+
+export type TurboPublicClientConfiguration = {
+  paymentService: TurboUnauthenticatedPaymentServiceInterface;
+  uploadService: TurboUnauthenticatedUploadServiceInterface;
+};
+
+export type TurboPrivateClientConfiguration = {
+  paymentService: TurboAuthenticatedPaymentServiceInterface;
+  uploadService: TurboAuthenticatedUploadServiceInterface;
+};
+
+export type FileStreamFactory =
+  | (() => Readable)
+  | (() => ReadableStream)
+  | (() => Buffer);
+export type SignedDataStreamFactory = FileStreamFactory;
+export type TurboFileFactory = {
+  fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
+  // bundle?: boolean; // TODO: add bundling into BDIs
+};
+
+export type TurboSignedDataItemFactory = {
+  dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
+};
+
+export type TurboAbortSignal = {
+  signal?: AbortSignal;
+};
+
+export interface TurboHTTPServiceInterface {
+  get<T>({
+    endpoint,
+    signal,
+    headers,
+    allowedStatuses,
+  }: {
+    endpoint: string;
+    signal?: AbortSignal;
+    headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    allowedStatuses?: number[];
+  }): Promise<T>;
+  post<T>({
+    endpoint,
+    signal,
+    headers,
+    allowedStatuses,
+    data,
+  }: {
+    endpoint: string;
+    signal: AbortSignal;
+    headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    allowedStatuses?: number[];
+    data: Readable | ReadableStream | Buffer;
+  }): Promise<T>;
 }
 
-export interface UnauthenticatedTurboPaymentService {
+export interface TurboWalletSigner {
+  signDataItem({
+    fileStreamFactory,
+  }: TurboFileFactory): Promise<Readable> | Promise<Buffer>;
+  generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
+}
+
+export interface TurboUnauthenticatedPaymentServiceInterface {
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getFiatToAR({
@@ -104,11 +178,29 @@ export interface UnauthenticatedTurboPaymentService {
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
 }
 
-export interface TurboPaymentService
-  extends AuthenticatedTurboPaymentService,
-    UnauthenticatedTurboPaymentService {}
+export interface TurboAuthenticatedPaymentServiceInterface
+  extends TurboUnauthenticatedPaymentServiceInterface {
+  getBalance: () => Promise<TurboBalanceResponse>;
+}
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TurboUploadService {}
+export interface TurboUnauthenticatedUploadServiceInterface {
+  uploadSignedDataItem({
+    dataItemStreamFactory,
+    signal,
+  }: TurboSignedDataItemFactory &
+    TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+}
 
-export interface Turbo extends TurboPaymentService, TurboUploadService {}
+export interface TurboAuthenticatedUploadServiceInterface
+  extends TurboUnauthenticatedUploadServiceInterface {
+  uploadFile({
+    fileStreamFactory,
+  }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+}
+
+export interface TurboPublicClient
+  extends TurboUnauthenticatedPaymentServiceInterface,
+    TurboUnauthenticatedUploadServiceInterface {}
+export interface TurboPrivateClient
+  extends TurboAuthenticatedPaymentServiceInterface,
+    TurboAuthenticatedUploadServiceInterface {}
