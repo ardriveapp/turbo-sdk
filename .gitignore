@@ -16,3 +16,6 @@ yarn-error.log
 
 # Build files
 **/*.min.js
+
+# Any local builds
+*.tgz

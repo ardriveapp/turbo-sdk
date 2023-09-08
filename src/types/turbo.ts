@@ -54,10 +54,10 @@ export type TurboCurrenciesResponse = {
   limits: Record<Currency, CurrencyLimit>;
 };
 export type TurboUploadDataItemResponse = {
-  byteCount: number;
   dataCaches: string[];
   fastFinalityIndexes: string[];
   id: TransactionId;
+  owner: PublicArweaveAddress;
 };
 
 export type TurboWallet = JWKInterface; // TODO: add other wallet types
@@ -198,9 +198,9 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 }
 
-export interface TurboPublicClient
+export interface TurboUnauthenticatedClientInterface
   extends TurboUnauthenticatedPaymentServiceInterface,
     TurboUnauthenticatedUploadServiceInterface {}
-export interface TurboPrivateClient
+export interface TurboAuthenticatedClientInterface
   extends TurboAuthenticatedPaymentServiceInterface,
     TurboAuthenticatedUploadServiceInterface {}

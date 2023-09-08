@@ -17,6 +17,7 @@
 import {
   Currency,
   TurboAbortSignal,
+  TurboAuthenticatedClientInterface,
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
   TurboBalanceResponse,
@@ -25,12 +26,11 @@ import {
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboPriceResponse,
-  TurboPrivateClient,
   TurboPrivateClientConfiguration,
-  TurboPublicClient,
   TurboPublicClientConfiguration,
   TurboRatesResponse,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
@@ -38,7 +38,9 @@ import {
 import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
 
-export class TurboUnauthenticatedClient implements TurboPublicClient {
+export class TurboUnauthenticatedClient
+  implements TurboUnauthenticatedClientInterface
+{
   protected readonly paymentService: TurboUnauthenticatedPaymentServiceInterface;
   protected readonly uploadService: TurboUnauthenticatedUploadServiceInterface;
 
@@ -126,7 +128,7 @@ export class TurboUnauthenticatedClient implements TurboPublicClient {
 
 export class TurboAuthenticatedClient
   extends TurboUnauthenticatedClient
-  implements TurboPrivateClient
+  implements TurboAuthenticatedClientInterface
 {
   protected readonly paymentService: TurboAuthenticatedPaymentServiceInterface;
   protected readonly uploadService: TurboAuthenticatedUploadServiceInterface;
