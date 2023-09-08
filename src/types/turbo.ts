@@ -54,10 +54,10 @@ export type TurboCurrenciesResponse = {
   limits: Record<Currency, CurrencyLimit>;
 };
 export type TurboUploadDataItemResponse = {
-  byteCount: number;
   dataCaches: string[];
   fastFinalityIndexes: string[];
   id: TransactionId;
+  owner: PublicArweaveAddress;
 };
 
 export type TurboWallet = JWKInterface; // TODO: add other wallet types
