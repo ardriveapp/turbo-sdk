@@ -198,9 +198,9 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 }
 
-export interface TurboPublicClient
+export interface TurboUnauthenticatedClientInterface
   extends TurboUnauthenticatedPaymentServiceInterface,
     TurboUnauthenticatedUploadServiceInterface {}
-export interface TurboPrivateClient
+export interface TurboAuthenticatedClientInterface
   extends TurboAuthenticatedPaymentServiceInterface,
     TurboAuthenticatedUploadServiceInterface {}
