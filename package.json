@@ -23,18 +23,18 @@
     ".": {
       "import": "./lib/node/index.js",
       "require": "./lib/node/index.js",
-      "types": "./lib/types/index.d.ts",
+      "types": "./lib/node/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
     },
     "./node": {
       "import": "./lib/node/index.js",
       "require": "./lib/node/index.js",
-      "types": "./lib/types/index.d.ts"
+      "types": "./lib/node/index.d.ts"
     },
     "./web": {
       "import": "./lib/web/index.js",
       "require": "./lib/web/index.js",
-      "types": "./lib/types/index.d.ts",
+      "types": "./lib/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
     }
   },
