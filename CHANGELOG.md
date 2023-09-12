@@ -1,3 +1,10 @@
+# [1.0.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2023-09-12)
+
+
+### Bug Fixes
+
+* remove postinstall command ([e51141c](https://github.com/ardriveapp/turbo-sdk/commit/e51141cfa05d1ef4294f55f3c9cb47845c1995a9))
+
 # 1.0.0-alpha.1 (2023-09-12)
 
 
