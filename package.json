@@ -47,7 +47,6 @@
     "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json && cp package.json README.md LICENSE.md ./lib",
     "build": "yarn clean && yarn build:web && yarn build:esm",
     "clean": "rimraf [ lib coverage bundles ]",
-    "postinstall": "husky install",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --check .",

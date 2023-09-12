@@ -18,7 +18,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionalities for inter
 
 - [Contributions](#contributions)
 
-# Installation
+## Installation
 
 ```shell
 npm install @ardrive/turbo-sdk
@@ -30,13 +30,13 @@ or
 yarn add @ardrive/turbo-sdk
 ```
 
-# Usage
+## Usage
 
 The SDK is available in both CommonJS and ESM formats and is compatible with bundlers such as Webpack, Rollup, and ESbuild.
 
-## Web
+### Web
 
-# Bundlers (Webpack, Rollup, ESbuild, etc.)
+#### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/web';
@@ -45,7 +45,7 @@ const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
 ```
 
-### Browser
+#### Browser
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@ardrive/turbo-sdk"></script>
@@ -55,9 +55,9 @@ const rates = await turbo.getFiatRates();
 </script>
 ```
 
-## NodeJS
+### NodeJS
 
-### CommonJS
+#### CommonJS
 
 ```javascript
 const { TurboFactory } = require('@ardrive/turbo-sdk/node');
@@ -75,7 +75,7 @@ const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
 ```
 
-## Typescript
+### Typescript
 
 The SDK provides TypeScript typings. When you import the SDK in a TypeScript project:
 
@@ -87,14 +87,14 @@ import Ardrive from '@ardrive/turbo-sdk/web';
 
 The provided typings (`./lib/types/index.d.ts`) will be automatically recognized, offering type checking and autocompletion benefits.
 
-# APIs (WIP)
+## APIs (WIP)
 
-## TurboFactory
+### TurboFactory
 
 - `public()`
 - `private()`
 
-## TurboUnauthenticatedClient
+### TurboUnauthenticatedClient
 
 - `getFiatRates()`
 - `getFiatToAR()`
@@ -104,11 +104,11 @@ The provided typings (`./lib/types/index.d.ts`) will be automatically recognized
 - `getUploadCosts()`
 - `uploadSignedDataItem()`
 
-## TurboAuthenticatedClient
+### TurboAuthenticatedClient
 
 - `getBalance()`
 - `uploadFile()`
 
-# Contributions
+## Contributions
 
 If you encounter any issues or have feature requests, please file an issue on our GitHub repository. Contributions, pull requests, and feedback are welcome and encouraged.
