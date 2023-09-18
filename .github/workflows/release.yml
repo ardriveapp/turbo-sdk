@@ -34,6 +34,7 @@ jobs:
       - name: Prep for release
         run: |
           sed -i '/"type": "module"/d' package.json
+          echo '{\n  "type": "module"\n}' > lib/esm/package.json
 
       - name: Release
         env:

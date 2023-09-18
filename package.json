@@ -1,6 +1,7 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.0.0-alpha.15",
+  "version": "1.0.0-alpha.14",
+  "type": "module",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
