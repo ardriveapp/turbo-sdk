@@ -1,3 +1,10 @@
+# [1.0.0-alpha.8](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2023-09-18)
+
+
+### Bug Fixes
+
+* update main and types path in package.json ([b44678c](https://github.com/ardriveapp/turbo-sdk/commit/b44678cc2335d94eb82d97864dd067c44c87c244))
+
 # [1.0.0-alpha.7](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2023-09-18)
 
 
