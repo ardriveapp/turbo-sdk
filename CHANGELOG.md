@@ -1,3 +1,10 @@
+# [1.0.0-alpha.16](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.15...v1.0.0-alpha.16) (2023-09-18)
+
+
+### Bug Fixes
+
+* add one more step to make esm useable ([20fec23](https://github.com/ardriveapp/turbo-sdk/commit/20fec23250acfd1b26d0637de01537b244020465))
+
 # [1.0.0-alpha.15](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.14...v1.0.0-alpha.15) (2023-09-18)
 
 
