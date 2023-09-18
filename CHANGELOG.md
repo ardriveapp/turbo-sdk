@@ -1,3 +1,10 @@
+# [1.0.0-alpha.11](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.10...v1.0.0-alpha.11) (2023-09-18)
+
+
+### Bug Fixes
+
+* add separate folder for types, use it in named exports ([7bd1e63](https://github.com/ardriveapp/turbo-sdk/commit/7bd1e6310c5efdb435a4b89cc922266a85be44d4))
+
 # [1.0.0-alpha.10](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.9...v1.0.0-alpha.10) (2023-09-18)
 
 
