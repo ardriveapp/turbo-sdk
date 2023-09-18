@@ -1,9 +1,11 @@
 {
   "name": "@ardrive/turbo-sdk",
   "version": "1.0.0-alpha.8",
-  "main": "./lib/esm/node/index.js",
-  "types": "./lib/esm/types/index.d.ts",
   "type": "module",
+  "main": "./lib/cjs/node/index.js",
+  "types": "./lib/cjs/node/types/index.d.ts",
+  "module": "./lib/esm/node/index.js",
+  "browser": "./bundles/web.bundle.min.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/ardriveapp/turbo-sdk.git"
