@@ -1,3 +1,10 @@
+# [1.0.0-alpha.10](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.9...v1.0.0-alpha.10) (2023-09-18)
+
+
+### Bug Fixes
+
+* wrong path for types! ([d98897e](https://github.com/ardriveapp/turbo-sdk/commit/d98897e16dc28af64c314d7b911e63c23ab2d722))
+
 # [1.0.0-alpha.9](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.8...v1.0.0-alpha.9) (2023-09-18)
 
 
