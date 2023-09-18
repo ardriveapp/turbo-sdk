@@ -6452,7 +6452,7 @@ resolve@^1.10.0, resolve@^1.17.0, resolve@^1.22.2, resolve@^1.22.4:
     path-parse "^1.0.7"
     supports-preserve-symlinks-flag "^1.0.0"
 
-retry-axios@^3.0.0:
+retry-axios@3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/retry-axios/-/retry-axios-3.0.0.tgz#5fd54f65330d155c36d01e3685238889375b9aa0"
   integrity sha512-/jRv4nCDytusFZIY+zD6aKP29+wpgnbjfap5B76rqvgROWfONG5Bf7vCXx7grhxJwYGLlumraKZQUMzNgfXNCg==

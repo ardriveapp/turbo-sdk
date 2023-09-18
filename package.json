@@ -66,7 +66,7 @@
     "arbundles": "^0.9.9",
     "arweave": "^1.14.4",
     "axios": "^1.4.0",
-    "retry-axios": "^3.0.0",
+    "retry-axios": "3.0.0",
     "winston": "^3.10.0"
   },
   "devDependencies": {
