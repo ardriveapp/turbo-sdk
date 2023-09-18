@@ -1,3 +1,11 @@
+# [1.0.0-alpha.15](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.14...v1.0.0-alpha.15) (2023-09-18)
+
+
+### Bug Fixes
+
+* add command that removes type module from package.json ([c2ce7d3](https://github.com/ardriveapp/turbo-sdk/commit/c2ce7d3d26da50c7857d5ceb1150d913179bb23f))
+* add command that removes type module from package.json ([8675df5](https://github.com/ardriveapp/turbo-sdk/commit/8675df5dfe65c05dbf1e4294bf9f768bcdc954d4))
+
 # [1.0.0-alpha.14](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.13...v1.0.0-alpha.14) (2023-09-18)
 
 
