@@ -1,3 +1,10 @@
+# [1.0.0-alpha.7](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2023-09-18)
+
+
+### Bug Fixes
+
+* add main import and allow wildcard imports ([edf9d27](https://github.com/ardriveapp/turbo-sdk/commit/edf9d2712fc6494087215c27dab9d4d330d52529))
+
 # [1.0.0-alpha.6](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2023-09-18)
 
 
