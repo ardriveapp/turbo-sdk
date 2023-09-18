@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
-import { RetryConfig } from 'retry-axios';
 import winston from 'winston';
 
 import { JWKInterface } from './common/jwk.js';
@@ -73,7 +73,7 @@ type TurboAuthConfiguration = {
 
 type TurboServiceConfiguration = {
   url?: string;
-  retryConfig?: RetryConfig;
+  retryConfig?: IAxiosRetryConfig;
   logger?: winston.Logger;
 };
 
