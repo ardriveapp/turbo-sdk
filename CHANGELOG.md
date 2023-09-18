@@ -1,3 +1,10 @@
+# [1.0.0-alpha.12](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.11...v1.0.0-alpha.12) (2023-09-18)
+
+
+### Bug Fixes
+
+* use .cjs as base for types to avoid reference require errors ([18101b6](https://github.com/ardriveapp/turbo-sdk/commit/18101b6f624968222ce199329ad526730052adcd))
+
 # [1.0.0-alpha.11](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.10...v1.0.0-alpha.11) (2023-09-18)
 
 
