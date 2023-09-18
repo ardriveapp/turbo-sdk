@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, createData } from 'arbundles/web';
-import Arweave from 'arweave/web/index.js';
+import { ArweaveSigner, createData } from 'arbundles';
+import Arweave from 'arweave';
 import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
@@ -52,9 +52,11 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
   async generateSignedRequestHeaders() {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    const signature = await Arweave.default.crypto.sign(
+    // a bit hacky - but easiest way to solve web signing issues while still building for cjs
+    const signature = await (Arweave as any).default.crypto.sign(
       this.privateKey,
       buffer,
+      {},
     );
 
     return {

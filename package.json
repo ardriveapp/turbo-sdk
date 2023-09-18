@@ -21,8 +21,8 @@
   },
   "exports": {
     "./node": {
-      "import": "./lib/node/index.js",
-      "require": "./lib/node/index.js",
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js",
       "types": "./lib/node/index.d.ts"
     },
     "./web": {
@@ -30,11 +30,6 @@
       "require": "./lib/web/index.js",
       "types": "./lib/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
-    },
-    "./*": {
-      "import": "./*.js",
-      "require": "./*.js",
-      "types": "./*.d.ts"
     }
   },
   "engines": {
@@ -43,8 +38,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:web": "node bundle.cjs",
-    "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json",
-    "build": "yarn clean && yarn build:web && yarn build:esm",
+    "build": "yarn clean && yarn tsc -p tsconfig.json && yarn tsc -p tsconfig.cjs.json",
     "clean": "rimraf [ lib coverage bundles ]",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

@@ -4,7 +4,7 @@
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "lib": ["esnext", "dom"],
-    "outDir": "./lib",
+    "outDir": "./lib/esm",
     "listEmittedFiles": false,
     "listFiles": false,
     "moduleResolution": "nodenext",
