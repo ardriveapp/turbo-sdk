@@ -1,3 +1,10 @@
+# [1.0.0-alpha.17](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.16...v1.0.0-alpha.17) (2023-09-18)
+
+
+### Bug Fixes
+
+* update package.json output for esm ([2f37ae5](https://github.com/ardriveapp/turbo-sdk/commit/2f37ae5673142ce7ea1d29372223598cfad46f96))
+
 # [1.0.0-alpha.16](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.15...v1.0.0-alpha.16) (2023-09-18)
 
 
