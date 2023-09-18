@@ -3,7 +3,7 @@
   "version": "1.0.0-alpha.9",
   "type": "module",
   "main": "./lib/cjs/node/index.js",
-  "types": "./lib/cjs/node/types/index.d.ts",
+  "types": "./lib/cjs/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
   "browser": "./bundles/web.bundle.min.js",
   "repository": {
