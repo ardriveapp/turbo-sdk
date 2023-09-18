@@ -1,3 +1,10 @@
+# [1.0.0-alpha.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2023-09-18)
+
+
+### Bug Fixes
+
+* remove package.json from lib directory ([46a5946](https://github.com/ardriveapp/turbo-sdk/commit/46a5946ed418ba7f9333a059dc9836fb763eebfb))
+
 # [1.0.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2023-09-12)
 
 
