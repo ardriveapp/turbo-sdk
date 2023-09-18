@@ -1,3 +1,10 @@
+# [1.0.0-alpha.9](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.8...v1.0.0-alpha.9) (2023-09-18)
+
+
+### Bug Fixes
+
+* add module to package.json and tweak types ([0afba5f](https://github.com/ardriveapp/turbo-sdk/commit/0afba5f9929c021ba9921a0eee7084463fc54bd0))
+
 # [1.0.0-alpha.8](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2023-09-18)
 
 
