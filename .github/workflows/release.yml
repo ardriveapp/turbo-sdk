@@ -33,7 +33,7 @@ jobs:
 
       - name: Prep for release
         run: |
-          sed -i '' '/"type": "module",/d' package.json
+          sed -i '/"type": "module"/d' package.json
 
       - name: Release
         env:
