@@ -4,11 +4,11 @@ import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
 
+import { JWKInterface } from '../src/common/jwk.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
-import { JWKInterface } from '../src/types/index.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 import { TurboFactory } from '../src/web/index.js';
 

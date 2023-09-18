@@ -19,8 +19,8 @@ import Arweave from 'arweave';
 import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
-import { JWKInterface } from '../types/arweave.js';
-import { TurboWalletSigner } from '../types/turbo.js';
+import { JWKInterface } from '../common/jwk.js';
+import { TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
@@ -50,14 +50,11 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
+    // a bit hacky - but arweave exports cause issues in tests vs. browser
+    const arweave: Arweave = (Arweave as any).default ?? Arweave;
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    // a bit hacky - but easiest way to solve web signing issues while still building for cjs
-    const signature = await (Arweave as any).default.crypto.sign(
-      this.privateKey,
-      buffer,
-      {},
-    );
+    const signature = await arweave.crypto.sign(this.privateKey, buffer, {});
 
     return {
       'x-public-key': this.privateKey.n,

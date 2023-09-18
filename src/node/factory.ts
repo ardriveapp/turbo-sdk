@@ -20,7 +20,7 @@ import {
   TurboAuthenticatedPaymentService,
   TurboAuthenticatedUploadService,
 } from '../common/index.js';
-import { TurboPrivateConfiguration } from '../types/index.js';
+import { TurboPrivateConfiguration } from '../types.js';
 import { TurboNodeArweaveSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {

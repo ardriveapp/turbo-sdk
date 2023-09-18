@@ -19,8 +19,8 @@ import Arweave from 'arweave/node/index.js';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
-import { JWKInterface } from '../types/arweave.js';
-import { TurboWalletSigner } from '../types/turbo.js';
+import { JWKInterface } from '../common/jwk.js';
+import { TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 
 export class TurboNodeArweaveSigner implements TurboWalletSigner {

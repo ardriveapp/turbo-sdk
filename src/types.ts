@@ -19,7 +19,7 @@ import { ReadableStream } from 'node:stream/web';
 import { RetryConfig } from 'retry-axios';
 import winston from 'winston';
 
-import { JWKInterface } from './arweave.js';
+import { JWKInterface } from './common/jwk.js';
 
 export type Base64String = string;
 export type PublicArweaveAddress = Base64String;

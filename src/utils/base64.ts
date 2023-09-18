@@ -17,8 +17,8 @@
 import { bufferTob64Url } from 'arweave/node/lib/utils.js';
 import { createHash } from 'crypto';
 
-import { JWKInterface } from '../types/index.js';
-import { Base64String, PublicArweaveAddress } from '../types/index.js';
+import { JWKInterface } from '../common/jwk.js';
+import { Base64String, PublicArweaveAddress } from '../types.js';
 
 export const base64URLRegex = /^[a-zA-Z0-9_-]{43}$/;
 

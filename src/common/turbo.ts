@@ -34,7 +34,7 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
-} from '../types/index.js';
+} from '../types.js';
 import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
 

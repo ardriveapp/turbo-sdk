@@ -27,7 +27,7 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
   TurboWalletSigner,
-} from '../types/turbo.js';
+} from '../types.js';
 import { TurboHTTPService } from './http.js';
 
 export class TurboUnauthenticatedPaymentService

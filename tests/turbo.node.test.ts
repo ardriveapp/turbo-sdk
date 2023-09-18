@@ -5,12 +5,12 @@ import { expect } from 'chai';
 import fs from 'fs';
 import { Readable } from 'node:stream';
 
+import { JWKInterface } from '../src/common/jwk.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
-import { JWKInterface } from '../src/types/index.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 
 describe('Node environment', () => {

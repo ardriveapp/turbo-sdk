@@ -16,5 +16,5 @@
  */
 export * from './factory.js';
 export * from './signer.js';
+export * from '../types.js';
 export * from '../common/index.js';
-export * from '../types/index.js';

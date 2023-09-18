@@ -3,7 +3,7 @@
   "version": "1.0.0-alpha.10",
   "type": "module",
   "main": "./lib/cjs/node/index.js",
-  "types": "./lib/cjs/node/index.d.ts",
+  "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
   "browser": "./bundles/web.bundle.min.js",
   "repository": {
@@ -25,23 +25,18 @@
     ".": {
       "import": "./lib/esm/node/index.js",
       "require": "./lib/cjs/node/index.js",
-      "types": "./lib/node/index.d.ts"
+      "types": "./lib/types/node/index.d.ts"
     },
     "./node": {
       "import": "./lib/esm/node/index.js",
       "require": "./lib/cjs/node/index.js",
-      "types": "./lib/node/index.d.ts"
+      "types": "./lib/types/node/index.d.ts"
     },
     "./web": {
       "import": "./lib/web/index.js",
       "require": "./lib/web/index.js",
-      "types": "./lib/web/index.d.ts",
+      "types": "./lib/types/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
-    },
-    "./*": {
-      "import": "./*.js",
-      "require": "./*.js",
-      "types": "./lib/web/index.d.ts"
     }
   },
   "engines": {
@@ -50,7 +45,10 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:web": "node bundle.cjs",
-    "build": "yarn clean && yarn tsc -p tsconfig.json && yarn tsc -p tsconfig.cjs.json",
+    "build:esm": "yarn tsc -p tsconfig.json",
+    "build:cjs": "yarn tsc -p tsconfig.cjs.json",
+    "build:types": "yarn tsc -p tsconfig.types.json",
+    "build": "yarn clean && yarn build:web && yarn build:esm && yarn build:cjs && yarn build:types",
     "clean": "rimraf [ lib coverage bundles ]",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

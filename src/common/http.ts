@@ -22,7 +22,7 @@ import { ReadableStream } from 'stream/web';
 import {
   TurboHTTPServiceInterface,
   TurboSignedRequestHeaders,
-} from '../types/turbo.js';
+} from '../types.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { FailedRequestError } from '../utils/errors.js';
 
