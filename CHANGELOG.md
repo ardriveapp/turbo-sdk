@@ -1,3 +1,10 @@
+# [1.0.0-alpha.5](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2023-09-18)
+
+
+### Bug Fixes
+
+* **wildcard:** allow wildcard exports for older projects ([1aa0827](https://github.com/ardriveapp/turbo-sdk/commit/1aa0827c146d07314624114957183fb70a0d3cf0))
+
 # [1.0.0-alpha.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2023-09-18)
 
 
