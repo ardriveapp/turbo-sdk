@@ -1,3 +1,10 @@
+# [1.0.0-alpha.14](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.13...v1.0.0-alpha.14) (2023-09-18)
+
+
+### Bug Fixes
+
+* replace retry-axios, add additional retry logic ([2da9334](https://github.com/ardriveapp/turbo-sdk/commit/2da93347c04467c491248431990a2a969dacd4e4))
+
 # [1.0.0-alpha.13](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.12...v1.0.0-alpha.13) (2023-09-18)
 
 
