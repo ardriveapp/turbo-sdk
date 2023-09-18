@@ -1,3 +1,10 @@
+# [1.0.0-alpha.6](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2023-09-18)
+
+
+### Bug Fixes
+
+* **cjs:** add separate cjs and esm outputs ([c8b2101](https://github.com/ardriveapp/turbo-sdk/commit/c8b2101ecf2b0fc5ae86bbf70b14f50ad5c6be0d))
+
 # [1.0.0-alpha.5](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2023-09-18)
 
 
