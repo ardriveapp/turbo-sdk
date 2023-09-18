@@ -44,7 +44,7 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:web": "node bundle.cjs",
-    "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json && cp package.json README.md LICENSE.md ./lib",
+    "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json",
     "build": "yarn clean && yarn build:web && yarn build:esm",
     "clean": "rimraf [ lib coverage bundles ]",
     "lint": "eslint src",
