@@ -20,6 +20,11 @@
     "website": "https://ardrive.io"
   },
   "exports": {
+    ".": {
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js",
+      "types": "./lib/node/index.d.ts"
+    },
     "./node": {
       "import": "./lib/esm/node/index.js",
       "require": "./lib/cjs/node/index.js",
@@ -30,6 +35,11 @@
       "require": "./lib/web/index.js",
       "types": "./lib/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
+    },
+    "./*": {
+      "import": "./*.js",
+      "require": "./*.js",
+      "types": "./lib/web/index.d.ts"
     }
   },
   "engines": {
