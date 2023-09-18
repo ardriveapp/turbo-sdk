@@ -1,3 +1,10 @@
+# [1.0.0-alpha.18](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.17...v1.0.0-alpha.18) (2023-09-18)
+
+
+### Bug Fixes
+
+* fix package.json ([b2cf260](https://github.com/ardriveapp/turbo-sdk/commit/b2cf2603e521c761a3ff44eb6e8893f9203ad0e8))
+
 # [1.0.0-alpha.17](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.16...v1.0.0-alpha.17) (2023-09-18)
 
 
