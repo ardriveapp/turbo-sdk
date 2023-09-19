@@ -1,12 +1,11 @@
 # @ardriveapp/turbo-sdk 🚀
 
-Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionalities for interacting with the Turbo Upload and Payment Services. It is available in both NodeJS and Web environments.
+Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interacting with the Turbo Upload and Payment Services and is available for both NodeJS and Web environments.
 
 ## Table of Contents
 
 - [Installation](#installation)
-- [Usage](#usage):
-
+- [Usage](#usage)
   - [NodeJS Environments](#nodejs)
     - [CommonJS](#commonjs)
     - [ESM](#esm)
@@ -15,7 +14,6 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionalities for inter
     - [Browser](#browser)
   - [Typescript](#typescript)
   - [Examples](./examples)
-
 - [Contributions](#contributions)
 
 ## Installation
@@ -32,14 +30,14 @@ yarn add @ardrive/turbo-sdk
 
 ## Usage
 
-The SDK is available in both CommonJS and ESM formats and is compatible with bundlers such as Webpack, Rollup, and ESbuild.
+The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Depending on your project's configuration, leverage the named exports provided by this SDK's [package.json]. Refer to the [examples] directory to see how to use the SDK in various environments.
 
 ### Web
 
 #### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
 ```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/web';
+import { TurboFactory } from '@ardrive/turbo-sdk';
 
 const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
@@ -59,14 +57,58 @@ const rates = await turbo.getFiatRates();
 
 #### CommonJS
 
+Project's `package.json`:
+
+```json
+{
+  "type": "commonjs" // or absent
+}
+```
+
+tsconfig's `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "skipLibCheck": true
+  }
+}
+```
+
+Usage:
+
 ```javascript
-const { TurboFactory } = require('@ardrive/turbo-sdk/node');
+const { TurboFactory } = require('@ardrive/turbo-sdk');
 
 const turbo = TurboFactory.unauthenticated({});
 const rates = await turbo.getFiatRates();
 ```
 
-### ESM
+#### ESM
+
+Project's `package.json`:
+
+```json
+{
+  "type": "module"
+}
+```
+
+tsconfig's `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "skipLibCheck": true
+  }
+}
+```
+
+Usage:
 
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/node';
@@ -77,7 +119,7 @@ const rates = await turbo.getFiatRates();
 
 ### Typescript
 
-The SDK provides TypeScript typings. When you import the SDK in a TypeScript project:
+The SDK comes with TypeScript typings. When you import the SDK in a TypeScript project:
 
 ```typescript
 import Ardrive from '@ardrive/turbo-sdk/web';
@@ -85,30 +127,91 @@ import Ardrive from '@ardrive/turbo-sdk/web';
 // or '@ardrive/turbo-sdk/node' for Node.js projects
 ```
 
-The provided typings (`./lib/types/index.d.ts`) will be automatically recognized, offering type checking and autocompletion benefits.
+These typings are exported from `./lib/types/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
 
-## APIs (WIP)
+## APIs
 
 ### TurboFactory
 
-- `public()`
-- `private()`
+- `unauthenticated()` - Creates an instance of the Turbo unauthenticated services.
+
+  ```typescript
+  const turbo = TurboFactory.unauthenticated({});
+  ```
+
+- `authenticated()` - Creates an instance that includes both the unauthenticated & authenticated services.
+
+  ```typescript
+  const jwk = await arweave.crypto.generateJWK();
+  const turbo = TurboFactory.authenticated({ privateKey: jwk });
+  ```
 
 ### TurboUnauthenticatedClient
 
-- `getFiatRates()`
-- `getFiatToAR()`
-- `getSupportedCountries()`
-- `getSupportedCurrencies()`
-- `getWincForFiat()`
-- `getUploadCosts()`
-- `uploadSignedDataItem()`
+- `getSupportedCurrencies()` - Returns the list of currencies supported by the Turbo Payment Service.
+
+  ```typescript
+  const currencies = await turbo.getSupportedCurrencies();
+  ```
+
+- `getSupportedCountries()` - Returns the list of countries supported by the Turbo Payment Service.
+
+  ```typescript
+  const countries = await turbo.getSupportedCountries();
+  ```
+
+- `getFiatToAR({ currency })` - Returns the current fiat conversion for a specific currency.
+
+  ```typescript
+  const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
+  ```
+
+- `getFiatRates()` - Returns the current fiat conversion rates for supported currencies.
+
+  ```typescript
+  const rates = await turbo.getFiatRates();
+  ```
+
+- `getWincForFiat({ amount, currency })` - Returns the current conversion rate for Winston Credits for the provided fiat currency and amount.
+
+  ```typescript
+  const winc = await turbo.getWincForFiat({ amount: 100, currency: 'USD' });
+  ```
+
+- `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file size.
+
+  ```typescript
+  const costs = await turbo.getUploadCosts({ bytes: [1000, 2000] });
+  ```
+
+- `uploadSignedDataItem({ dataItemStreamFactory, signal })` - Uploads a previously signed data item.
+  ```typescript
+  const uploadResponse = await turbo.uploadSignedDataItem({
+    dataItemStreamFactory: myStreamFactory,
+    signal: myAbortSignal,
+  });
+  ```
 
 ### TurboAuthenticatedClient
 
-- `getBalance()`
-- `uploadFile()`
+- `getBalance()` - Issues a signed request to get the credit balance of the user in Winston Credits.
+
+  ```typescript
+  const balance = await turbo.getBalance();
+  ```
+
+- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file.
+  ```typescript
+  const uploadResponse = await turbo.uploadFile({
+    fileStreamFactory: myFileStreamFactory,
+  });
+  ```
 
 ## Contributions
 
-If you encounter any issues or have feature requests, please file an issue on our GitHub repository. Contributions, pull requests, and feedback are welcome and encouraged.
+If you encounter any issues or have feature requests, please file an issue on our GitHub repository. Contributions, pull requests, and feedback are both welcome and encouraged.
+
+[package.json]: ./package.json
+[examples]: ./examples
+[TurboUnauthenticatedClient]: #turboUnauthenticatedClient
+[TurboAuthenticatedClient]: #turboAuthenticatedClient
