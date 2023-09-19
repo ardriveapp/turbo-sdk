@@ -133,13 +133,13 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
 
 ### TurboFactory
 
-- `unauthenticated()` - Creates an instance of the Turbo unauthenticated services.
+- `unauthenticated()` - Creates an instance of a client that accesses Turbo's unauthenticated services.
 
   ```typescript
   const turbo = TurboFactory.unauthenticated({});
   ```
 
-- `authenticated()` - Creates an instance that includes both the unauthenticated & authenticated services.
+- `authenticated()` - Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services.
 
   ```typescript
   const jwk = await arweave.crypto.generateJWK();
@@ -148,19 +148,19 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
 
 ### TurboUnauthenticatedClient
 
-- `getSupportedCurrencies()` - Returns the list of currencies supported by the Turbo Payment Service.
+- `getSupportedCurrencies()` - Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measure in Winston Credits, or winc).
 
   ```typescript
   const currencies = await turbo.getSupportedCurrencies();
   ```
 
-- `getSupportedCountries()` - Returns the list of countries supported by the Turbo Payment Service.
+- `getSupportedCountries()` - Returns the list of countries supported by the Turbo Payment Service's top up workflow.
 
   ```typescript
   const countries = await turbo.getSupportedCountries();
   ```
 
-- `getFiatToAR()` - Returns the current raw fiat to AR conversion rate for a specific currency
+- `getFiatToAR()` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles
 
   ```typescript
   const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
@@ -178,13 +178,13 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const winc = await turbo.getWincForFiat({ amount: 100, currency: 'USD' });
   ```
 
-- `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file size.
+- `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file sizes.
 
   ```typescript
   const costs = await turbo.getUploadCosts({ bytes: [1000, 2000] });
   ```
 
-- `uploadSignedDataItem({ dataItemStreamFactory, signal })` - Uploads a previously signed data item.
+- `uploadSignedDataItem({ dataItemStreamFactory, signal })` - Uploads a signed data item. The provided dataItemStreamFactory should produce a NEW signed data item stream each time is it invoked.
   ```typescript
   const uploadResponse = await turbo.uploadSignedDataItem({
     dataItemStreamFactory: myStreamFactory,
@@ -200,7 +200,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const balance = await turbo.getBalance();
   ```
 
-- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file.
+- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file. The provided fileStreamFactory should produce a NEW signed file data stream each time is it invoked.
   ```typescript
   const uploadResponse = await turbo.uploadFile({
     fileStreamFactory: myFileStreamFactory,
