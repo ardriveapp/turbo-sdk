@@ -5,6 +5,7 @@
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
   "browser": "./bundles/web.bundle.min.js",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/ardriveapp/turbo-sdk.git"
