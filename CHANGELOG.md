@@ -1,3 +1,10 @@
+# [1.0.0-alpha.19](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.18...v1.0.0-alpha.19) (2023-09-19)
+
+
+### Bug Fixes
+
+* swap adding package.json to esm to cjs ([dd921c8](https://github.com/ardriveapp/turbo-sdk/commit/dd921c8d40a65e3492ad08a24a8da0bcb060c846))
+
 # [1.0.0-alpha.18](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.17...v1.0.0-alpha.18) (2023-09-18)
 
 
