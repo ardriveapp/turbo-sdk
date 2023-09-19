@@ -1,0 +1,6 @@
+{
+  "type": "commonjs",
+  "dependencies": {
+    "@ardrive/turbo-sdk": "^1.0.0-alpha.18"
+  }
+}

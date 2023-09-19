@@ -1,10 +1,11 @@
+import {
+  TurboFactory,
+  TurboUnauthenticatedPaymentService,
+} from '@ardrive/turbo-sdk/node';
+import Arweave from 'arweave';
+import fs from 'fs';
+
 (async () => {
-  const { default: Arweave } = await import('arweave');
-  const { TurboFactory, TurboUnauthenticatedPaymentService } = await import(
-    '../../lib/node/index.js'
-  );
-  const path = require('path');
-  const fs = require('fs');
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
@@ -65,7 +66,7 @@
    * Post local files to the Turbo service.
    */
   console.log('Posting raw file to Turbo service...');
-  const filePath = path.join(__dirname, './files/0_kb.txt');
+  const filePath = new URL('../files/0_kb.txt', import.meta.url).pathname;
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
     signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds

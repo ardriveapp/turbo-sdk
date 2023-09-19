@@ -57,8 +57,8 @@
     "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
     "prepare": "husky install",
-    "example:mjs": "yarn build:esm && node examples/node/index.mjs",
-    "example:cjs": "yarn build:esm && node examples/node/index.cjs",
+    "example:mjs": "cd examples/mjs && yarn && node index.mjs",
+    "example:cjs": "cd examples/cjs && yarn && node index.cjs",
     "example:web": "yarn build:web && cp -r bundles/* examples/web && http-server --port 8080 --host -o examples/web"
   },
   "dependencies": {

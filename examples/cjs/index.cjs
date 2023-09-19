@@ -1,11 +1,13 @@
-import Arweave from 'arweave';
-import fs from 'fs';
+const path = require('path');
+const fs = require('fs');
 
-import {
+const Arweave = require('arweave');
+const {
   TurboFactory,
   TurboUnauthenticatedPaymentService,
-} from '../../lib/node/index.js';
+} = require('@ardrive/turbo-sdk/node');
 
+// immediately invoked function expression
 (async () => {
   /**
    * Fetching rates using an unauthenticated Turbo client.
@@ -14,7 +16,7 @@ import {
   const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
-  /*
+  /**
    * Alternatively instantiate your own clients independently.
    */
   const paymentService = new TurboUnauthenticatedPaymentService({
@@ -27,12 +29,20 @@ import {
   );
 
   /**
-   * Fetching balance using an authenticated Turbo client.
+   * Create a new arweave private key
    */
-  const arweave = new Arweave.init();
+  const arweave = new Arweave({});
   const jwk = await Arweave.crypto.generateJWK();
   const address = await arweave.wallets.jwkToAddress(jwk);
+
+  /**
+   * Use the arweave key to create an authenticated turbo client
+   */
   const turboAuthClient = TurboFactory.authenticated({ privateKey: jwk });
+
+  /**
+   * Fetch the balance for the private key.
+   */
   const balance = await turboAuthClient.getBalance();
   console.log(
     'Balance:',
@@ -58,11 +68,11 @@ import {
   /**
    * Post local files to the Turbo service.
    */
-  console.log('Posting raw files to Turbo service...');
-  const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+  console.log('Posting raw file to Turbo service...');
+  const filePath = path.join(__dirname, '../files/0_kb.txt');
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
-    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 second
+    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   console.log(JSON.stringify(uploadResult, null, 2));
 })();
