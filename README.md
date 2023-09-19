@@ -30,7 +30,7 @@ yarn add @ardrive/turbo-sdk
 
 ## Usage
 
-The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Depending on your project's configuration, leverage the named exports provided by this SDK's [package.json]. Refer to the [examples] directory to see how to use the SDK in various environments.
+The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriate named exports provides by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
 
 ### Web
 
@@ -119,7 +119,7 @@ const rates = await turbo.getFiatRates();
 
 ### Typescript
 
-The SDK comes with TypeScript typings. When you import the SDK in a TypeScript project:
+The SDK provides TypeScript types. When you import the SDK in a TypeScript project:
 
 ```typescript
 import Ardrive from '@ardrive/turbo-sdk/web';
@@ -127,7 +127,7 @@ import Ardrive from '@ardrive/turbo-sdk/web';
 // or '@ardrive/turbo-sdk/node' for Node.js projects
 ```
 
-These typings are exported from `./lib/types/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
+Types are exported from `./lib/types/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
 
 ## APIs
 
