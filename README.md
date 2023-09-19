@@ -160,13 +160,13 @@ These typings are exported from `./lib/types/index.d.ts` and should be automatic
   const countries = await turbo.getSupportedCountries();
   ```
 
-- `getFiatToAR({ currency })` - Returns the current fiat conversion for a specific currency.
+- `getFiatToAR()` - Returns the current raw fiat to AR conversion rate for a specific currency
 
   ```typescript
   const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
   ```
 
-- `getFiatRates()` - Returns the current fiat conversion rates for supported currencies.
+- `getFiatRates()` - Returns the current fiat rates for 1 GiB of data for supported currencies
 
   ```typescript
   const rates = await turbo.getFiatRates();
