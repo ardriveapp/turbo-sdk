@@ -41,8 +41,8 @@ import { TurboUnauthenticatedUploadService } from './upload.js';
 export class TurboUnauthenticatedClient
   implements TurboUnauthenticatedClientInterface
 {
-  protected readonly paymentService: TurboUnauthenticatedPaymentServiceInterface;
-  protected readonly uploadService: TurboUnauthenticatedUploadServiceInterface;
+  protected paymentService: TurboUnauthenticatedPaymentServiceInterface;
+  protected uploadService: TurboUnauthenticatedUploadServiceInterface;
 
   constructor({
     uploadService = new TurboUnauthenticatedUploadService({}),
@@ -130,8 +130,9 @@ export class TurboAuthenticatedClient
   extends TurboUnauthenticatedClient
   implements TurboAuthenticatedClientInterface
 {
-  protected readonly paymentService: TurboAuthenticatedPaymentServiceInterface;
-  protected readonly uploadService: TurboAuthenticatedUploadServiceInterface;
+  // override the parent classes for authenticated types
+  protected paymentService: TurboAuthenticatedPaymentServiceInterface;
+  protected uploadService: TurboAuthenticatedUploadServiceInterface;
 
   constructor({
     paymentService,

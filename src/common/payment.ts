@@ -100,7 +100,6 @@ export class TurboAuthenticatedPaymentService
   extends TurboUnauthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
-  protected readonly httpService: TurboHTTPService;
   protected readonly signer: TurboWalletSigner;
 
   constructor({
