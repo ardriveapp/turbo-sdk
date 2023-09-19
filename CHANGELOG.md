@@ -1,3 +1,10 @@
+# [1.0.0-alpha.21](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.20...v1.0.0-alpha.21) (2023-09-19)
+
+
+### Bug Fixes
+
+* use declare in sub-classes to overwrite parent class type ([3a656fa](https://github.com/ardriveapp/turbo-sdk/commit/3a656fa79605502f107d076ede654af96542f36b))
+
 # [1.0.0-alpha.20](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.19...v1.0.0-alpha.20) (2023-09-19)
 
 
