@@ -64,7 +64,6 @@ export class TurboAuthenticatedUploadService
   extends TurboUnauthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
-  protected httpService: TurboHTTPService;
   protected signer: TurboWalletSigner;
 
   constructor({
