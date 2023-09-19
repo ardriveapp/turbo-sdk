@@ -1,3 +1,10 @@
+# [1.0.0-alpha.20](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.19...v1.0.0-alpha.20) (2023-09-19)
+
+
+### Bug Fixes
+
+* **package.json:** add back module to package.json ([8b252c6](https://github.com/ardriveapp/turbo-sdk/commit/8b252c6636b2384182d8181d305e818089d79f86))
+
 # [1.0.0-alpha.19](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.18...v1.0.0-alpha.19) (2023-09-19)
 
 
