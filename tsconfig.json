@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ESNext",
     "allowSyntheticDefaultImports": true,
     "lib": ["esnext", "dom"],
     "outDir": "./lib/esm",

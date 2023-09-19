@@ -130,8 +130,9 @@ export class TurboAuthenticatedClient
   extends TurboUnauthenticatedClient
   implements TurboAuthenticatedClientInterface
 {
-  protected readonly paymentService: TurboAuthenticatedPaymentServiceInterface;
-  protected readonly uploadService: TurboAuthenticatedUploadServiceInterface;
+  // override the parent classes for authenticated types
+  protected declare readonly paymentService: TurboAuthenticatedPaymentServiceInterface;
+  protected declare readonly uploadService: TurboAuthenticatedUploadServiceInterface;
 
   constructor({
     paymentService,
