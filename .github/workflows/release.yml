@@ -31,11 +31,6 @@ jobs:
       - name: Build
         run: yarn build
 
-      - name: Prep for release
-        run: |
-          sed -i '/"type": "module"/d' package.json
-          echo '{"type": "module"}' > lib/esm/package.json
-
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}

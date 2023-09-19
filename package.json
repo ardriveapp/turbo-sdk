@@ -45,7 +45,7 @@
   "scripts": {
     "build:web": "node bundle.cjs",
     "build:esm": "yarn tsc -p tsconfig.json",
-    "build:cjs": "yarn tsc -p tsconfig.cjs.json",
+    "build:cjs": "yarn tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > lib/cjs/package.json",
     "build:types": "yarn tsc -p tsconfig.types.json",
     "build": "yarn clean && yarn build:web && yarn build:esm && yarn build:cjs && yarn build:types",
     "clean": "rimraf [ lib coverage bundles ]",
