@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  arlocal:
+    image: textury/arlocal:v1.1.35
+    ports:
+      - '1984:1984'
+
+  payment-service:
+    image: ghcr.io/ardriveapp/turbo-payment-service:latest
+    environment:
+      NODE_ENV: ${NODE_ENV:-test}
+      DB_HOST: payment-service-pg
+      DB_PORT: 5432
+      DB_PASSWORD: postgres
+      PORT: ${PORT:-3000}
+      DISABLE_LOGS: ${DISABLE_LOGS:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-test}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-test}
+      MIGRATE_ON_STARTUP: true
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    depends_on:
+      - payment-service-pg
+
+  payment-service-pg:
+    image: postgres:13.8
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - payment-service-data:/var/lib/postgresql/data
+
+  upload-service:
+    image: ghcr.io/ardriveapp/turbo-upload-service:latest
+    environment:
+      NODE_ENV: ${NODE_ENV:-test}
+      DB_HOST: upload-service-pg
+      DB_PORT: 5433
+      DB_PASSWORD: postgres
+      PORT: 4000
+      PAYMENT_SERVICE_BASE_URL: ${PAYMENT_SERVICE_BASE_URL:-payment-service}
+      ALLOW_LISTED_ADDRESSES: ${ALLOW_LISTED_ADDRESSES:-}
+      MIGRATE_ON_STARTUP: true
+    ports:
+      - '${PORT:-4000}:${PORT:-4000}'
+    volumes:
+      - upload-service-data-items:/temp
+    depends_on:
+      - upload-service-pg
+
+  upload-service-pg:
+    image: postgres:13.8
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - '5433:5432'
+    volumes:
+      - upload-service-data:/var/lib/postgresql/data
+
+volumes:
+  payment-service-data:
+  upload-service-data:
+  upload-service-data-items:
