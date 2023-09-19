@@ -187,9 +187,10 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
 - `uploadSignedDataItem({ dataItemStreamFactory, signal })` - Uploads a signed data item. The provided dataItemStreamFactory should produce a NEW signed data item stream each time is it invoked.
 
   ```typescript
+  const filePath = path.join(__dirname, './my-signed-data-item');
   const uploadResponse = await turbo.uploadSignedDataItem({
-    dataItemStreamFactory: myStreamFactory,
-    signal: myAbortSignal,
+    dataItemStreamFactory: () => fs.createReadStream(filePath),
+    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   ```
 
@@ -204,8 +205,9 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
 - `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file. The provided fileStreamFactory should produce a NEW signed file data stream each time is it invoked.
 
   ```typescript
-  const uploadResponse = await turbo.uploadFile({
-    fileStreamFactory: myFileStreamFactory,
+  const filePath = path.join(__dirname, './my-unsigned-file.txt');
+  const uploadResult = await turboAuthClient.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(filePath),
   });
   ```
 
