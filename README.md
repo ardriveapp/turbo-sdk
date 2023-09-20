@@ -194,6 +194,29 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   });
   ```
 
+- `getCheckoutSession({ amount, currency, owner })` - Gets a Stripe checkout session for a Turbo Top Up
+
+  ```typescript
+  const { url, winc, paymentAmount, quotedPaymentAmount } =
+    await turbo.getCheckoutSession({
+      amount: 1000,
+      currency: 'usd',
+      owner: publicArweaveAddress,
+    });
+
+  // Open checkout session in a browser
+  if (process.platform === 'darwin') {
+    // macOS
+    exec(`open ${url}`);
+  } else if (process.platform === 'win32') {
+    // Windows
+    exec(`start "" "${url}"`);
+  } else {
+    // Linux/Unix
+    open(url);
+  }
+  ```
+
 ### TurboAuthenticatedClient
 
 - `getBalance()` - Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
