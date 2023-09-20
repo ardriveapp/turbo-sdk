@@ -1,6 +1,7 @@
 <html>
   <head>
     <script type="module" src="./web.bundle.min.js"></script>
+    <script src="https://unpkg.com/arweave/bundles/web.bundle.min.js"></script>
     <style>
       /* Center the button */
       body {
@@ -9,14 +10,109 @@
     </style>
   </head>
   <body>
+    <div>
+      <h1>Rates</h1>
+      <span id="rates">Fetching rates...</span>
+    </div>
+    <div>
+      <h1>Balance</h1>
+      <span id="balance">Fetching balance for generated wallet...</span>
+    </div>
+    <div>
+      <h1>Upload File</h1>
+
+      <form
+        id="uploadForm"
+        action="/upload"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <label for="file">Choose file to upload:</label>
+        <input type="file" id="file" name="file" />
+        <br /><br />
+        <input type="submit" value="Upload File" />
+        <br /><br />
+        <span id="uploadStatus"></span>
+      </form>
+    </div>
     <script type="module">
-      import { TurboClient } from './web.bundle.min.js';
+      import { TurboFactory } from './web.bundle.min.js';
 
-      // set up our factory
-      const turbo = new TurboClient();
+      /**
+       * Set up our authenticated client factory
+       */
+      const arweave = new Arweave({
+        host: 'ar-io.dev',
+        port: 443,
+        protocol: 'https',
+      });
+      const jwk = await arweave.crypto.generateJWK();
+      const address = await arweave.wallets.jwkToAddress(jwk);
+      const turbo = TurboFactory.authenticated({
+        privateKey: jwk,
+      });
 
-      // print the client to the console
-      console.log(turbo);
+      /**
+       * Fetch fiat rates.
+       */
+      const rates = await turbo.getFiatRates();
+
+      console.log(
+        'Successfully fetched rates!',
+        JSON.stringify(rates, null, 2),
+      );
+
+      const ratesString = Object.entries(rates['fiat'])
+        .map(([key, value]) => {
+          return `${key}: ${value}`;
+        })
+        .join('\n');
+      document.getElementById('rates').innerText = ratesString;
+
+      /**
+       * Fetch wallet balance.
+       */
+      const balance = await turbo.getBalance();
+      document.getElementById('balance').innerText = JSON.stringify(
+        balance,
+        null,
+        2,
+      );
+
+      /**
+       * Handle file upload
+       */
+      document
+        .getElementById('uploadForm')
+        .addEventListener('submit', function (e) {
+          e.preventDefault(); // Stop the form from submitting
+
+          const fileInput = document.getElementById('file');
+          const selectedFiles = fileInput.files;
+
+          if (selectedFiles.length) {
+            // TODO: make this concurrent
+            for (const file of selectedFiles) {
+              const response = turbo
+                .uploadFile({
+                  fileStreamFactory: () => file.stream(),
+                })
+                .then((res) => {
+                  console.log('Successfully uploaded files!', res);
+                  document.getElementById(
+                    'uploadStatus',
+                  ).innerText = `Successfully uploaded file! ${JSON.stringify(
+                    res,
+                    null,
+                    2,
+                  )}`;
+                })
+                .catch((err) => console.log('Error uploading file!', err));
+            }
+          } else {
+            console.log('No file selected');
+          }
+        });
     </script>
   </body>
 </html>

@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/web", "src/common", "src/utils"],
+  "compilerOptions": {
+    "outDir": "./lib/web"
+  }
+}

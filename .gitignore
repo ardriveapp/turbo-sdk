@@ -6,6 +6,9 @@ coverage
 dist
 .husky/_
 
+# Example files
+*.min.js
+
 # IDEs and editors
 .vscode
 .DS_Store
@@ -13,3 +16,9 @@ yarn-error.log
 
 # Build files
 **/*.min.js
+
+# Any local builds
+*.tgz
+
+# builds
+package/*
