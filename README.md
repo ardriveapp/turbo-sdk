@@ -202,7 +202,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const balance = await turbo.getBalance();
   ```
 
-- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file. The provided fileStreamFactory should produce a NEW signed file data stream each time is it invoked.
+- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file. The provided fileStreamFactory should produce a NEW file data stream each time is it invoked.
 
   ```typescript
   const filePath = path.join(__dirname, './my-unsigned-file.txt');
