@@ -16,9 +16,13 @@
  */
 import {
   Currency,
+  TopUpRawResponse,
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedPaymentServiceInterfaceConfiguration,
   TurboBalanceResponse,
+  TurboCheckoutSessionAuthenticatedParams,
+  TurboCheckoutSessionParams,
+  TurboCheckoutSessionResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
@@ -93,6 +97,34 @@ export class TurboUnauthenticatedPaymentService
       endpoint: `/price/${currency}/${amount}`,
     });
   }
+
+  protected getCheckoutUrl({
+    amount,
+    currency,
+    owner,
+    promoCodes = [],
+  }: TurboCheckoutSessionAuthenticatedParams) {
+    return `/top-up/checkout-session/${owner}/${currency}/${amount}${
+      promoCodes.length > 0 ? `?promoCode=${promoCodes.join(',')}` : ''
+    }`;
+  }
+
+  async getCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    const { adjustments, paymentSession, topUpQuote } =
+      await this.httpService.get<TopUpRawResponse>({
+        endpoint: this.getCheckoutUrl(params),
+      });
+
+    return {
+      winc: topUpQuote.winstonCreditAmount,
+      adjustments,
+      url: paymentSession.url,
+      paymentAmount: topUpQuote.paymentAmount,
+      quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
+    };
+  }
 }
 
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
@@ -121,5 +153,23 @@ export class TurboAuthenticatedPaymentService
 
     // 404's don't return a balance, so default to 0
     return balance.winc ? balance : { winc: '0' };
+  }
+
+  async getCheckoutSession(
+    params: TurboCheckoutSessionAuthenticatedParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    const { adjustments, paymentSession, topUpQuote } =
+      await this.httpService.get<TopUpRawResponse>({
+        endpoint: this.getCheckoutUrl(params),
+        headers: await this.signer.generateSignedRequestHeaders(),
+      });
+
+    return {
+      winc: topUpQuote.winstonCreditAmount,
+      adjustments,
+      url: paymentSession.url,
+      paymentAmount: topUpQuote.paymentAmount,
+      quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
+    };
   }
 }

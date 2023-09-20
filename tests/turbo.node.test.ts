@@ -154,17 +154,34 @@ describe('Node environment', () => {
         expect(error.message).to.contain('Invalid Data Item');
       });
     });
+
+    describe('getCheckoutSession()', () => {
+      it('should properly get a checkout session', async () => {
+        const { adjustments, paymentAmount, quotedPaymentAmount, url } =
+          await turbo.getCheckoutSession({
+            amount: 1000, // 10 USD
+            currency: 'usd',
+            owner: '43-character-stub-arweave-address-000000000',
+          });
+        expect(adjustments).to.deep.equal([]);
+        expect(paymentAmount).to.equal(1000);
+        expect(quotedPaymentAmount).to.equal(1000);
+        expect(url).to.be.a('string');
+      });
+    });
   });
 
   describe('TurboAuthenticatedNodeClient', () => {
     let jwk: JWKInterface;
     let turbo: TurboAuthenticatedClient;
+    let address: string;
 
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
         privateKey: jwk,
       });
+      address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
 
     it('getBalance()', async () => {
@@ -212,6 +229,32 @@ describe('Node environment', () => {
           .catch((err) => err);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Insufficient balance');
+      });
+    });
+
+    describe('getCheckoutSession()', () => {
+      it('should properly get a checkout session with promo code', async () => {
+        const { adjustments, paymentAmount, quotedPaymentAmount, url } =
+          await turbo.getCheckoutSession({
+            amount: 1000, // 10 USD
+            currency: 'usd',
+            owner: address,
+            promoCodes: ['TOKEN2049'],
+          });
+        expect(adjustments).to.deep.equal([
+          {
+            adjustmentAmount: -200,
+            currencyType: 'usd',
+            description:
+              '20% off of top up purchase, can be used once per user.',
+            name: 'Token2049 Singapore Promo Code',
+            operator: 'multiply',
+            operatorMagnitude: 0.8,
+          },
+        ]);
+        expect(paymentAmount).to.equal(800);
+        expect(quotedPaymentAmount).to.equal(1000);
+        expect(url).to.be.a('string');
       });
     });
   });

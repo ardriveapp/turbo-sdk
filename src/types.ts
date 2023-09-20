@@ -25,8 +25,26 @@ export type Base64String = string;
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
-export type Currency = 'usd' | 'eur' | 'gbp' | 'cad' | 'aud' | 'nzd' | 'jpy'; // TODO: add full list
+export type Currency =
+  | 'usd'
+  | 'eur'
+  | 'gbp'
+  | 'cad'
+  | 'aud'
+  | 'jpy'
+  | 'inr'
+  | 'sgd'
+  | 'hkd'
+  | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
+
+interface Adjustment {
+  name: string;
+  description: string;
+  operatorMagnitude: number;
+  operator: 'multiply' | 'add';
+  adjustmentAmount: string;
+}
 
 export type CurrencyLimit = {
   minimumPaymentAmount: number;
@@ -37,7 +55,37 @@ export type CurrencyLimit = {
 
 export type TurboPriceResponse = {
   winc: string; // TODO: the service returns BigNumbers as strings
-  adjustments: any; // TODO: type this
+  adjustments: Adjustment[];
+};
+
+export type TurboCheckoutSessionParams = {
+  amount: number;
+  currency: Currency;
+  owner: PublicArweaveAddress;
+};
+
+export type TurboCheckoutSessionAuthenticatedParams =
+  TurboCheckoutSessionParams & {
+    promoCodes?: string[];
+  };
+
+export type TopUpRawResponse = {
+  topUpQuote: {
+    paymentAmount: number;
+    quotedPaymentAmount: number;
+    winstonCreditAmount: string;
+  };
+  paymentSession: { url: string };
+  adjustments: Adjustment[];
+};
+
+export type TurboCheckoutSessionResponse = {
+  // TODO: Do we open this URL in a browser in the SDK or defer to the client?
+  url: string;
+  adjustments: Adjustment[];
+  paymentAmount: number;
+  quotedPaymentAmount: number;
+  winc: string; // TODO: the service returns BigNumbers as strings
 };
 
 export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
@@ -180,11 +228,31 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
     currency: Currency;
   }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
+  getCheckoutSession({
+    amount,
+    currency,
+    owner,
+  }: {
+    amount: number;
+    currency: Currency;
+    owner: PublicArweaveAddress;
+  }): Promise<TurboCheckoutSessionResponse>;
 }
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: () => Promise<TurboBalanceResponse>;
+  getCheckoutSession({
+    amount,
+    currency,
+    owner,
+    promoCodes,
+  }: {
+    amount: number;
+    currency: Currency;
+    owner: PublicArweaveAddress;
+    promoCodes?: string[];
+  }): Promise<TurboCheckoutSessionResponse>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {

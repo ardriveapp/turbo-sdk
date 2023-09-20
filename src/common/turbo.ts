@@ -21,6 +21,9 @@ import {
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
   TurboBalanceResponse,
+  TurboCheckoutSessionAuthenticatedParams,
+  TurboCheckoutSessionParams,
+  TurboCheckoutSessionResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
@@ -126,6 +129,15 @@ export class TurboUnauthenticatedClient
       signal,
     });
   }
+
+  /**
+   * Creates a Turbo Checkout Session for a given amount and currency.
+   */
+  async getCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    return this.paymentService.getCheckoutSession(params);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -164,5 +176,14 @@ export class TurboAuthenticatedClient
       fileSizeFactory,
       signal,
     });
+  }
+
+  /**
+   * Creates a Turbo Checkout Session for a given amount and currency.
+   */
+  async getCheckoutSession(
+    params: TurboCheckoutSessionAuthenticatedParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    return this.paymentService.getCheckoutSession(params);
   }
 }
