@@ -20,11 +20,8 @@ import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
 import { JWKInterface } from '../common/jwk.js';
-import { TurboWalletSigner } from '../types.js';
+import { StreamSizeFactory, TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
-
-// TODO: is this deterministic for arweave wallets?
-export const SIGNED_DATA_ITEM_HEADERS_SIZE = 1044;
 
 export class TurboNodeArweaveSigner implements TurboWalletSigner {
   protected privateKey: JWKInterface;
@@ -41,17 +38,20 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     fileSizeFactory,
   }: {
     fileStreamFactory: () => Readable;
-    fileSizeFactory: () => number;
+    fileSizeFactory: StreamSizeFactory;
   }): Promise<{
-    signedDataItem: Readable;
-    signedDataItemSize: number;
+    dataItemStreamFactory: () => Readable;
+    dataItemSizeFactory: StreamSizeFactory;
   }> {
     // TODO: replace with our own signer implementation
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
     const signedDataItem = await streamSigner(stream1, stream2, this.signer);
+    const signedDataItemSize = this.calculateSignedDataHeadersSize({
+      dataSize: fileSizeFactory(),
+    });
     return {
-      signedDataItem: signedDataItem,
-      signedDataItemSize: fileSizeFactory() + SIGNED_DATA_ITEM_HEADERS_SIZE,
+      dataItemStreamFactory: () => signedDataItem,
+      dataItemSizeFactory: () => signedDataItemSize,
     };
   }
 
@@ -66,5 +66,29 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
     };
+  }
+
+  // TODO: make dynamic that accepts anchor and target and tags to return the size of the headers + data
+  // reference https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md#13-dataitem-format
+  private calculateSignedDataHeadersSize({ dataSize }: { dataSize: number }) {
+    const anchor = 1; // + whatever they provide (max of 33)
+    const target = 1; // + whatever they provide (max of 33)
+    const tags = 0;
+    const signatureLength = 512;
+    const ownerLength = 512;
+    const signatureTypeLength = 2;
+    const numOfTagsLength = 8; // https://github.com/Bundlr-Network/arbundles/blob/master/src/tags.ts#L191-L198
+    const numOfTagsBytesLength = 8;
+    return [
+      anchor,
+      target,
+      tags,
+      signatureLength,
+      ownerLength,
+      signatureTypeLength,
+      numOfTagsLength,
+      numOfTagsBytesLength,
+      dataSize,
+    ].reduce((totalSize, currentSize) => (totalSize += currentSize));
   }
 }
