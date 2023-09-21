@@ -49,13 +49,13 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  async getFiatRates(): Promise<TurboRatesResponse> {
+  public getFiatRates(): Promise<TurboRatesResponse> {
     return this.httpService.get<TurboRatesResponse>({
       endpoint: '/rates',
     });
   }
 
-  async getFiatToAR({
+  public getFiatToAR({
     currency,
   }: {
     currency: Currency;
@@ -65,19 +65,19 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  async getSupportedCountries(): Promise<TurboCountriesResponse> {
+  public getSupportedCountries(): Promise<TurboCountriesResponse> {
     return this.httpService.get<TurboCountriesResponse>({
       endpoint: '/countries',
     });
   }
 
-  async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
+  public getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
     return this.httpService.get<TurboCurrenciesResponse>({
       endpoint: '/currencies',
     });
   }
 
-  async getUploadCosts({
+  public async getUploadCosts({
     bytes,
   }: {
     bytes: number[];
@@ -92,7 +92,7 @@ export class TurboUnauthenticatedPaymentService
     return wincCostsForBytes;
   }
 
-  async getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {
+  public getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {
     return this.httpService.get<TurboPriceResponse>({
       endpoint: `/price/${currency}/${amount}`,
     });
@@ -121,7 +121,7 @@ export class TurboUnauthenticatedPaymentService
     };
   }
 
-  public async createCheckoutSession(
+  public createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
     return this.getCheckout(params);
@@ -144,7 +144,7 @@ export class TurboAuthenticatedPaymentService
     this.signer = signer;
   }
 
-  async getBalance(): Promise<TurboBalanceResponse> {
+  public async getBalance(): Promise<TurboBalanceResponse> {
     const headers = await this.signer.generateSignedRequestHeaders();
     const balance = await this.httpService.get<TurboBalanceResponse>({
       endpoint: '/balance',
