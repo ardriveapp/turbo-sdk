@@ -99,7 +99,12 @@ export class TurboUnauthenticatedPaymentService
   }
 
   protected async getCheckout(
-    { amount, currency, owner, promoCodes = [] }: TurboCheckoutSessionParams,
+    {
+      paymentAmount: amount,
+      currency,
+      owner,
+      promoCodes = [],
+    }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
   ) {
     const endpoint = `/top-up/checkout-session/${owner}/${currency}/${amount}${

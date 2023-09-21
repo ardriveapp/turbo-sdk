@@ -196,12 +196,12 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   });
   ```
 
-- `createCheckoutSession({ amount, currency, owner })` - Gets a Stripe checkout session for a Turbo Top Up
+- `createCheckoutSession({ paymentAmount, currency, owner })` - Gets a Stripe checkout session for a Turbo Top Up
 
   ```typescript
   const { url, winc, paymentAmount, quotedPaymentAmount } =
     await turbo.createCheckoutSession({
-      amount: 1000,
+      paymentAmount: 10_00, // 1000 cents = 10 USD
       currency: 'usd',
       owner: publicArweaveAddress,
     });
