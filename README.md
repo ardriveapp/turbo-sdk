@@ -194,7 +194,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   });
   ```
 
-- `createCheckoutSession({ paymentAmount, currency, owner })` - Gets a Stripe checkout session for a Turbo Top Up
+- `createCheckoutSession({ paymentAmount, currency, owner })` - Creates a Stripe checkout session for a Turbo Top Up. The returned URL can be opened in the browser, all payments are processed by Stripe.
 
   ```typescript
   const { url, winc, paymentAmount, quotedPaymentAmount } =
