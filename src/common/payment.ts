@@ -20,7 +20,6 @@ import {
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedPaymentServiceInterfaceConfiguration,
   TurboBalanceResponse,
-  TurboCheckoutSessionAuthenticatedParams,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
@@ -28,6 +27,7 @@ import {
   TurboFiatToArResponse,
   TurboPriceResponse,
   TurboRatesResponse,
+  TurboSignedRequestHeaders,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
   TurboWalletSigner,
@@ -98,23 +98,18 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  protected getCheckoutUrl({
-    amount,
-    currency,
-    owner,
-    promoCodes = [],
-  }: TurboCheckoutSessionAuthenticatedParams) {
-    return `/top-up/checkout-session/${owner}/${currency}/${amount}${
+  protected async getCheckout(
+    { amount, currency, owner, promoCodes = [] }: TurboCheckoutSessionParams,
+    headers?: TurboSignedRequestHeaders,
+  ) {
+    const endpoint = `/top-up/checkout-session/${owner}/${currency}/${amount}${
       promoCodes.length > 0 ? `?promoCode=${promoCodes.join(',')}` : ''
     }`;
-  }
 
-  async getCheckoutSession(
-    params: TurboCheckoutSessionParams,
-  ): Promise<TurboCheckoutSessionResponse> {
     const { adjustments, paymentSession, topUpQuote } =
       await this.httpService.get<TopUpRawResponse>({
-        endpoint: this.getCheckoutUrl(params),
+        endpoint,
+        headers,
       });
 
     return {
@@ -124,6 +119,12 @@ export class TurboUnauthenticatedPaymentService
       paymentAmount: topUpQuote.paymentAmount,
       quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
     };
+  }
+
+  public async createCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    return this.getCheckout(params);
   }
 }
 
@@ -155,21 +156,12 @@ export class TurboAuthenticatedPaymentService
     return balance.winc ? balance : { winc: '0' };
   }
 
-  async getCheckoutSession(
-    params: TurboCheckoutSessionAuthenticatedParams,
+  public async createCheckoutSession(
+    params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
-    const { adjustments, paymentSession, topUpQuote } =
-      await this.httpService.get<TopUpRawResponse>({
-        endpoint: this.getCheckoutUrl(params),
-        headers: await this.signer.generateSignedRequestHeaders(),
-      });
-
-    return {
-      winc: topUpQuote.winstonCreditAmount,
-      adjustments,
-      url: paymentSession.url,
-      paymentAmount: topUpQuote.paymentAmount,
-      quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
-    };
+    return this.getCheckout(
+      params,
+      await this.signer.generateSignedRequestHeaders(),
+    );
   }
 }

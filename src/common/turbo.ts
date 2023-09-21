@@ -21,7 +21,6 @@ import {
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
   TurboBalanceResponse,
-  TurboCheckoutSessionAuthenticatedParams,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
@@ -133,10 +132,10 @@ export class TurboUnauthenticatedClient
   /**
    * Creates a Turbo Checkout Session for a given amount and currency.
    */
-  async getCheckoutSession(
+  async createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
-    return this.paymentService.getCheckoutSession(params);
+    return this.paymentService.createCheckoutSession(params);
   }
 }
 
@@ -181,9 +180,9 @@ export class TurboAuthenticatedClient
   /**
    * Creates a Turbo Checkout Session for a given amount and currency.
    */
-  async getCheckoutSession(
-    params: TurboCheckoutSessionAuthenticatedParams,
+  async createCheckoutSession(
+    params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
-    return this.paymentService.getCheckoutSession(params);
+    return this.paymentService.createCheckoutSession(params);
   }
 }
