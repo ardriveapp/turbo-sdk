@@ -116,11 +116,13 @@ export class TurboUnauthenticatedClient
    */
   async uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
     signal,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadSignedDataItem({
       dataItemStreamFactory,
+      dataItemSizeFactory,
       signal,
     });
   }
@@ -153,9 +155,14 @@ export class TurboAuthenticatedClient
    */
   async uploadFile({
     fileStreamFactory,
+    fileSizeFactory,
     signal,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadFile({ fileStreamFactory, signal });
+    return this.uploadService.uploadFile({
+      fileStreamFactory,
+      fileSizeFactory,
+      signal,
+    });
   }
 }

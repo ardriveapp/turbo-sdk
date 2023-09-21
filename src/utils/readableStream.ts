@@ -18,19 +18,23 @@ import { ReadableStream } from 'node:stream/web';
 
 export async function readableStreamToBuffer({
   stream,
+  size,
 }: {
   stream: ReadableStream;
+  size: number;
 }): Promise<Buffer> {
   const reader = stream.getReader();
-  const chunks: any[] = [];
+  const buffer = Buffer.alloc(size);
+  let offset = 0;
 
   let done = false;
   while (!done) {
     const { done: streamDone, value } = await reader.read();
     done = streamDone;
     if (!done) {
-      chunks.push(value);
+      buffer.set(value, offset);
+      offset += value.byteLength;
     }
   }
-  return Buffer.concat(chunks);
+  return buffer;
 }

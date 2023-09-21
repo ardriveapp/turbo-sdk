@@ -106,6 +106,7 @@ describe('Browser environment', () => {
 
           const response = await turbo.uploadSignedDataItem({
             dataItemStreamFactory: () => signedDataItem.getRaw(),
+            dataItemSizeFactory: () => signedDataItem.getRaw().length,
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('fastFinalityIndexes');
@@ -122,6 +123,7 @@ describe('Browser environment', () => {
           const error = await turbo
             .uploadSignedDataItem({
               dataItemStreamFactory: () => signedDataItem.getRaw(),
+              dataItemSizeFactory: () => signedDataItem.getRaw().length,
               signal: AbortSignal.timeout(0), // abort the request right away
             })
             .catch((err) => err);
@@ -155,6 +157,7 @@ describe('Browser environment', () => {
         });
         const response = await turbo.uploadFile({
           fileStreamFactory: () => readableStream,
+          fileSizeFactory: () => uint8Array.length,
         });
         expect(response).to.not.be.undefined;
         expect(response).to.not.be.undefined;
@@ -176,6 +179,7 @@ describe('Browser environment', () => {
         const error = await turbo
           .uploadFile({
             fileStreamFactory: () => readableStream,
+            fileSizeFactory: () => uint8Array.length,
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);

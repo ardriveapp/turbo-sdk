@@ -112,13 +112,16 @@ export type FileStreamFactory =
   | (() => ReadableStream)
   | (() => Buffer);
 export type SignedDataStreamFactory = FileStreamFactory;
+export type StreamSizeFactory = () => number;
 export type TurboFileFactory = {
   fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
+  fileSizeFactory: StreamSizeFactory;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
+  dataItemSizeFactory: StreamSizeFactory;
 };
 
 export type TurboAbortSignal = {
@@ -155,7 +158,11 @@ export interface TurboHTTPServiceInterface {
 export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
-  }: TurboFileFactory): Promise<Readable> | Promise<Buffer>;
+    fileSizeFactory,
+  }: TurboFileFactory): Promise<{
+    signedDataItem: Readable | Buffer;
+    signedDataItemSize: number;
+  }>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
 
@@ -195,6 +202,7 @@ export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
   uploadFile({
     fileStreamFactory,
+    fileSizeFactory,
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 }
 
