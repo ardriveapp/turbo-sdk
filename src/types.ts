@@ -38,7 +38,7 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-interface Adjustment {
+export interface Adjustment {
   name: string;
   description: string;
   operatorMagnitude: number;
