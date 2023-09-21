@@ -129,10 +129,10 @@ describe('Browser environment', () => {
         });
       });
 
-      describe('getCheckoutSession()', () => {
+      describe('createCheckoutSession()', () => {
         it('should properly get a checkout session', async () => {
           const { adjustments, paymentAmount, quotedPaymentAmount, url } =
-            await turbo.getCheckoutSession({
+            await turbo.createCheckoutSession({
               amount: 1000, // 10 USD
               currency: 'usd',
               owner: '43-character-stub-arweave-address-000000000',
@@ -201,10 +201,10 @@ describe('Browser environment', () => {
       });
     });
 
-    describe('getCheckoutSession()', () => {
+    describe('createCheckoutSession()', () => {
       it('should properly get a checkout session with promo code', async () => {
         const { adjustments, paymentAmount, quotedPaymentAmount, url } =
-          await turbo.getCheckoutSession({
+          await turbo.createCheckoutSession({
             amount: 1000, // 10 USD
             currency: 'usd',
             owner: address,

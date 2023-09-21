@@ -62,12 +62,8 @@ export type TurboCheckoutSessionParams = {
   amount: number;
   currency: Currency;
   owner: PublicArweaveAddress;
+  promoCodes?: string[];
 };
-
-export type TurboCheckoutSessionAuthenticatedParams =
-  TurboCheckoutSessionParams & {
-    promoCodes?: string[];
-  };
 
 export type TopUpRawResponse = {
   topUpQuote: {
@@ -224,31 +220,14 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
     currency: Currency;
   }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
-  getCheckoutSession({
-    amount,
-    currency,
-    owner,
-  }: {
-    amount: number;
-    currency: Currency;
-    owner: PublicArweaveAddress;
-  }): Promise<TurboCheckoutSessionResponse>;
+  createCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse>;
 }
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: () => Promise<TurboBalanceResponse>;
-  getCheckoutSession({
-    amount,
-    currency,
-    owner,
-    promoCodes,
-  }: {
-    amount: number;
-    currency: Currency;
-    owner: PublicArweaveAddress;
-    promoCodes?: string[];
-  }): Promise<TurboCheckoutSessionResponse>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {
