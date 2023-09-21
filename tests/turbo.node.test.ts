@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import fs from 'fs';
 import { Readable } from 'node:stream';
 
-import { USDAmount } from '../src/common/currency.js';
+import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
 import {
   TurboAuthenticatedClient,
@@ -141,7 +141,7 @@ describe('Node environment', () => {
       it('should properly get a checkout session', async () => {
         const { adjustments, paymentAmount, quotedPaymentAmount, url } =
           await turbo.createCheckoutSession({
-            amount: new USDAmount(10),
+            amount: new USD(10),
             owner: '43-character-stub-arweave-address-000000000',
           });
         expect(adjustments).to.deep.equal([]);
@@ -200,7 +200,7 @@ describe('Node environment', () => {
       it('should properly get a checkout session with promo code', async () => {
         const { adjustments, paymentAmount, quotedPaymentAmount, url } =
           await turbo.createCheckoutSession({
-            amount: new USDAmount(10), // 10 USD
+            amount: new USD(10), // 10 USD
             owner: address,
             promoCodes: ['TOKEN2049'],
           });
