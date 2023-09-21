@@ -16,128 +16,93 @@
  */
 import { Currency } from '../types.js';
 
-export interface AmountMapper {
-  amount: number;
-  type: Currency;
-}
-
-export class USDAmount implements AmountMapper {
-  constructor(public readonly usd: number) {}
-
-  get amount(): number {
-    return this.usd * 100;
-  }
-
+export abstract class AmountMapper {
+  abstract amount: number;
   get type(): Currency {
-    return 'usd';
+    return this.constructor.name.toLowerCase() as Currency;
   }
 }
 
-export class EURAmount implements AmountMapper {
-  constructor(public readonly eur: number) {}
-
-  get amount(): number {
-    return this.eur * 100;
+export abstract class ZeroDecimalCurrency extends AmountMapper {
+  constructor(public a: number) {
+    super();
   }
 
-  get type(): Currency {
-    return 'eur';
+  get amount() {
+    return this.a;
   }
 }
 
-export class GBPAmount implements AmountMapper {
-  constructor(public readonly gbp: number) {}
-
-  get amount(): number {
-    return this.gbp * 100;
+export abstract class TwoDecimalCurrency extends AmountMapper {
+  constructor(public a: number) {
+    super();
   }
 
-  get type(): Currency {
-    return 'gbp';
-  }
-}
-
-export class CADAmount implements AmountMapper {
-  constructor(public readonly cad: number) {}
-
-  get amount(): number {
-    return this.cad * 100;
+  get amount() {
+    return this.a * 100;
   }
 
-  get type(): Currency {
-    return 'cad';
+  get type() {
+    return this.constructor.name.toLowerCase() as Currency;
   }
 }
 
-export class AUDAmount implements AmountMapper {
-  constructor(public readonly aud: number) {}
-
-  get amount(): number {
-    return this.aud * 100;
-  }
-
-  get type(): Currency {
-    return 'aud';
+export class USD extends TwoDecimalCurrency {
+  constructor(usd: number) {
+    super(usd);
   }
 }
 
-export class JPYAmount implements AmountMapper {
-  constructor(public readonly jpy: number) {}
-
-  get amount(): number {
-    // JPY is a zero-decimal currency, so we don't multiply by 100
-    return this.jpy;
-  }
-
-  get type(): Currency {
-    return 'jpy';
+export class EUR extends TwoDecimalCurrency {
+  constructor(eur: number) {
+    super(eur);
   }
 }
 
-export class INRAmount implements AmountMapper {
-  constructor(public readonly inr: number) {}
-
-  get amount(): number {
-    return this.inr * 100;
-  }
-
-  get type(): Currency {
-    return 'inr';
+export class GBP extends TwoDecimalCurrency {
+  constructor(gbp: number) {
+    super(gbp);
   }
 }
 
-export class SGDAmount implements AmountMapper {
-  constructor(public readonly sgd: number) {}
-
-  get amount(): number {
-    return this.sgd * 100;
-  }
-
-  get type(): Currency {
-    return 'sgd';
+export class CAD extends TwoDecimalCurrency {
+  constructor(public readonly cad: number) {
+    super(cad);
   }
 }
 
-export class HKDAmount implements AmountMapper {
-  constructor(public readonly hkd: number) {}
-
-  get amount(): number {
-    return this.hkd * 100;
-  }
-
-  get type(): Currency {
-    return 'hkd';
+export class AUD extends TwoDecimalCurrency {
+  constructor(public readonly aud: number) {
+    super(aud);
   }
 }
 
-export class BRLAmount implements AmountMapper {
-  constructor(public readonly brl: number) {}
-
-  get amount(): number {
-    return this.brl * 100;
+export class JPY extends ZeroDecimalCurrency {
+  constructor(public readonly jpy: number) {
+    super(jpy);
   }
+}
 
-  get type(): Currency {
-    return 'brl';
+export class INR extends TwoDecimalCurrency {
+  constructor(public readonly inr: number) {
+    super(inr);
+  }
+}
+
+export class SGD extends TwoDecimalCurrency {
+  constructor(public readonly sgd: number) {
+    super(sgd);
+  }
+}
+
+export class HKD extends TwoDecimalCurrency {
+  constructor(public readonly hkd: number) {
+    super(hkd);
+  }
+}
+
+export class BRL extends TwoDecimalCurrency {
+  constructor(public readonly brl: number) {
+    super(brl);
   }
 }
