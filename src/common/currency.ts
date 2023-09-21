@@ -16,89 +16,37 @@
  */
 import { Currency } from '../types.js';
 
-export abstract class AmountMapper {
-  abstract amount: number;
-  get type(): Currency {
-    return this.constructor.name.toLowerCase() as Currency;
-  }
+export interface AmountMapper {
+  amount: number;
+  type: Currency;
 }
 
-export abstract class ZeroDecimalCurrency extends AmountMapper {
-  constructor(public a: number) {
-    super();
-  }
-
-  get amount() {
-    return this.a;
-  }
+export class ZeroDecimalCurrency implements AmountMapper {
+  constructor(
+    public readonly amount: number,
+    public readonly type: Currency,
+  ) {}
 }
 
-export abstract class TwoDecimalCurrency extends AmountMapper {
-  constructor(public a: number) {
-    super();
-  }
+export class TwoDecimalCurrency implements AmountMapper {
+  constructor(
+    private a: number,
+    public readonly type: Currency,
+  ) {}
 
   get amount() {
     return this.a * 100;
   }
 }
 
-export class USD extends TwoDecimalCurrency {
-  constructor(usd: number) {
-    super(usd);
-  }
-}
+export const USD = (usd: number) => new TwoDecimalCurrency(usd, 'usd');
+export const EUR = (eur: number) => new TwoDecimalCurrency(eur, 'eur');
+export const GBP = (gbp: number) => new TwoDecimalCurrency(gbp, 'gbp');
+export const CAD = (cad: number) => new TwoDecimalCurrency(cad, 'cad');
+export const AUD = (aud: number) => new TwoDecimalCurrency(aud, 'aud');
+export const INR = (inr: number) => new TwoDecimalCurrency(inr, 'inr');
+export const SGD = (sgd: number) => new TwoDecimalCurrency(sgd, 'sgd');
+export const HKD = (hkd: number) => new TwoDecimalCurrency(hkd, 'hkd');
+export const BRL = (brl: number) => new TwoDecimalCurrency(brl, 'brl');
 
-export class EUR extends TwoDecimalCurrency {
-  constructor(eur: number) {
-    super(eur);
-  }
-}
-
-export class GBP extends TwoDecimalCurrency {
-  constructor(gbp: number) {
-    super(gbp);
-  }
-}
-
-export class CAD extends TwoDecimalCurrency {
-  constructor(public readonly cad: number) {
-    super(cad);
-  }
-}
-
-export class AUD extends TwoDecimalCurrency {
-  constructor(public readonly aud: number) {
-    super(aud);
-  }
-}
-
-export class JPY extends ZeroDecimalCurrency {
-  constructor(public readonly jpy: number) {
-    super(jpy);
-  }
-}
-
-export class INR extends TwoDecimalCurrency {
-  constructor(public readonly inr: number) {
-    super(inr);
-  }
-}
-
-export class SGD extends TwoDecimalCurrency {
-  constructor(public readonly sgd: number) {
-    super(sgd);
-  }
-}
-
-export class HKD extends TwoDecimalCurrency {
-  constructor(public readonly hkd: number) {
-    super(hkd);
-  }
-}
-
-export class BRL extends TwoDecimalCurrency {
-  constructor(public readonly brl: number) {
-    super(brl);
-  }
-}
+export const JPY = (jpy: number) => new ZeroDecimalCurrency(jpy, 'jpy');
