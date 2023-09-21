@@ -84,11 +84,13 @@ export class TurboAuthenticatedUploadService
     signal,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    const { signedDataItem, signedDataItemSize } =
+    const { dataItemStreamFactory, dataItemSizeFactory } =
       await this.signer.signDataItem({
         fileStreamFactory,
         fileSizeFactory,
       });
+    const signedDataItem = dataItemStreamFactory();
+    const fileSize = dataItemSizeFactory();
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
@@ -96,7 +98,7 @@ export class TurboAuthenticatedUploadService
       data: signedDataItem,
       headers: {
         'content-type': 'application/octet-stream',
-        'content-length': `${signedDataItemSize}`,
+        'content-length': `${fileSize}`,
       },
     });
   }

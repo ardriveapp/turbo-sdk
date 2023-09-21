@@ -159,10 +159,7 @@ export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-  }: TurboFileFactory): Promise<{
-    signedDataItem: Readable | Buffer;
-    signedDataItemSize: number;
-  }>;
+  }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
 
