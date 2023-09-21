@@ -44,9 +44,11 @@ export class TurboUnauthenticatedUploadService
 
   async uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
     signal,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    const fileSize = dataItemSizeFactory();
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
@@ -54,6 +56,7 @@ export class TurboUnauthenticatedUploadService
       data: dataItemStreamFactory(),
       headers: {
         'content-type': 'application/octet-stream',
+        'content-length': `${fileSize}`,
       },
     });
   }
@@ -78,12 +81,15 @@ export class TurboAuthenticatedUploadService
 
   async uploadFile({
     fileStreamFactory,
+    fileSizeFactory,
     signal,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    const signedDataItem = await this.signer.signDataItem({
-      fileStreamFactory,
-    });
+    const { signedDataItem, signedDataItemSize } =
+      await this.signer.signDataItem({
+        fileStreamFactory,
+        fileSizeFactory,
+      });
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
@@ -91,6 +97,7 @@ export class TurboAuthenticatedUploadService
       data: signedDataItem,
       headers: {
         'content-type': 'application/octet-stream',
+        'content-length': `${signedDataItemSize}`,
       },
     });
   }

@@ -23,6 +23,9 @@ import { JWKInterface } from '../common/jwk.js';
 import { TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 
+// TODO: is this deterministic for arweave wallets?
+export const SIGNED_DATA_ITEM_HEADERS_SIZE = 1044;
+
 export class TurboNodeArweaveSigner implements TurboWalletSigner {
   protected privateKey: JWKInterface;
   protected signer: ArweaveSigner; // TODO: replace with internal signer class
@@ -33,14 +36,23 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     this.signer = new ArweaveSigner(this.privateKey);
   }
 
-  signDataItem({
+  async signDataItem({
     fileStreamFactory,
+    fileSizeFactory,
   }: {
     fileStreamFactory: () => Readable;
-  }): Promise<Readable> {
+    fileSizeFactory: () => number;
+  }): Promise<{
+    signedDataItem: Readable;
+    signedDataItemSize: number;
+  }> {
     // TODO: replace with our own signer implementation
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
-    return streamSigner(stream1, stream2, this.signer);
+    const signedDataItem = await streamSigner(stream1, stream2, this.signer);
+    return {
+      signedDataItem: signedDataItem,
+      signedDataItemSize: fileSizeFactory() + SIGNED_DATA_ITEM_HEADERS_SIZE,
+    };
   }
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
