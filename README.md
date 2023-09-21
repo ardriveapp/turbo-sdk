@@ -212,7 +212,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
     exec(`open ${url}`);
   } else if (process.platform === 'win32') {
     // Windows
-    exec(`start "" "${url}"`);
+    exec(`start "" "${url}"`, { shell: true });
   } else {
     // Linux/Unix
     open(url);
