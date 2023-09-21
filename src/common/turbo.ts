@@ -57,7 +57,7 @@ export class TurboUnauthenticatedClient
   /**
    * Returns the supported fiat currency conversion rate for 1AR based on current market prices.
    */
-  async getFiatToAR({
+  getFiatToAR({
     currency,
   }: {
     currency: Currency;
@@ -71,28 +71,28 @@ export class TurboUnauthenticatedClient
    * Note: this does not take into account varying adjustments and promotions for different sizes of data. If you want to calculate the total
    * cost in 'winc' for a given number of bytes, use getUploadCosts.
    */
-  async getFiatRates(): Promise<TurboRatesResponse> {
+  getFiatRates(): Promise<TurboRatesResponse> {
     return this.paymentService.getFiatRates();
   }
 
   /**
    * Returns a comprehensive list of supported countries that can purchase credits through the Turbo Payment Service.
    */
-  async getSupportedCountries(): Promise<TurboCountriesResponse> {
+  getSupportedCountries(): Promise<TurboCountriesResponse> {
     return this.paymentService.getSupportedCountries();
   }
 
   /**
    * Returns a list of all supported fiat currencies.
    */
-  async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
+  getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
     return this.paymentService.getSupportedCurrencies();
   }
 
   /**
    * Determines the price in 'winc' to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
    */
-  async getUploadCosts({
+  getUploadCosts({
     bytes,
   }: {
     bytes: number[];
@@ -103,7 +103,7 @@ export class TurboUnauthenticatedClient
   /**
    * Determines the amount of 'winc' that would be returned for a given currency and amount, including all Turbo cost adjustments and fees.
    */
-  async getWincForFiat({
+  getWincForFiat({
     amount,
     currency,
   }: {
@@ -116,7 +116,7 @@ export class TurboUnauthenticatedClient
   /**
    * Uploads a signed data item to the Turbo Upload Service.
    */
-  async uploadSignedDataItem({
+  uploadSignedDataItem({
     dataItemStreamFactory,
     dataItemSizeFactory,
     signal,
@@ -132,7 +132,7 @@ export class TurboUnauthenticatedClient
   /**
    * Creates a Turbo Checkout Session for a given amount and currency.
    */
-  async createCheckoutSession(
+  createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
     return this.paymentService.createCheckoutSession(params);
@@ -157,14 +157,14 @@ export class TurboAuthenticatedClient
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  async getBalance(): Promise<TurboBalanceResponse> {
+  getBalance(): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance();
   }
 
   /**
    * Signs and uploads raw data to the Turbo Upload Service.
    */
-  async uploadFile({
+  uploadFile({
     fileStreamFactory,
     fileSizeFactory,
     signal,
@@ -180,7 +180,7 @@ export class TurboAuthenticatedClient
   /**
    * Creates a Turbo Checkout Session for a given amount and currency.
    */
-  async createCheckoutSession(
+  createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
     return this.paymentService.createCheckoutSession(params);
