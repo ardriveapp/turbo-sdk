@@ -41,10 +41,6 @@ export abstract class TwoDecimalCurrency extends AmountMapper {
   get amount() {
     return this.a * 100;
   }
-
-  get type() {
-    return this.constructor.name.toLowerCase() as Currency;
-  }
 }
 
 export class USD extends TwoDecimalCurrency {
