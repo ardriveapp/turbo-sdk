@@ -14,17 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export type Currency =
-  | 'usd'
-  | 'eur'
-  | 'gbp'
-  | 'cad'
-  | 'aud'
-  | 'jpy'
-  | 'inr'
-  | 'sgd'
-  | 'hkd'
-  | 'brl';
+import { Currency } from '../types.js';
 
 export interface AmountMapper {
   amount: number;
