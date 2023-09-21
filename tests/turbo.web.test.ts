@@ -4,6 +4,7 @@ import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
 
+import { USDAmount } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
 import {
   TurboAuthenticatedClient,
@@ -133,8 +134,7 @@ describe('Browser environment', () => {
         it('should properly get a checkout session', async () => {
           const { adjustments, paymentAmount, quotedPaymentAmount, url } =
             await turbo.createCheckoutSession({
-              paymentAmount: 1000, // 10 USD
-              currency: 'usd',
+              amount: new USDAmount(10),
               owner: '43-character-stub-arweave-address-000000000',
             });
           expect(adjustments).to.deep.equal([]);
@@ -205,8 +205,7 @@ describe('Browser environment', () => {
       it('should properly get a checkout session with promo code', async () => {
         const { adjustments, paymentAmount, quotedPaymentAmount, url } =
           await turbo.createCheckoutSession({
-            paymentAmount: 1000, // 10 USD
-            currency: 'usd',
+            amount: new USDAmount(10),
             owner: address,
             promoCodes: ['TOKEN2049'],
           });

@@ -19,6 +19,7 @@ import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 import winston from 'winston';
 
+import { AmountMapper } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
 
 export type Base64String = string;
@@ -59,13 +60,7 @@ export type TurboPriceResponse = {
 };
 
 export type TurboCheckoutSessionParams = {
-  /**
-   * The amount of the provided currency type to create checkout session for
-   * Represented in the currencies smallest amount, e.g: 1 USD = `paymentAmount: 100`
-   */
-  paymentAmount: number;
-  /** Currency type of the provided payment amount */
-  currency: Currency;
+  amount: AmountMapper;
   owner: PublicArweaveAddress;
   promoCodes?: string[];
 };
