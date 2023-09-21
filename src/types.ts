@@ -59,7 +59,12 @@ export type TurboPriceResponse = {
 };
 
 export type TurboCheckoutSessionParams = {
-  amount: number;
+  /**
+   * The amount of the provided currency type to create checkout session for
+   * Represented in the currencies smallest amount, e.g: 1 USD = `paymentAmount: 100`
+   */
+  paymentAmount: number;
+  /** Currency type of the provided payment amount */
   currency: Currency;
   owner: PublicArweaveAddress;
   promoCodes?: string[];
