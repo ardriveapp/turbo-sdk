@@ -141,7 +141,7 @@ describe('Node environment', () => {
       it('should properly get a checkout session', async () => {
         const { adjustments, paymentAmount, quotedPaymentAmount, url } =
           await turbo.createCheckoutSession({
-            amount: new USD(10),
+            amount: USD(10),
             owner: '43-character-stub-arweave-address-000000000',
           });
         expect(adjustments).to.deep.equal([]);
@@ -200,7 +200,7 @@ describe('Node environment', () => {
       it('should properly get a checkout session with promo code', async () => {
         const { adjustments, paymentAmount, quotedPaymentAmount, url } =
           await turbo.createCheckoutSession({
-            amount: new USD(10), // 10 USD
+            amount: USD(10), // 10 USD
             owner: address,
             promoCodes: ['TOKEN2049'],
           });
