@@ -201,8 +201,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   ```typescript
   const { url, winc, paymentAmount, quotedPaymentAmount } =
     await turbo.createCheckoutSession({
-      paymentAmount: 10_00, // 1000 cents = 10 USD
-      currency: 'usd',
+      amount: new USDAmount(10), //  10 USD
       owner: publicArweaveAddress,
     });
 
