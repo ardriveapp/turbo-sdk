@@ -38,13 +38,13 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-export interface Adjustment {
+export type Adjustment = {
   name: string;
   description: string;
   operatorMagnitude: number;
   operator: 'multiply' | 'add';
   adjustmentAmount: string;
-}
+};
 
 export type CurrencyLimit = {
   minimumPaymentAmount: number;
