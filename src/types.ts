@@ -59,10 +59,18 @@ export type TurboPriceResponse = {
   adjustments: Adjustment[];
 };
 
-export type TurboCheckoutSessionParams = {
+export type TurboWincForFiatResponse = TurboPriceResponse & {
+  paymentAmount: number;
+  quotedPaymentAmount: number;
+};
+
+export type TurboWincForFiatParams = {
   amount: AmountMapper;
-  owner: PublicArweaveAddress;
   promoCodes?: string[];
+};
+
+export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
+  owner: PublicArweaveAddress;
 };
 
 export type TopUpRawResponse = {
@@ -75,13 +83,8 @@ export type TopUpRawResponse = {
   adjustments: Adjustment[];
 };
 
-export type TurboCheckoutSessionResponse = {
-  // TODO: Do we open this URL in a browser in the SDK or defer to the client?
+export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   url: string;
-  adjustments: Adjustment[];
-  paymentAmount: number;
-  quotedPaymentAmount: number;
-  winc: string; // TODO: the service returns BigNumbers as strings
 };
 
 export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
@@ -216,13 +219,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
     currency: Currency;
   }): Promise<TurboFiatToArResponse>;
   getFiatRates(): Promise<TurboRatesResponse>;
-  getWincForFiat({
-    amount,
-    currency,
-  }: {
-    amount: number;
-    currency: Currency;
-  }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
+  getWincForFiat(
+    params: TurboWincForFiatParams,
+  ): Promise<TurboWincForFiatResponse>;
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
   createCheckoutSession(
     params: TurboCheckoutSessionParams,

@@ -36,6 +36,8 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboWincForFiatParams,
+  TurboWincForFiatResponse,
 } from '../types.js';
 import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
@@ -103,14 +105,10 @@ export class TurboUnauthenticatedClient
   /**
    * Determines the amount of 'winc' that would be returned for a given currency and amount, including all Turbo cost adjustments and fees.
    */
-  getWincForFiat({
-    amount,
-    currency,
-  }: {
-    amount: number;
-    currency: Currency;
-  }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
-    return this.paymentService.getWincForFiat({ amount, currency });
+  getWincForFiat(
+    params: TurboWincForFiatParams,
+  ): Promise<TurboWincForFiatResponse> {
+    return this.paymentService.getWincForFiat(params);
   }
 
   /**
@@ -175,14 +173,5 @@ export class TurboAuthenticatedClient
       fileSizeFactory,
       signal,
     });
-  }
-
-  /**
-   * Creates a Turbo Checkout Session for a given amount and currency.
-   */
-  createCheckoutSession(
-    params: TurboCheckoutSessionParams,
-  ): Promise<TurboCheckoutSessionResponse> {
-    return this.paymentService.createCheckoutSession(params);
   }
 }
