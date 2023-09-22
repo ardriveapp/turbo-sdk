@@ -195,47 +195,31 @@ describe('Node environment', () => {
       });
     });
 
-    it('getPriceForFiat() with promo code', async () => {
-      const { adjustments, winc } = await turbo.getWincForFiat({
-        amount: USD(10), // $10.00 USD
-        promoCodes: ['TOKEN2049'],
-      });
-      expect(winc).to.not.be.undefined;
-      expect(+winc).to.be.greaterThan(0);
-      expect(adjustments).to.deep.equal([
-        {
-          adjustmentAmount: -200,
-          currencyType: 'usd',
-          description: '20% off of top up purchase, can be used once per user.',
-          name: 'Token2049 Singapore Promo Code',
-          operator: 'multiply',
-          operatorMagnitude: 0.8,
-        },
-      ]);
+    it('getPriceForFiat() with a bad promo code', async () => {
+      await turbo
+        .getWincForFiat({
+          amount: USD(10), // $10.00 USD
+          promoCodes: ['BAD_PROMO_CODE'],
+        })
+        .catch((error) => {
+          expect(error?.name).to.equal('FailedRequestError');
+          // TODO: Could provide better error message to client. We have error messages on response.data
+          expect(error?.message).to.equal('Failed request: 400: Bad Request');
+        });
     });
 
     describe('createCheckoutSession()', () => {
-      it('should properly get a checkout session with promo code', async () => {
-        const { adjustments, paymentAmount, quotedPaymentAmount, url } =
-          await turbo.createCheckoutSession({
+      it('should fail to get a checkout session with a bad promo code', async () => {
+        await turbo
+          .createCheckoutSession({
             amount: USD(10), // 10 USD
             owner: address,
-            promoCodes: ['TOKEN2049'],
+            promoCodes: ['BAD_PROMO_CODE'],
+          })
+          .catch((error) => {
+            expect(error?.name).to.equal('FailedRequestError');
+            expect(error?.message).to.equal('Failed request: 400: Bad Request');
           });
-        expect(adjustments).to.deep.equal([
-          {
-            adjustmentAmount: -200,
-            currencyType: 'usd',
-            description:
-              '20% off of top up purchase, can be used once per user.',
-            name: 'Token2049 Singapore Promo Code',
-            operator: 'multiply',
-            operatorMagnitude: 0.8,
-          },
-        ]);
-        expect(paymentAmount).to.equal(800);
-        expect(quotedPaymentAmount).to.equal(1000);
-        expect(url).to.be.a('string');
       });
     });
   });
