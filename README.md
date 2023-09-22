@@ -172,7 +172,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const rates = await turbo.getFiatRates();
   ```
 
-- `getWincForFiat({ amount, promoCodes? })` - Returns the current conversion rate for Winston Credits for the provided fiat currency and amount, including all top-up adjustments and fees.
+- `getWincForFiat({ amount, promoCodes })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
   ```typescript
   const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
@@ -200,7 +200,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   });
   ```
 
-- `createCheckoutSession({ amount, owner, promoCodes? })` - Creates a Stripe checkout session for a Turbo Top Up. The returned URL can be opened in the browser, all payments are processed by Stripe.
+- `createCheckoutSession({ amount, owner, promoCodes })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe.
 
   ```typescript
   const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
