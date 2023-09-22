@@ -20,7 +20,7 @@ import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../common/jwk.js';
-import { TurboWalletSigner } from '../types.js';
+import { StreamSizeFactory, TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
@@ -35,17 +35,28 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
 
   async signDataItem({
     fileStreamFactory,
+    fileSizeFactory,
   }: {
     fileStreamFactory: () => ReadableStream;
-  }): Promise<Buffer> {
+    fileSizeFactory: StreamSizeFactory;
+  }): Promise<{
+    // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
+    dataItemStreamFactory: () => Buffer;
+    dataItemSizeFactory: StreamSizeFactory;
+  }> {
     // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
     const buffer = await readableStreamToBuffer({
       stream: fileStreamFactory(),
-      // TODO: add payload size to get performance improvements
+      size: fileSizeFactory(),
     });
-    const signedDataItem = createData(buffer, this.signer);
+    // TODO: support target, anchor and tags for upload
+    const signedDataItem = createData(buffer, this.signer, {});
     await signedDataItem.sign(this.signer);
-    return signedDataItem.getRaw();
+    return {
+      // while this returns a Buffer - it needs to match our return type for uploading
+      dataItemStreamFactory: () => signedDataItem.getRaw(),
+      dataItemSizeFactory: () => signedDataItem.getRaw().length,
+    };
   }
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto

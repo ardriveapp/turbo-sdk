@@ -13,6 +13,7 @@ import {
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
+import { FailedRequestError } from '../src/utils/errors.js';
 
 describe('Node environment', () => {
   describe('TurboFactory', () => {
@@ -97,6 +98,7 @@ describe('Node environment', () => {
 
         const response = await turbo.uploadSignedDataItem({
           dataItemStreamFactory: () => signedDataItem.getRaw(),
+          dataItemSizeFactory: () => signedDataItem.getRaw().length,
         });
         expect(response).to.not.be.undefined;
         expect(response).to.have.property('fastFinalityIndexes');
@@ -113,6 +115,7 @@ describe('Node environment', () => {
 
         const response = await turbo.uploadSignedDataItem({
           dataItemStreamFactory: () => Readable.from(signedDataItem.getRaw()),
+          dataItemSizeFactory: () => signedDataItem.getRaw().length,
         });
         expect(response).to.not.be.undefined;
         expect(response).to.have.property('fastFinalityIndexes');
@@ -129,10 +132,26 @@ describe('Node environment', () => {
         const error = await turbo
           .uploadSignedDataItem({
             dataItemStreamFactory: () => signedDataItem.getRaw(),
+            dataItemSizeFactory: () => signedDataItem.getRaw().length,
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
         expect(error).to.be.instanceOf(CanceledError);
+      });
+
+      it('should return FailedRequestError for incorrectly signed data item', async () => {
+        const jwk = await Arweave.crypto.generateJWK();
+        const signer = new ArweaveSigner(jwk);
+        const signedDataItem = createData('signed data item', signer, {});
+        // not signed
+        const error = await turbo
+          .uploadSignedDataItem({
+            dataItemStreamFactory: () => signedDataItem.getRaw(),
+            dataItemSizeFactory: () => signedDataItem.getRaw().length,
+          })
+          .catch((err) => err);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Invalid Data Item');
       });
     });
 
@@ -171,9 +190,11 @@ describe('Node environment', () => {
 
     describe('uploadFile()', () => {
       it('should properly upload a Readable to turbo', async () => {
-        const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+        const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+        const fileSize = fs.statSync(filePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(filePath),
+          fileSizeFactory: () => fileSize,
         });
         expect(response).to.not.be.undefined;
         expect(response).to.not.be.undefined;
@@ -184,14 +205,29 @@ describe('Node environment', () => {
       });
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
-        const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+        const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+        const fileSize = fs.statSync(filePath).size;
         const error = await turbo
           .uploadFile({
             fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
         expect(error).to.be.instanceOf(CanceledError);
+      });
+
+      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
+        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+        const fileSize = fs.statSync(filePath).size;
+        const error = await turbo
+          .uploadFile({
+            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
+          })
+          .catch((err) => err);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Insufficient balance');
       });
     });
 

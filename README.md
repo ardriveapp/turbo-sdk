@@ -188,12 +188,14 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const costs = await turbo.getUploadCosts({ bytes: [1000, 2000] });
   ```
 
-- `uploadSignedDataItem({ dataItemStreamFactory, signal })` - Uploads a signed data item. The provided dataItemStreamFactory should produce a NEW signed data item stream each time is it invoked.
+- `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })` - Uploads a signed data item. The provided dataItemStreamFactory should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file.
 
   ```typescript
   const filePath = path.join(__dirname, './my-signed-data-item');
+  const dataItemSize = fs.statSync(filePath).size;
   const uploadResponse = await turbo.uploadSignedDataItem({
     dataItemStreamFactory: () => fs.createReadStream(filePath),
+    dataItemSizeFactory: () => dataItemSize,
     signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   ```
@@ -229,12 +231,14 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const balance = await turbo.getBalance();
   ```
 
-- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file. The provided fileStreamFactory should produce a NEW file data stream each time is it invoked.
+- `uploadFile({ fileStreamFactory, fileSizeFactory, signal })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file.
 
   ```typescript
   const filePath = path.join(__dirname, './my-unsigned-file.txt');
+  const fileSize = fs.stateSync(filePath).size;
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
   });
   ```
 
