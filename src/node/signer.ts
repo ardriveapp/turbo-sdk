@@ -46,6 +46,7 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     // TODO: replace with our own signer implementation
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
     const signedDataItem = await streamSigner(stream1, stream2, this.signer);
+    // TODO: support target, anchor, and tags
     const signedDataItemSize = this.calculateSignedDataHeadersSize({
       dataSize: fileSizeFactory(),
     });
