@@ -16,19 +16,19 @@
  */
 import { Currency } from '../types.js';
 
-export interface AmountMapper {
+export interface CurrencyMap {
   amount: number;
   type: Currency;
 }
 
-export class ZeroDecimalCurrency implements AmountMapper {
+export class ZeroDecimalCurrency implements CurrencyMap {
   constructor(
     public readonly amount: number,
     public readonly type: Currency,
   ) {}
 }
 
-export class TwoDecimalCurrency implements AmountMapper {
+export class TwoDecimalCurrency implements CurrencyMap {
   constructor(
     private a: number,
     public readonly type: Currency,
@@ -39,6 +39,7 @@ export class TwoDecimalCurrency implements AmountMapper {
   }
 }
 
+// Two decimal currencies that are supported by the Turbo API
 export const USD = (usd: number) => new TwoDecimalCurrency(usd, 'usd');
 export const EUR = (eur: number) => new TwoDecimalCurrency(eur, 'eur');
 export const GBP = (gbp: number) => new TwoDecimalCurrency(gbp, 'gbp');
@@ -49,4 +50,5 @@ export const SGD = (sgd: number) => new TwoDecimalCurrency(sgd, 'sgd');
 export const HKD = (hkd: number) => new TwoDecimalCurrency(hkd, 'hkd');
 export const BRL = (brl: number) => new TwoDecimalCurrency(brl, 'brl');
 
+// Zero decimal currencies that are supported by the Turbo API
 export const JPY = (jpy: number) => new ZeroDecimalCurrency(jpy, 'jpy');

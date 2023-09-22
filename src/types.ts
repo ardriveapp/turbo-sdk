@@ -19,7 +19,7 @@ import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 import winston from 'winston';
 
-import { AmountMapper } from './common/currency.js';
+import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
 
 export type Base64String = string;
@@ -65,7 +65,7 @@ export type TurboWincForFiatResponse = TurboPriceResponse & {
 };
 
 export type TurboWincForFiatParams = {
-  amount: AmountMapper;
+  amount: CurrencyMap;
   promoCodes?: string[];
 };
 
