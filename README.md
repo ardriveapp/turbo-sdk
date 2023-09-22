@@ -172,10 +172,14 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const rates = await turbo.getFiatRates();
   ```
 
-- `getWincForFiat({ amount, currency })` - Returns the current conversion rate for Winston Credits for the provided fiat currency and amount, including all top-up adjustments and fees.
+- `getWincForFiat({ amount, promoCodes? })` - Returns the current conversion rate for Winston Credits for the provided fiat currency and amount, including all top-up adjustments and fees.
 
   ```typescript
-  const winc = await turbo.getWincForFiat({ amount: 100, currency: 'USD' });
+  const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.getWincForFiat({
+      amount: USD(100),
+      promoCodes: ['MY_PROMO_CODE'],
+    });
   ```
 
 - `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
@@ -194,13 +198,14 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   });
   ```
 
-- `createCheckoutSession({ paymentAmount, currency, owner })` - Creates a Stripe checkout session for a Turbo Top Up. The returned URL can be opened in the browser, all payments are processed by Stripe.
+- `createCheckoutSession({ amount, owner, promoCodes? })` - Creates a Stripe checkout session for a Turbo Top Up. The returned URL can be opened in the browser, all payments are processed by Stripe.
 
   ```typescript
-  const { url, winc, paymentAmount, quotedPaymentAmount } =
+  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
     await turbo.createCheckoutSession({
       amount: USD(10.0), // $10.00 USD
       owner: publicArweaveAddress,
+      promoCodes: ['MY_PROMO_CODE'],
     });
 
   // Open checkout session in a browser
