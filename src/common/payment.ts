@@ -31,6 +31,8 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
   TurboWalletSigner,
+  TurboWincForFiatParams,
+  TurboWincForFiatResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 
@@ -92,10 +94,17 @@ export class TurboUnauthenticatedPaymentService
     return wincCostsForBytes;
   }
 
-  public getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {
-    return this.httpService.get<TurboPriceResponse>({
-      endpoint: `/price/${currency}/${amount}`,
+  public getWincForFiat({
+    amount,
+  }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
+    return this.httpService.get<TurboWincForFiatResponse>({
+      endpoint: `/price/${amount.type}/${amount.amount}`,
     });
+  }
+
+  protected appendPromoCodesToQuery(promoCodes: string[]): string {
+    const promoCodesQuery = promoCodes.join(',');
+    return promoCodesQuery ? `?promoCode=${promoCodesQuery}` : '';
   }
 
   protected async getCheckout(
@@ -104,9 +113,9 @@ export class TurboUnauthenticatedPaymentService
   ) {
     const { amount: paymentAmount, type: currencyAmount } = amount;
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyAmount}/${paymentAmount}${
-      promoCodes.length > 0 ? `?promoCode=${promoCodes.join(',')}` : ''
-    }`;
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyAmount}/${paymentAmount}${this.appendPromoCodesToQuery(
+      promoCodes,
+    )}`;
 
     const { adjustments, paymentSession, topUpQuote } =
       await this.httpService.get<TopUpRawResponse>({
@@ -156,6 +165,18 @@ export class TurboAuthenticatedPaymentService
 
     // 404's don't return a balance, so default to 0
     return balance.winc ? balance : { winc: '0' };
+  }
+
+  public async getWincForFiat({
+    amount,
+    promoCodes = [],
+  }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
+    return this.httpService.get<TurboWincForFiatResponse>({
+      endpoint: `/price/${amount.type}/${
+        amount.amount
+      }${this.appendPromoCodesToQuery(promoCodes)}`,
+      headers: await this.signer.generateSignedRequestHeaders(),
+    });
   }
 
   public async createCheckoutSession(

@@ -91,8 +91,7 @@ describe('Browser environment', () => {
 
       it('getPriceForFiat()', async () => {
         const { winc } = await turbo.getWincForFiat({
-          amount: 1000, // 10 USD
-          currency: 'usd',
+          amount: USD(10), // $10.00 USD
         });
         expect(winc).to.not.be.undefined;
         expect(+winc).to.be.greaterThan(0);
@@ -199,6 +198,25 @@ describe('Browser environment', () => {
           .catch((err) => err);
         expect(error).to.be.instanceOf(CanceledError);
       });
+    });
+
+    it('getPriceForFiat() with promo code', async () => {
+      const { adjustments, winc } = await turbo.getWincForFiat({
+        amount: USD(10), // $10.00 USD
+        promoCodes: ['TOKEN2049'],
+      });
+      expect(winc).to.not.be.undefined;
+      expect(+winc).to.be.greaterThan(0);
+      expect(adjustments).to.deep.equal([
+        {
+          adjustmentAmount: -200,
+          currencyType: 'usd',
+          description: '20% off of top up purchase, can be used once per user.',
+          name: 'Token2049 Singapore Promo Code',
+          operator: 'multiply',
+          operatorMagnitude: 0.8,
+        },
+      ]);
     });
 
     describe('createCheckoutSession()', () => {
