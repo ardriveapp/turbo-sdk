@@ -10,6 +10,7 @@ import {
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
+import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
 
 describe('Browser environment', () => {
@@ -129,6 +130,21 @@ describe('Browser environment', () => {
             .catch((err) => err);
           expect(error).be.instanceOf(CanceledError);
         });
+
+        it('should return FailedRequestError for incorrectly signed data item', async () => {
+          const jwk = await Arweave.crypto.generateJWK();
+          const signer = new ArweaveSigner(jwk);
+          const signedDataItem = createData('signed data item', signer, {});
+          // not signed
+          const error = await turbo
+            .uploadSignedDataItem({
+              dataItemStreamFactory: () => signedDataItem.getRaw(),
+              dataItemSizeFactory: () => signedDataItem.getRaw().length,
+            })
+            .catch((err) => err);
+          expect(error).to.be.instanceOf(FailedRequestError);
+          expect(error.message).to.contain('Invalid Data Item');
+        });
       });
     });
   });
@@ -184,6 +200,24 @@ describe('Browser environment', () => {
           })
           .catch((err) => err);
         expect(error).to.be.instanceOf(CanceledError);
+      });
+
+      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
+        const oneMBBuffer = Buffer.alloc(1024 * 1024);
+        const readableStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(oneMBBuffer);
+            controller.close();
+          },
+        });
+        const error = await turbo
+          .uploadFile({
+            fileStreamFactory: () => readableStream,
+            fileSizeFactory: () => oneMBBuffer.byteLength,
+          })
+          .catch((err) => err);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Insufficient balance');
       });
     });
   });
