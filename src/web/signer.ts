@@ -40,7 +40,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
     fileStreamFactory: () => ReadableStream;
     fileSizeFactory: StreamSizeFactory;
   }): Promise<{
-    // axios only supports Readables, Buffers, or Blobs - so we need to convert the stream to a buffer
+    // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
     dataItemStreamFactory: () => Buffer;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
@@ -49,9 +49,11 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
       stream: fileStreamFactory(),
       size: fileSizeFactory(),
     });
-    const signedDataItem = createData(buffer, this.signer);
+    // TODO: support target, anchor and tags for upload
+    const signedDataItem = createData(buffer, this.signer, {});
     await signedDataItem.sign(this.signer);
     return {
+      // while this returns a Buffer - it needs to match our return type for uploading
       dataItemStreamFactory: () => signedDataItem.getRaw(),
       dataItemSizeFactory: () => signedDataItem.getRaw().length,
     };

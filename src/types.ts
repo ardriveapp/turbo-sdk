@@ -197,6 +197,7 @@ export interface TurboUnauthenticatedUploadServiceInterface {
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
+  // TODO: support target, anchor and tags
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
