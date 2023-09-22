@@ -97,8 +97,9 @@ export class TurboUnauthenticatedPaymentService
   public getWincForFiat({
     amount,
   }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
+    const { amount: paymentAmount, type: currencyType } = amount;
     return this.httpService.get<TurboWincForFiatResponse>({
-      endpoint: `/price/${amount.type}/${amount.amount}`,
+      endpoint: `/price/${currencyType}/${paymentAmount}`,
     });
   }
 
@@ -111,9 +112,9 @@ export class TurboUnauthenticatedPaymentService
     { amount, owner, promoCodes = [] }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
   ) {
-    const { amount: paymentAmount, type: currencyAmount } = amount;
+    const { amount: paymentAmount, type: currencyType } = amount;
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyAmount}/${paymentAmount}${this.appendPromoCodesToQuery(
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}${this.appendPromoCodesToQuery(
       promoCodes,
     )}`;
 
