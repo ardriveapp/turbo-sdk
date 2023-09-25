@@ -213,7 +213,7 @@ describe('Node environment', () => {
             fileSizeFactory: () => fileSize,
             signal: AbortSignal.timeout(0), // abort the request right away
           })
-          .catch((err) => err);
+          .catch((error) => error);
         expect(error).to.be.instanceOf(CanceledError);
       });
 
@@ -225,37 +225,35 @@ describe('Node environment', () => {
             fileStreamFactory: () => fs.createReadStream(filePath),
             fileSizeFactory: () => fileSize,
           })
-          .catch((err) => err);
+          .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Insufficient balance');
       });
     });
 
     it('getPriceForFiat() with a bad promo code', async () => {
-      await turbo
+      const error = await turbo
         .getWincForFiat({
           amount: USD(10), // $10.00 USD
           promoCodes: ['BAD_PROMO_CODE'],
         })
-        .catch((error) => {
-          expect(error?.name).to.equal('FailedRequestError');
-          // TODO: Could provide better error message to client. We have error messages on response.data
-          expect(error?.message).to.equal('Failed request: 400: Bad Request');
-        });
+        .catch((error) => error);
+      expect(error).to.be.instanceOf(FailedRequestError);
+      // TODO: Could provide better error message to client. We have error messages on response.data
+      expect(error.message).to.equal('Failed request: 400: Bad Request');
     });
 
     describe('createCheckoutSession()', () => {
       it('should fail to get a checkout session with a bad promo code', async () => {
-        await turbo
+        const error = await turbo
           .createCheckoutSession({
             amount: USD(10), // 10 USD
             owner: address,
             promoCodes: ['BAD_PROMO_CODE'],
           })
-          .catch((error) => {
-            expect(error?.name).to.equal('FailedRequestError');
-            expect(error?.message).to.equal('Failed request: 400: Bad Request');
-          });
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.equal('Failed request: 400: Bad Request');
       });
     });
   });
