@@ -39,7 +39,7 @@ The SDK is provided in both CommonJS and ESM formats, and it's compatible with b
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk';
 
-const turbo = TurboFactory.unauthenticated({});
+const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
@@ -48,7 +48,7 @@ const rates = await turbo.getFiatRates();
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@ardrive/turbo-sdk"></script>
 <script>
-  const turbo = TurboFactory.unauthenticated({});
+  const turbo = TurboFactory.unauthenticated();
   const rates = await turbo.getFiatRates();
 </script>
 ```
@@ -65,7 +65,7 @@ Project's `package.json`:
 }
 ```
 
-tsconfig's `tsconfig.json`:
+Project's `tsconfig.json`:
 
 ```json
 {
@@ -82,7 +82,7 @@ Usage:
 ```javascript
 const { TurboFactory } = require('@ardrive/turbo-sdk');
 
-const turbo = TurboFactory.unauthenticated({});
+const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
@@ -96,7 +96,7 @@ Project's `package.json`:
 }
 ```
 
-tsconfig's `tsconfig.json`:
+Project's `tsconfig.json`:
 
 ```json
 {
@@ -113,7 +113,7 @@ Usage:
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/node';
 
-const turbo = TurboFactory.unauthenticated({});
+const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
@@ -122,7 +122,7 @@ const rates = await turbo.getFiatRates();
 The SDK provides TypeScript types. When you import the SDK in a TypeScript project:
 
 ```typescript
-import Ardrive from '@ardrive/turbo-sdk/web';
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 // or '@ardrive/turbo-sdk/node' for Node.js projects
 ```
@@ -136,7 +136,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
 - `unauthenticated()` - Creates an instance of a client that accesses Turbo's unauthenticated services.
 
   ```typescript
-  const turbo = TurboFactory.unauthenticated({});
+  const turbo = TurboFactory.unauthenticated();
   ```
 
 - `authenticated()` - Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services.
@@ -172,26 +172,56 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const rates = await turbo.getFiatRates();
   ```
 
-- `getWincForFiat({ amount, currency })` - Returns the current conversion rate for Winston Credits for the provided fiat currency and amount, including all top-up adjustments and fees.
+- `getWincForFiat({ amount, promoCodes })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
   ```typescript
-  const winc = await turbo.getWincForFiat({ amount: 100, currency: 'USD' });
+  const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.getWincForFiat({
+      amount: USD(100),
+      promoCodes: ['MY_PROMO_CODE'],
+    });
   ```
 
 - `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
 
   ```typescript
-  const costs = await turbo.getUploadCosts({ bytes: [1000, 2000] });
+  const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
+  const { winc, adjustments } = uploadCostForFile;
   ```
 
-- `uploadSignedDataItem({ dataItemStreamFactory, signal })` - Uploads a signed data item. The provided dataItemStreamFactory should produce a NEW signed data item stream each time is it invoked.
+- `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })` - Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
 
   ```typescript
   const filePath = path.join(__dirname, './my-signed-data-item');
+  const dataItemSize = fs.statSync(filePath).size;
   const uploadResponse = await turbo.uploadSignedDataItem({
     dataItemStreamFactory: () => fs.createReadStream(filePath),
+    dataItemSizeFactory: () => dataItemSize,
     signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
+  ```
+
+- `createCheckoutSession({ amount, owner, promoCodes })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe.
+
+  ```typescript
+  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.createCheckoutSession({
+      amount: USD(10.0), // $10.00 USD
+      owner: publicArweaveAddress,
+      promoCodes: ['MY_PROMO_CODE'],
+    });
+
+  // Open checkout session in a browser
+  if (process.platform === 'darwin') {
+    // macOS
+    exec(`open ${url}`);
+  } else if (process.platform === 'win32') {
+    // Windows
+    exec(`start "" "${url}"`, { shell: true });
+  } else {
+    // Linux/Unix
+    open(url);
+  }
   ```
 
 ### TurboAuthenticatedClient
@@ -199,15 +229,18 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
 - `getBalance()` - Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
 
   ```typescript
-  const balance = await turbo.getBalance();
+  const { winc: balance } = await turbo.getBalance();
   ```
 
-- `uploadFile({ fileStreamFactory })` - Signs and uploads a raw file. The provided fileStreamFactory should produce a NEW file data stream each time is it invoked.
+- `uploadFile({ fileStreamFactory, fileSizeFactory, signal })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
 
   ```typescript
   const filePath = path.join(__dirname, './my-unsigned-file.txt');
+  const fileSize = fs.stateSync(filePath).size;
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
+    // no timeout or AbortSignal provided
   });
   ```
 
@@ -219,3 +252,4 @@ If you encounter any issues or have feature requests, please file an issue on ou
 [examples]: ./examples
 [TurboUnauthenticatedClient]: #turboUnauthenticatedClient
 [TurboAuthenticatedClient]: #turboAuthenticatedClient
+[AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal

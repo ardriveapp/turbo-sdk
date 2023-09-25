@@ -21,6 +21,8 @@ import {
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
   TurboBalanceResponse,
+  TurboCheckoutSessionParams,
+  TurboCheckoutSessionResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
@@ -34,6 +36,8 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboWincForFiatParams,
+  TurboWincForFiatResponse,
 } from '../types.js';
 import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
@@ -55,7 +59,7 @@ export class TurboUnauthenticatedClient
   /**
    * Returns the supported fiat currency conversion rate for 1AR based on current market prices.
    */
-  async getFiatToAR({
+  getFiatToAR({
     currency,
   }: {
     currency: Currency;
@@ -69,28 +73,28 @@ export class TurboUnauthenticatedClient
    * Note: this does not take into account varying adjustments and promotions for different sizes of data. If you want to calculate the total
    * cost in 'winc' for a given number of bytes, use getUploadCosts.
    */
-  async getFiatRates(): Promise<TurboRatesResponse> {
+  getFiatRates(): Promise<TurboRatesResponse> {
     return this.paymentService.getFiatRates();
   }
 
   /**
    * Returns a comprehensive list of supported countries that can purchase credits through the Turbo Payment Service.
    */
-  async getSupportedCountries(): Promise<TurboCountriesResponse> {
+  getSupportedCountries(): Promise<TurboCountriesResponse> {
     return this.paymentService.getSupportedCountries();
   }
 
   /**
    * Returns a list of all supported fiat currencies.
    */
-  async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
+  getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
     return this.paymentService.getSupportedCurrencies();
   }
 
   /**
    * Determines the price in 'winc' to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
    */
-  async getUploadCosts({
+  getUploadCosts({
     bytes,
   }: {
     bytes: number[];
@@ -101,28 +105,35 @@ export class TurboUnauthenticatedClient
   /**
    * Determines the amount of 'winc' that would be returned for a given currency and amount, including all Turbo cost adjustments and fees.
    */
-  async getWincForFiat({
-    amount,
-    currency,
-  }: {
-    amount: number;
-    currency: Currency;
-  }): Promise<Omit<TurboPriceResponse, 'adjustments'>> {
-    return this.paymentService.getWincForFiat({ amount, currency });
+  getWincForFiat(
+    params: TurboWincForFiatParams,
+  ): Promise<TurboWincForFiatResponse> {
+    return this.paymentService.getWincForFiat(params);
   }
 
   /**
    * Uploads a signed data item to the Turbo Upload Service.
    */
-  async uploadSignedDataItem({
+  uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
     signal,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadSignedDataItem({
       dataItemStreamFactory,
+      dataItemSizeFactory,
       signal,
     });
+  }
+
+  /**
+   * Creates a Turbo Checkout Session for a given amount and currency.
+   */
+  createCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    return this.paymentService.createCheckoutSession(params);
   }
 }
 
@@ -144,18 +155,23 @@ export class TurboAuthenticatedClient
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  async getBalance(): Promise<TurboBalanceResponse> {
+  getBalance(): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance();
   }
 
   /**
    * Signs and uploads raw data to the Turbo Upload Service.
    */
-  async uploadFile({
+  uploadFile({
     fileStreamFactory,
+    fileSizeFactory,
     signal,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadFile({ fileStreamFactory, signal });
+    return this.uploadService.uploadFile({
+      fileStreamFactory,
+      fileSizeFactory,
+      signal,
+    });
   }
 }

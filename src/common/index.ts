@@ -17,3 +17,4 @@
 export * from './upload.js';
 export * from './payment.js';
 export * from './turbo.js';
+export * from './currency.js';

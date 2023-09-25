@@ -16,17 +16,23 @@
  */
 import {
   Currency,
+  TopUpRawResponse,
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedPaymentServiceInterfaceConfiguration,
   TurboBalanceResponse,
+  TurboCheckoutSessionParams,
+  TurboCheckoutSessionResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
   TurboPriceResponse,
   TurboRatesResponse,
+  TurboSignedRequestHeaders,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
   TurboWalletSigner,
+  TurboWincForFiatParams,
+  TurboWincForFiatResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 
@@ -45,13 +51,13 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  async getFiatRates(): Promise<TurboRatesResponse> {
+  public getFiatRates(): Promise<TurboRatesResponse> {
     return this.httpService.get<TurboRatesResponse>({
       endpoint: '/rates',
     });
   }
 
-  async getFiatToAR({
+  public getFiatToAR({
     currency,
   }: {
     currency: Currency;
@@ -61,19 +67,19 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  async getSupportedCountries(): Promise<TurboCountriesResponse> {
+  public getSupportedCountries(): Promise<TurboCountriesResponse> {
     return this.httpService.get<TurboCountriesResponse>({
       endpoint: '/countries',
     });
   }
 
-  async getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
+  public getSupportedCurrencies(): Promise<TurboCurrenciesResponse> {
     return this.httpService.get<TurboCurrenciesResponse>({
       endpoint: '/currencies',
     });
   }
 
-  async getUploadCosts({
+  public async getUploadCosts({
     bytes,
   }: {
     bytes: number[];
@@ -88,10 +94,49 @@ export class TurboUnauthenticatedPaymentService
     return wincCostsForBytes;
   }
 
-  async getWincForFiat({ amount, currency }): Promise<TurboPriceResponse> {
-    return this.httpService.get<TurboPriceResponse>({
-      endpoint: `/price/${currency}/${amount}`,
+  public getWincForFiat({
+    amount,
+  }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
+    const { amount: paymentAmount, type: currencyType } = amount;
+    return this.httpService.get<TurboWincForFiatResponse>({
+      endpoint: `/price/${currencyType}/${paymentAmount}`,
     });
+  }
+
+  protected appendPromoCodesToQuery(promoCodes: string[]): string {
+    const promoCodesQuery = promoCodes.join(',');
+    return promoCodesQuery ? `?promoCode=${promoCodesQuery}` : '';
+  }
+
+  protected async getCheckout(
+    { amount, owner, promoCodes = [] }: TurboCheckoutSessionParams,
+    headers?: TurboSignedRequestHeaders,
+  ) {
+    const { amount: paymentAmount, type: currencyType } = amount;
+
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}${this.appendPromoCodesToQuery(
+      promoCodes,
+    )}`;
+
+    const { adjustments, paymentSession, topUpQuote } =
+      await this.httpService.get<TopUpRawResponse>({
+        endpoint,
+        headers,
+      });
+
+    return {
+      winc: topUpQuote.winstonCreditAmount,
+      adjustments,
+      url: paymentSession.url,
+      paymentAmount: topUpQuote.paymentAmount,
+      quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
+    };
+  }
+
+  public createCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    return this.getCheckout(params);
   }
 }
 
@@ -111,7 +156,7 @@ export class TurboAuthenticatedPaymentService
     this.signer = signer;
   }
 
-  async getBalance(): Promise<TurboBalanceResponse> {
+  public async getBalance(): Promise<TurboBalanceResponse> {
     const headers = await this.signer.generateSignedRequestHeaders();
     const balance = await this.httpService.get<TurboBalanceResponse>({
       endpoint: '/balance',
@@ -121,5 +166,26 @@ export class TurboAuthenticatedPaymentService
 
     // 404's don't return a balance, so default to 0
     return balance.winc ? balance : { winc: '0' };
+  }
+
+  public async getWincForFiat({
+    amount,
+    promoCodes = [],
+  }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
+    return this.httpService.get<TurboWincForFiatResponse>({
+      endpoint: `/price/${amount.type}/${
+        amount.amount
+      }${this.appendPromoCodesToQuery(promoCodes)}`,
+      headers: await this.signer.generateSignedRequestHeaders(),
+    });
+  }
+
+  public async createCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse> {
+    return this.getCheckout(
+      params,
+      await this.signer.generateSignedRequestHeaders(),
+    );
   }
 }

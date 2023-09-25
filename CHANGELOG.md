@@ -1,7 +1,26 @@
-# 1.0.0-beta.1 (2023-09-20)
+# [1.0.0-alpha.23](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.22...v1.0.0-alpha.23) (2023-09-22)
 
 
 ### Bug Fixes
+
+* **top up:** export type PE-4465 ([8a237fb](https://github.com/ardriveapp/turbo-sdk/commit/8a237fbadde8c397dfedb8e49c6ef046d541b403))
+
+
+### Features
+
+* **top-up:** init get checkout session PE-4465 ([ca4385c](https://github.com/ardriveapp/turbo-sdk/commit/ca4385cf75726eb849bfd83a6c247b7e4f86bdc7))
+* **winc for fiat:** extend AmountMapper pattern and add promoCode support PE-4465 ([53f9f8e](https://github.com/ardriveapp/turbo-sdk/commit/53f9f8e0618283d95532d42e3b7977acc07d4ed4))
+
+# [1.0.0-alpha.22](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.21...v1.0.0-alpha.22) (2023-09-22)
+
+### Bug Fixes
+
+* **content-length:** require content length factory for uploads ([a2e2a59](https://github.com/ardriveapp/turbo-sdk/commit/a2e2a59cf712f919fe66715ff81cb750a964d555))
+* modify return type of signDataItem function, tweak implementation of ArweaveSigner header ([e0bb8b6](https://github.com/ardriveapp/turbo-sdk/commit/e0bb8b6105ae3a83182e3c70325d2828b1b9c644))
+
+# 1.0.0-beta.1 (2023-09-20)
+
+### Features
 
 * add command that removes type module from package.json ([c2ce7d3](https://github.com/ardriveapp/turbo-sdk/commit/c2ce7d3d26da50c7857d5ceb1150d913179bb23f))
 * add command that removes type module from package.json ([8675df5](https://github.com/ardriveapp/turbo-sdk/commit/8675df5dfe65c05dbf1e4294bf9f768bcdc954d4))

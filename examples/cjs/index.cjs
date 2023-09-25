@@ -69,9 +69,11 @@ const {
    * Post local files to the Turbo service.
    */
   console.log('Posting raw file to Turbo service...');
-  const filePath = path.join(__dirname, '../files/0_kb.txt');
+  const filePath = path.join(__dirname, '../files/1KB_file');
+  const fileSize = fs.statSync(filePath).size;
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
     signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   console.log(JSON.stringify(uploadResult, null, 2));
