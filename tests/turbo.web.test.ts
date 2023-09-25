@@ -239,29 +239,27 @@ describe('Browser environment', () => {
     });
 
     it('getPriceForFiat() fails with bad promo code', async () => {
-      await turbo
+      const error = await turbo
         .getWincForFiat({
           amount: USD(10), // $10.00 USD
           promoCodes: ['BAD_CODE'],
         })
-        .catch((error) => {
-          expect(error?.name).to.equal('FailedRequestError');
-          expect(error?.message).to.equal('Failed request: 400: Bad Request');
-        });
+        .catch((error) => error);
+      expect(error).to.be.instanceOf(FailedRequestError);
+      expect(error?.message).to.equal('Failed request: 400: Bad Request');
     });
 
     describe('createCheckoutSession()', () => {
       it('should fail to get a checkout session with a bad promo code', async () => {
-        await turbo
+        const error = await turbo
           .createCheckoutSession({
             amount: USD(10),
             owner: address,
             promoCodes: ['BAD_PROMO_CODE'],
           })
-          .catch((error) => {
-            expect(error?.name).to.equal('FailedRequestError');
-            expect(error?.message).to.equal('Failed request: 400: Bad Request');
-          });
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error?.message).to.equal('Failed request: 400: Bad Request');
       });
     });
   });
