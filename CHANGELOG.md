@@ -1,3 +1,10 @@
+# [1.0.0-alpha.24](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.23...v1.0.0-alpha.24) (2023-09-26)
+
+
+### Bug Fixes
+
+* **types:** finalize types, update default payment and upload URLs ([5364846](https://github.com/ardriveapp/turbo-sdk/commit/5364846de9a3e496d4045eb3d4010226d595f0e6))
+
 # [1.0.0-beta.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-beta.1...v1.0.0-beta.2) (2023-09-25)
 
 
