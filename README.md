@@ -178,6 +178,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
     await turbo.getWincForFiat({
       amount: USD(100),
+      // promo codes require an authenticated client
     });
   ```
 
@@ -200,14 +201,14 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   });
   ```
 
-- `createCheckoutSession({ amount, owner, promoCodes })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe.
+- `createCheckoutSession({ amount, owner })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
 
   ```typescript
   const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
     await turbo.createCheckoutSession({
       amount: USD(10.0), // $10.00 USD
       owner: publicArweaveAddress,
-      promoCodes: ['MY_PROMO_CODE'],
+      // promo codes require an authenticated client
     });
 
   // Open checkout session in a browser
@@ -231,14 +232,37 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const { winc: balance } = await turbo.getBalance();
   ```
 
-- `getWincForFiat({ amount, promoCodes })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes. Note: promo codes require an authenticated client.
+- `getWincForFiat({ amount, promoCodes })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
   ```typescript
   const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
     await turbo.getWincForFiat({
       amount: USD(100),
-      promoCodes: ['MY_PROMO_CODE'],
+      promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
     });
+  ```
+
+- `createCheckoutSession({ amount, owner, promoCodes })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe. Promo codes require an authenticated client.
+
+  ```typescript
+  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.createCheckoutSession({
+      amount: USD(10.0), // $10.00 USD
+      owner: publicArweaveAddress,
+      promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
+    });
+
+  // Open checkout session in a browser
+  if (process.platform === 'darwin') {
+    // macOS
+    exec(`open ${url}`);
+  } else if (process.platform === 'win32') {
+    // Windows
+    exec(`start "" "${url}"`, { shell: true });
+  } else {
+    // Linux/Unix
+    open(url);
+  }
   ```
 
 - `uploadFile({ fileStreamFactory, fileSizeFactory, signal })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
