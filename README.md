@@ -102,8 +102,9 @@ const rates = await turbo.getFiatRates();
 #### Browser
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@ardrive/turbo-sdk"></script>
-<script>
+<script type="module">
+  import { TurboFactory } from 'https://unpkg.com/@ardrive/turbo-sdk';
+
   const turbo = TurboFactory.unauthenticated();
   const rates = await turbo.getFiatRates();
 </script>

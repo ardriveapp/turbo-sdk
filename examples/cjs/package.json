@@ -1,6 +1,6 @@
 {
   "type": "commonjs",
   "dependencies": {
-    "@ardrive/turbo-sdk": "^1.0.0-beta.2"
+    "@ardrive/turbo-sdk": "^1.0.0"
   }
 }

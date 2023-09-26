@@ -1,7 +1,5 @@
 <html>
   <head>
-    <script type="module" src="./web.bundle.min.js"></script>
-    <script src="https://unpkg.com/arweave/bundles/web.bundle.min.js"></script>
     <style>
       /* Center the button */
       body {
@@ -39,7 +37,7 @@
       import {
         TurboFactory,
         developmentTurboConfiguration,
-      } from './web.bundle.min.js';
+      } from 'https://unpkg.com/@ardrive/turbo-sdk';
 
       /**
        * Set up our authenticated client factory
@@ -100,6 +98,7 @@
               const response = turbo
                 .uploadFile({
                   fileStreamFactory: () => file.stream(),
+                  fileSizeFactory: () => file.size,
                 })
                 .then((res) => {
                   console.log('Successfully uploaded files!', res);
