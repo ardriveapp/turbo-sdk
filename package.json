@@ -1,8 +1,10 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "0.0.1",
-  "main": "./lib/node/index.js",
-  "types": "./lib/types/index.d.ts",
+  "version": "1.0.0-beta.3",
+  "main": "./lib/cjs/node/index.js",
+  "types": "./lib/types/node/index.d.ts",
+  "module": "./lib/esm/node/index.js",
+  "browser": "./bundles/web.bundle.min.js",
   "type": "module",
   "repository": {
     "type": "git",
@@ -21,20 +23,19 @@
   },
   "exports": {
     ".": {
-      "import": "./lib/node/index.js",
-      "require": "./lib/node/index.js",
-      "types": "./lib/types/index.d.ts",
-      "browser": "./bundles/web.bundle.min.js"
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js",
+      "types": "./lib/types/node/index.d.ts"
     },
     "./node": {
-      "import": "./lib/node/index.js",
-      "require": "./lib/node/index.js",
-      "types": "./lib/types/index.d.ts"
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js",
+      "types": "./lib/types/node/index.d.ts"
     },
     "./web": {
       "import": "./lib/web/index.js",
       "require": "./lib/web/index.js",
-      "types": "./lib/types/index.d.ts",
+      "types": "./lib/types/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
     }
   },
@@ -44,10 +45,11 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:web": "node bundle.cjs",
-    "build:esm": "yarn tsc -p tsconfig.node.json && yarn tsc -p tsconfig.web.json && cp package.json README.md LICENSE.md ./lib",
-    "build": "yarn clean && yarn build:web && yarn build:esm",
+    "build:esm": "yarn tsc -p tsconfig.json",
+    "build:cjs": "yarn tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > lib/cjs/package.json",
+    "build:types": "yarn tsc -p tsconfig.types.json",
+    "build": "yarn clean && yarn build:web && yarn build:esm && yarn build:cjs && yarn build:types",
     "clean": "rimraf [ lib coverage bundles ]",
-    "postinstall": "husky install",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --check .",
@@ -56,15 +58,15 @@
     "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
     "prepare": "husky install",
-    "example:mjs": "yarn build:esm && node examples/node/index.mjs",
-    "example:cjs": "yarn build:esm && node examples/node/index.cjs",
+    "example:mjs": "cd examples/mjs && yarn && node index.mjs",
+    "example:cjs": "cd examples/cjs && yarn && node index.cjs",
     "example:web": "yarn build:web && cp -r bundles/* examples/web && http-server --port 8080 --host -o examples/web"
   },
   "dependencies": {
     "arbundles": "^0.9.9",
     "arweave": "^1.14.4",
     "axios": "^1.4.0",
-    "retry-axios": "^3.0.0",
+    "axios-retry": "^3.7.0",
     "winston": "^3.10.0"
   },
   "devDependencies": {

@@ -1,14 +1,17 @@
+import {
+  TurboFactory,
+  TurboUnauthenticatedPaymentService,
+  USD,
+  developmentTurboConfiguration,
+} from '@ardrive/turbo-sdk/node';
+import Arweave from 'arweave';
+import fs from 'fs';
+
 (async () => {
-  const { default: Arweave } = await import('arweave');
-  const { TurboFactory, TurboUnauthenticatedPaymentService } = await import(
-    '../../lib/node/index.js'
-  );
-  const path = require('path');
-  const fs = require('fs');
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
-  const turbo = TurboFactory.unauthenticated();
+  const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
   const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
@@ -34,7 +37,10 @@
   /**
    * Use the arweave key to create an authenticated turbo client
    */
-  const turboAuthClient = TurboFactory.authenticated({ privateKey: jwk });
+  const turboAuthClient = TurboFactory.authenticated({
+    privateKey: jwk,
+    ...developmentTurboConfiguration,
+  });
 
   /**
    * Fetch the balance for the private key.
@@ -56,8 +62,7 @@
    * Fetch the estimated amount of winc returned for 10 USD (1000 cents).
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
-    amount: 1000,
-    currency: 'usd',
+    amount: USD(10),
   });
   console.log('10 USD to winc:', estimatedWinc);
 
@@ -65,9 +70,11 @@
    * Post local files to the Turbo service.
    */
   console.log('Posting raw file to Turbo service...');
-  const filePath = path.join(__dirname, './files/0_kb.txt');
+  const filePath = new URL('../files/1KB_file', import.meta.url).pathname;
+  const fileSize = fs.statSync(filePath).size;
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
     signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   console.log(JSON.stringify(uploadResult, null, 2));

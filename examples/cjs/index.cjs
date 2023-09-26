@@ -1,20 +1,24 @@
-import Arweave from 'arweave';
-import fs from 'fs';
+const path = require('path');
+const fs = require('fs');
 
-import {
+const Arweave = require('arweave');
+const {
+  USD,
+  developmentTurboConfiguration,
   TurboFactory,
   TurboUnauthenticatedPaymentService,
-} from '../../lib/node/index.js';
+} = require('@ardrive/turbo-sdk/node');
 
+// immediately invoked function expression
 (async () => {
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
-  const turbo = TurboFactory.unauthenticated();
+  const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
   const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
-  /*
+  /**
    * Alternatively instantiate your own clients independently.
    */
   const paymentService = new TurboUnauthenticatedPaymentService({
@@ -27,12 +31,23 @@ import {
   );
 
   /**
-   * Fetching balance using an authenticated Turbo client.
+   * Create a new arweave private key
    */
-  const arweave = new Arweave.init();
+  const arweave = new Arweave({});
   const jwk = await Arweave.crypto.generateJWK();
   const address = await arweave.wallets.jwkToAddress(jwk);
-  const turboAuthClient = TurboFactory.authenticated({ privateKey: jwk });
+
+  /**
+   * Use the arweave key to create an authenticated turbo client
+   */
+  const turboAuthClient = TurboFactory.authenticated({
+    privateKey: jwk,
+    ...developmentTurboConfiguration,
+  });
+
+  /**
+   * Fetch the balance for the private key.
+   */
   const balance = await turboAuthClient.getBalance();
   console.log(
     'Balance:',
@@ -50,19 +65,20 @@ import {
    * Fetch the estimated amount of winc returned for 10 USD (1000 cents).
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
-    amount: 1000,
-    currency: 'usd',
+    amount: USD(10),
   });
   console.log('10 USD to winc:', estimatedWinc);
 
   /**
    * Post local files to the Turbo service.
    */
-  console.log('Posting raw files to Turbo service...');
-  const filePath = new URL('files/0_kb.txt', import.meta.url).pathname;
+  console.log('Posting raw file to Turbo service...');
+  const filePath = path.join(__dirname, '../files/1KB_file');
+  const fileSize = fs.statSync(filePath).size;
   const uploadResult = await turboAuthClient.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
-    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 second
+    fileSizeFactory: () => fileSize,
+    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   console.log(JSON.stringify(uploadResult, null, 2));
 })();

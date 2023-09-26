@@ -20,12 +20,15 @@ import {
   TurboAuthenticatedUploadServiceInterface,
   TurboFileFactory,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
-  TurboUnauthenticatedUploadServiceInterfaceConfiguration,
   TurboUploadDataItemResponse,
   TurboWalletSigner,
-} from '../types/turbo.js';
+} from '../types.js';
 import { TurboHTTPService } from './http.js';
+
+export const defaultUploadServiceURL = 'https://upload.ardrive.io';
+export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 
 export class TurboUnauthenticatedUploadService
   implements TurboUnauthenticatedUploadServiceInterface
@@ -33,9 +36,9 @@ export class TurboUnauthenticatedUploadService
   protected httpService: TurboHTTPService;
 
   constructor({
-    url = 'https://upload.ardrive.dev',
+    url = defaultUploadServiceURL,
     retryConfig,
-  }: TurboUnauthenticatedUploadServiceInterfaceConfiguration) {
+  }: TurboUnauthenticatedUploadServiceConfiguration) {
     this.httpService = new TurboHTTPService({
       url: `${url}/v1`,
       retryConfig,
@@ -44,9 +47,11 @@ export class TurboUnauthenticatedUploadService
 
   async uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
     signal,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    const fileSize = dataItemSizeFactory();
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
@@ -54,6 +59,7 @@ export class TurboUnauthenticatedUploadService
       data: dataItemStreamFactory(),
       headers: {
         'content-type': 'application/octet-stream',
+        'content-length': `${fileSize}`,
       },
     });
   }
@@ -64,7 +70,6 @@ export class TurboAuthenticatedUploadService
   extends TurboUnauthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
-  protected httpService: TurboHTTPService;
   protected signer: TurboWalletSigner;
 
   constructor({
@@ -78,12 +83,17 @@ export class TurboAuthenticatedUploadService
 
   async uploadFile({
     fileStreamFactory,
+    fileSizeFactory,
     signal,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    const signedDataItem = await this.signer.signDataItem({
-      fileStreamFactory,
-    });
+    const { dataItemStreamFactory, dataItemSizeFactory } =
+      await this.signer.signDataItem({
+        fileStreamFactory,
+        fileSizeFactory,
+      });
+    const signedDataItem = dataItemStreamFactory();
+    const fileSize = dataItemSizeFactory();
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
@@ -91,6 +101,7 @@ export class TurboAuthenticatedUploadService
       data: signedDataItem,
       headers: {
         'content-type': 'application/octet-stream',
+        'content-length': `${fileSize}`,
       },
     });
   }

@@ -4,12 +4,15 @@ import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
 
+import { USD } from '../src/common/currency.js';
+import { JWKInterface } from '../src/common/jwk.js';
+import { developmentTurboConfiguration } from '../src/common/turbo.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
-import { JWKInterface } from '../src/types/index.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
+import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
 
 describe('Browser environment', () => {
@@ -23,13 +26,16 @@ describe('Browser environment', () => {
 
   describe('TurboFactory', () => {
     it('should be a TurboUnauthenticatedClient running in the browser and not provided a privateKey', () => {
-      const turbo = TurboFactory.unauthenticated({});
+      const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
 
     it('should be a TurboAuthenticatedClient running in the browser and provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
-      const turbo = TurboFactory.authenticated({ privateKey: jwk });
+      const turbo = TurboFactory.authenticated({
+        privateKey: jwk,
+        ...developmentTurboConfiguration,
+      });
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
   });
@@ -38,7 +44,7 @@ describe('Browser environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated({});
+      turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
     });
 
     describe('unauthenticated requests', () => {
@@ -88,10 +94,9 @@ describe('Browser environment', () => {
         expect(adjustments).to.be.an('array');
       });
 
-      it('getPriceForFiat()', async () => {
+      it('getWincForFiat()', async () => {
         const { winc } = await turbo.getWincForFiat({
-          amount: 1000, // 10 USD
-          currency: 'usd',
+          amount: USD(10), // $10.00 USD
         });
         expect(winc).to.not.be.undefined;
         expect(+winc).to.be.greaterThan(0);
@@ -106,6 +111,7 @@ describe('Browser environment', () => {
 
           const response = await turbo.uploadSignedDataItem({
             dataItemStreamFactory: () => signedDataItem.getRaw(),
+            dataItemSizeFactory: () => signedDataItem.getRaw().length,
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('fastFinalityIndexes');
@@ -122,10 +128,40 @@ describe('Browser environment', () => {
           const error = await turbo
             .uploadSignedDataItem({
               dataItemStreamFactory: () => signedDataItem.getRaw(),
+              dataItemSizeFactory: () => signedDataItem.getRaw().length,
               signal: AbortSignal.timeout(0), // abort the request right away
             })
             .catch((err) => err);
           expect(error).be.instanceOf(CanceledError);
+        });
+
+        it('should return FailedRequestError for incorrectly signed data item', async () => {
+          const jwk = await Arweave.crypto.generateJWK();
+          const signer = new ArweaveSigner(jwk);
+          const signedDataItem = createData('signed data item', signer, {});
+          // not signed
+          const error = await turbo
+            .uploadSignedDataItem({
+              dataItemStreamFactory: () => signedDataItem.getRaw(),
+              dataItemSizeFactory: () => signedDataItem.getRaw().length,
+            })
+            .catch((err) => err);
+          expect(error).to.be.instanceOf(FailedRequestError);
+          expect(error.message).to.contain('Invalid Data Item');
+        });
+      });
+
+      describe('createCheckoutSession()', () => {
+        it('should properly get a checkout session', async () => {
+          const { adjustments, paymentAmount, quotedPaymentAmount, url } =
+            await turbo.createCheckoutSession({
+              amount: USD(10),
+              owner: '43-character-stub-arweave-address-000000000',
+            });
+          expect(adjustments).to.deep.equal([]);
+          expect(paymentAmount).to.equal(1000);
+          expect(quotedPaymentAmount).to.equal(1000);
+          expect(url).to.be.a('string');
         });
       });
     });
@@ -133,9 +169,15 @@ describe('Browser environment', () => {
   describe('TurboAuthenticatedWebClient', () => {
     let turbo: TurboAuthenticatedClient;
     let jwk: JWKInterface;
+    let address: string;
+
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.authenticated({ privateKey: jwk });
+      turbo = TurboFactory.authenticated({
+        privateKey: jwk,
+        ...developmentTurboConfiguration,
+      });
+      address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
 
     it('getBalance()', async () => {
@@ -155,6 +197,7 @@ describe('Browser environment', () => {
         });
         const response = await turbo.uploadFile({
           fileStreamFactory: () => readableStream,
+          fileSizeFactory: () => uint8Array.length,
         });
         expect(response).to.not.be.undefined;
         expect(response).to.not.be.undefined;
@@ -176,10 +219,62 @@ describe('Browser environment', () => {
         const error = await turbo
           .uploadFile({
             fileStreamFactory: () => readableStream,
+            fileSizeFactory: () => uint8Array.length,
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
         expect(error).to.be.instanceOf(CanceledError);
+      });
+
+      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
+        const oneMBBuffer = Buffer.alloc(1024 * 1024);
+        const readableStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(oneMBBuffer);
+            controller.close();
+          },
+        });
+        const error = await turbo
+          .uploadFile({
+            fileStreamFactory: () => readableStream,
+            fileSizeFactory: () => oneMBBuffer.byteLength,
+          })
+          .catch((err) => err);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Insufficient balance');
+      });
+    });
+
+    it('getWincForFiat() fails with bad promo code', async () => {
+      const error = await turbo
+        .getWincForFiat({
+          amount: USD(10), // $10.00 USD
+          promoCodes: ['BAD_CODE'],
+        })
+        .catch((error) => error);
+      expect(error).to.be.instanceOf(FailedRequestError);
+      expect(error?.message).to.equal('Failed request: 400: Bad Request');
+    });
+
+    it('getWincForFiat() without a promo could return proper rates', async () => {
+      const { winc, adjustments } = await turbo.getWincForFiat({
+        amount: USD(10), // $10.00 USD
+      });
+      expect(+winc).to.be.greaterThan(0);
+      expect(adjustments).to.not.be.undefined;
+    });
+
+    describe('createCheckoutSession()', () => {
+      it('should fail to get a checkout session with a bad promo code', async () => {
+        const error = await turbo
+          .createCheckoutSession({
+            amount: USD(10),
+            owner: address,
+            promoCodes: ['BAD_PROMO_CODE'],
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error?.message).to.equal('Failed request: 400: Bad Request');
       });
     });
   });

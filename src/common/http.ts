@@ -15,14 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { AxiosInstance } from 'axios';
-import { RetryConfig } from 'retry-axios';
+import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'stream';
 import { ReadableStream } from 'stream/web';
 
 import {
   TurboHTTPServiceInterface,
   TurboSignedRequestHeaders,
-} from '../types/turbo.js';
+} from '../types.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
 import { FailedRequestError } from '../utils/errors.js';
 
@@ -33,7 +33,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     retryConfig,
   }: {
     url: string;
-    retryConfig?: RetryConfig;
+    retryConfig?: IAxiosRetryConfig;
   }) {
     this.axios = createAxiosInstance({
       axiosConfig: {

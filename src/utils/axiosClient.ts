@@ -14,22 +14,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import * as rax from 'retry-axios';
+import axios, { AxiosInstance, AxiosRequestConfig, CanceledError } from 'axios';
+import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
 
 export interface AxiosInstanceParameters {
   axiosConfig?: Omit<AxiosRequestConfig, 'validateStatus'>;
-  retryConfig?: rax.RetryConfig;
+  retryConfig?: IAxiosRetryConfig;
 }
 
 export const createAxiosInstance = ({
   axiosConfig = {},
   retryConfig = {
-    backoffType: 'exponential',
-    retry: 3,
-    onRetryAttempt: (err) => {
-      const cfg = rax.getConfig(err);
-      console.debug(`Retry attempt #${cfg?.currentRetryAttempt}`);
+    retryDelay: axiosRetry.exponentialDelay,
+    retries: 3,
+    retryCondition: (error) => {
+      return (
+        !(error instanceof CanceledError) &&
+        axiosRetry.isNetworkOrIdempotentRequestError(error)
+      );
+    },
+    onRetry: (retryCount, error) => {
+      console.debug(
+        `Request failed, ${error}. Retry attempt #${retryCount}...`,
+      );
     },
   },
 }: AxiosInstanceParameters): AxiosInstance => {
@@ -37,9 +44,9 @@ export const createAxiosInstance = ({
     ...axiosConfig,
     validateStatus: () => true, // don't throw on non-200 status codes
   });
-  axiosInstance.defaults.raxConfig = {
-    instance: axiosInstance,
-    ...retryConfig,
-  };
+  // eslint-disable-next-line
+  if (retryConfig.retries && retryConfig.retries > 0) {
+    axiosRetry(axiosInstance, retryConfig);
+  }
   return axiosInstance;
 };

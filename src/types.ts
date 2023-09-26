@@ -14,19 +14,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
-import { RetryConfig } from 'retry-axios';
 import winston from 'winston';
 
-import { JWKInterface } from './arweave.js';
+import { CurrencyMap } from './common/currency.js';
+import { JWKInterface } from './common/jwk.js';
 
 export type Base64String = string;
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
-export type Currency = 'usd' | 'eur' | 'gbp' | 'cad' | 'aud' | 'nzd' | 'jpy'; // TODO: add full list
+export type Currency =
+  | 'usd'
+  | 'eur'
+  | 'gbp'
+  | 'cad'
+  | 'aud'
+  | 'jpy'
+  | 'inr'
+  | 'sgd'
+  | 'hkd'
+  | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
+
+export type Adjustment = {
+  name: string;
+  description: string;
+  operatorMagnitude: number;
+  operator: 'multiply' | 'add';
+  adjustmentAmount: string;
+};
 
 export type CurrencyLimit = {
   minimumPaymentAmount: number;
@@ -37,7 +56,35 @@ export type CurrencyLimit = {
 
 export type TurboPriceResponse = {
   winc: string; // TODO: the service returns BigNumbers as strings
-  adjustments: any; // TODO: type this
+  adjustments: Adjustment[];
+};
+
+export type TurboWincForFiatResponse = TurboPriceResponse & {
+  paymentAmount: number;
+  quotedPaymentAmount: number;
+};
+
+export type TurboWincForFiatParams = {
+  amount: CurrencyMap;
+  promoCodes?: string[];
+};
+
+export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
+  owner: PublicArweaveAddress;
+};
+
+export type TopUpRawResponse = {
+  topUpQuote: {
+    paymentAmount: number;
+    quotedPaymentAmount: number;
+    winstonCreditAmount: string;
+  };
+  paymentSession: { url: string };
+  adjustments: Adjustment[];
+};
+
+export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
+  url: string;
 };
 
 export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
@@ -73,36 +120,36 @@ type TurboAuthConfiguration = {
 
 type TurboServiceConfiguration = {
   url?: string;
-  retryConfig?: RetryConfig;
+  retryConfig?: IAxiosRetryConfig;
   logger?: winston.Logger;
 };
 
-export type TurboUnauthenticatedUploadServiceInterfaceConfiguration =
+export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
 export type TurboAuthenticatedUploadServiceConfiguration =
-  TurboUnauthenticatedUploadServiceInterfaceConfiguration &
-    TurboAuthConfiguration;
+  TurboUnauthenticatedUploadServiceConfiguration & TurboAuthConfiguration;
 
-export type TurboUnauthenticatedPaymentServiceInterfaceConfiguration =
+export type TurboUnauthenticatedPaymentServiceConfiguration =
   TurboServiceConfiguration;
-export type TurboAuthenticatedPaymentServiceInterfaceConfiguration =
-  TurboServiceConfiguration & TurboAuthConfiguration;
+export type TurboAuthenticatedPaymentServiceConfiguration =
+  TurboUnauthenticatedPaymentServiceConfiguration & TurboAuthConfiguration;
 
-export type TurboPublicConfiguration = {
-  paymentServiceConfig?: TurboUnauthenticatedPaymentServiceInterfaceConfiguration;
-  uploadServiceConfig?: TurboUnauthenticatedUploadServiceInterfaceConfiguration;
+export type TurboUnauthenticatedConfiguration = {
+  paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
+  uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
 };
 
-export type TurboPrivateConfiguration = TurboPublicConfiguration & {
-  privateKey: TurboWallet;
-};
+export type TurboAuthenticatedConfiguration =
+  TurboUnauthenticatedConfiguration & {
+    privateKey: TurboWallet;
+  };
 
-export type TurboPublicClientConfiguration = {
+export type TurboUnauthenticatedClientConfiguration = {
   paymentService: TurboUnauthenticatedPaymentServiceInterface;
   uploadService: TurboUnauthenticatedUploadServiceInterface;
 };
 
-export type TurboPrivateClientConfiguration = {
+export type TurboAuthenticatedClientConfiguration = {
   paymentService: TurboAuthenticatedPaymentServiceInterface;
   uploadService: TurboAuthenticatedUploadServiceInterface;
 };
@@ -112,13 +159,16 @@ export type FileStreamFactory =
   | (() => ReadableStream)
   | (() => Buffer);
 export type SignedDataStreamFactory = FileStreamFactory;
+export type StreamSizeFactory = () => number;
 export type TurboFileFactory = {
   fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
+  fileSizeFactory: StreamSizeFactory;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
+  dataItemSizeFactory: StreamSizeFactory;
 };
 
 export type TurboAbortSignal = {
@@ -155,7 +205,8 @@ export interface TurboHTTPServiceInterface {
 export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
-  }: TurboFileFactory): Promise<Readable> | Promise<Buffer>;
+    fileSizeFactory,
+  }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
 
@@ -168,14 +219,13 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
     currency: Currency;
   }): Promise<TurboFiatToArResponse>;
   getFiatRates(): Promise<TurboRatesResponse>;
-  getWincForFiat({
-    amount,
-    currency,
-  }: {
-    amount: number;
-    currency: Currency;
-  }): Promise<Omit<TurboPriceResponse, 'adjustments'>>; // TODO: update once endpoint returns adjustments
+  getWincForFiat(
+    params: TurboWincForFiatParams,
+  ): Promise<TurboWincForFiatResponse>;
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
+  createCheckoutSession(
+    params: TurboCheckoutSessionParams,
+  ): Promise<TurboCheckoutSessionResponse>;
 }
 
 export interface TurboAuthenticatedPaymentServiceInterface
@@ -193,8 +243,10 @@ export interface TurboUnauthenticatedUploadServiceInterface {
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
+  // TODO: support target, anchor and tags
   uploadFile({
     fileStreamFactory,
+    fileSizeFactory,
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 }
 

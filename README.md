@@ -1,12 +1,12 @@
 # @ardriveapp/turbo-sdk 🚀
 
-Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionalities for interacting with the Turbo Upload and Payment Services. It is available in both NodeJS and Web environments.
+Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interacting with the Turbo Upload and Payment Services and is available for both NodeJS and Web environments.
 
 ## Table of Contents
 
 - [Installation](#installation)
-- [Usage](#usage):
-
+- [Quick Start](#quick-start)
+- [Usage](#usage)
   - [NodeJS Environments](#nodejs)
     - [CommonJS](#commonjs)
     - [ESM](#esm)
@@ -14,11 +14,14 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionalities for inter
     - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
     - [Browser](#browser)
   - [Typescript](#typescript)
-  - [Examples](./examples)
-
+- [APIs](#apis)
+  - [TurboFactory](#turbofactory)
+  - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
+  - [TurboAuthenticatedClient](#turboauthenticatedclient)
+- [Examples](./examples)
 - [Contributions](#contributions)
 
-# Installation
+## Installation
 
 ```shell
 npm install @ardrive/turbo-sdk
@@ -30,85 +33,311 @@ or
 yarn add @ardrive/turbo-sdk
 ```
 
-# Usage
+## Quick Start
 
-The SDK is available in both CommonJS and ESM formats and is compatible with bundlers such as Webpack, Rollup, and ESbuild.
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
 
-## Web
+// load your JWK from a file or generate a new one
+const jwk = fs.readFileSync('./my-jwk.json');
+const address = arweave.wallets.jwkToAddress(jwk);
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
 
-# Bundlers (Webpack, Rollup, ESbuild, etc.)
+// get the wallet balance
+const { winc: balance } = await turbo.getBalance();
+
+// prep file for upload
+const filePath = path.join(__dirname, './my-image.png');
+const fileSize = fs.statSync(filePath).size;
+
+// get the cost of uploading the file
+const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
+  bytes: [fileSize],
+});
+
+// check if balance greater than upload cost
+if (balance < fileSizeCost) {
+  const { url } = await turbo.createCheckoutSession({
+    amount: fileSizeCost,
+    owner: address,
+    // add a promo code if you have one
+  });
+  // open the URL to top-up, continue when done
+  open(url);
+  return;
+}
+
+// upload the file
+try {
+  const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.uploadFile(() => {
+    fileStreamFactory => () => fs.createReadStream(filePath),
+    fileSizeFactory => () => fileSize,
+  });
+  // upload complete!
+  console.log('Successfully upload data item!', { id, owner, dataCaches, fastFinalityIndexes });
+} catch (error) {
+  // upload failed
+  console.error('Failed to upload data item!', error);
+} finally {
+  const { winc: newBalance } = await turbo.getBalance();
+  console.log('New balance:', newBalance);
+}
+```
+
+## Usage
+
+The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriate named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
+
+### Web
+
+#### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
 ```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/web';
+import { TurboFactory } from '@ardrive/turbo-sdk';
 
-const turbo = TurboFactory.unauthenticated({});
+const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
-### Browser
+#### Browser
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@ardrive/turbo-sdk"></script>
 <script>
-  const turbo = TurboFactory.unauthenticated({});
+  const turbo = TurboFactory.unauthenticated();
   const rates = await turbo.getFiatRates();
 </script>
 ```
 
-## NodeJS
+### NodeJS
 
-### CommonJS
+#### CommonJS
+
+Project's `package.json`:
+
+```json
+{
+  "type": "commonjs" // or absent
+}
+```
+
+Project's `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "skipLibCheck": true
+  }
+}
+```
+
+Usage:
 
 ```javascript
-const { TurboFactory } = require('@ardrive/turbo-sdk/node');
+const { TurboFactory } = require('@ardrive/turbo-sdk');
 
-const turbo = TurboFactory.unauthenticated({});
+const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
-### ESM
+#### ESM
+
+Project's `package.json`:
+
+```json
+{
+  "type": "module"
+}
+```
+
+Project's `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "skipLibCheck": true
+  }
+}
+```
+
+Usage:
 
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/node';
 
-const turbo = TurboFactory.unauthenticated({});
+const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
-## Typescript
+### Typescript
 
-The SDK provides TypeScript typings. When you import the SDK in a TypeScript project:
+The SDK provides TypeScript types. When you import the SDK in a TypeScript project:
 
 ```typescript
-import Ardrive from '@ardrive/turbo-sdk/web';
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 // or '@ardrive/turbo-sdk/node' for Node.js projects
 ```
 
-The provided typings (`./lib/types/index.d.ts`) will be automatically recognized, offering type checking and autocompletion benefits.
+Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
 
-# APIs (WIP)
+## APIs
 
-## TurboFactory
+### TurboFactory
 
-- `public()`
-- `private()`
+- `unauthenticated()` - Creates an instance of a client that accesses Turbo's unauthenticated services.
 
-## TurboUnauthenticatedClient
+  ```typescript
+  const turbo = TurboFactory.unauthenticated();
+  ```
 
-- `getFiatRates()`
-- `getFiatToAR()`
-- `getSupportedCountries()`
-- `getSupportedCurrencies()`
-- `getWincForFiat()`
-- `getUploadCosts()`
-- `uploadSignedDataItem()`
+- `authenticated()` - Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services.
 
-## TurboAuthenticatedClient
+  ```typescript
+  const jwk = await arweave.crypto.generateJWK();
+  const turbo = TurboFactory.authenticated({ privateKey: jwk });
+  ```
 
-- `getBalance()`
-- `uploadFile()`
+### TurboUnauthenticatedClient
 
-# Contributions
+- `getSupportedCurrencies()` - Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
 
-If you encounter any issues or have feature requests, please file an issue on our GitHub repository. Contributions, pull requests, and feedback are welcome and encouraged.
+  ```typescript
+  const currencies = await turbo.getSupportedCurrencies();
+  ```
+
+- `getSupportedCountries()` - Returns the list of countries supported by the Turbo Payment Service's top up workflow.
+
+  ```typescript
+  const countries = await turbo.getSupportedCountries();
+  ```
+
+- `getFiatToAR({ currency })` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
+
+  ```typescript
+  const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
+  ```
+
+- `getFiatRates()` - Returns the current fiat rates for 1 GiB of data for supported currencies, including all top-up adjustments and fees.
+
+  ```typescript
+  const rates = await turbo.getFiatRates();
+  ```
+
+- `getWincForFiat({ amount })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount. To leverage promo codes, see [TurboAuthenticatedClient].
+
+  ```typescript
+  const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.getWincForFiat({
+      amount: USD(100),
+      // promo codes require an authenticated client
+    });
+  ```
+
+- `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
+
+  ```typescript
+  const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
+  const { winc, adjustments } = uploadCostForFile;
+  ```
+
+- `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })` - Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
+
+  ```typescript
+  const filePath = path.join(__dirname, './my-signed-data-item');
+  const dataItemSize = fs.statSync(filePath).size;
+  const uploadResponse = await turbo.uploadSignedDataItem({
+    dataItemStreamFactory: () => fs.createReadStream(filePath),
+    dataItemSizeFactory: () => dataItemSize,
+    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  });
+  ```
+
+- `createCheckoutSession({ amount, owner })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
+
+  ```typescript
+  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.createCheckoutSession({
+      amount: USD(10.0), // $10.00 USD
+      owner: publicArweaveAddress,
+      // promo codes require an authenticated client
+    });
+
+  // Open checkout session in a browser
+  if (process.platform === 'darwin') {
+    // macOS
+    exec(`open ${url}`);
+  } else if (process.platform === 'win32') {
+    // Windows
+    exec(`start "" "${url}"`, { shell: true });
+  } else {
+    // Linux/Unix
+    open(url);
+  }
+  ```
+
+### TurboAuthenticatedClient
+
+- `getBalance()` - Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
+
+  ```typescript
+  const { winc: balance } = await turbo.getBalance();
+  ```
+
+- `getWincForFiat({ amount, promoCodes })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
+
+  ```typescript
+  const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.getWincForFiat({
+      amount: USD(100),
+      promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
+    });
+  ```
+
+- `createCheckoutSession({ amount, owner, promoCodes })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe. Promo codes require an authenticated client.
+
+  ```typescript
+  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+    await turbo.createCheckoutSession({
+      amount: USD(10.0), // $10.00 USD
+      owner: publicArweaveAddress,
+      promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
+    });
+
+  // Open checkout session in a browser
+  if (process.platform === 'darwin') {
+    // macOS
+    exec(`open ${url}`);
+  } else if (process.platform === 'win32') {
+    // Windows
+    exec(`start "" "${url}"`, { shell: true });
+  } else {
+    // Linux/Unix
+    open(url);
+  }
+  ```
+
+- `uploadFile({ fileStreamFactory, fileSizeFactory, signal })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
+
+  ```typescript
+  const filePath = path.join(__dirname, './my-unsigned-file.txt');
+  const fileSize = fs.stateSync(filePath).size;
+  const uploadResult = await turbo.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
+    // no timeout or AbortSignal provided
+  });
+  ```
+
+## Contributions
+
+If you encounter any issues or have feature requests, please file an issue on our GitHub repository. Contributions, pull requests, and feedback are both welcome and encouraged.
+
+[package.json]: ./package.json
+[examples]: ./examples
+[TurboAuthenticatedClient]: #turboauthenticatedclient
+[AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal

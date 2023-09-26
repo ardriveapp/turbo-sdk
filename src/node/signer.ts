@@ -19,8 +19,8 @@ import Arweave from 'arweave/node/index.js';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
-import { JWKInterface } from '../types/arweave.js';
-import { TurboWalletSigner } from '../types/turbo.js';
+import { JWKInterface } from '../common/jwk.js';
+import { StreamSizeFactory, TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 
 export class TurboNodeArweaveSigner implements TurboWalletSigner {
@@ -33,14 +33,27 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     this.signer = new ArweaveSigner(this.privateKey);
   }
 
-  signDataItem({
+  async signDataItem({
     fileStreamFactory,
+    fileSizeFactory,
   }: {
     fileStreamFactory: () => Readable;
-  }): Promise<Readable> {
+    fileSizeFactory: StreamSizeFactory;
+  }): Promise<{
+    dataItemStreamFactory: () => Readable;
+    dataItemSizeFactory: StreamSizeFactory;
+  }> {
     // TODO: replace with our own signer implementation
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
-    return streamSigner(stream1, stream2, this.signer);
+    const signedDataItem = await streamSigner(stream1, stream2, this.signer);
+    // TODO: support target, anchor, and tags
+    const signedDataItemSize = this.calculateSignedDataHeadersSize({
+      dataSize: fileSizeFactory(),
+    });
+    return {
+      dataItemStreamFactory: () => signedDataItem,
+      dataItemSizeFactory: () => signedDataItemSize,
+    };
   }
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
@@ -54,5 +67,29 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
     };
+  }
+
+  // TODO: make dynamic that accepts anchor and target and tags to return the size of the headers + data
+  // reference https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md#13-dataitem-format
+  private calculateSignedDataHeadersSize({ dataSize }: { dataSize: number }) {
+    const anchor = 1; // + whatever they provide (max of 33)
+    const target = 1; // + whatever they provide (max of 33)
+    const tags = 0;
+    const signatureLength = 512;
+    const ownerLength = 512;
+    const signatureTypeLength = 2;
+    const numOfTagsLength = 8; // https://github.com/Bundlr-Network/arbundles/blob/master/src/tags.ts#L191-L198
+    const numOfTagsBytesLength = 8;
+    return [
+      anchor,
+      target,
+      tags,
+      signatureLength,
+      ownerLength,
+      signatureTypeLength,
+      numOfTagsLength,
+      numOfTagsBytesLength,
+      dataSize,
+    ].reduce((totalSize, currentSize) => (totalSize += currentSize));
   }
 }

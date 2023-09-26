@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TurboPublicConfiguration } from '../types/turbo.js';
+import { TurboUnauthenticatedConfiguration } from '../types.js';
 import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedClient } from './turbo.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
@@ -23,7 +23,7 @@ export class TurboBaseFactory {
   static unauthenticated({
     paymentServiceConfig = {},
     uploadServiceConfig = {},
-  }: TurboPublicConfiguration = {}) {
+  }: TurboUnauthenticatedConfiguration = {}) {
     const paymentService = new TurboUnauthenticatedPaymentService({
       ...paymentServiceConfig,
     });

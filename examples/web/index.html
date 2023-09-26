@@ -36,7 +36,10 @@
       </form>
     </div>
     <script type="module">
-      import { TurboFactory } from './web.bundle.min.js';
+      import {
+        TurboFactory,
+        developmentTurboConfiguration,
+      } from './web.bundle.min.js';
 
       /**
        * Set up our authenticated client factory
@@ -50,6 +53,7 @@
       const address = await arweave.wallets.jwkToAddress(jwk);
       const turbo = TurboFactory.authenticated({
         privateKey: jwk,
+        ...developmentTurboConfiguration,
       });
 
       /**
