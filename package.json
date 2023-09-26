@@ -60,7 +60,7 @@
     "prepare": "husky install",
     "example:mjs": "cd examples/mjs && yarn && node index.mjs",
     "example:cjs": "cd examples/cjs && yarn && node index.cjs",
-    "example:web": "yarn build:web && cp -r bundles/* examples/web && http-server --port 8080 --host -o examples/web"
+    "example:web": "http-server --port 8080 --host -o examples/web"
   },
   "dependencies": {
     "arbundles": "^0.9.9",

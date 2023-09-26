@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@ardrive/turbo-sdk@^1.0.0-beta.2":
-  version "1.0.0-beta.2"
-  resolved "https://registry.yarnpkg.com/@ardrive/turbo-sdk/-/turbo-sdk-1.0.0-beta.2.tgz#841e8a6244a04923f7bdcf27355cd5a8d139a3b7"
-  integrity sha512-cPwmT86DCWP8vSgGs3Yeo/7ZwM7WCWAtVoMBTNtzK/FBOK2fp081EA90Qhoe649w0FOVQbPwhGptIYDMzn4sSQ==
+"@ardrive/turbo-sdk@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@ardrive/turbo-sdk/-/turbo-sdk-1.0.0.tgz#681b64cd9b197db768c368a08214883a1ba5e759"
+  integrity sha512-ztCoBf72w7o7lUHDoDsP1dbCVPIygEaEY3PbhQS3qTB3gCO7u7mUhL0O9bVvmQ5m8S1qa55h1eXj62CLNpmwkA==
   dependencies:
     arbundles "^0.9.9"
     arweave "^1.14.4"

@@ -1,6 +1,6 @@
 {
   "type": "module",
   "dependencies": {
-    "@ardrive/turbo-sdk": "^1.0.0-beta.1"
+    "@ardrive/turbo-sdk": "^1.0.0"
   }
 }
