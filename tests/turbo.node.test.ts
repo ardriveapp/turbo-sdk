@@ -24,7 +24,10 @@ describe('Node environment', () => {
     });
     it('should return a TurboAuthenticatedClient when running in Node environment and  provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
-      const turbo = TurboFactory.authenticated({ privateKey: jwk });
+      const turbo = TurboFactory.authenticated({
+        privateKey: jwk,
+        ...developmentTurboConfiguration,
+      });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
   });
@@ -33,7 +36,7 @@ describe('Node environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated({});
+      turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
     });
 
     it('getFiatRates()', async () => {

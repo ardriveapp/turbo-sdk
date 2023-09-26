@@ -32,7 +32,10 @@ describe('Browser environment', () => {
 
     it('should be a TurboAuthenticatedClient running in the browser and provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
-      const turbo = TurboFactory.authenticated({ privateKey: jwk });
+      const turbo = TurboFactory.authenticated({
+        privateKey: jwk,
+        ...developmentTurboConfiguration,
+      });
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
   });
@@ -41,7 +44,7 @@ describe('Browser environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated({});
+      turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
     });
 
     describe('unauthenticated requests', () => {
