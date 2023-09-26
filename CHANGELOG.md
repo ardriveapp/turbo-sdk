@@ -1,3 +1,11 @@
+# [1.0.0-beta.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-beta.2...v1.0.0-beta.3) (2023-09-26)
+
+
+### Bug Fixes
+
+* **exports:** move turbo configurations to turbo.ts so it is available to clients ([5a04d7f](https://github.com/ardriveapp/turbo-sdk/commit/5a04d7f8c60cb6f49e68aa3d6d50b680fb445d7c))
+* **types:** finalize types, update default payment and upload URLs ([5364846](https://github.com/ardriveapp/turbo-sdk/commit/5364846de9a3e496d4045eb3d4010226d595f0e6))
+
 # [1.0.0-alpha.25](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0-alpha.24...v1.0.0-alpha.25) (2023-09-26)
 
 
