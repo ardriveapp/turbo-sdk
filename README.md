@@ -2,6 +2,55 @@
 
 Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interacting with the Turbo Upload and Payment Services and is available for both NodeJS and Web environments.
 
+## Quick Start
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+// load your JWK from a file or generate a new one
+const jwk = fs.readFileSync('./my-jwk.json');
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+// get the wallet balance
+const { winc: balance } = await turbo.getBalance();
+
+// prep file for upload
+const filePath = path.join(__dirname, './my-image.png');
+const fileSize = fs.statSync(filePath).size;
+
+// get the cost of uploading the file
+const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
+  bytes: [fileSize],
+});
+
+// check if balance greater than upload cost
+if (balance < fileSizeCost) {
+    const { url } = turbo.createCheckoutSession({
+    amount: fileSizeCost,
+    owner: publicArweaveAddress,
+  });
+  // open the URL to top-up, continue when done
+  open(url);
+  return;
+}
+
+// upload the file
+try {
+  const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.uploadFile(() => {
+    fileStreamFactory => () => fs.createReadStream(filePath),
+    fileSizeFactory => () => fileSize,
+  });
+  // upload complete!
+  console.log('Successfully upload data item!', { id, owner, dataCaches, fastFinalityIndexes });
+} catch (error) {
+  // upload failed
+  console.error('Failed to upload data item!', error);
+} finally {
+  const { winc: newBalance } = await turbo.getBalance();
+  console.log('New balance:', newBalance);
+}
+```
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -160,7 +209,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const countries = await turbo.getSupportedCountries();
   ```
 
-- `getFiatToAR( { currency })` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
+- `getFiatToAR({ currency })` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
 
   ```typescript
   const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
