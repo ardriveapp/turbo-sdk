@@ -160,7 +160,7 @@ Types are exported from `./lib/types/index.d.ts` and should be automatically rec
   const countries = await turbo.getSupportedCountries();
   ```
 
-- `getFiatToAR()` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
+- `getFiatToAR( { currency })` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
 
   ```typescript
   const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
