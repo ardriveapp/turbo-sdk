@@ -36,6 +36,7 @@ import { TurboFactory } from '@ardrive/turbo-sdk';
 
 // load your JWK from a file or generate a new one
 const jwk = fs.readFileSync('./my-jwk.json');
+const address = arweave.wallets.jwkToAddress(jwk);
 const turbo = TurboFactory.authenticated({ privateKey: jwk });
 
 // get the wallet balance
@@ -52,9 +53,10 @@ const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
 
 // check if balance greater than upload cost
 if (balance < fileSizeCost) {
-    const { url } = turbo.createCheckoutSession({
+  const { url } = await turbo.createCheckoutSession({
     amount: fileSizeCost,
-    owner: publicArweaveAddress,
+    owner: address,
+    // add a promo code if you have one
   });
   // open the URL to top-up, continue when done
   open(url);
