@@ -17,6 +17,7 @@
 import {
   Currency,
   TurboAbortSignal,
+  TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
@@ -28,10 +29,9 @@ import {
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboPriceResponse,
-  TurboPrivateClientConfiguration,
-  TurboPublicClientConfiguration,
   TurboRatesResponse,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedClientConfiguration,
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
@@ -51,7 +51,7 @@ export class TurboUnauthenticatedClient
   constructor({
     uploadService = new TurboUnauthenticatedUploadService({}),
     paymentService = new TurboUnauthenticatedPaymentService({}),
-  }: TurboPublicClientConfiguration) {
+  }: TurboUnauthenticatedClientConfiguration) {
     this.paymentService = paymentService;
     this.uploadService = uploadService;
   }
@@ -148,7 +148,7 @@ export class TurboAuthenticatedClient
   constructor({
     paymentService,
     uploadService,
-  }: TurboPrivateClientConfiguration) {
+  }: TurboAuthenticatedClientConfiguration) {
     super({ paymentService, uploadService });
   }
 

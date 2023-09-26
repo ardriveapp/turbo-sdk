@@ -124,32 +124,32 @@ type TurboServiceConfiguration = {
   logger?: winston.Logger;
 };
 
-export type TurboUnauthenticatedUploadServiceInterfaceConfiguration =
+export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
 export type TurboAuthenticatedUploadServiceConfiguration =
-  TurboUnauthenticatedUploadServiceInterfaceConfiguration &
-    TurboAuthConfiguration;
+  TurboUnauthenticatedUploadServiceConfiguration & TurboAuthConfiguration;
 
-export type TurboUnauthenticatedPaymentServiceInterfaceConfiguration =
+export type TurboUnauthenticatedPaymentServiceConfiguration =
   TurboServiceConfiguration;
-export type TurboAuthenticatedPaymentServiceInterfaceConfiguration =
-  TurboServiceConfiguration & TurboAuthConfiguration;
+export type TurboAuthenticatedPaymentServiceConfiguration =
+  TurboUnauthenticatedPaymentServiceConfiguration & TurboAuthConfiguration;
 
-export type TurboPublicConfiguration = {
-  paymentServiceConfig?: TurboUnauthenticatedPaymentServiceInterfaceConfiguration;
-  uploadServiceConfig?: TurboUnauthenticatedUploadServiceInterfaceConfiguration;
+export type TurboUnauthenticatedConfiguration = {
+  paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
+  uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
 };
 
-export type TurboPrivateConfiguration = TurboPublicConfiguration & {
-  privateKey: TurboWallet;
-};
+export type TurboAuthenticatedConfiguration =
+  TurboUnauthenticatedConfiguration & {
+    privateKey: TurboWallet;
+  };
 
-export type TurboPublicClientConfiguration = {
+export type TurboUnauthenticatedClientConfiguration = {
   paymentService: TurboUnauthenticatedPaymentServiceInterface;
   uploadService: TurboUnauthenticatedUploadServiceInterface;
 };
 
-export type TurboPrivateClientConfiguration = {
+export type TurboAuthenticatedClientConfiguration = {
   paymentService: TurboAuthenticatedPaymentServiceInterface;
   uploadService: TurboAuthenticatedUploadServiceInterface;
 };

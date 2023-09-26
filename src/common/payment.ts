@@ -17,8 +17,8 @@
 import {
   Currency,
   TopUpRawResponse,
+  TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
-  TurboAuthenticatedPaymentServiceInterfaceConfiguration,
   TurboBalanceResponse,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
@@ -28,13 +28,16 @@ import {
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedRequestHeaders,
+  TurboUnauthenticatedPaymentServiceConfiguration,
   TurboUnauthenticatedPaymentServiceInterface,
-  TurboUnauthenticatedPaymentServiceInterfaceConfiguration,
   TurboWalletSigner,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
+
+export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
+export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
 
 export class TurboUnauthenticatedPaymentService
   implements TurboUnauthenticatedPaymentServiceInterface
@@ -42,9 +45,9 @@ export class TurboUnauthenticatedPaymentService
   protected readonly httpService: TurboHTTPService;
 
   constructor({
-    url = 'https://payment.ardrive.dev',
+    url = defaultPaymentServiceURL,
     retryConfig,
-  }: TurboUnauthenticatedPaymentServiceInterfaceConfiguration) {
+  }: TurboUnauthenticatedPaymentServiceConfiguration) {
     this.httpService = new TurboHTTPService({
       url: `${url}/v1`,
       retryConfig,
@@ -148,10 +151,10 @@ export class TurboAuthenticatedPaymentService
   protected readonly signer: TurboWalletSigner;
 
   constructor({
-    url = 'https://payment.ardrive.dev',
+    url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-  }: TurboAuthenticatedPaymentServiceInterfaceConfiguration) {
+  }: TurboAuthenticatedPaymentServiceConfiguration) {
     super({ url, retryConfig });
     this.signer = signer;
   }
