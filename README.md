@@ -2,6 +2,33 @@
 
 Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interacting with the Turbo Upload and Payment Services and is available for both NodeJS and Web environments.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+  - [NodeJS Environments](#nodejs)
+    - [CommonJS](#commonjs)
+    - [ESM](#esm)
+  - [Web Environments](#web)
+    - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
+    - [Browser](#browser)
+  - [Typescript](#typescript)
+  - [Examples](./examples)
+- [Contributions](#contributions)
+
+## Installation
+
+```shell
+npm install @ardrive/turbo-sdk
+```
+
+or
+
+```shell
+yarn add @ardrive/turbo-sdk
+```
+
 ## Quick Start
 
 ```typescript
@@ -49,32 +76,6 @@ try {
   const { winc: newBalance } = await turbo.getBalance();
   console.log('New balance:', newBalance);
 }
-```
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-  - [NodeJS Environments](#nodejs)
-    - [CommonJS](#commonjs)
-    - [ESM](#esm)
-  - [Web Environments](#web)
-    - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
-    - [Browser](#browser)
-  - [Typescript](#typescript)
-  - [Examples](./examples)
-- [Contributions](#contributions)
-
-## Installation
-
-```shell
-npm install @ardrive/turbo-sdk
-```
-
-or
-
-```shell
-yarn add @ardrive/turbo-sdk
 ```
 
 ## Usage
