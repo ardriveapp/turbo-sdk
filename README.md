@@ -6,6 +6,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+
 - [Usage](#usage)
   - [NodeJS Environments](#nodejs)
     - [CommonJS](#commonjs)
@@ -14,7 +15,11 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
     - [Browser](#browser)
   - [Typescript](#typescript)
-  - [Examples](./examples)
+- [APIs](#apis)
+  - [TurboFactory](#turbofactory)
+  - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
+  - [TurboAuthenticatedClient](#turboauthenticatedclient)
+- [Examples](./examples)
 - [Contributions](#contributions)
 
 ## Installation
@@ -335,6 +340,5 @@ If you encounter any issues or have feature requests, please file an issue on ou
 
 [package.json]: ./package.json
 [examples]: ./examples
-[TurboUnauthenticatedClient]: #turboUnauthenticatedClient
-[TurboAuthenticatedClient]: #turboAuthenticatedClient
+[TurboAuthenticatedClient]: #turboauthenticatedclient
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
