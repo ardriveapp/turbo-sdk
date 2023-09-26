@@ -39,8 +39,40 @@ import {
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
-import { TurboUnauthenticatedPaymentService } from './payment.js';
-import { TurboUnauthenticatedUploadService } from './upload.js';
+import {
+  TurboUnauthenticatedPaymentService,
+  defaultPaymentServiceURL,
+  developmentPaymentServiceURL,
+} from './payment.js';
+import {
+  TurboUnauthenticatedUploadService,
+  defaultUploadServiceURL,
+  developmentUploadServiceURL,
+} from './upload.js';
+
+/**
+ * Testing configuration.
+ */
+export const developmentTurboConfiguration = {
+  paymentServiceConfig: {
+    url: developmentPaymentServiceURL,
+  },
+  uploadServiceConfig: {
+    url: developmentUploadServiceURL,
+  },
+};
+
+/**
+ * Production configuration.
+ */
+export const defaultTurboConfiguration = {
+  paymentServiceConfig: {
+    url: defaultPaymentServiceURL,
+  },
+  uploadServiceConfig: {
+    url: defaultUploadServiceURL,
+  },
+};
 
 export class TurboUnauthenticatedClient
   implements TurboUnauthenticatedClientInterface

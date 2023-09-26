@@ -6,8 +6,8 @@ import fs from 'fs';
 import { Readable } from 'node:stream';
 
 import { USD } from '../src/common/currency.js';
-import { developmentTurboConfiguration } from '../src/common/factory.js';
 import { JWKInterface } from '../src/common/jwk.js';
+import { developmentTurboConfiguration } from '../src/common/turbo.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,

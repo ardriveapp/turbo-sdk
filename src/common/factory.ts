@@ -15,41 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { TurboUnauthenticatedConfiguration } from '../types.js';
-import {
-  TurboUnauthenticatedPaymentService,
-  defaultPaymentServiceURL,
-  developmentPaymentServiceURL,
-} from './payment.js';
+import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedClient } from './turbo.js';
-import {
-  TurboUnauthenticatedUploadService,
-  defaultUploadServiceURL,
-  developmentUploadServiceURL,
-} from './upload.js';
-
-/**
- * Testing configuration.
- */
-export const developmentTurboConfiguration = {
-  paymentServiceConfig: {
-    url: developmentPaymentServiceURL,
-  },
-  uploadServiceConfig: {
-    url: developmentUploadServiceURL,
-  },
-};
-
-/**
- * Production configuration.
- */
-export const defaultTurboConfiguration = {
-  paymentServiceConfig: {
-    url: defaultPaymentServiceURL,
-  },
-  uploadServiceConfig: {
-    url: defaultUploadServiceURL,
-  },
-};
+import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboBaseFactory {
   static unauthenticated({
