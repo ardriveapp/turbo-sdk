@@ -7,6 +7,7 @@ import { Readable } from 'node:stream';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
+import { developmentTurboConfiguration } from '../src/common/turbo.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -18,7 +19,7 @@ import { FailedRequestError } from '../src/utils/errors.js';
 describe('Node environment', () => {
   describe('TurboFactory', () => {
     it('should return a TurboUnauthenticatedClient when running in Node environment and not provided a privateKey', () => {
-      const turbo = TurboFactory.unauthenticated({});
+      const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
     it('should return a TurboAuthenticatedClient when running in Node environment and  provided a privateKey', async () => {
@@ -81,7 +82,7 @@ describe('Node environment', () => {
       expect(adjustments).to.be.an('array');
     });
 
-    it('getPriceForFiat()', async () => {
+    it('getWincForFiat()', async () => {
       const { winc } = await turbo.getWincForFiat({
         amount: USD(10), // $10.00 USD
       });
@@ -179,6 +180,7 @@ describe('Node environment', () => {
       jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
         privateKey: jwk,
+        ...developmentTurboConfiguration,
       });
       address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
@@ -231,7 +233,7 @@ describe('Node environment', () => {
       });
     });
 
-    it('getPriceForFiat() with a bad promo code', async () => {
+    it('getWincForFiat() with a bad promo code', async () => {
       const error = await turbo
         .getWincForFiat({
           amount: USD(10), // $10.00 USD
@@ -241,6 +243,14 @@ describe('Node environment', () => {
       expect(error).to.be.instanceOf(FailedRequestError);
       // TODO: Could provide better error message to client. We have error messages on response.data
       expect(error.message).to.equal('Failed request: 400: Bad Request');
+    });
+
+    it('getWincForFiat() without a promo could return proper rates', async () => {
+      const { winc, adjustments } = await turbo.getWincForFiat({
+        amount: USD(10), // $10.00 USD
+      });
+      expect(+winc).to.be.greaterThan(0);
+      expect(adjustments).to.not.be.undefined;
     });
 
     describe('createCheckoutSession()', () => {

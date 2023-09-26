@@ -6,6 +6,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
+import { developmentTurboConfiguration } from '../src/common/turbo.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -25,7 +26,7 @@ describe('Browser environment', () => {
 
   describe('TurboFactory', () => {
     it('should be a TurboUnauthenticatedClient running in the browser and not provided a privateKey', () => {
-      const turbo = TurboFactory.unauthenticated({});
+      const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
 
@@ -90,7 +91,7 @@ describe('Browser environment', () => {
         expect(adjustments).to.be.an('array');
       });
 
-      it('getPriceForFiat()', async () => {
+      it('getWincForFiat()', async () => {
         const { winc } = await turbo.getWincForFiat({
           amount: USD(10), // $10.00 USD
         });
@@ -169,7 +170,10 @@ describe('Browser environment', () => {
 
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
-      turbo = TurboFactory.authenticated({ privateKey: jwk });
+      turbo = TurboFactory.authenticated({
+        privateKey: jwk,
+        ...developmentTurboConfiguration,
+      });
       address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
 
@@ -238,7 +242,7 @@ describe('Browser environment', () => {
       });
     });
 
-    it('getPriceForFiat() fails with bad promo code', async () => {
+    it('getWincForFiat() fails with bad promo code', async () => {
       const error = await turbo
         .getWincForFiat({
           amount: USD(10), // $10.00 USD
@@ -247,6 +251,14 @@ describe('Browser environment', () => {
         .catch((error) => error);
       expect(error).to.be.instanceOf(FailedRequestError);
       expect(error?.message).to.equal('Failed request: 400: Bad Request');
+    });
+
+    it('getWincForFiat() without a promo could return proper rates', async () => {
+      const { winc, adjustments } = await turbo.getWincForFiat({
+        amount: USD(10), // $10.00 USD
+      });
+      expect(+winc).to.be.greaterThan(0);
+      expect(adjustments).to.not.be.undefined;
     });
 
     describe('createCheckoutSession()', () => {

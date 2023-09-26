@@ -20,12 +20,15 @@ import {
   TurboAuthenticatedUploadServiceInterface,
   TurboFileFactory,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
-  TurboUnauthenticatedUploadServiceInterfaceConfiguration,
   TurboUploadDataItemResponse,
   TurboWalletSigner,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
+
+export const defaultUploadServiceURL = 'https://upload.ardrive.io';
+export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 
 export class TurboUnauthenticatedUploadService
   implements TurboUnauthenticatedUploadServiceInterface
@@ -33,9 +36,9 @@ export class TurboUnauthenticatedUploadService
   protected httpService: TurboHTTPService;
 
   constructor({
-    url = 'https://upload.ardrive.dev',
+    url = defaultUploadServiceURL,
     retryConfig,
-  }: TurboUnauthenticatedUploadServiceInterfaceConfiguration) {
+  }: TurboUnauthenticatedUploadServiceConfiguration) {
     this.httpService = new TurboHTTPService({
       url: `${url}/v1`,
       retryConfig,

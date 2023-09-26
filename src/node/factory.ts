@@ -20,7 +20,7 @@ import {
   TurboAuthenticatedPaymentService,
   TurboAuthenticatedUploadService,
 } from '../common/index.js';
-import { TurboPrivateConfiguration } from '../types.js';
+import { TurboAuthenticatedConfiguration } from '../types.js';
 import { TurboNodeArweaveSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {
@@ -28,7 +28,7 @@ export class TurboFactory extends TurboBaseFactory {
     privateKey,
     paymentServiceConfig = {},
     uploadServiceConfig = {},
-  }: TurboPrivateConfiguration) {
+  }: TurboAuthenticatedConfiguration) {
     const signer = new TurboNodeArweaveSigner({ privateKey });
     const paymentService = new TurboAuthenticatedPaymentService({
       ...paymentServiceConfig,

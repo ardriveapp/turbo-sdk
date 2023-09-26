@@ -17,6 +17,7 @@
 import {
   Currency,
   TurboAbortSignal,
+  TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
   TurboAuthenticatedPaymentServiceInterface,
   TurboAuthenticatedUploadServiceInterface,
@@ -28,10 +29,9 @@ import {
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboPriceResponse,
-  TurboPrivateClientConfiguration,
-  TurboPublicClientConfiguration,
   TurboRatesResponse,
   TurboSignedDataItemFactory,
+  TurboUnauthenticatedClientConfiguration,
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
@@ -39,8 +39,40 @@ import {
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
-import { TurboUnauthenticatedPaymentService } from './payment.js';
-import { TurboUnauthenticatedUploadService } from './upload.js';
+import {
+  TurboUnauthenticatedPaymentService,
+  defaultPaymentServiceURL,
+  developmentPaymentServiceURL,
+} from './payment.js';
+import {
+  TurboUnauthenticatedUploadService,
+  defaultUploadServiceURL,
+  developmentUploadServiceURL,
+} from './upload.js';
+
+/**
+ * Testing configuration.
+ */
+export const developmentTurboConfiguration = {
+  paymentServiceConfig: {
+    url: developmentPaymentServiceURL,
+  },
+  uploadServiceConfig: {
+    url: developmentUploadServiceURL,
+  },
+};
+
+/**
+ * Production configuration.
+ */
+export const defaultTurboConfiguration = {
+  paymentServiceConfig: {
+    url: defaultPaymentServiceURL,
+  },
+  uploadServiceConfig: {
+    url: defaultUploadServiceURL,
+  },
+};
 
 export class TurboUnauthenticatedClient
   implements TurboUnauthenticatedClientInterface
@@ -51,7 +83,7 @@ export class TurboUnauthenticatedClient
   constructor({
     uploadService = new TurboUnauthenticatedUploadService({}),
     paymentService = new TurboUnauthenticatedPaymentService({}),
-  }: TurboPublicClientConfiguration) {
+  }: TurboUnauthenticatedClientConfiguration) {
     this.paymentService = paymentService;
     this.uploadService = uploadService;
   }
@@ -148,7 +180,7 @@ export class TurboAuthenticatedClient
   constructor({
     paymentService,
     uploadService,
-  }: TurboPrivateClientConfiguration) {
+  }: TurboAuthenticatedClientConfiguration) {
     super({ paymentService, uploadService });
   }
 

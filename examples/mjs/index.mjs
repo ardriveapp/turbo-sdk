@@ -1,6 +1,8 @@
 import {
   TurboFactory,
   TurboUnauthenticatedPaymentService,
+  USD,
+  developmentTurboConfiguration,
 } from '@ardrive/turbo-sdk/node';
 import Arweave from 'arweave';
 import fs from 'fs';
@@ -9,7 +11,7 @@ import fs from 'fs';
   /**
    * Fetching rates using an unauthenticated Turbo client.
    */
-  const turbo = TurboFactory.unauthenticated();
+  const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
   const rates = await turbo.getFiatRates();
   console.log('Fetched rates:', JSON.stringify(rates, null, 2));
 
@@ -35,7 +37,10 @@ import fs from 'fs';
   /**
    * Use the arweave key to create an authenticated turbo client
    */
-  const turboAuthClient = TurboFactory.authenticated({ privateKey: jwk });
+  const turboAuthClient = TurboFactory.authenticated({
+    privateKey: jwk,
+    ...developmentTurboConfiguration,
+  });
 
   /**
    * Fetch the balance for the private key.
@@ -57,8 +62,7 @@ import fs from 'fs';
    * Fetch the estimated amount of winc returned for 10 USD (1000 cents).
    */
   const estimatedWinc = await turboAuthClient.getWincForFiat({
-    amount: 1000,
-    currency: 'usd',
+    amount: USD(10),
   });
   console.log('10 USD to winc:', estimatedWinc);
 
