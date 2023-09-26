@@ -6,7 +6,6 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-
 - [Usage](#usage)
   - [NodeJS Environments](#nodejs)
     - [CommonJS](#commonjs)
@@ -184,7 +183,7 @@ import { TurboFactory } from '@ardrive/turbo-sdk/web';
 // or '@ardrive/turbo-sdk/node' for Node.js projects
 ```
 
-Types are exported from `./lib/types/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
+Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
 
 ## APIs
 
