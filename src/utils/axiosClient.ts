@@ -17,6 +17,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig, CanceledError } from 'axios';
 import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
 
+import { version } from '../version.js';
+
+export const defaultRequestHeaders = {
+  'x-turbo-source-version': version,
+  'x-turbo-source-identifier': 'turbo-sdk',
+};
+
 export interface AxiosInstanceParameters {
   axiosConfig?: Omit<AxiosRequestConfig, 'validateStatus'>;
   retryConfig?: IAxiosRetryConfig;
@@ -42,8 +49,10 @@ export const createAxiosInstance = ({
 }: AxiosInstanceParameters): AxiosInstance => {
   const axiosInstance = axios.create({
     ...axiosConfig,
+    headers: defaultRequestHeaders,
     validateStatus: () => true, // don't throw on non-200 status codes
   });
+
   // eslint-disable-next-line
   if (retryConfig.retries && retryConfig.retries > 0) {
     axiosRetry(axiosInstance, retryConfig);
