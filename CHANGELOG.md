@@ -1,3 +1,10 @@
+## [1.0.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0...v1.0.1-alpha.1) (2023-09-27)
+
+
+### Bug Fixes
+
+* **headers:** add default headers for all HTTP requests ([2b58545](https://github.com/ardriveapp/turbo-sdk/commit/2b5854565cde9af1d51d3703615b11a19e59fc6e))
+
 # 1.0.0 (2023-09-26)
 
 
