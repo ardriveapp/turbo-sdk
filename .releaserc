@@ -16,6 +16,12 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "sed -i.bak -e \"s/export const version = '.*';/export const version = '${nextRelease.version}';/\" src/version.ts && rm src/version.ts.bak"
+      }
+    ],
     "@semantic-release/npm",
     [
       "@semantic-release/github",
