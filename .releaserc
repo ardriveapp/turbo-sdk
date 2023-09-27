@@ -19,7 +19,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "sed -i.bak -e \"s/export const version = '.*';/export const version = '${nextRelease.version}';/\" src/version.ts && rm src/version.ts.bak && sed -i.bak -e \"s/export const version = '.*';/export const version = '${nextRelease.version}';/\" lib/cjs/version.js && rm lib/cjs/version.js.bak && sed -i.bak -e \"s/export const version = '.*';/export const version = '${nextRelease.version}';/\" lib/esm/version.js && rm lib/esm/version.js.bak"
+        "prepareCmd": "./update-version.sh ${nextRelease.version}"
       }
     ],
     "@semantic-release/npm",
