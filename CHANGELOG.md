@@ -1,3 +1,12 @@
+## [1.0.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0...v1.0.1) (2023-09-27)
+
+
+### Bug Fixes
+
+* **headers:** add default headers for all HTTP requests ([2b58545](https://github.com/ardriveapp/turbo-sdk/commit/2b5854565cde9af1d51d3703615b11a19e59fc6e))
+* **release:** use script that updates built version.js files ([433f520](https://github.com/ardriveapp/turbo-sdk/commit/433f52090b41bcfa230fac2863729a154aaeeae8))
+* **version:** update version.js to proper version on build and commit it back to git after a release ([ab51183](https://github.com/ardriveapp/turbo-sdk/commit/ab51183c1e81adcbf38104f01056a7666f173bba))
+
 ## [1.0.1-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.1-alpha.2...v1.0.1-alpha.3) (2023-09-27)
 
 
