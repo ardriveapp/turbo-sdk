@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1-alpha.3",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -74,6 +74,7 @@
     "@commitlint/config-conventional": "^17.1.0",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^4.2.0",
     "@types/chai": "^4.3.5",
