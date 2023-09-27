@@ -1,3 +1,10 @@
+## [1.0.1-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.1-alpha.1...v1.0.1-alpha.2) (2023-09-27)
+
+
+### Bug Fixes
+
+* **version:** update version.js to proper version on build and commit it back to git after a release ([ab51183](https://github.com/ardriveapp/turbo-sdk/commit/ab51183c1e81adcbf38104f01056a7666f173bba))
+
 ## [1.0.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0...v1.0.1-alpha.1) (2023-09-27)
 
 
