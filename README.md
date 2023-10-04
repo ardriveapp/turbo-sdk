@@ -19,7 +19,16 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
 - [Examples](./examples)
-- [Contributions](#contributions)
+  - [CJS](./examples/cjs/index.ts)
+  - [ESM](./examples/esm/index.ts)
+  - [Web](./examples/web/index.html)
+- [Developers](#developers)
+  - [Requirements](#requirements)
+  - [Setup & Build](#setup--build)
+  - [Testing](#testing)
+  - [Linting and Formatting](#linting--formatting)
+  - [Architecture](#architecture)
+- [Contributing](./CONTRIBUTING.md)
 
 ## Installation
 
@@ -334,11 +343,44 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   });
   ```
 
-## Contributions
+## Developers
 
-If you encounter any issues or have feature requests, please file an issue on our GitHub repository. Contributions, pull requests, and feedback are both welcome and encouraged.
+### Requirements
+
+- `nvm`
+- `node` (>= 18)
+- `yarn`
+
+### Setup & Build
+
+- `yarn install` - installs dependencies
+- `yarn build` - builds web/node/bundled outputs
+
+### Testing
+
+- `yarn test` - runs integration tests
+- `yarn example:web` - opens up the example web page
+- `yarn example:cjs` - runs example CJS node script
+- `yarn example:mjs` - runs example ESM node script
+
+### Linting & Formatting
+
+- `yarn lint:check` - checks for linting errors
+- `yarn lint:fix` - fixes linting errors
+- `yarn format:check` - checks for formatting errors
+- `yarn format:fix` - fixes formatting errors
+
+### Architecture
+
+- Code to interfaces.
+- Prefer type safety over runtime safety.
+- Prefer composition over inheritance.
+- Prefer integration tests over unit tests.
+
+For more information on how to contribute, please see [CONTRIBUTING.md].
 
 [package.json]: ./package.json
 [examples]: ./examples
 [TurboAuthenticatedClient]: #turboauthenticatedclient
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
+[CONTRIBUTING.md]: ./CONTRIBUTING.md
