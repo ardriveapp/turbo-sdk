@@ -8,7 +8,7 @@ NOTE: Contribution implies licensing under the terms of [LICENSE]
 - Confirm the PR is against the `beta` branch.
 - Ensure commit messages follow the [conventional commits] style.
 - Ensure commit messages adequately explain the reasons for the changes.
-  outlined in the README.
+- Follow [architecture guidelines] outlined in the README.
 - Run [lint and format].
 - Run the [tests].
 
@@ -35,4 +35,5 @@ NOTE: Contribution implies licensing under the terms of [LICENSE]
 [lint and format]: https://github.com/ardriveapp/turbo-sdk/tree/main#linting--formatting
 [tests]: https://github.com/ardriveapp/turbo-sdk/tree/main#tests
 [npm registry]: https://www.npmjs.com/package/@ardrive/turbo-sdk
+[architecture guidelines]: https://github.com/ardriveapp/turbo-sdk/tree/main#architecture
 [Github releases]: https://github.com/ardriveapp/turbo-sdk/releases
