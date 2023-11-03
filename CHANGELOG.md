@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.1...v1.0.2) (2023-11-03)
+
+
+### Bug Fixes
+
+* **upload:** update the default upload service URL ([f718af9](https://github.com/ardriveapp/turbo-sdk/commit/f718af9ddd2cef6dd61a896bec0d061a3956cfc6))
+
 ## [1.0.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.0...v1.0.1) (2023-09-27)
 
 
