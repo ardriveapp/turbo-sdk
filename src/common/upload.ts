@@ -27,8 +27,8 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 
-export const defaultUploadServiceURL = 'https://upload.ardrive.io';
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
+export const defaultUploadServiceURL = 'https://upload.ardrive.io';
 
 export class TurboUnauthenticatedUploadService
   implements TurboUnauthenticatedUploadServiceInterface
@@ -73,7 +73,7 @@ export class TurboAuthenticatedUploadService
   protected signer: TurboWalletSigner;
 
   constructor({
-    url = 'https://upload.ardrive.dev',
+    url = defaultUploadServiceURL,
     retryConfig,
     signer,
   }: TurboAuthenticatedUploadServiceConfiguration) {
