@@ -1,3 +1,10 @@
+# [1.1.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.2...v1.1.0-alpha.1) (2023-11-09)
+
+
+### Features
+
+* **logger:** add configurable global logger ([e6f341a](https://github.com/ardriveapp/turbo-sdk/commit/e6f341ad11b130bb72e83810da7265467cfa69f9))
+
 ## [1.0.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.1...v1.0.2) (2023-11-03)
 
 
