@@ -17,6 +17,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, CanceledError } from 'axios';
 import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
 
+import { TurboWinstonLogger } from '../common/logger.js';
+import { TurboLogger } from '../types.js';
 import { version } from '../version.js';
 
 export const defaultRequestHeaders = {
@@ -27,9 +29,11 @@ export const defaultRequestHeaders = {
 export interface AxiosInstanceParameters {
   axiosConfig?: Omit<AxiosRequestConfig, 'validateStatus'>;
   retryConfig?: IAxiosRetryConfig;
+  logger?: TurboLogger;
 }
 
 export const createAxiosInstance = ({
+  logger = new TurboWinstonLogger(),
   axiosConfig = {},
   retryConfig = {
     retryDelay: axiosRetry.exponentialDelay,
@@ -41,15 +45,16 @@ export const createAxiosInstance = ({
       );
     },
     onRetry: (retryCount, error) => {
-      console.debug(
-        `Request failed, ${error}. Retry attempt #${retryCount}...`,
-      );
+      logger.debug(`Request failed, ${error}. Retry attempt #${retryCount}...`);
     },
   },
-}: AxiosInstanceParameters): AxiosInstance => {
+}: AxiosInstanceParameters = {}): AxiosInstance => {
   const axiosInstance = axios.create({
     ...axiosConfig,
-    headers: defaultRequestHeaders,
+    headers: {
+      ...axiosConfig.headers,
+      ...defaultRequestHeaders,
+    },
     validateStatus: () => true, // don't throw on non-200 status codes
   });
 

@@ -29,14 +29,19 @@ export class TurboFactory extends TurboBaseFactory {
     paymentServiceConfig = {},
     uploadServiceConfig = {},
   }: TurboAuthenticatedConfiguration) {
-    const signer = new TurboNodeArweaveSigner({ privateKey });
+    const signer = new TurboNodeArweaveSigner({
+      privateKey,
+      logger: this.logger,
+    });
     const paymentService = new TurboAuthenticatedPaymentService({
       ...paymentServiceConfig,
       signer,
+      logger: this.logger,
     });
     const uploadService = new TurboAuthenticatedUploadService({
       ...uploadServiceConfig,
       signer,
+      logger: this.logger,
     });
     return new TurboAuthenticatedClient({
       uploadService,

@@ -19,6 +19,7 @@ import {
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
   TurboFileFactory,
+  TurboLogger,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
@@ -26,6 +27,7 @@ import {
   TurboWalletSigner,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
+import { TurboWinstonLogger } from './logger.js';
 
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
@@ -34,14 +36,18 @@ export class TurboUnauthenticatedUploadService
   implements TurboUnauthenticatedUploadServiceInterface
 {
   protected httpService: TurboHTTPService;
+  protected logger: TurboLogger;
 
   constructor({
     url = defaultUploadServiceURL,
     retryConfig,
+    logger = new TurboWinstonLogger(),
   }: TurboUnauthenticatedUploadServiceConfiguration) {
+    this.logger = logger;
     this.httpService = new TurboHTTPService({
       url: `${url}/v1`,
       retryConfig,
+      logger: this.logger,
     });
   }
 
@@ -52,6 +58,7 @@ export class TurboUnauthenticatedUploadService
   }: TurboSignedDataItemFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     const fileSize = dataItemSizeFactory();
+    this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
@@ -76,8 +83,9 @@ export class TurboAuthenticatedUploadService
     url = defaultUploadServiceURL,
     retryConfig,
     signer,
+    logger,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig });
+    super({ url, retryConfig, logger });
     this.signer = signer;
   }
 
@@ -94,6 +102,7 @@ export class TurboAuthenticatedUploadService
       });
     const signedDataItem = dataItemStreamFactory();
     const fileSize = dataItemSizeFactory();
+    this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx`,
