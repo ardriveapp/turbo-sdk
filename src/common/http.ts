@@ -21,6 +21,7 @@ import { ReadableStream } from 'stream/web';
 
 import {
   TurboHTTPServiceInterface,
+  TurboLogger,
   TurboSignedRequestHeaders,
 } from '../types.js';
 import { createAxiosInstance } from '../utils/axiosClient.js';
@@ -28,18 +29,35 @@ import { FailedRequestError } from '../utils/errors.js';
 
 export class TurboHTTPService implements TurboHTTPServiceInterface {
   protected axios: AxiosInstance;
+  protected logger: TurboLogger;
+
   constructor({
     url,
     retryConfig,
+    logger,
   }: {
     url: string;
     retryConfig?: IAxiosRetryConfig;
+    logger: TurboLogger;
   }) {
+    this.logger = logger;
     this.axios = createAxiosInstance({
       axiosConfig: {
         baseURL: url,
+        maxRedirects: 0, // prevents backpressure issues when uploading larger streams via https
+        onUploadProgress: (progressEvent) => {
+          this.logger.debug(`Uploading...`, {
+            percent: Math.floor((progressEvent.progress ?? 0) * 100),
+            loaded: `${progressEvent.loaded} bytes`,
+            total: `${progressEvent.total} bytes`,
+          });
+          if (progressEvent.progress === 1) {
+            this.logger.debug(`Upload complete!`);
+          }
+        },
       },
       retryConfig,
+      logger: this.logger,
     });
   }
   async get<T>({

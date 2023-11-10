@@ -15,20 +15,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { TurboUnauthenticatedConfiguration } from '../types.js';
+import { TurboWinstonLogger } from './logger.js';
 import { TurboUnauthenticatedPaymentService } from './payment.js';
 import { TurboUnauthenticatedClient } from './turbo.js';
 import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboBaseFactory {
+  protected static logger = new TurboWinstonLogger();
+
+  static setLogLevel(level: string) {
+    this.logger.setLogLevel(level);
+  }
+
+  static setLogFormat(format: string) {
+    this.logger.setLogFormat(format);
+  }
+
   static unauthenticated({
     paymentServiceConfig = {},
     uploadServiceConfig = {},
   }: TurboUnauthenticatedConfiguration = {}) {
     const paymentService = new TurboUnauthenticatedPaymentService({
       ...paymentServiceConfig,
+      logger: this.logger,
     });
     const uploadService = new TurboUnauthenticatedUploadService({
       ...uploadServiceConfig,
+      logger: this.logger,
     });
     return new TurboUnauthenticatedClient({
       uploadService,
