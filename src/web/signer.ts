@@ -20,16 +20,23 @@ import { randomBytes } from 'node:crypto';
 import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../common/jwk.js';
-import { StreamSizeFactory, TurboWalletSigner } from '../types.js';
+import { StreamSizeFactory, TurboLogger, TurboWalletSigner } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebArweaveSigner implements TurboWalletSigner {
   protected privateKey: JWKInterface;
   protected signer: ArweaveSigner; // TODO: replace with internal signer class
-
-  constructor({ privateKey }: { privateKey: JWKInterface }) {
+  protected logger: TurboLogger;
+  constructor({
+    privateKey,
+    logger,
+  }: {
+    privateKey: JWKInterface;
+    logger: TurboLogger;
+  }) {
     this.privateKey = privateKey;
+    this.logger = logger;
     this.signer = new ArweaveSigner(this.privateKey);
   }
 
@@ -49,9 +56,11 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
       stream: fileStreamFactory(),
       size: fileSizeFactory(),
     });
+    this.logger.debug('Signing data item...');
     // TODO: support target, anchor and tags for upload
     const signedDataItem = createData(buffer, this.signer, {});
     await signedDataItem.sign(this.signer);
+    this.logger.debug('Successfully signed data item...');
     return {
       // while this returns a Buffer - it needs to match our return type for uploading
       dataItemStreamFactory: () => signedDataItem.getRaw(),

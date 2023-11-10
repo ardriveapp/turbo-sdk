@@ -17,7 +17,6 @@
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
-import winston from 'winston';
 
 import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
@@ -121,7 +120,7 @@ type TurboAuthConfiguration = {
 type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: IAxiosRetryConfig;
-  logger?: winston.Logger;
+  logger?: TurboLogger;
 };
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
@@ -138,6 +137,15 @@ export type TurboUnauthenticatedConfiguration = {
   paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
 };
+
+export interface TurboLogger {
+  setLogLevel: (level: string) => void;
+  setLogFormat: (logFormat: string) => void;
+  info: (message: string, ...args: any[]) => void;
+  warn: (message: string, ...args: any[]) => void;
+  error: (message: string, ...args: any[]) => void;
+  debug: (message: string, ...args: any[]) => void;
+}
 
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {

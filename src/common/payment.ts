@@ -25,6 +25,7 @@ import {
   TurboCountriesResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
+  TurboLogger,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedRequestHeaders,
@@ -35,6 +36,7 @@ import {
   TurboWincForFiatResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
+import { TurboWinstonLogger } from './logger.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
@@ -43,14 +45,18 @@ export class TurboUnauthenticatedPaymentService
   implements TurboUnauthenticatedPaymentServiceInterface
 {
   protected readonly httpService: TurboHTTPService;
+  protected logger: TurboLogger;
 
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
+    logger = new TurboWinstonLogger(),
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
+    this.logger = logger;
     this.httpService = new TurboHTTPService({
       url: `${url}/v1`,
       retryConfig,
+      logger: this.logger,
     });
   }
 
@@ -154,8 +160,9 @@ export class TurboAuthenticatedPaymentService
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
+    logger,
   }: TurboAuthenticatedPaymentServiceConfiguration) {
-    super({ url, retryConfig });
+    super({ url, retryConfig, logger });
     this.signer = signer;
   }
 
