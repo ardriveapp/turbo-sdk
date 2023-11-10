@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.2...v1.1.0) (2023-11-10)
+
+
+### Bug Fixes
+
+* **axios:** set `maxRedirects` to `0` on our axios instances ([0e7ae17](https://github.com/ardriveapp/turbo-sdk/commit/0e7ae17f0bf028114f63deaafcea6ef60f2beac3))
+
+
+### Features
+
+* **logger:** add configurable global logger ([e6f341a](https://github.com/ardriveapp/turbo-sdk/commit/e6f341ad11b130bb72e83810da7265467cfa69f9))
+
 # [1.1.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.0-alpha.1...v1.1.0-alpha.2) (2023-11-10)
 
 
