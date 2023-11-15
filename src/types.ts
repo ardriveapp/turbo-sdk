@@ -164,15 +164,26 @@ export type TurboAuthenticatedClientConfiguration = {
 
 export type FileStreamFactory =
   | (() => Readable)
-  | (() => ReadableStream)
+  | WebFileStreamFactory
   | (() => Buffer);
+
+export type WebFileStreamFactory = () => ReadableStream;
+
 export type SignedDataStreamFactory = FileStreamFactory;
 export type StreamSizeFactory = () => number;
-export type TurboFileFactory = {
-  fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
+export type TurboFileFactory<T = FileStreamFactory> = {
+  fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
+  opts?: {
+    target?: string;
+    anchor?: string;
+    tags?: { name: string; value: string }[];
+  };
+
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
+
+export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
@@ -214,6 +225,7 @@ export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
     fileSizeFactory,
+    opts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
