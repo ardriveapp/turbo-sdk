@@ -14,14 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, streamSigner } from 'arbundles';
+import { ArweaveSigner, serializeTags, streamSigner } from 'arbundles';
 import Arweave from 'arweave/node/index.js';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
 import { JWKInterface } from '../common/jwk.js';
 import { StreamSizeFactory, TurboLogger, TurboWalletSigner } from '../types.js';
-import { toB64Url } from '../utils/base64.js';
+import { fromB64Url, toB64Url } from '../utils/base64.js';
 
 export class TurboNodeArweaveSigner implements TurboWalletSigner {
   protected privateKey: JWKInterface;
@@ -43,9 +43,15 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
+    opts = {},
   }: {
     fileStreamFactory: () => Readable;
     fileSizeFactory: StreamSizeFactory;
+    opts?: {
+      target?: string;
+      anchor?: string;
+      tags?: { name: string; value: string }[];
+    };
   }): Promise<{
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
@@ -53,7 +59,12 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     // TODO: replace with our own signer implementation
     this.logger.debug('Signing data item...');
     const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
-    const signedDataItem = await streamSigner(stream1, stream2, this.signer);
+    const signedDataItem = await streamSigner(
+      stream1,
+      stream2,
+      this.signer,
+      opts,
+    );
     this.logger.debug('Successfully signed data item...');
 
     // TODO: support target, anchor, and tags
@@ -81,19 +92,35 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
 
   // TODO: make dynamic that accepts anchor and target and tags to return the size of the headers + data
   // reference https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md#13-dataitem-format
-  private calculateSignedDataHeadersSize({ dataSize }: { dataSize: number }) {
-    const anchor = 1; // + whatever they provide (max of 33)
-    const target = 1; // + whatever they provide (max of 33)
-    const tags = 0;
+  private calculateSignedDataHeadersSize({
+    dataSize,
+    opts,
+  }: {
+    dataSize: number;
+    opts?: {
+      target?: string;
+      anchor?: string;
+      tags?: { name: string; value: string }[];
+    };
+  }) {
+    const { tags, anchor, target } = opts ?? {};
+
+    const _anchor = typeof anchor === 'string' ? Buffer.from(anchor) : null;
+    const anchorLength = _anchor ? _anchor.byteLength : 0;
+    const _target = typeof target === 'string' ? fromB64Url(target) : null;
+    const targetLength = _target ? _target.byteLength : 0;
+
+    const serializedTags = tags ? serializeTags(tags) : null;
+    const tagsLength = serializedTags ? serializedTags.byteLength : 0;
     const signatureLength = 512;
     const ownerLength = 512;
     const signatureTypeLength = 2;
     const numOfTagsLength = 8; // https://github.com/Bundlr-Network/arbundles/blob/master/src/tags.ts#L191-L198
     const numOfTagsBytesLength = 8;
     return [
-      anchor,
-      target,
-      tags,
+      anchorLength,
+      targetLength,
+      tagsLength,
       signatureLength,
       ownerLength,
       signatureTypeLength,

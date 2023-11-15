@@ -17,10 +17,14 @@
 import { ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave';
 import { randomBytes } from 'node:crypto';
-import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../common/jwk.js';
-import { StreamSizeFactory, TurboLogger, TurboWalletSigner } from '../types.js';
+import {
+  StreamSizeFactory,
+  TurboLogger,
+  TurboWalletSigner,
+  WebTurboFileFactory,
+} from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
@@ -43,10 +47,8 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
   async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-  }: {
-    fileStreamFactory: () => ReadableStream;
-    fileSizeFactory: StreamSizeFactory;
-  }): Promise<{
+    opts = {},
+  }: WebTurboFileFactory): Promise<{
     // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
     dataItemStreamFactory: () => Buffer;
     dataItemSizeFactory: StreamSizeFactory;
@@ -58,7 +60,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
     });
     this.logger.debug('Signing data item...');
     // TODO: support target, anchor and tags for upload
-    const signedDataItem = createData(buffer, this.signer, {});
+    const signedDataItem = createData(buffer, this.signer, opts);
     await signedDataItem.sign(this.signer);
     this.logger.debug('Successfully signed data item...');
     return {
