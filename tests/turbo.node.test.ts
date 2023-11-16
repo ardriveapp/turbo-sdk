@@ -200,6 +200,16 @@ describe('Node environment', () => {
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(filePath),
           fileSizeFactory: () => fileSize,
+          opts: {
+            target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
+            anchor: 'anchorMustBeThirtyTwoBytesLong!!',
+            tags: [
+              {
+                name: 'test',
+                value: 'test',
+              },
+            ],
+          },
         });
         expect(response).to.not.be.undefined;
         expect(response).to.not.be.undefined;
