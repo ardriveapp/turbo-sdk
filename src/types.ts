@@ -147,6 +147,12 @@ export interface TurboLogger {
   debug: (message: string, ...args: any[]) => void;
 }
 
+export type DataItemOptions = {
+  target?: string;
+  anchor?: string;
+  tags?: { name: string; value: string }[];
+};
+
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey: TurboWallet;
@@ -174,11 +180,7 @@ export type StreamSizeFactory = () => number;
 export type TurboFileFactory<T = FileStreamFactory> = {
   fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
-  opts?: {
-    target?: string;
-    anchor?: string;
-    tags?: { name: string; value: string }[];
-  };
+  opts?: DataItemOptions;
 
   // bundle?: boolean; // TODO: add bundling into BDIs
 };

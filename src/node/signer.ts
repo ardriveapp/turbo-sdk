@@ -20,7 +20,12 @@ import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
 import { JWKInterface } from '../common/jwk.js';
-import { StreamSizeFactory, TurboLogger, TurboWalletSigner } from '../types.js';
+import {
+  DataItemOptions,
+  StreamSizeFactory,
+  TurboLogger,
+  TurboWalletSigner,
+} from '../types.js';
 import { fromB64Url, toB64Url } from '../utils/base64.js';
 
 export class TurboNodeArweaveSigner implements TurboWalletSigner {
@@ -47,11 +52,7 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   }: {
     fileStreamFactory: () => Readable;
     fileSizeFactory: StreamSizeFactory;
-    opts?: {
-      target?: string;
-      anchor?: string;
-      tags?: { name: string; value: string }[];
-    };
+    opts?: DataItemOptions;
   }): Promise<{
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
@@ -98,11 +99,7 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     opts,
   }: {
     dataSize: number;
-    opts?: {
-      target?: string;
-      anchor?: string;
-      tags?: { name: string; value: string }[];
-    };
+    opts?: DataItemOptions;
   }) {
     const { tags, anchor, target } = opts ?? {};
 

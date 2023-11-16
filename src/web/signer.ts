@@ -59,7 +59,6 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
       size: fileSizeFactory(),
     });
     this.logger.debug('Signing data item...');
-    // TODO: support target, anchor and tags for upload
     const signedDataItem = createData(buffer, this.signer, opts);
     await signedDataItem.sign(this.signer);
     this.logger.debug('Successfully signed data item...');
