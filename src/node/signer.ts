@@ -70,6 +70,7 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
     // TODO: support target, anchor, and tags
     const signedDataItemSize = this.calculateSignedDataHeadersSize({
       dataSize: fileSizeFactory(),
+      opts,
     });
     return {
       dataItemStreamFactory: () => signedDataItem,
@@ -105,18 +106,21 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   }) {
     const { tags, anchor, target } = opts ?? {};
 
-    const _anchor = typeof anchor === 'string' ? Buffer.from(anchor) : null;
-    const anchorLength = _anchor ? _anchor.byteLength : 0;
-    const _target = typeof target === 'string' ? fromB64Url(target) : null;
-    const targetLength = _target ? _target.byteLength : 0;
+    // ref: https://github.com/Irys-xyz/arbundles/blob/master/src/ar-data-create.ts#L18
 
-    const serializedTags = tags ? serializeTags(tags) : null;
-    const tagsLength = serializedTags ? serializedTags.byteLength : 0;
+    const _target = typeof target === 'string' ? fromB64Url(target) : null;
+    const targetLength = 1 + (_target ? _target.byteLength : 0);
+    const _anchor = typeof anchor === 'string' ? Buffer.from(anchor) : null;
+    const anchorLength = 1 + (_anchor ? _anchor.byteLength : 0);
+
+    const serializedTags = tags && tags.length > 0 ? serializeTags(tags) : null;
+    const tagsLength = 16 + (serializedTags ? serializedTags.byteLength : 0);
+
+    // Arweave sig and owner length is 512 bytes
     const signatureLength = 512;
     const ownerLength = 512;
     const signatureTypeLength = 2;
-    const numOfTagsLength = 8; // https://github.com/Bundlr-Network/arbundles/blob/master/src/tags.ts#L191-L198
-    const numOfTagsBytesLength = 8;
+
     return [
       anchorLength,
       targetLength,
@@ -124,8 +128,6 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
       signatureLength,
       ownerLength,
       signatureTypeLength,
-      numOfTagsLength,
-      numOfTagsBytesLength,
       dataSize,
     ].reduce((totalSize, currentSize) => (totalSize += currentSize));
   }
