@@ -174,10 +174,21 @@ Project's `tsconfig.json`:
 }
 ```
 
-Usage:
+#### Usage
+
+Node:
 
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/node';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+Web:
+
+```javascript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
