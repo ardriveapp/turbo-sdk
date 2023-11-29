@@ -95,14 +95,23 @@ try {
 
 ## Usage
 
-The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriate named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
+The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriately named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
 
 ### Web
 
 #### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
+CommonJS:
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+ESM:
+```javascript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
@@ -143,7 +152,7 @@ Project's `tsconfig.json`:
 }
 ```
 
-Usage:
+Usage (Node & Web):
 
 ```javascript
 const { TurboFactory } = require('@ardrive/turbo-sdk');
