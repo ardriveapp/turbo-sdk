@@ -102,6 +102,7 @@ The SDK is provided in both CommonJS and ESM formats, and it's compatible with b
 #### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
 CommonJS:
+
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk';
 
@@ -110,6 +111,7 @@ const rates = await turbo.getFiatRates();
 ```
 
 ESM:
+
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
