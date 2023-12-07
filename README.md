@@ -383,7 +383,7 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
 - `yarn test` - runs integration tests
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
-- `yarn example:mjs` - runs example ESM node script
+- `yarn example:esm` - runs example ESM node script
 
 ### Linting & Formatting
 
