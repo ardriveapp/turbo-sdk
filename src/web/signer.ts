@@ -47,7 +47,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
   async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-    dataItemOpts = {},
+    dataItemOpts,
   }: WebTurboFileFactory): Promise<{
     // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
     dataItemStreamFactory: () => Buffer;
