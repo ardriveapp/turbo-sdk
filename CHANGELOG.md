@@ -1,3 +1,11 @@
+## [1.1.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.0...v1.1.1-alpha.1) (2023-12-13)
+
+
+### Bug Fixes
+
+* **exports:** use bundled export to avoid issue with polyfilled features needed for web ([6e559d6](https://github.com/ardriveapp/turbo-sdk/commit/6e559d6c05d9f9621baad3a4026743755cf42b8a))
+* **exports:** web exports reference an invalid build path ([d663498](https://github.com/ardriveapp/turbo-sdk/commit/d663498603cc1d6812838b382a4c6c7e6e87540a))
+
 # [1.1.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.0.2...v1.1.0) (2023-11-10)
 
 
