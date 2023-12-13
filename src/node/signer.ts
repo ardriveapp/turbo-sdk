@@ -48,7 +48,7 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-    dataItemOpts = {},
+    dataItemOpts,
   }: {
     fileStreamFactory: () => Readable;
     fileSizeFactory: StreamSizeFactory;
