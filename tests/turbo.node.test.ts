@@ -242,7 +242,7 @@ describe('Node environment', () => {
 
       const invalidDataItemOpts = [
         {
-          testName: 'tag value too long',
+          testName: 'tag name too long',
           errorType: 'FailedRequestError',
           errorMessage: 'Failed request: 400: Data item parsing error!',
           dataItemOpts: {
@@ -255,7 +255,7 @@ describe('Node environment', () => {
           },
         },
         {
-          testName: 'tag name too long',
+          testName: 'tag value too long',
           errorType: 'FailedRequestError',
           errorMessage: 'Failed request: 400: Data item parsing error!',
           dataItemOpts: {
@@ -283,18 +283,16 @@ describe('Node environment', () => {
         },
         {
           testName: 'target Too Long',
-          errorMessage: 'Target must be 32 bytes but was incorrectly 9',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 33',
           dataItemOpts: {
-            target:
-              'target Too Long!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+            target: 'target Too Long This is 33 Bytes one two three four five',
           },
         },
         {
           testName: 'anchor Too Long',
           errorMessage: 'Anchor must be 32 bytes',
           dataItemOpts: {
-            anchor:
-              'anchor Too Long!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+            anchor: 'anchor Too Long This is 33 Bytes one two three four five',
           },
         },
       ];
