@@ -15,6 +15,7 @@ import {
 import { TurboFactory } from '../src/node/factory.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 import { FailedRequestError } from '../src/utils/errors.js';
+import { expectAsyncErrorThrow } from './helpers.js';
 
 describe('Node environment', () => {
   describe('TurboFactory', () => {
@@ -194,30 +195,130 @@ describe('Node environment', () => {
     });
 
     describe('uploadFile()', () => {
-      it('should properly upload a Readable to turbo', async () => {
-        const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-        const fileSize = fs.statSync(filePath).size;
-        const response = await turbo.uploadFile({
-          fileStreamFactory: () => fs.createReadStream(filePath),
-          fileSizeFactory: () => fileSize,
+      const validDataItemOpts = [
+        {
+          target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
+          anchor: 'anchorMustBeThirtyTwoBytesLong!!',
+          tags: [
+            {
+              name: '', // empty name
+              value: '', // empty val
+            },
+          ],
+        },
+        {
+          target: 'WeirdCharacters-_!felwfleowpfl12345678901234',
+          anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
+          tags: [
+            {
+              name: 'test',
+              value: 'test',
+            },
+            {
+              name: 'test2',
+              value: 'test2',
+            },
+          ],
+        },
+      ];
+
+      for (const dataItemOpts of validDataItemOpts) {
+        it('should properly upload a Readable to turbo', async () => {
+          const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+          const fileSize = fs.statSync(filePath).size;
+          const response = await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
+            dataItemOpts,
+          });
+          expect(response).to.not.be.undefined;
+          expect(response).to.not.be.undefined;
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+        });
+      }
+
+      const invalidDataItemOpts = [
+        {
+          testName: 'tag value too long',
+          errorType: 'FailedRequestError',
+          errorMessage: 'Failed request: 400: Data item parsing error!',
           dataItemOpts: {
-            target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
-            anchor: 'anchorMustBeThirtyTwoBytesLong!!',
             tags: [
               {
-                name: 'test',
+                name: Array(1025).fill('a').join(''),
                 value: 'test',
               },
             ],
           },
+        },
+        {
+          testName: 'tag name too long',
+          errorType: 'FailedRequestError',
+          errorMessage: 'Failed request: 400: Data item parsing error!',
+          dataItemOpts: {
+            tags: [
+              {
+                name: 'test',
+                value: Array(3073).fill('a').join(''),
+              },
+            ],
+          },
+        },
+        {
+          testName: 'target Too Short',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 10',
+          dataItemOpts: {
+            target: 'target Too Short',
+          },
+        },
+        {
+          testName: 'anchor Too Short',
+          errorMessage: 'Anchor must be 32 bytes',
+          dataItemOpts: {
+            anchor: 'anchor Too Short',
+          },
+        },
+        {
+          testName: 'target Too Long',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 9',
+          dataItemOpts: {
+            target:
+              'target Too Long!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+          },
+        },
+        {
+          testName: 'anchor Too Long',
+          errorMessage: 'Anchor must be 32 bytes',
+          dataItemOpts: {
+            anchor:
+              'anchor Too Long!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+          },
+        },
+      ];
+      for (const {
+        testName,
+        dataItemOpts,
+        errorMessage,
+        errorType,
+      } of invalidDataItemOpts) {
+        it(`should fail to upload a Buffer to turbo with invalid  when ${testName}`, async () => {
+          const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+          const fileSize = fs.statSync(filePath).size;
+
+          await expectAsyncErrorThrow({
+            promiseToError: turbo.uploadFile({
+              fileStreamFactory: () => fs.createReadStream(filePath),
+              fileSizeFactory: () => fileSize,
+              dataItemOpts,
+            }),
+            errorType,
+            errorMessage,
+          });
         });
-        expect(response).to.not.be.undefined;
-        expect(response).to.not.be.undefined;
-        expect(response).to.have.property('fastFinalityIndexes');
-        expect(response).to.have.property('dataCaches');
-        expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
-      });
+      }
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
         const filePath = new URL('files/1KB_file', import.meta.url).pathname;
