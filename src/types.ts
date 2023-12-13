@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { DataItemCreateOptions } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
@@ -147,11 +148,7 @@ export interface TurboLogger {
   debug: (message: string, ...args: any[]) => void;
 }
 
-export type DataItemOptions = {
-  target?: string;
-  anchor?: string;
-  tags?: { name: string; value: string }[];
-};
+export type DataItemOptions = DataItemCreateOptions;
 
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
