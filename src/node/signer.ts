@@ -48,11 +48,11 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-    opts = {},
+    dataItemOpts = {},
   }: {
     fileStreamFactory: () => Readable;
     fileSizeFactory: StreamSizeFactory;
-    opts?: DataItemOptions;
+    dataItemOpts?: DataItemOptions;
   }): Promise<{
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
@@ -64,14 +64,14 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
       stream1,
       stream2,
       this.signer,
-      opts,
+      dataItemOpts,
     );
     this.logger.debug('Successfully signed data item...');
 
     // TODO: support target, anchor, and tags
     const signedDataItemSize = this.calculateSignedDataHeadersSize({
       dataSize: fileSizeFactory(),
-      opts,
+      dataItemOpts,
     });
     return {
       dataItemStreamFactory: () => signedDataItem,
@@ -96,12 +96,12 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   // reference https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md#13-dataitem-format
   private calculateSignedDataHeadersSize({
     dataSize,
-    opts,
+    dataItemOpts,
   }: {
     dataSize: number;
-    opts?: DataItemOptions;
+    dataItemOpts?: DataItemOptions;
   }) {
-    const { tags, anchor, target } = opts ?? {};
+    const { tags, anchor, target } = dataItemOpts ?? {};
 
     // ref: https://github.com/Irys-xyz/arbundles/blob/master/src/ar-data-create.ts#L18
 

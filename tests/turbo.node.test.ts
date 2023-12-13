@@ -200,7 +200,7 @@ describe('Node environment', () => {
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(filePath),
           fileSizeFactory: () => fileSize,
-          opts: {
+          dataItemOpts: {
             target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
             anchor: 'anchorMustBeThirtyTwoBytesLong!!',
             tags: [

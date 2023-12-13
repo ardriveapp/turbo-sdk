@@ -180,7 +180,7 @@ export type StreamSizeFactory = () => number;
 export type TurboFileFactory<T = FileStreamFactory> = {
   fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
-  opts?: DataItemOptions;
+  dataItemOpts?: DataItemOptions;
 
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
@@ -227,7 +227,7 @@ export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-    opts,
+    dataItemOpts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
@@ -265,7 +265,6 @@ export interface TurboUnauthenticatedUploadServiceInterface {
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
-  // TODO: support target, anchor and tags
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
