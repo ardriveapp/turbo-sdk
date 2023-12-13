@@ -33,8 +33,8 @@
       "types": "./lib/types/node/index.d.ts"
     },
     "./web": {
-      "import": "./lib/web/index.js",
-      "require": "./lib/web/index.js",
+      "import": "./lib/esm/web/index.js",
+      "require": "./lib/cjs/web/index.js",
       "types": "./lib/types/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
     }
