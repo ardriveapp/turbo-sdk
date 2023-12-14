@@ -22,3 +22,9 @@ jobs:
         run: yarn --immutable --immutable-cache
 
       - run: yarn ${{ matrix.command }}
+
+      - name: Upload coverage reports to Codecov
+        if: matrix.command == 'test'
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
