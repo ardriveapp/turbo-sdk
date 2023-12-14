@@ -1,3 +1,12 @@
+## [1.1.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.0...v1.1.1) (2023-12-14)
+
+
+### Bug Fixes
+
+* **exports:** use bundled export to avoid issue with polyfilled features needed for web ([6e559d6](https://github.com/ardriveapp/turbo-sdk/commit/6e559d6c05d9f9621baad3a4026743755cf42b8a))
+* **exports:** web exports reference an invalid build path ([d663498](https://github.com/ardriveapp/turbo-sdk/commit/d663498603cc1d6812838b382a4c6c7e6e87540a))
+* **polyfills:** update esbuild script to include crypto polyfill ([61b66ec](https://github.com/ardriveapp/turbo-sdk/commit/61b66ecdbad9dc3e72b688143fd65c5ce18a46c8))
+
 ## [1.1.1-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.1-alpha.1...v1.1.1-alpha.2) (2023-12-14)
 
 
