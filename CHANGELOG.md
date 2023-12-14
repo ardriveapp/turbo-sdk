@@ -1,3 +1,10 @@
+## [1.1.1-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.1-alpha.1...v1.1.1-alpha.2) (2023-12-14)
+
+
+### Bug Fixes
+
+* **polyfills:** update esbuild script to include crypto polyfill ([61b66ec](https://github.com/ardriveapp/turbo-sdk/commit/61b66ecdbad9dc3e72b688143fd65c5ce18a46c8))
+
 ## [1.1.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.0...v1.1.1-alpha.1) (2023-12-13)
 
 
