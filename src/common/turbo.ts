@@ -198,12 +198,14 @@ export class TurboAuthenticatedClient
     fileStreamFactory,
     fileSizeFactory,
     signal,
+    dataItemOpts,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadFile({
       fileStreamFactory,
       fileSizeFactory,
       signal,
+      dataItemOpts,
     });
   }
 }
