@@ -1,3 +1,10 @@
+# [1.2.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.1...v1.2.0-alpha.1) (2023-12-15)
+
+
+### Features
+
+* **data item opts:** init tags anchor and target support PE-5035 ([6b95881](https://github.com/ardriveapp/turbo-sdk/commit/6b95881cb478b491cac5f6ec81143f6bf944fbcb))
+
 # [1.2.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.1-alpha.2...v1.2.0-alpha.1) (2023-12-14)
 
 
