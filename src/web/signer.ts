@@ -17,10 +17,14 @@
 import { ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave';
 import { randomBytes } from 'node:crypto';
-import { ReadableStream } from 'node:stream/web';
 
 import { JWKInterface } from '../common/jwk.js';
-import { StreamSizeFactory, TurboLogger, TurboWalletSigner } from '../types.js';
+import {
+  StreamSizeFactory,
+  TurboLogger,
+  TurboWalletSigner,
+  WebTurboFileFactory,
+} from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
@@ -43,10 +47,8 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
   async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-  }: {
-    fileStreamFactory: () => ReadableStream;
-    fileSizeFactory: StreamSizeFactory;
-  }): Promise<{
+    dataItemOpts,
+  }: WebTurboFileFactory): Promise<{
     // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
     dataItemStreamFactory: () => Buffer;
     dataItemSizeFactory: StreamSizeFactory;
@@ -57,8 +59,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
       size: fileSizeFactory(),
     });
     this.logger.debug('Signing data item...');
-    // TODO: support target, anchor and tags for upload
-    const signedDataItem = createData(buffer, this.signer, {});
+    const signedDataItem = createData(buffer, this.signer, dataItemOpts);
     await signedDataItem.sign(this.signer);
     this.logger.debug('Successfully signed data item...');
     return {
@@ -71,6 +72,7 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
     // a bit hacky - but arweave exports cause issues in tests vs. browser
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const arweave: Arweave = (Arweave as any).default ?? Arweave;
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);

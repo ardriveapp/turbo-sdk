@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { DataItemCreateOptions } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
@@ -147,6 +148,8 @@ export interface TurboLogger {
   debug: (message: string, ...args: any[]) => void;
 }
 
+export type DataItemOptions = DataItemCreateOptions;
+
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey: TurboWallet;
@@ -164,15 +167,22 @@ export type TurboAuthenticatedClientConfiguration = {
 
 export type FileStreamFactory =
   | (() => Readable)
-  | (() => ReadableStream)
+  | WebFileStreamFactory
   | (() => Buffer);
+
+export type WebFileStreamFactory = () => ReadableStream;
+
 export type SignedDataStreamFactory = FileStreamFactory;
 export type StreamSizeFactory = () => number;
-export type TurboFileFactory = {
-  fileStreamFactory: FileStreamFactory; // TODO: allow multiple files
+export type TurboFileFactory<T = FileStreamFactory> = {
+  fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
+  dataItemOpts?: DataItemOptions;
+
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
+
+export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
@@ -214,6 +224,7 @@ export interface TurboWalletSigner {
   signDataItem({
     fileStreamFactory,
     fileSizeFactory,
+    dataItemOpts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
 }
@@ -251,7 +262,6 @@ export interface TurboUnauthenticatedUploadServiceInterface {
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
-  // TODO: support target, anchor and tags
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
