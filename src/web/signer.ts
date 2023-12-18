@@ -14,8 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, createData } from 'arbundles';
-import Arweave from 'arweave';
+import { Signer, createData } from 'arbundles';
 import { randomBytes } from 'node:crypto';
 
 import { JWKInterface } from '../common/jwk.js';
@@ -30,18 +29,17 @@ import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebArweaveSigner implements TurboWalletSigner {
   protected privateKey: JWKInterface;
-  protected signer: ArweaveSigner; // TODO: replace with internal signer class
+  protected signer: Signer; // TODO: replace with internal signer class
   protected logger: TurboLogger;
   constructor({
-    privateKey,
     logger,
+    signer,
   }: {
-    privateKey: JWKInterface;
     logger: TurboLogger;
+    signer: Signer; // todo add arconnect signer
   }) {
-    this.privateKey = privateKey;
     this.logger = logger;
-    this.signer = new ArweaveSigner(this.privateKey);
+    this.signer = signer;
   }
 
   async signDataItem({
@@ -71,15 +69,13 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
-    // a bit hacky - but arweave exports cause issues in tests vs. browser
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const arweave: Arweave = (Arweave as any).default ?? Arweave;
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    const signature = await arweave.crypto.sign(this.privateKey, buffer, {});
+    const signature = await this.signer.sign(buffer);
+    const publicKey = toB64Url(this.signer.publicKey);
 
     return {
-      'x-public-key': this.privateKey.n,
+      'x-public-key': publicKey,
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
     };
