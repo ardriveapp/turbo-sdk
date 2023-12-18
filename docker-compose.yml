@@ -1,0 +1,64 @@
+version: 3.0.0
+
+services:
+  upload-service:
+    image: ghcr.io/ardriveapp/turbo-upload-service:latest
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: test
+      DB_HOST: upload-service-pg
+      DB_PORT: 5432
+      DB_PASSWORD: postgres
+      PAYMENT_SERVICE_BASE_URL: http://payment-service:4000
+      MIGRATE_ON_STARTUP: true
+      JWT_SECRET: test-secret-key
+    volumes:
+      - upload-service-data-items:/temp
+    depends_on:
+      - upload-service-pg
+
+  upload-service-pg:
+    image: postgres:13.8
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - upload-service-data:/var/lib/postgresql/data
+
+  payment-service:
+    image: ghcr.io/ardriveapp/turbo-payment-service:latest
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: test
+      DB_HOST: payment-service-pg
+      DB_PORT: 5433
+      DB_PASSWORD: postgres
+      PORT: 4000
+      DISABLE_LOGS: false
+      MIGRATE_ON_STARTUP: true
+      STRIPE_SECRET_KEY: secret-key
+      STRIPE_WEBHOOK_SECRET: webhook-secret-key
+      JWT_SECRET: test-secret-key
+    depends_on:
+      - payment-service-pg
+
+  payment-service-pg:
+    image: postgres:13.8
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - '5433:5432'
+    volumes:
+      - payment-service-data:/var/lib/postgresql/data
+
+volumes:
+  payment-service-data:
+  upload-service-data:
+  upload-service-data-items:

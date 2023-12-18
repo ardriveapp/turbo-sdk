@@ -33,3 +33,15 @@ export async function expectAsyncErrorThrow({
     expect(error?.message).to.equal(errorMessage);
   }
 }
+
+/**
+ * Used to setup our local development configuration
+ */
+export const turboDevelopmentConfigurations = {
+  paymentServiceConfig: {
+    url: process.env.PAYMENT_SERVICE_URL ?? 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: process.env.UPLOAD_SERVICE_URL ?? 'https://upload.ardrive.dev',
+  },
+};
