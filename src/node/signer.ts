@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Signer, serializeTags, streamSigner } from 'arbundles';
+import { serializeTags, streamSigner } from 'arbundles';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
@@ -22,17 +22,23 @@ import { JWKInterface } from '../common/jwk.js';
 import {
   DataItemOptions,
   StreamSizeFactory,
+  TurboDataItemSigner,
   TurboLogger,
-  TurboWalletSigner,
+  TurboSigner,
 } from '../types.js';
 import { fromB64Url, toB64Url } from '../utils/base64.js';
 
-export class TurboNodeArweaveSigner implements TurboWalletSigner {
+export class TurboNodeArweaveSigner implements TurboDataItemSigner {
   protected privateKey: JWKInterface;
-  protected signer: Signer; // TODO: replace with internal signer class
+  protected signer: TurboSigner;
   protected logger: TurboLogger;
-  // TODO: replace with internal signer class
-  constructor({ signer, logger }: { signer: Signer; logger: TurboLogger }) {
+  constructor({
+    signer,
+    logger,
+  }: {
+    signer: TurboSigner;
+    logger: TurboLogger;
+  }) {
     this.logger = logger;
     this.signer = signer;
   }

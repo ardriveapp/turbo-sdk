@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, Signer } from 'arbundles';
+import { ArweaveSigner } from 'arbundles';
 
 import { TurboBaseFactory } from '../common/factory.js';
 import {
@@ -22,7 +22,7 @@ import {
   TurboAuthenticatedPaymentService,
   TurboAuthenticatedUploadService,
 } from '../common/index.js';
-import { TurboAuthenticatedConfiguration } from '../types.js';
+import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
 import { TurboNodeArweaveSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {
@@ -32,7 +32,7 @@ export class TurboFactory extends TurboBaseFactory {
     paymentServiceConfig = {},
     uploadServiceConfig = {},
   }: TurboAuthenticatedConfiguration) {
-    let signer: Signer;
+    let signer: TurboSigner;
 
     if (providedSigner) {
       signer = providedSigner;

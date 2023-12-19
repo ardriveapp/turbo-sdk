@@ -14,29 +14,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Signer, createData } from 'arbundles';
+import { createData } from 'arbundles';
 import { randomBytes } from 'node:crypto';
 
 import { JWKInterface } from '../common/jwk.js';
 import {
   StreamSizeFactory,
+  TurboDataItemSigner,
   TurboLogger,
-  TurboWalletSigner,
+  TurboSigner,
   WebTurboFileFactory,
 } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
-export class TurboWebArweaveSigner implements TurboWalletSigner {
+export class TurboWebArweaveSigner implements TurboDataItemSigner {
   protected privateKey: JWKInterface;
-  protected signer: Signer; // TODO: replace with internal signer class
+  protected signer: TurboSigner;
   protected logger: TurboLogger;
   constructor({
     logger,
     signer,
   }: {
     logger: TurboLogger;
-    signer: Signer; // todo add arconnect signer
+    signer: TurboSigner;
   }) {
     this.logger = logger;
     this.signer = signer;

@@ -14,7 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { DataItemCreateOptions, Signer } from 'arbundles';
+import {
+  ArconnectSigner,
+  ArweaveSigner,
+  DataItemCreateOptions,
+} from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
@@ -115,7 +119,7 @@ export type TurboSignedRequestHeaders = {
 };
 
 type TurboAuthConfiguration = {
-  signer: TurboWalletSigner; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
+  signer: TurboDataItemSigner; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
 };
 
 type TurboServiceConfiguration = {
@@ -150,10 +154,13 @@ export interface TurboLogger {
 
 export type DataItemOptions = DataItemCreateOptions;
 
+// Supported signers - we will continue to add more
+export type TurboSigner = ArconnectSigner | ArweaveSigner;
+
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
-    signer?: Signer; // TODO: replace with internal signer class
+    signer?: TurboSigner;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
@@ -221,7 +228,7 @@ export interface TurboHTTPServiceInterface {
   }): Promise<T>;
 }
 
-export interface TurboWalletSigner {
+export interface TurboDataItemSigner {
   signDataItem({
     fileStreamFactory,
     fileSizeFactory,
