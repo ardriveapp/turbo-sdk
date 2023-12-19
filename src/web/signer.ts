@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { createData } from 'arbundles';
+import { ArconnectSigner, createData } from 'arbundles';
 import { randomBytes } from 'node:crypto';
 
 import { JWKInterface } from '../common/jwk.js';
@@ -57,6 +57,15 @@ export class TurboWebArweaveSigner implements TurboDataItemSigner {
       stream: fileStreamFactory(),
       size: fileSizeFactory(),
     });
+
+    // for arconnect, we need to make sure we have the public key before create data
+    if (
+      this.signer.publicKey === undefined &&
+      this.signer instanceof ArconnectSigner
+    ) {
+      await this.signer.setPublicKey();
+    }
+
     this.logger.debug('Signing data item...');
     const signedDataItem = createData(buffer, this.signer, dataItemOpts);
     await signedDataItem.sign(this.signer);
@@ -73,6 +82,14 @@ export class TurboWebArweaveSigner implements TurboDataItemSigner {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await this.signer.sign(buffer);
+
+    // for arconnect, we need to make sure we have the public key
+    if (
+      this.signer.publicKey === undefined &&
+      this.signer instanceof ArconnectSigner
+    ) {
+      await this.signer.setPublicKey();
+    }
     const publicKey = toB64Url(this.signer.publicKey);
 
     return {
