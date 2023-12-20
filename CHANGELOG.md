@@ -1,3 +1,15 @@
+# [1.3.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.2.0...v1.3.0-alpha.1) (2023-12-20)
+
+
+### Bug Fixes
+
+* **web:** ensure we have the public key for arconnect wallets when signing data ([7dd9ae0](https://github.com/ardriveapp/turbo-sdk/commit/7dd9ae00e4059662783800bf8dc57831065bc2a4))
+
+
+### Features
+
+* **signer:** allow an optional signer to be passed instead of JWK for signing data items ([b70cfa2](https://github.com/ardriveapp/turbo-sdk/commit/b70cfa202508b21750738eadf0596592892f8f59))
+
 # [1.2.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.1...v1.2.0) (2023-12-15)
 
 
