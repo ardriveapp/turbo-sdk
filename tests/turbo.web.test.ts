@@ -1,4 +1,4 @@
-import { ArweaveSigner, createData } from 'arbundles';
+import { ArconnectSigner, ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave/node/index.js';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
@@ -17,7 +17,7 @@ import { turboDevelopmentConfigurations } from './helpers.js';
 
 describe('Browser environment', () => {
   before(() => {
-    (global as any).window = { document: {} };
+    (global as any).window = { document: {}, arweaveWallet: Arweave.init({}) };
   });
 
   after(() => {
@@ -39,6 +39,22 @@ describe('Browser environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and an ArconnectSigner', async () => {
+      const turbo = TurboFactory.authenticated({
+        signer: new ArconnectSigner(global.window.arweaveWallet),
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          ...turboDevelopmentConfigurations,
+        }),
+      ).to.throw('A privateKey or signer must be provided.');
     });
   });
 

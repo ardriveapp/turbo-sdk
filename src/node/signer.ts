@@ -14,8 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, serializeTags, streamSigner } from 'arbundles';
-import Arweave from 'arweave/node/index.js';
+import { serializeTags, streamSigner } from 'arbundles';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
@@ -23,26 +22,25 @@ import { JWKInterface } from '../common/jwk.js';
 import {
   DataItemOptions,
   StreamSizeFactory,
+  TurboDataItemSigner,
   TurboLogger,
-  TurboWalletSigner,
+  TurboSigner,
 } from '../types.js';
 import { fromB64Url, toB64Url } from '../utils/base64.js';
 
-export class TurboNodeArweaveSigner implements TurboWalletSigner {
+export class TurboNodeArweaveSigner implements TurboDataItemSigner {
   protected privateKey: JWKInterface;
-  protected signer: ArweaveSigner; // TODO: replace with internal signer class
+  protected signer: TurboSigner;
   protected logger: TurboLogger;
-  // TODO: replace with internal signer class
   constructor({
-    privateKey,
+    signer,
     logger,
   }: {
-    privateKey: JWKInterface;
+    signer: TurboSigner;
     logger: TurboLogger;
   }) {
-    this.privateKey = privateKey;
     this.logger = logger;
-    this.signer = new ArweaveSigner(this.privateKey);
+    this.signer = signer;
   }
 
   async signDataItem({
@@ -83,10 +81,10 @@ export class TurboNodeArweaveSigner implements TurboWalletSigner {
   async generateSignedRequestHeaders() {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    const signature = await Arweave.crypto.sign(this.privateKey, buffer);
-
+    const signature = await this.signer.sign(buffer);
+    const publicKey = toB64Url(this.signer.publicKey);
     return {
-      'x-public-key': this.privateKey.n,
+      'x-public-key': publicKey,
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
     };
