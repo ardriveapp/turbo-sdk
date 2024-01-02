@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ArconnectSigner, createData } from 'arbundles';
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from 'crypto';
 
 import { JWKInterface } from '../common/jwk.js';
 import {
