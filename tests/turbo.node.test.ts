@@ -7,7 +7,6 @@ import { Readable } from 'node:stream';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
-import { developmentTurboConfiguration } from '../src/common/turbo.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -15,19 +14,24 @@ import {
 import { TurboFactory } from '../src/node/factory.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 import { FailedRequestError } from '../src/utils/errors.js';
-import { expectAsyncErrorThrow } from './helpers.js';
+import {
+  expectAsyncErrorThrow,
+  turboDevelopmentConfigurations,
+} from './helpers.js';
 
 describe('Node environment', () => {
   describe('TurboFactory', () => {
     it('should return a TurboUnauthenticatedClient when running in Node environment and not provided a privateKey', () => {
-      const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
+      const turbo = TurboFactory.unauthenticated(
+        turboDevelopmentConfigurations,
+      );
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
     it('should return a TurboAuthenticatedClient when running in Node environment and  provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
       const turbo = TurboFactory.authenticated({
         privateKey: jwk,
-        ...developmentTurboConfiguration,
+        ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
@@ -37,7 +41,7 @@ describe('Node environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
+      turbo = TurboFactory.unauthenticated(turboDevelopmentConfigurations);
     });
 
     it('getFiatRates()', async () => {
@@ -184,7 +188,7 @@ describe('Node environment', () => {
       jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
         privateKey: jwk,
-        ...developmentTurboConfiguration,
+        ...turboDevelopmentConfigurations,
       });
       address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
