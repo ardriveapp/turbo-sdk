@@ -1,5 +1,7 @@
 # @ardriveapp/turbo-sdk 🚀
 
+[![codecov](https://codecov.io/gh/ardriveapp/turbo-sdk/graph/badge.svg?token=CXS48HM8Y8)](https://codecov.io/gh/ardriveapp/turbo-sdk)
+
 Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interacting with the Turbo Upload and Payment Services and is available for both NodeJS and Web environments.
 
 ## Table of Contents
@@ -19,8 +21,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
 - [Examples](./examples)
-  - [CJS](./examples/cjs/index.ts)
-  - [ESM](./examples/esm/index.ts)
+  - [CJS](./examples/cjs/index.js)
+  - [ESM](./examples/esm/index.mjs)
   - [Web](./examples/web/index.html)
 - [Developers](#developers)
   - [Requirements](#requirements)
@@ -95,14 +97,25 @@ try {
 
 ## Usage
 
-The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriate named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
+The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriately named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
 
 ### Web
 
 #### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
+CommonJS:
+
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+ESM:
+
+```javascript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
@@ -143,7 +156,7 @@ Project's `tsconfig.json`:
 }
 ```
 
-Usage:
+Usage (Node & Web):
 
 ```javascript
 const { TurboFactory } = require('@ardrive/turbo-sdk');
@@ -174,10 +187,21 @@ Project's `tsconfig.json`:
 }
 ```
 
-Usage:
+#### Usage
+
+Node:
 
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk/node';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+Web:
+
+```javascript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
@@ -331,7 +355,7 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   }
   ```
 
-- `uploadFile({ fileStreamFactory, fileSizeFactory, signal })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
+- `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
   ```typescript
   const filePath = path.join(__dirname, './my-unsigned-file.txt');
@@ -339,7 +363,20 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   const uploadResult = await turbo.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
     fileSizeFactory: () => fileSize,
-    // no timeout or AbortSignal provided
+    dataItemOpts: {
+      // optional
+      tags: [
+        {
+          name: 'Content-Type',
+          value: 'text/plain',
+        },
+        {
+          name: 'My-Custom-Tag',
+          value: 'my-custom-value',
+        },
+      ],
+      // no timeout or AbortSignal provided
+    },
   });
   ```
 
@@ -361,7 +398,7 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
 - `yarn test` - runs integration tests
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
-- `yarn example:mjs` - runs example ESM node script
+- `yarn example:esm` - runs example ESM node script
 
 ### Linting & Formatting
 

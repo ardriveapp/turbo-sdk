@@ -93,12 +93,14 @@ export class TurboAuthenticatedUploadService
     fileStreamFactory,
     fileSizeFactory,
     signal,
+    dataItemOpts,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
     const { dataItemStreamFactory, dataItemSizeFactory } =
       await this.signer.signDataItem({
         fileStreamFactory,
         fileSizeFactory,
+        dataItemOpts,
       });
     const signedDataItem = dataItemStreamFactory();
     const fileSize = dataItemSizeFactory();

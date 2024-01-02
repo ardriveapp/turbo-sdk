@@ -4,5 +4,5 @@
   "exclude": ["**/*.d.ts", "**/*.test.ts", "src/types/**/*.ts"],
   "all": true,
   "coverage": true,
-  "reporter": ["text", "html"]
+  "reporter": ["text", "html", "lcov"]
 }

@@ -7,7 +7,6 @@ import { Readable } from 'node:stream';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
-import { developmentTurboConfiguration } from '../src/common/turbo.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -15,18 +14,24 @@ import {
 import { TurboFactory } from '../src/node/factory.js';
 import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 import { FailedRequestError } from '../src/utils/errors.js';
+import {
+  expectAsyncErrorThrow,
+  turboDevelopmentConfigurations,
+} from './helpers.js';
 
 describe('Node environment', () => {
   describe('TurboFactory', () => {
     it('should return a TurboUnauthenticatedClient when running in Node environment and not provided a privateKey', () => {
-      const turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
+      const turbo = TurboFactory.unauthenticated(
+        turboDevelopmentConfigurations,
+      );
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
     it('should return a TurboAuthenticatedClient when running in Node environment and  provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
       const turbo = TurboFactory.authenticated({
         privateKey: jwk,
-        ...developmentTurboConfiguration,
+        ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
@@ -36,7 +41,7 @@ describe('Node environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated(developmentTurboConfiguration);
+      turbo = TurboFactory.unauthenticated(turboDevelopmentConfigurations);
     });
 
     it('getFiatRates()', async () => {
@@ -183,7 +188,7 @@ describe('Node environment', () => {
       jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
         privateKey: jwk,
-        ...developmentTurboConfiguration,
+        ...turboDevelopmentConfigurations,
       });
       address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
@@ -194,20 +199,128 @@ describe('Node environment', () => {
     });
 
     describe('uploadFile()', () => {
-      it('should properly upload a Readable to turbo', async () => {
-        const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-        const fileSize = fs.statSync(filePath).size;
-        const response = await turbo.uploadFile({
-          fileStreamFactory: () => fs.createReadStream(filePath),
-          fileSizeFactory: () => fileSize,
+      const validDataItemOpts = [
+        {
+          target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
+          anchor: 'anchorMustBeThirtyTwoBytesLong!!',
+          tags: [
+            {
+              name: '', // empty name
+              value: '', // empty val
+            },
+          ],
+        },
+        {
+          target: 'WeirdCharacters-_!felwfleowpfl12345678901234',
+          anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
+          tags: [
+            {
+              name: 'test',
+              value: 'test',
+            },
+            {
+              name: 'test2',
+              value: 'test2',
+            },
+          ],
+        },
+      ];
+
+      for (const dataItemOpts of validDataItemOpts) {
+        it('should properly upload a Readable to turbo', async () => {
+          const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+          const fileSize = fs.statSync(filePath).size;
+          const response = await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
+            dataItemOpts,
+          });
+          expect(response).to.not.be.undefined;
+          expect(response).to.not.be.undefined;
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
         });
-        expect(response).to.not.be.undefined;
-        expect(response).to.not.be.undefined;
-        expect(response).to.have.property('fastFinalityIndexes');
-        expect(response).to.have.property('dataCaches');
-        expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
-      });
+      }
+
+      const invalidDataItemOpts = [
+        {
+          testName: 'tag name too long',
+          errorType: 'FailedRequestError',
+          errorMessage: 'Failed request: 400: Data item parsing error!',
+          dataItemOpts: {
+            tags: [
+              {
+                name: Array(1025).fill('a').join(''),
+                value: 'test',
+              },
+            ],
+          },
+        },
+        {
+          testName: 'tag value too long',
+          errorType: 'FailedRequestError',
+          errorMessage: 'Failed request: 400: Data item parsing error!',
+          dataItemOpts: {
+            tags: [
+              {
+                name: 'test',
+                value: Array(3073).fill('a').join(''),
+              },
+            ],
+          },
+        },
+        {
+          testName: 'target Too Short',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 10',
+          dataItemOpts: {
+            target: 'target Too Short',
+          },
+        },
+        {
+          testName: 'anchor Too Short',
+          errorMessage: 'Anchor must be 32 bytes',
+          dataItemOpts: {
+            anchor: 'anchor Too Short',
+          },
+        },
+        {
+          testName: 'target Too Long',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 33',
+          dataItemOpts: {
+            target: 'target Too Long This is 33 Bytes one two three four five',
+          },
+        },
+        {
+          testName: 'anchor Too Long',
+          errorMessage: 'Anchor must be 32 bytes',
+          dataItemOpts: {
+            anchor: 'anchor Too Long This is 33 Bytes one two three four five',
+          },
+        },
+      ];
+      for (const {
+        testName,
+        dataItemOpts,
+        errorMessage,
+        errorType,
+      } of invalidDataItemOpts) {
+        it(`should fail to upload a Buffer to turbo with invalid  when ${testName}`, async () => {
+          const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+          const fileSize = fs.statSync(filePath).size;
+
+          await expectAsyncErrorThrow({
+            promiseToError: turbo.uploadFile({
+              fileStreamFactory: () => fs.createReadStream(filePath),
+              fileSizeFactory: () => fileSize,
+              dataItemOpts,
+            }),
+            errorType,
+            errorMessage,
+          });
+        });
+      }
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
         const filePath = new URL('files/1KB_file', import.meta.url).pathname;
