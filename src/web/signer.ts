@@ -14,34 +14,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, createData } from 'arbundles';
-import Arweave from 'arweave';
-import { randomBytes } from 'node:crypto';
+import { ArconnectSigner, createData } from 'arbundles';
+import { randomBytes } from 'crypto';
 
 import { JWKInterface } from '../common/jwk.js';
 import {
   StreamSizeFactory,
+  TurboDataItemSigner,
   TurboLogger,
-  TurboWalletSigner,
+  TurboSigner,
   WebTurboFileFactory,
 } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
-export class TurboWebArweaveSigner implements TurboWalletSigner {
+export class TurboWebArweaveSigner implements TurboDataItemSigner {
   protected privateKey: JWKInterface;
-  protected signer: ArweaveSigner; // TODO: replace with internal signer class
+  protected signer: TurboSigner;
   protected logger: TurboLogger;
   constructor({
-    privateKey,
     logger,
+    signer,
   }: {
-    privateKey: JWKInterface;
     logger: TurboLogger;
+    signer: TurboSigner;
   }) {
-    this.privateKey = privateKey;
     this.logger = logger;
-    this.signer = new ArweaveSigner(this.privateKey);
+    this.signer = signer;
   }
 
   async signDataItem({
@@ -58,6 +57,15 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
       stream: fileStreamFactory(),
       size: fileSizeFactory(),
     });
+
+    // for arconnect, we need to make sure we have the public key before create data
+    if (
+      this.signer.publicKey === undefined &&
+      this.signer instanceof ArconnectSigner
+    ) {
+      await this.signer.setPublicKey();
+    }
+
     this.logger.debug('Signing data item...');
     const signedDataItem = createData(buffer, this.signer, dataItemOpts);
     await signedDataItem.sign(this.signer);
@@ -71,15 +79,21 @@ export class TurboWebArweaveSigner implements TurboWalletSigner {
 
   // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
   async generateSignedRequestHeaders() {
-    // a bit hacky - but arweave exports cause issues in tests vs. browser
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const arweave: Arweave = (Arweave as any).default ?? Arweave;
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    const signature = await arweave.crypto.sign(this.privateKey, buffer, {});
+    const signature = await this.signer.sign(buffer);
+
+    // for arconnect, we need to make sure we have the public key
+    if (
+      this.signer.publicKey === undefined &&
+      this.signer instanceof ArconnectSigner
+    ) {
+      await this.signer.setPublicKey();
+    }
+    const publicKey = toB64Url(this.signer.publicKey);
 
     return {
-      'x-public-key': this.privateKey.n,
+      'x-public-key': publicKey,
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
     };

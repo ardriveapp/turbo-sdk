@@ -49,10 +49,14 @@ yarn add @ardrive/turbo-sdk
 ```typescript
 import { TurboFactory } from '@ardrive/turbo-sdk';
 
-// load your JWK from a file or generate a new one
+// load your JWK directly to authenticate
 const jwk = fs.readFileSync('./my-jwk.json');
 const address = arweave.wallets.jwkToAddress(jwk);
 const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+// or provide your own signer
+const signer = new ArweaveSigner(jwk);
+const turbo = TurboFactory.authenticated({ signer });
 
 // get the wallet balance
 const { winc: balance } = await turbo.getBalance();
@@ -229,11 +233,18 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   const turbo = TurboFactory.unauthenticated();
   ```
 
-- `authenticated()` - Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services.
+- `authenticated()` - Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
 
   ```typescript
   const jwk = await arweave.crypto.generateJWK();
   const turbo = TurboFactory.authenticated({ privateKey: jwk });
+  ```
+
+  or
+
+  ```typescript
+  const signer = new ArweaveSigner(jwk);
+  const turbo = TurboFactory.authenticated({ signer });
   ```
 
 ### TurboUnauthenticatedClient

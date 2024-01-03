@@ -24,6 +24,7 @@ import {
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
   TurboCurrenciesResponse,
+  TurboDataItemSigner,
   TurboFiatToArResponse,
   TurboLogger,
   TurboPriceResponse,
@@ -31,7 +32,6 @@ import {
   TurboSignedRequestHeaders,
   TurboUnauthenticatedPaymentServiceConfiguration,
   TurboUnauthenticatedPaymentServiceInterface,
-  TurboWalletSigner,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
@@ -154,7 +154,7 @@ export class TurboAuthenticatedPaymentService
   extends TurboUnauthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
-  protected readonly signer: TurboWalletSigner;
+  protected readonly signer: TurboDataItemSigner;
 
   constructor({
     url = defaultPaymentServiceURL,

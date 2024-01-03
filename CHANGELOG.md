@@ -1,3 +1,22 @@
+# [1.3.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.3.0-alpha.1...v1.3.0-alpha.2) (2024-01-02)
+
+
+### Bug Fixes
+
+* **web:** remove reference to `node:crypto` in websigner, use signer when creating request headers ([45a413d](https://github.com/ardriveapp/turbo-sdk/commit/45a413d458c6f8e2f1bbc9bf93e61977dba16643))
+
+# [1.3.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.2.0...v1.3.0-alpha.1) (2023-12-20)
+
+
+### Bug Fixes
+
+* **web:** ensure we have the public key for arconnect wallets when signing data ([7dd9ae0](https://github.com/ardriveapp/turbo-sdk/commit/7dd9ae00e4059662783800bf8dc57831065bc2a4))
+
+
+### Features
+
+* **signer:** allow an optional signer to be passed instead of JWK for signing data items ([b70cfa2](https://github.com/ardriveapp/turbo-sdk/commit/b70cfa202508b21750738eadf0596592892f8f59))
+
 # [1.2.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.1.1...v1.2.0) (2023-12-15)
 
 
