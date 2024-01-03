@@ -3,7 +3,7 @@
 
 ### Bug Fixes
 
-* **web:** remove reference to `node:crypto` in websigner, use signer to signer to sign header ([45a413d](https://github.com/ardriveapp/turbo-sdk/commit/45a413d458c6f8e2f1bbc9bf93e61977dba16643))
+* **web:** remove reference to `node:crypto` in websigner, use signer when creating request headers ([45a413d](https://github.com/ardriveapp/turbo-sdk/commit/45a413d458c6f8e2f1bbc9bf93e61977dba16643))
 
 # [1.3.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.2.0...v1.3.0-alpha.1) (2023-12-20)
 
