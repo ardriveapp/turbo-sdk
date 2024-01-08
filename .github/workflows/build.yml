@@ -18,11 +18,6 @@ jobs:
           node-version: ${{ matrix.node_version }}
           cache: 'yarn'
 
-      - name: Install dependencies
-        run: yarn --immutable --immutable-cache
-
-      - run: yarn ${{ matrix.command }}
-
       - name: Login to Docker
         if: matrix.command == 'build'
         uses: docker/login-action@v1
@@ -30,6 +25,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: yarn --immutable --immutable-cache
+
+      - run: yarn ${{ matrix.command }}
 
       - name: Upload coverage reports to Codecov
         if: matrix.command == 'test'
