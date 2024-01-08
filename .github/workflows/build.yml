@@ -19,7 +19,7 @@ jobs:
           cache: 'yarn'
 
       - name: Login to Docker
-        if: matrix.command == 'build'
+        if: matrix.command == 'test:docker'
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
