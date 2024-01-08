@@ -23,6 +23,14 @@ jobs:
 
       - run: yarn ${{ matrix.command }}
 
+      - name: Login to Docker
+        if: matrix.command == 'build'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload coverage reports to Codecov
         if: matrix.command == 'test'
         uses: codecov/codecov-action@v3
