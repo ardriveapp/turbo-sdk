@@ -182,6 +182,19 @@ describe('Browser environment', () => {
           expect(url).to.be.a('string');
         });
       });
+
+      it('should properly get a checkout session with a embedded ui mode', async () => {
+        const { adjustments, paymentAmount, quotedPaymentAmount, url } =
+          await turbo.createCheckoutSession({
+            amount: USD(20),
+            owner: '43-character-stub-arweave-address-000000000',
+            uiMode: 'embedded',
+          });
+        expect(adjustments).to.deep.equal([]);
+        expect(paymentAmount).to.equal(2000);
+        expect(quotedPaymentAmount).to.equal(2000);
+        expect(url).to.be.a('string');
+      });
     });
   });
   describe('TurboAuthenticatedWebClient', () => {
