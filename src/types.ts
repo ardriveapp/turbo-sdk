@@ -73,8 +73,10 @@ export type TurboWincForFiatParams = {
   promoCodes?: string[];
 };
 
+export type UiMode = 'embedded' | 'hosted';
 export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
   owner: PublicArweaveAddress;
+  uiMode?: UiMode;
 };
 
 export type TopUpRawResponse = {
