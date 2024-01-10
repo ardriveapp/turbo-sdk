@@ -9,6 +9,8 @@ on:
 jobs:
   create-pull-request:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # be able to create PR
     strategy:
       matrix:
         branch: [alpha, beta]
