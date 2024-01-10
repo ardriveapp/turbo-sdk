@@ -1,0 +1,31 @@
+name: Create Pull Requests
+
+on:
+  #   push:
+  #     branches:
+  #       - main
+  workflow_dispatch:
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: [alpha, beta]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: merge main branch back to ${{ matrix.branch }} '
+          title: 'chore: merge main branch back to ${{ matrix.branch }}'
+          body: 'This is an auto-generated PR.'
+          branch: 'main'
+          base: ${{ matrix.branch }} # The branch to create the PR into
+          delete-branch: false # Deletes the temp
