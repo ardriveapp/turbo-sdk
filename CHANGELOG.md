@@ -1,3 +1,10 @@
+# [1.4.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.3.0...v1.4.0-alpha.1) (2024-01-10)
+
+
+### Features
+
+* **ui mode:** support query param for checkout session ui mode PE-5332 ([18dec34](https://github.com/ardriveapp/turbo-sdk/commit/18dec3417ec144eab85d0e11ea7b06eb6e6ccd34))
+
 # [1.3.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.2.0...v1.3.0) (2024-01-03)
 
 
