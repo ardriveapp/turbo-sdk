@@ -27,13 +27,30 @@ describe('Node environment', () => {
       );
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
-    it('should return a TurboAuthenticatedClient when running in Node environment and  provided a privateKey', async () => {
+    it('should return a TurboAuthenticatedClient when running in Node environment and provided a privateKey', async () => {
       const jwk = await Arweave.crypto.generateJWK();
       const turbo = TurboFactory.authenticated({
         privateKey: jwk,
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and an ArweaveSigner', async () => {
+      const jwk = await Arweave.crypto.generateJWK();
+      const turbo = TurboFactory.authenticated({
+        signer: new ArweaveSigner(jwk),
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          ...turboDevelopmentConfigurations,
+        }),
+      ).to.throw('A privateKey or signer must be provided.');
     });
   });
 

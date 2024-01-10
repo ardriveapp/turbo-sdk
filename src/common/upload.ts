@@ -18,13 +18,13 @@ import {
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
+  TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
-  TurboWalletSigner,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -77,7 +77,7 @@ export class TurboAuthenticatedUploadService
   extends TurboUnauthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
-  protected signer: TurboWalletSigner;
+  protected signer: TurboDataItemSigner;
 
   constructor({
     url = defaultUploadServiceURL,
