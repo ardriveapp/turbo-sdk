@@ -118,14 +118,19 @@ export class TurboUnauthenticatedPaymentService
   }
 
   protected async getCheckout(
-    { amount, owner, promoCodes = [] }: TurboCheckoutSessionParams,
+    {
+      amount,
+      owner,
+      promoCodes = [],
+      uiMode = 'hosted',
+    }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
   ) {
     const { amount: paymentAmount, type: currencyType } = amount;
 
     const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}${this.appendPromoCodesToQuery(
       promoCodes,
-    )}`;
+    )}&uiMode=${uiMode}`;
 
     const { adjustments, paymentSession, topUpQuote } =
       await this.httpService.get<TopUpRawResponse>({
