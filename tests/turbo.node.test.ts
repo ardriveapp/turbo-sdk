@@ -183,28 +183,48 @@ describe('Node environment', () => {
 
     describe('createCheckoutSession()', () => {
       it('should properly get a checkout session', async () => {
-        const { adjustments, paymentAmount, quotedPaymentAmount, url } =
-          await turbo.createCheckoutSession({
-            amount: USD(10),
-            owner: '43-character-stub-arweave-address-000000000',
-          });
+        const {
+          adjustments,
+          paymentAmount,
+          quotedPaymentAmount,
+          url,
+          client_secret,
+          id,
+          winc,
+        } = await turbo.createCheckoutSession({
+          amount: USD(10),
+          owner: '43-character-stub-arweave-address-000000000',
+        });
         expect(adjustments).to.deep.equal([]);
         expect(paymentAmount).to.equal(1000);
         expect(quotedPaymentAmount).to.equal(1000);
         expect(url).to.be.a('string');
+        expect(id).to.be.a('string');
+        expect(client_secret).to.equal(undefined);
+        expect(winc).to.be.a('string');
       });
 
       it('should properly get a checkout session with a embedded ui mode', async () => {
-        const { adjustments, paymentAmount, quotedPaymentAmount, url } =
-          await turbo.createCheckoutSession({
-            amount: USD(20),
-            owner: '43-character-stub-arweave-address-000000000',
-            uiMode: 'embedded',
-          });
+        const {
+          adjustments,
+          paymentAmount,
+          quotedPaymentAmount,
+          url,
+          id,
+          client_secret,
+          winc,
+        } = await turbo.createCheckoutSession({
+          amount: USD(20),
+          owner: '43-character-stub-arweave-address-000000000',
+          uiMode: 'embedded',
+        });
         expect(adjustments).to.deep.equal([]);
         expect(paymentAmount).to.equal(2000);
         expect(quotedPaymentAmount).to.equal(2000);
-        expect(url).to.be.a('string');
+        expect(url).to.equal(undefined);
+        expect(id).to.be.a('string');
+        expect(client_secret).to.be.a('string');
+        expect(winc).to.be.a('string');
       });
     });
   });
