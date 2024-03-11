@@ -114,7 +114,7 @@ export class TurboUnauthenticatedPaymentService
 
   protected appendPromoCodesToQuery(promoCodes: string[]): string {
     const promoCodesQuery = promoCodes.join(',');
-    return promoCodesQuery ? `?promoCode=${promoCodesQuery}` : '';
+    return promoCodesQuery ? `promoCode=${promoCodesQuery}` : '';
   }
 
   protected async getCheckout(
@@ -125,12 +125,14 @@ export class TurboUnauthenticatedPaymentService
       uiMode = 'hosted',
     }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
-  ) {
+  ): Promise<TurboCheckoutSessionResponse> {
     const { amount: paymentAmount, type: currencyType } = amount;
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}${this.appendPromoCodesToQuery(
-      promoCodes,
-    )}&uiMode=${uiMode}`;
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?uiMode=${uiMode}${
+      promoCodes.length > 0
+        ? `&${this.appendPromoCodesToQuery(promoCodes)}`
+        : ''
+    }`;
 
     const { adjustments, paymentSession, topUpQuote } =
       await this.httpService.get<TopUpRawResponse>({
@@ -141,7 +143,9 @@ export class TurboUnauthenticatedPaymentService
     return {
       winc: topUpQuote.winstonCreditAmount,
       adjustments,
-      url: paymentSession.url,
+      url: paymentSession.url ?? undefined,
+      id: paymentSession.id,
+      client_secret: paymentSession.client_secret ?? undefined,
       paymentAmount: topUpQuote.paymentAmount,
       quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
     };
@@ -190,7 +194,7 @@ export class TurboAuthenticatedPaymentService
     return this.httpService.get<TurboWincForFiatResponse>({
       endpoint: `/price/${amount.type}/${
         amount.amount
-      }${this.appendPromoCodesToQuery(promoCodes)}`,
+      }?${this.appendPromoCodesToQuery(promoCodes)}`,
       headers: await this.signer.generateSignedRequestHeaders(),
     });
   }
