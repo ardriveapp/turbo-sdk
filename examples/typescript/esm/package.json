@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "ts-node ./index.ts"
+  },
+  "dependencies": {
+    "@ardrive/turbo-sdk": "^1.4.1",
+    "arweave": "^1.14.4"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "ES2021",
+    "esModuleInterop": true
+  },
+  "include": ["./index.ts"],
+  "exclude": ["node_modules"]
+}
