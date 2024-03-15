@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.1...v1.4.2) (2024-03-15)
+
+
+### Bug Fixes
+
+* **arbundles:** pin arbundles to 0.9.9 and run tests locally ([c92ce38](https://github.com/ardriveapp/turbo-sdk/commit/c92ce381b63b378443dee5f0d73578df8e3fc7fe))
+
 ## [1.4.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.0...v1.4.1) (2024-03-11)
 
 
