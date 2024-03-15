@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    uses: ar-io/ar-io-sdk/.github/workflows/build.yml@alpha
+    uses: ar-io/ar-io-sdk/.github/workflows/build.yml@main
     secrets: inherit
   release:
     runs-on: ubuntu-latest
