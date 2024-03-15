@@ -1,15 +1,22 @@
 name: Release
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
-      - alpha
-      - beta
       - main
+      - alpha
 
 jobs:
+  build:
+    uses: ar-io/ar-io-sdk/.github/workflows/build.yml@alpha
+    secrets: inherit
   release:
     runs-on: ubuntu-latest
+    needs: build
     permissions:
       contents: write # to be able to publish a GitHub release
       issues: write # to be able to comment on released issues
