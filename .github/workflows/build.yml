@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         node_version: [18.x, 20.x]
-        command: ['lint', 'format', 'test:docker', 'build']
+        command: ['lint', 'format', 'test', 'build']
     steps:
       - uses: actions/checkout@v3
 
