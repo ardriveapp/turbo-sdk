@@ -339,7 +339,8 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
 
 ### Testing
 
-- `yarn test` - runs integration tests
+- `yarn test` - runs integration tests against dev environment (e.g. `https://payment.ardrive.dev` and `https://upload.ardrive.dev`)
+- `yarn test:docker` - runs integration tests against locally running docker containers (recommended)
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
 - `yarn example:esm` - runs example ESM node script
