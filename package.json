@@ -58,7 +58,7 @@
     "test": "c8 mocha --config .mocharc --exit",
     "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
-    "test:docker": "docker compose up -d ; PAYMENT_SERVICE_URL=http://localhost:4000 UPLOAD_SERVICE_URL=http://localhost:3000 yarn test ; docker compose down -v",
+    "test:docker": "docker compose up -d ; PAYMENT_SERVICE_URL=http://localhost:4000 UPLOAD_SERVICE_URL=http://localhost:3000 yarn test",
     "prepare": "husky install",
     "example:mjs": "cd examples/mjs && yarn && node index.mjs",
     "example:cjs": "cd examples/cjs && yarn && node index.cjs",
@@ -67,7 +67,7 @@
     "example:ts:cjs": "cd examples/typescript/cjs && yarn && yarn test"
   },
   "dependencies": {
-    "arbundles": "^0.9.9",
+    "arbundles": "0.9.9",
     "arweave": "^1.14.4",
     "axios": "^1.4.0",
     "axios-retry": "^3.7.0",
