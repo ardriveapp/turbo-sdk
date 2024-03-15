@@ -77,7 +77,6 @@
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
-    "@irys/sdk": "^0.1.16",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
