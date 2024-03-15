@@ -85,12 +85,18 @@ export type TopUpRawResponse = {
     quotedPaymentAmount: number;
     winstonCreditAmount: string;
   };
-  paymentSession: { url: string };
+  paymentSession: {
+    url: string | null;
+    id: string;
+    client_secret: string | null;
+  };
   adjustments: Adjustment[];
 };
 
 export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
-  url: string;
+  id: string;
+  client_secret?: string;
+  url?: string;
 };
 
 export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;

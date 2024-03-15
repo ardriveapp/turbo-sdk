@@ -1,0 +1,14 @@
+{
+  "type": "commonjs",
+  "scripts": {
+    "test": "ts-node ./index.ts"
+  },
+  "dependencies": {
+    "@ardrive/turbo-sdk": "latest",
+    "arweave": "^1.14.4",
+    "typescript": "^5.4.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
+}

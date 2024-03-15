@@ -1,3 +1,17 @@
+## [1.4.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.0...v1.4.1) (2024-03-11)
+
+
+### Bug Fixes
+
+* **checkout session:** correct query param, change type, add coverage PE-5790 ([4fc6115](https://github.com/ardriveapp/turbo-sdk/commit/4fc6115ebf74812cd6cf926a525457569d2153fe))
+
+# [1.4.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.3.0...v1.4.0) (2024-01-30)
+
+
+### Features
+
+* **ui mode:** support query param for checkout session ui mode PE-5332 ([18dec34](https://github.com/ardriveapp/turbo-sdk/commit/18dec3417ec144eab85d0e11ea7b06eb6e6ccd34))
+
 # [1.4.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.3.0...v1.4.0-alpha.1) (2024-01-10)
 
 
