@@ -4,7 +4,7 @@
     "test": "ts-node ./index.ts"
   },
   "dependencies": {
-    "@ardrive/turbo-sdk": "^1.4.1",
+    "@ardrive/turbo-sdk": "latest",
     "arweave": "^1.14.4",
     "typescript": "^5.4.2"
   },

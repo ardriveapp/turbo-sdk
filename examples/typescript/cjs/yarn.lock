@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@ardrive/turbo-sdk@^1.4.1":
+"@ardrive/turbo-sdk@latest":
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/@ardrive/turbo-sdk/-/turbo-sdk-1.4.1.tgz#a7c41f9125e8998bced2a8b8e5490ebe74c92685"
   integrity sha512-O+bH5b/2yPuwa1ZgL1sHhgrAJoR6aUHubz2AK72e2tQ00r4LAMAhyYq+ymhCk0IAhAfhQX/Ho5FSx7k88S9+CA==

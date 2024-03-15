@@ -119,7 +119,7 @@ const rates = await turbo.getFiatRates();
 ESM:
 
 ```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/web';
+import { TurboFactory } from '@ardrive/turbo-sdk/<node/web>';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
@@ -140,85 +140,18 @@ const rates = await turbo.getFiatRates();
 
 #### CommonJS
 
-Project's `package.json`:
-
-```json
-{
-  "type": "commonjs" // or absent
-}
-```
-
-Project's `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "Node",
-    "skipLibCheck": true
-  }
-}
-```
-
-Usage (Node & Web):
-
-```javascript
-const { TurboFactory } = require('@ardrive/turbo-sdk');
-
-const turbo = TurboFactory.unauthenticated();
-const rates = await turbo.getFiatRates();
-```
+Example available in the [examples/typescript/cjs].
 
 #### ESM
 
-Project's `package.json`:
-
-```json
-{
-  "type": "module"
-}
-```
-
-Project's `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "skipLibCheck": true
-  }
-}
-```
-
-#### Usage
-
-Node:
-
-```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/node';
-
-const turbo = TurboFactory.unauthenticated();
-const rates = await turbo.getFiatRates();
-```
-
-Web:
-
-```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/web';
-
-const turbo = TurboFactory.unauthenticated();
-const rates = await turbo.getFiatRates();
-```
+Example available in the [examples/typescript/esm].
 
 ### Typescript
 
 The SDK provides TypeScript types. When you import the SDK in a TypeScript project:
 
 ```typescript
-import { TurboFactory } from '@ardrive/turbo-sdk/web';
-
-// or '@ardrive/turbo-sdk/node' for Node.js projects
+import { TurboFactory } from '@ardrive/turbo-sdk/<node/web>';
 ```
 
 Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
@@ -429,6 +362,8 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 
 [package.json]: ./package.json
 [examples]: ./examples
+[examples/typescript/cjs]: ./examples/typescript/cjs
+[examples/typescript/esm]: ./examples/typescript/esm
 [TurboAuthenticatedClient]: #turboauthenticatedclient
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
