@@ -19,7 +19,9 @@ import {
   ArweaveSigner,
   DataItemCreateOptions,
 } from 'arbundles';
+import { TransactionInterface } from 'arweave/node/lib/transaction.js';
 import { IAxiosRetryConfig } from 'axios-retry';
+import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
@@ -42,6 +44,9 @@ export type Currency =
   | 'hkd'
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
+
+export const tokenTypes = ['arweave', 'solana', 'ethereum'] as const;
+export type TokenType = (typeof tokenTypes)[number];
 
 export type Adjustment = {
   name: string;
@@ -119,6 +124,65 @@ export type TurboUploadDataItemResponse = {
   owner: PublicArweaveAddress;
 };
 
+export type TurboSubmitFundTxResponse = {
+  id: string;
+  quantity: string;
+  owner: string;
+  winc: string;
+  token: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  block?: number;
+};
+
+export type TurboCryptoFundResponse = TurboSubmitFundTxResponse & {
+  target: string;
+  reward: string;
+};
+
+export type TurboInfoResponse = {
+  version: string;
+  gateway: string;
+  freeUploadLimitBytes: number;
+  addresses: Record<TokenType, string>;
+};
+
+export type PendingPaymentTransaction = {
+  transactionId: string;
+  tokenType: TokenType;
+  transactionQuantity: string;
+  winstonCreditAmount: string;
+  destinationAddress: UserAddress;
+  destinationAddressType: string;
+};
+
+export type FailedPaymentTransaction = PendingPaymentTransaction & {
+  failedReason: string;
+};
+
+export type CreditedPaymentTransaction = PendingPaymentTransaction & {
+  blockHeight: number;
+};
+
+export type TurboPostBalanceResponse =
+  | {
+      pendingTransaction: PendingPaymentTransaction & {
+        adjustments?: Adjustment[];
+      };
+      message: string;
+    }
+  | {
+      creditedTransaction: CreditedPaymentTransaction & {
+        adjustments?: Adjustment[];
+      };
+      message: string;
+    }
+  | {
+      failedTransaction: FailedPaymentTransaction & {
+        adjustments?: Adjustment[];
+      };
+      message: string;
+    };
+
 export type TurboWallet = JWKInterface; // TODO: add other wallet types
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
@@ -134,6 +198,7 @@ type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: IAxiosRetryConfig;
   logger?: TurboLogger;
+  token?: TokenType;
 };
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
@@ -154,10 +219,10 @@ export type TurboUnauthenticatedConfiguration = {
 export interface TurboLogger {
   setLogLevel: (level: string) => void;
   setLogFormat: (logFormat: string) => void;
-  info: (message: string, ...args: any[]) => void;
-  warn: (message: string, ...args: any[]) => void;
-  error: (message: string, ...args: any[]) => void;
-  debug: (message: string, ...args: any[]) => void;
+  info: (message: string, ...args: unknown[]) => void;
+  warn: (message: string, ...args: unknown[]) => void;
+  error: (message: string, ...args: unknown[]) => void;
+  debug: (message: string, ...args: unknown[]) => void;
 }
 
 export type DataItemOptions = DataItemCreateOptions;
@@ -169,6 +234,7 @@ export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
     signer?: TurboSigner;
+    gatewayUrl?: string;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
@@ -236,6 +302,24 @@ export interface TurboHTTPServiceInterface {
   }): Promise<T>;
 }
 
+export type TurboTx<T = TransactionInterface> = {
+  transactionId: string;
+  transaction: T;
+};
+
+export type SendFundTxParams = {
+  tokenAmount: BigNumber;
+  target: string;
+  feeMultiplier?: number | undefined;
+};
+
+export type TurboDataItemSignerParams = {
+  logger: TurboLogger;
+  signer: TurboSigner;
+  gatewayUrl?: string;
+  privateKey?: JWKInterface;
+};
+
 export interface TurboDataItemSigner {
   signDataItem({
     fileStreamFactory,
@@ -243,6 +327,7 @@ export interface TurboDataItemSigner {
     dataItemOpts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
+  sendFundTx(params: SendFundTxParams): Promise<TurboTx>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -261,11 +346,18 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse>;
+  submitFundTransaction(
+    transactionId: string,
+  ): Promise<Omit<TurboCryptoFundResponse, 'target' | 'reward'>>;
 }
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: () => Promise<TurboBalanceResponse>;
+  fund(
+    tokenAmount: BigNumber.Value,
+    feeMultiplier?: number,
+  ): Promise<TurboCryptoFundResponse>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {

@@ -14,6 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import Arweave from 'arweave';
+import { BigNumber } from 'bignumber.js';
+
 import {
   Currency,
   TopUpRawResponse,
@@ -23,10 +26,13 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
   TurboFiatToArResponse,
+  TurboInfoResponse,
   TurboLogger,
+  TurboPostBalanceResponse,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedRequestHeaders,
@@ -46,11 +52,13 @@ export class TurboUnauthenticatedPaymentService
 {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
+  protected readonly token: string;
 
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
     logger = new TurboWinstonLogger(),
+    token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
     this.logger = logger;
     this.httpService = new TurboHTTPService({
@@ -58,6 +66,7 @@ export class TurboUnauthenticatedPaymentService
       retryConfig,
       logger: this.logger,
     });
+    this.token = token;
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
@@ -156,6 +165,47 @@ export class TurboUnauthenticatedPaymentService
   ): Promise<TurboCheckoutSessionResponse> {
     return this.getCheckout(params);
   }
+
+  public async submitFundTransaction(
+    tx_id: string,
+  ): Promise<Omit<TurboCryptoFundResponse, 'target' | 'reward'>> {
+    const response = await this.httpService.post<TurboPostBalanceResponse>({
+      endpoint: `/account/balance/${this.token}`,
+      data: Buffer.from(JSON.stringify({ tx_id })),
+    });
+
+    if ('creditedTransaction' in response) {
+      return {
+        id: response.creditedTransaction.transactionId,
+        quantity: response.creditedTransaction.transactionQuantity,
+        owner: response.creditedTransaction.destinationAddress,
+        winc: response.creditedTransaction.winstonCreditAmount,
+        token: response.creditedTransaction.tokenType,
+        status: 'confirmed',
+        block: response.creditedTransaction.blockHeight,
+      };
+    } else if ('pendingTransaction' in response) {
+      return {
+        id: response.pendingTransaction.transactionId,
+        quantity: response.pendingTransaction.transactionQuantity,
+        owner: response.pendingTransaction.destinationAddress,
+        winc: response.pendingTransaction.winstonCreditAmount,
+        token: response.pendingTransaction.tokenType,
+        status: 'pending',
+      };
+    } else if ('failedTransaction' in response) {
+      return {
+        id: response.failedTransaction.transactionId,
+        quantity: response.failedTransaction.transactionQuantity,
+        owner: response.failedTransaction.destinationAddress,
+        winc: response.failedTransaction.winstonCreditAmount,
+        token: response.failedTransaction.tokenType,
+        status: 'failed',
+      };
+    }
+
+    throw new Error('Unknown response from payment service: ' + response);
+  }
 }
 
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
@@ -165,13 +215,16 @@ export class TurboAuthenticatedPaymentService
 {
   protected readonly signer: TurboDataItemSigner;
 
+  protected readonly arweave: Arweave;
+
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
     logger,
+    token,
   }: TurboAuthenticatedPaymentServiceConfiguration) {
-    super({ url, retryConfig, logger });
+    super({ url, retryConfig, logger, token });
     this.signer = signer;
   }
 
@@ -206,5 +259,41 @@ export class TurboAuthenticatedPaymentService
       params,
       await this.signer.generateSignedRequestHeaders(),
     );
+  }
+
+  private async getTargetWalletForFund(): Promise<string> {
+    const { addresses } = await this.httpService.get<TurboInfoResponse>({
+      endpoint: '/info',
+    });
+
+    return addresses[this.token];
+  }
+
+  public async fund(
+    tokenAmount: BigNumber.Value,
+    feeMultiplier = 1,
+  ): Promise<TurboCryptoFundResponse> {
+    this.logger.debug('Funding account...');
+    const bigNTokenAmount = new BigNumber(tokenAmount);
+
+    const target = await this.getTargetWalletForFund();
+
+    const fundTx = await this.signer.sendFundTx({
+      target,
+      tokenAmount: bigNTokenAmount,
+      feeMultiplier,
+    });
+
+    // TODO: token based backoff
+    // Let transaction settle some time
+    await new Promise((resolve) => {
+      setTimeout(resolve, 3_000);
+    });
+
+    return {
+      ...(await this.submitFundTransaction(fundTx.transaction.id)),
+      target: fundTx.transaction.target,
+      reward: fundTx.transaction.reward,
+    };
   }
 }

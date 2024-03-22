@@ -72,6 +72,7 @@
     "arweave": "^1.14.4",
     "axios": "^1.4.0",
     "axios-retry": "^3.7.0",
+    "bignumber.js": "^9.1.2",
     "winston": "^3.10.0"
   },
   "devDependencies": {

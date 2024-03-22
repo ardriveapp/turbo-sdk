@@ -15,32 +15,45 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ArconnectSigner, createData } from 'arbundles';
+import Arweave from 'arweave';
+import { BigNumber } from 'bignumber.js';
 import { randomBytes } from 'crypto';
 
 import { JWKInterface } from '../common/jwk.js';
 import {
+  SendFundTxParams,
   StreamSizeFactory,
   TurboDataItemSigner,
+  TurboDataItemSignerParams,
   TurboLogger,
   TurboSigner,
+  TurboTx,
   WebTurboFileFactory,
 } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebArweaveSigner implements TurboDataItemSigner {
-  protected privateKey: JWKInterface;
+  protected privateKey?: JWKInterface;
   protected signer: TurboSigner;
+  protected readonly arweave: Arweave;
+
   protected logger: TurboLogger;
   constructor({
     logger,
     signer,
-  }: {
-    logger: TurboLogger;
-    signer: TurboSigner;
-  }) {
+    gatewayUrl,
+    privateKey,
+  }: TurboDataItemSignerParams) {
     this.logger = logger;
     this.signer = signer;
+    this.privateKey = privateKey;
+
+    this.arweave = Arweave.init({
+      host: gatewayUrl,
+      port: 443,
+      protocol: 'https',
+    });
   }
 
   async signDataItem({
@@ -97,5 +110,38 @@ export class TurboWebArweaveSigner implements TurboDataItemSigner {
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
     };
+  }
+
+  async sendFundTx({
+    tokenAmount,
+    target,
+    feeMultiplier = 1,
+  }: SendFundTxParams): Promise<TurboTx> {
+    this.logger.debug('Creating fund transaction...', {
+      tokenAmount: tokenAmount.toString(),
+      target,
+      feeMultiplier,
+    });
+
+    const fundTx = await this.arweave.createTransaction({
+      target,
+      quantity: tokenAmount.toString(),
+    });
+
+    if (feeMultiplier !== 1) {
+      fundTx.reward = BigNumber(fundTx.reward)
+        .times(new BigNumber(feeMultiplier))
+        .toFixed(0, BigNumber.ROUND_UP);
+    }
+
+    await this.arweave.transactions.sign(fundTx, this.privateKey); // arweave-js will import from 'arweaveWallet' if privateKey is not here
+    const response = await this.arweave.transactions.post(fundTx);
+
+    if (response.status !== 200) {
+      throw new Error('Failed to post fund transaction');
+    }
+
+    this.logger.debug('Posted fund transaction...', { fundTx });
+    return { transaction: fundTx, transactionId: fundTx.id };
   }
 }

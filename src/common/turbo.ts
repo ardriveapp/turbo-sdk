@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { BigNumber } from 'bignumber.js';
+
 import {
   Currency,
   TurboAbortSignal,
@@ -25,12 +27,14 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedDataItemFactory,
+  TurboSubmitFundTxResponse,
   TurboUnauthenticatedClientConfiguration,
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
@@ -167,6 +171,15 @@ export class TurboUnauthenticatedClient
   ): Promise<TurboCheckoutSessionResponse> {
     return this.paymentService.createCheckoutSession(params);
   }
+
+  /**
+   * Submits a transaction ID to the Turbo Payment Service for processing.
+   */
+  submitFundTransaction(
+    transactionId: string,
+  ): Promise<TurboSubmitFundTxResponse> {
+    return this.paymentService.submitFundTransaction(transactionId);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -207,5 +220,12 @@ export class TurboAuthenticatedClient
       signal,
       dataItemOpts,
     });
+  }
+
+  fund(
+    tokenAmount: BigNumber.Value,
+    feeMultiplier?: number | undefined,
+  ): Promise<TurboCryptoFundResponse> {
+    return this.paymentService.fund(tokenAmount, feeMultiplier);
   }
 }
