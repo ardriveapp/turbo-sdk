@@ -1,17 +1,6 @@
 version: 3.0.0
 
 services:
-  test-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile.test
-    environment:
-      - NODE_ENV=test
-      - PAYMENT_SERVICE_BASE_URL=http://payment-service:4000
-      - UPLOAD_SERVICE_BASE_URL=http://upload-service:3000
-    depends_on:
-      - upload-service
-      - payment-service
   upload-service:
     image: ghcr.io/ardriveapp/turbo-upload-service:latest
     ports:
@@ -61,13 +50,26 @@ services:
   payment-service-pg:
     image: postgres:13.8
     environment:
+      PGPORT: 5433
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - '5433:5432'
+      - '5433:5433'
     volumes:
       - payment-service-data:/var/lib/postgresql/data
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - PAYMENT_SERVICE_BASE_URL=http://payment-service:4000
+      - UPLOAD_SERVICE_BASE_URL=http://upload-service:3000
+    depends_on:
+      - upload-service
+      - payment-service
 
 volumes:
   payment-service-data:
