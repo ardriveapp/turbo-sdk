@@ -19,7 +19,7 @@ import {
   ArweaveSigner,
   DataItemCreateOptions,
 } from 'arbundles';
-import Transaction from 'arweave/node/lib/transaction.js';
+import * as Transaction from 'arweave/node/lib/transaction.js';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
