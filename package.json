@@ -58,7 +58,7 @@
     "test": "c8 mocha --config .mocharc --exit",
     "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
-    "test:docker": "docker compose up --exit-code-from test-runner --build",
+    "test:docker": "docker compose up --quiet-pull --exit-code-from test-runner --build; docker-compose down -v",
     "prepare": "husky install",
     "examples": "yarn example:mjs & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
     "example:esm": "cd examples/esm && yarn && node index.mjs",
