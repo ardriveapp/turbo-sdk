@@ -14,44 +14,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { JWKInterface, serializeTags, streamSigner } from 'arbundles';
-import Arweave from 'arweave';
-import { BigNumber } from 'bignumber.js';
-import { randomBytes } from 'node:crypto';
+import { serializeTags, streamSigner } from 'arbundles';
 import { Readable } from 'node:stream';
 
+import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   DataItemOptions,
-  SendFundTxParams,
   StreamSizeFactory,
-  TurboDataItemSigner,
   TurboDataItemSignerParams,
   TurboLogger,
   TurboSigner,
-  TurboTx,
 } from '../types.js';
-import { fromB64Url, toB64Url } from '../utils/base64.js';
+import { fromB64Url } from '../utils/base64.js';
 
-export class TurboNodeArweaveSigner implements TurboDataItemSigner {
-  protected privateKey?: JWKInterface;
+export class TurboNodeArweaveSigner extends TurboDataItemAbstractSigner {
   protected signer: TurboSigner;
   protected logger: TurboLogger;
-  protected arweave: Arweave;
 
-  constructor({
-    signer,
-    logger,
-    privateKey,
-    gatewayUrl = 'https://arweave.net',
-  }: TurboDataItemSignerParams) {
-    this.logger = logger;
-    this.signer = signer;
-    this.privateKey = privateKey;
-    this.arweave = Arweave.init({
-      host: gatewayUrl,
-      port: 443,
-      protocol: 'https',
-    });
+  constructor(p: TurboDataItemSignerParams) {
+    super(p);
   }
 
   async signDataItem({
@@ -85,19 +66,6 @@ export class TurboNodeArweaveSigner implements TurboDataItemSigner {
     return {
       dataItemStreamFactory: () => signedDataItem,
       dataItemSizeFactory: () => signedDataItemSize,
-    };
-  }
-
-  // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
-  async generateSignedRequestHeaders() {
-    const nonce = randomBytes(16).toString('hex');
-    const buffer = Buffer.from(nonce);
-    const signature = await this.signer.sign(buffer);
-    const publicKey = toB64Url(this.signer.publicKey);
-    return {
-      'x-public-key': publicKey,
-      'x-nonce': nonce,
-      'x-signature': toB64Url(Buffer.from(signature)),
     };
   }
 
@@ -136,41 +104,5 @@ export class TurboNodeArweaveSigner implements TurboDataItemSigner {
       signatureTypeLength,
       dataSize,
     ].reduce((totalSize, currentSize) => (totalSize += currentSize));
-  }
-
-  async sendFundTx({
-    tokenAmount,
-    target,
-    feeMultiplier = 1,
-  }: SendFundTxParams): Promise<TurboTx> {
-    this.logger.debug('Creating fund transaction...', {
-      tokenAmount: tokenAmount.toString(),
-      target,
-      feeMultiplier,
-    });
-
-    const fundTx = await this.arweave.createTransaction(
-      {
-        target,
-        quantity: tokenAmount.toString(),
-      },
-      this.privateKey,
-    );
-
-    if (feeMultiplier !== 1) {
-      fundTx.reward = BigNumber(fundTx.reward)
-        .times(new BigNumber(feeMultiplier))
-        .toFixed(0, BigNumber.ROUND_UP);
-    }
-
-    await this.arweave.transactions.sign(fundTx, this.privateKey);
-    const response = await this.arweave.transactions.post(fundTx);
-
-    if (response.status !== 200) {
-      throw new Error('Failed to post fund transaction');
-    }
-
-    this.logger.debug('Posted fund transaction...', { fundTx });
-    return { transaction: fundTx, transactionId: fundTx.id };
   }
 }

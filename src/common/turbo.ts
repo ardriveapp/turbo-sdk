@@ -222,6 +222,10 @@ export class TurboAuthenticatedClient
     });
   }
 
+  /**
+   * Submits fund transaction to the token's blockchain then sends
+   * the transaction ID to the Turbo Payment Service for processing.
+   */
   fund(
     tokenAmount: BigNumber.Value,
     feeMultiplier?: number | undefined,

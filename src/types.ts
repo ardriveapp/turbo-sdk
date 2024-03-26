@@ -19,7 +19,7 @@ import {
   ArweaveSigner,
   DataItemCreateOptions,
 } from 'arbundles';
-import { TransactionInterface } from 'arweave/node/lib/transaction.js';
+import Transaction from 'arweave/node/lib/transaction.js';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
@@ -209,7 +209,10 @@ export type TurboAuthenticatedUploadServiceConfiguration =
 export type TurboUnauthenticatedPaymentServiceConfiguration =
   TurboServiceConfiguration;
 export type TurboAuthenticatedPaymentServiceConfiguration =
-  TurboUnauthenticatedPaymentServiceConfiguration & TurboAuthConfiguration;
+  TurboUnauthenticatedPaymentServiceConfiguration &
+    TurboAuthConfiguration & {
+      gatewayUrl?: string;
+    };
 
 export type TurboUnauthenticatedConfiguration = {
   paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
@@ -302,11 +305,6 @@ export interface TurboHTTPServiceInterface {
   }): Promise<T>;
 }
 
-export type TurboTx<T = TransactionInterface> = {
-  transactionId: string;
-  transaction: T;
-};
-
 export type SendFundTxParams = {
   tokenAmount: BigNumber;
   target: string;
@@ -316,9 +314,9 @@ export type SendFundTxParams = {
 export type TurboDataItemSignerParams = {
   logger: TurboLogger;
   signer: TurboSigner;
-  gatewayUrl?: string;
-  privateKey?: JWKInterface;
 };
+
+export declare type ArweaveTx = Transaction.default;
 
 export interface TurboDataItemSigner {
   signDataItem({
@@ -327,7 +325,7 @@ export interface TurboDataItemSigner {
     dataItemOpts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
-  sendFundTx(params: SendFundTxParams): Promise<TurboTx>;
+  signTx<T extends ArweaveTx>(tx: T): Promise<T>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {

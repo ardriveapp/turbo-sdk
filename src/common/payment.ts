@@ -223,9 +223,16 @@ export class TurboAuthenticatedPaymentService
     signer,
     logger,
     token,
+    gatewayUrl = 'https://arweave.net',
   }: TurboAuthenticatedPaymentServiceConfiguration) {
     super({ url, retryConfig, logger, token });
     this.signer = signer;
+
+    this.arweave = Arweave.init({
+      host: gatewayUrl,
+      port: 443,
+      protocol: 'https',
+    });
   }
 
   public async getBalance(): Promise<TurboBalanceResponse> {
@@ -278,11 +285,28 @@ export class TurboAuthenticatedPaymentService
 
     const target = await this.getTargetWalletForFund();
 
-    const fundTx = await this.signer.sendFundTx({
+    // TODO: token based tx creation
+    const fundTx = await this.arweave.createTransaction({
       target,
-      tokenAmount: bigNTokenAmount,
-      feeMultiplier,
+      quantity: bigNTokenAmount.toString(),
     });
+
+    if (feeMultiplier !== 1) {
+      fundTx.reward = BigNumber(fundTx.reward)
+        .times(new BigNumber(feeMultiplier))
+        .toFixed(0, BigNumber.ROUND_UP);
+    }
+
+    const signedTx = await this.signer.signTx(fundTx);
+
+    // TODO: token based tx posting
+    const response = await this.arweave.transactions.post(fundTx);
+
+    if (response.status !== 200) {
+      throw new Error('Failed to post fund transaction');
+    }
+
+    this.logger.debug('Posted fund transaction...', { signedTx });
 
     // TODO: token based backoff
     // Let transaction settle some time
