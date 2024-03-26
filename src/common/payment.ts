@@ -228,10 +228,12 @@ export class TurboAuthenticatedPaymentService
     super({ url, retryConfig, logger, token });
     this.signer = signer;
 
+    const gatewayAsUrl = new URL(gatewayUrl);
+
     this.arweave = Arweave.init({
-      host: gatewayUrl,
-      port: 443,
-      protocol: 'https',
+      host: gatewayAsUrl.hostname,
+      port: gatewayAsUrl.port,
+      protocol: gatewayAsUrl.protocol.replace(':', ''),
     });
   }
 
@@ -276,6 +278,48 @@ export class TurboAuthenticatedPaymentService
     return addresses[this.token];
   }
 
+  // TODO: token based backoff
+  private async pollForTxBeingAvailableFromGateway(txId: string) {
+    const maxAttempts = 30;
+    const pollingIntervalMs = 1_000;
+    const initialBackoffMs = 5_000;
+
+    await new Promise((resolve) => setTimeout(resolve, initialBackoffMs));
+
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      const response = await this.arweave.api.post('/graphql', {
+        query: `
+          query {
+            transaction(id: "${txId}") {
+              recipient
+              owner {
+                address
+              }
+              quantity {
+                winston
+              }
+            }
+          }
+        `,
+      });
+
+      const transaction = response.data.data.transaction;
+
+      if (transaction) {
+        return;
+      }
+      attempts++;
+      this.logger.debug('Transaction not found after polling...', {
+        txId,
+        attempts,
+      });
+      await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
+    }
+
+    throw new Error('Transaction not found after polling');
+  }
+
   public async fund(
     tokenAmount: BigNumber.Value,
     feeMultiplier = 1,
@@ -289,6 +333,7 @@ export class TurboAuthenticatedPaymentService
     const fundTx = await this.arweave.createTransaction({
       target,
       quantity: bigNTokenAmount.toString(),
+      data: '',
     });
 
     if (feeMultiplier !== 1) {
@@ -300,24 +345,34 @@ export class TurboAuthenticatedPaymentService
     const signedTx = await this.signer.signTx(fundTx);
 
     // TODO: token based tx posting
-    const response = await this.arweave.transactions.post(fundTx);
+    const response = await this.arweave.transactions.post(signedTx);
 
     if (response.status !== 200) {
-      throw new Error('Failed to post fund transaction');
+      throw new Error(
+        'Failed to post fund transaction -- ' +
+          `Status ${response.status}, ${response.statusText}`,
+      );
     }
 
     this.logger.debug('Posted fund transaction...', { signedTx });
 
-    // TODO: token based backoff
-    // Let transaction settle some time
-    await new Promise((resolve) => {
-      setTimeout(resolve, 3_000);
-    });
+    const txId = signedTx.id;
 
-    return {
-      ...(await this.submitFundTransaction(fundTx.transaction.id)),
-      target: fundTx.transaction.target,
-      reward: fundTx.transaction.reward,
-    };
+    // Let transaction settle some time
+    await this.pollForTxBeingAvailableFromGateway(txId);
+
+    try {
+      return {
+        ...(await this.submitFundTransaction(signedTx.id)),
+        target: signedTx.target,
+        reward: signedTx.reward,
+      };
+    } catch (e) {
+      this.logger.error('Failed to submit fund transaction...', { e });
+
+      throw Error(
+        `Failed to submit fund transaction! Save this Transaction ID and try again with 'turbo.submitFundTransaction(id)': ${txId}`,
+      );
+    }
   }
 }

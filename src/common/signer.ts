@@ -62,6 +62,10 @@ export abstract class TurboDataItemAbstractSigner
       tx,
     });
 
+    const publicKey = toB64Url(this.signer.publicKey);
+
+    tx.setOwner(publicKey);
+
     const dataToSign = await tx.getSignatureData();
     const signatureBuffer = Buffer.from(await this.signer.sign(dataToSign));
     const id = sha256B64Url(signatureBuffer);
