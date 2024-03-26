@@ -10,9 +10,11 @@ services:
       DB_HOST: upload-service-pg
       DB_PORT: 5432
       DB_PASSWORD: postgres
-      PAYMENT_SERVICE_BASE_URL: http://payment-service:4000
+      PAYMENT_SERVICE_BASE_URL: payment-service:4000
+      PAYMENT_SERVICE_PROTOCOL: http
       MIGRATE_ON_STARTUP: true
       JWT_SECRET: test-secret-key
+      LOG_LEVEL: ${LOG_LEVEL:-none}
     volumes:
       - upload-service-data-items:/temp
     depends_on:
@@ -44,6 +46,7 @@ services:
       STRIPE_SECRET_KEY: secret-key
       STRIPE_WEBHOOK_SECRET: webhook-secret-key
       JWT_SECRET: test-secret-key
+      LOG_LEVEL: ${LOG_LEVEL:-none}
     depends_on:
       - payment-service-pg
 
@@ -65,8 +68,8 @@ services:
       dockerfile: Dockerfile.test
     environment:
       - NODE_ENV=test
-      - PAYMENT_SERVICE_BASE_URL=http://payment-service:4000
-      - UPLOAD_SERVICE_BASE_URL=http://upload-service:3000
+      - PAYMENT_SERVICE_URL=http://payment-service:4000
+      - UPLOAD_SERVICE_URL=http://upload-service:3000
     depends_on:
       - upload-service
       - payment-service
