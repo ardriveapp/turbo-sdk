@@ -241,7 +241,7 @@ export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
     signer?: TurboSigner;
-    gatewayUrl?: string;
+    tokenMap?: TokenMap;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {

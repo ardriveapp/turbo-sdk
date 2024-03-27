@@ -3,9 +3,11 @@ import Arweave from 'arweave/node/index.js';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
+import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
+import { ArweaveToken } from '../src/common/token.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -16,6 +18,11 @@ import { TurboFactory } from '../src/web/index.js';
 import { turboDevelopmentConfigurations } from './helpers.js';
 
 describe('Browser environment', () => {
+  afterEach(() => {
+    // Restore all stubs
+    restore();
+  });
+
   before(() => {
     (global as any).window = { document: {}, arweaveWallet: Arweave.init({}) };
   });
@@ -245,12 +252,27 @@ describe('Browser environment', () => {
     let jwk: JWKInterface;
     let address: string;
 
+    const arweave = Arweave.init({});
+    const arweaveToken = new ArweaveToken({
+      arweave,
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 0,
+        initialBackoffMs: 0,
+      },
+    });
+    const tokenMap = {
+      arweave: arweaveToken,
+    };
+
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
 
       turbo = TurboFactory.authenticated({
         privateKey: jwk,
         ...turboDevelopmentConfigurations,
+        // @ts-ignore
+        tokenMap,
       });
       address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
@@ -364,12 +386,30 @@ describe('Browser environment', () => {
         expect(winc).to.equal('7');
       });
 
-      it('should fail to post fund tx to arweave as wallet is underfunded', async () => {
+      it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
+        stub(arweaveToken, 'submitTx').resolves();
+        stub(arweave.transactions, 'getTransactionAnchor').resolves(
+          'stub anchor',
+        );
+        stub(arweave.transactions, 'getPrice').resolves('101 :)');
+
+        // simulate polling for transaction
+        stub(arweave.api, 'post')
+          .onFirstCall()
+          .resolves(undefined)
+          .onSecondCall()
+          .resolves(undefined)
+          .onThirdCall()
+          .resolves({ data: { data: { transaction: true } } } as any);
+
         const error = await turbo
-          .fundWithTokens({ tokenAmount: 100 })
+          .fundWithTokens({
+            tokenAmount: '100',
+            feeMultiplier: 1.5,
+          })
           .catch((error) => error);
         expect(error).to.be.instanceOf(Error);
-        expect(error.message).to.contain('Failed to post transaction');
+        expect(error.message).to.contain('Failed to submit fund transaction!');
       });
     });
   });

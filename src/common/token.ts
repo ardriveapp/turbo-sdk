@@ -20,6 +20,7 @@ import { BigNumber } from 'bignumber.js';
 
 import { BaseToken, TurboDataItemSigner, TurboLogger } from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
+import { TurboWinstonLogger } from './logger.js';
 
 type PollingOptions = {
   maxAttempts: number;
@@ -35,7 +36,7 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
 
   constructor({
     arweave,
-    logger,
+    logger = new TurboWinstonLogger(),
     mintU = true,
     pollingOptions = {
       maxAttempts: 30,
@@ -44,7 +45,7 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
     },
   }: {
     arweave: Arweave;
-    logger: TurboLogger;
+    logger?: TurboLogger;
     mintU?: boolean;
     pollingOptions?: PollingOptions;
   }) {
