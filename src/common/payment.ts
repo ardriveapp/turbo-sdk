@@ -290,7 +290,6 @@ export class TurboAuthenticatedPaymentService
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
     this.logger.debug('Funding account...');
     const tokenAmount = new BigNumber(tokenAmountV);
-
     const target = await this.getTargetWalletForFund();
 
     const fundTx = await this.tokenMap[this.token].createTx({
@@ -298,7 +297,6 @@ export class TurboAuthenticatedPaymentService
       tokenAmount,
       feeMultiplier,
     });
-
     const signedTx = await this.tokenMap[this.token].signTx({
       tx: fundTx,
       signer: this.signer,
@@ -307,11 +305,10 @@ export class TurboAuthenticatedPaymentService
     await this.tokenMap[this.token].submitTx({ tx: signedTx });
 
     const txId = signedTx.id;
-
-    // Let transaction settle some time
-    await this.tokenMap[this.token].pollForTxBeingAvailable({ txId });
-
     try {
+      // Let transaction settle some time
+      await this.tokenMap[this.token].pollForTxBeingAvailable({ txId });
+
       return {
         ...(await this.submitFundTransaction({ txId })),
         target: signedTx.target,
