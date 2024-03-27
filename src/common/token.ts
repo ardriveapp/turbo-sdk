@@ -21,23 +21,37 @@ import { BigNumber } from 'bignumber.js';
 import { BaseToken, TurboDataItemSigner, TurboLogger } from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
 
+type PollingOptions = {
+  maxAttempts: number;
+  pollingIntervalMs: number;
+  initialBackoffMs: number;
+};
+
 export class ArweaveToken implements BaseToken<Transaction.default> {
   protected logger: TurboLogger;
   protected arweave: Arweave;
   protected mintU: boolean;
+  protected pollingOptions: PollingOptions;
 
   constructor({
     arweave,
     logger,
     mintU = true,
+    pollingOptions = {
+      maxAttempts: 30,
+      pollingIntervalMs: 1_000,
+      initialBackoffMs: 5_000,
+    },
   }: {
     arweave: Arweave;
     logger: TurboLogger;
     mintU?: boolean;
+    pollingOptions?: PollingOptions;
   }) {
     this.arweave = arweave;
     this.logger = logger;
     this.mintU = mintU;
+    this.pollingOptions = pollingOptions;
   }
 
   public async createTx({
@@ -100,16 +114,16 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
   }: {
     txId: string;
   }): Promise<void> {
-    const maxAttempts = 30;
-    const pollingIntervalMs = 1_000;
-    const initialBackoffMs = 5_000;
+    const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
+      this.pollingOptions;
 
     await new Promise((resolve) => setTimeout(resolve, initialBackoffMs));
 
     let attempts = 0;
     while (attempts < maxAttempts) {
-      const response = await this.arweave.api.post('/graphql', {
-        query: `
+      const response = await this.arweave.api
+        .post('/graphql', {
+          query: `
           query {
             transaction(id: "${txId}") {
               recipient
@@ -122,9 +136,14 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
             }
           }
         `,
-      });
+        })
+        .catch((err) => {
+          // Continue retries when request errors
+          this.logger.error('Failed to poll for transaction...', { err });
+          return undefined;
+        });
 
-      const transaction = response.data.data.transaction;
+      const transaction = response?.data?.data?.transaction;
 
       if (transaction) {
         return;
@@ -137,7 +156,9 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
       await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
     }
 
-    throw new Error('Transaction not found after polling');
+    throw new Error(
+      'Transaction not found after polling, transaction id: ' + txId,
+    );
   }
 
   public async submitTx({ tx }: { tx: Transaction.default }): Promise<void> {
