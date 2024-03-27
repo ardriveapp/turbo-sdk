@@ -45,8 +45,12 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-export const tokenTypes = ['arweave', 'solana', 'ethereum'] as const;
+export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
 export type TokenType = (typeof tokenTypes)[number];
+
+export type TokenMap = {
+  [key in TokenType]: BaseToken;
+};
 
 export type Adjustment = {
   name: string;
@@ -211,7 +215,7 @@ export type TurboUnauthenticatedPaymentServiceConfiguration =
 export type TurboAuthenticatedPaymentServiceConfiguration =
   TurboUnauthenticatedPaymentServiceConfiguration &
     TurboAuthConfiguration & {
-      gatewayUrl?: string;
+      tokenMap?: TokenMap;
     };
 
 export type TurboUnauthenticatedConfiguration = {
@@ -325,7 +329,8 @@ export interface TurboDataItemSigner {
     dataItemOpts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
-  signTx<T extends ArweaveTx>(tx: T): Promise<T>;
+  signTx(dataToSign: Uint8Array): Promise<Uint8Array>;
+  getPublicKey(): Promise<Buffer>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -344,17 +349,22 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse>;
-  submitFundTransaction(
-    transactionId: string,
-  ): Promise<Omit<TurboCryptoFundResponse, 'target' | 'reward'>>;
+  submitFundTransaction(p: {
+    txId: string;
+  }): Promise<TurboSubmitFundTxResponse>;
 }
+
+export type TurboFundWithTokensParams = {
+  /** Amount of token in the smallest unit value. e.g value in Winston for "arweave" token */
+  tokenAmount: BigNumber.Value;
+  feeMultiplier?: number | undefined;
+};
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: () => Promise<TurboBalanceResponse>;
-  fund(
-    tokenAmount: BigNumber.Value,
-    feeMultiplier?: number,
+  fundWithTokens(
+    p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
 }
 
@@ -380,3 +390,18 @@ export interface TurboUnauthenticatedClientInterface
 export interface TurboAuthenticatedClientInterface
   extends TurboAuthenticatedPaymentServiceInterface,
     TurboAuthenticatedUploadServiceInterface {}
+
+export type TokenCreateTxParams = {
+  target: string;
+  tokenAmount: BigNumber;
+  feeMultiplier: number;
+};
+
+export type BaseTx = { id: string; target: string; reward: string };
+
+export interface BaseToken<T extends BaseTx = BaseTx> {
+  createTx: (p: TokenCreateTxParams) => Promise<T>;
+  signTx: (p: { tx: T; signer: TurboDataItemSigner }) => Promise<T>;
+  submitTx: (p: { tx: T }) => Promise<void>;
+  pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
+}

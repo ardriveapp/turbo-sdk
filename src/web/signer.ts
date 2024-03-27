@@ -18,20 +18,14 @@ import { ArconnectSigner, createData } from 'arbundles';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
-  ArweaveTx,
   StreamSizeFactory,
   TurboDataItemSignerParams,
-  TurboLogger,
   TurboSignedRequestHeaders,
-  TurboSigner,
   WebTurboFileFactory,
 } from '../types.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
-  protected signer: TurboSigner;
-  protected logger: TurboLogger;
-
   constructor(p: TurboDataItemSignerParams) {
     super(p);
   }
@@ -44,6 +38,11 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     ) {
       await this.signer.setPublicKey();
     }
+  }
+
+  public async getPublicKey(): Promise<Buffer> {
+    await this.setPublicKey();
+    return super.getPublicKey();
   }
 
   public async signDataItem({
@@ -79,8 +78,8 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     return super.generateSignedRequestHeaders();
   }
 
-  public async signTx<T extends ArweaveTx>(tx: T): Promise<T> {
+  public async signTx(dataToSign: Uint8Array): Promise<Uint8Array> {
     await this.setPublicKey();
-    return super.signTx(tx);
+    return super.signTx(dataToSign);
   }
 }

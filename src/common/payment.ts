@@ -19,6 +19,8 @@ import { BigNumber } from 'bignumber.js';
 
 import {
   Currency,
+  TokenMap,
+  TokenType,
   TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
@@ -30,12 +32,14 @@ import {
   TurboCurrenciesResponse,
   TurboDataItemSigner,
   TurboFiatToArResponse,
+  TurboFundWithTokensParams,
   TurboInfoResponse,
   TurboLogger,
   TurboPostBalanceResponse,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedRequestHeaders,
+  TurboSubmitFundTxResponse,
   TurboUnauthenticatedPaymentServiceConfiguration,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboWincForFiatParams,
@@ -43,6 +47,7 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+import { ArweaveToken } from './token.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
@@ -52,7 +57,7 @@ export class TurboUnauthenticatedPaymentService
 {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
-  protected readonly token: string;
+  protected readonly token: TokenType;
 
   constructor({
     url = defaultPaymentServiceURL,
@@ -166,82 +171,76 @@ export class TurboUnauthenticatedPaymentService
     return this.getCheckout(params);
   }
 
-  public async submitFundTransaction(
-    tx_id: string,
-  ): Promise<Omit<TurboCryptoFundResponse, 'target' | 'reward'>> {
+  public async submitFundTransaction({
+    txId,
+  }: {
+    txId: string;
+  }): Promise<TurboSubmitFundTxResponse> {
     const response = await this.httpService.post<TurboPostBalanceResponse>({
       endpoint: `/account/balance/${this.token}`,
-      data: Buffer.from(JSON.stringify({ tx_id })),
+      data: Buffer.from(JSON.stringify({ tx_id: txId })),
     });
 
-    let transactionData;
-    switch (true) {
-      case 'creditedTransaction' in response:
-        transactionData = {
-          id: response.creditedTransaction.transactionId,
-          quantity: response.creditedTransaction.transactionQuantity,
-          owner: response.creditedTransaction.destinationAddress,
-          winc: response.creditedTransaction.winstonCreditAmount,
-          token: response.creditedTransaction.tokenType,
-          status: 'confirmed',
-          block: response.creditedTransaction.blockHeight,
-        };
-        break;
-      case 'pendingTransaction' in response:
-        transactionData = {
-          id: response.pendingTransaction.transactionId,
-          quantity: response.pendingTransaction.transactionQuantity,
-          owner: response.pendingTransaction.destinationAddress,
-          winc: response.pendingTransaction.winstonCreditAmount,
-          token: response.pendingTransaction.tokenType,
-          status: 'pending',
-        };
-        break;
-      case 'failedTransaction' in response:
-        transactionData = {
-          id: response.failedTransaction.transactionId,
-          quantity: response.failedTransaction.transactionQuantity,
-          owner: response.failedTransaction.destinationAddress,
-          winc: response.failedTransaction.winstonCreditAmount,
-          token: response.failedTransaction.tokenType,
-          status: 'failed',
-        };
-        break;
-      default:
-        throw new Error('Unknown response from payment service: ' + response);
+    if ('creditedTransaction' in response) {
+      return {
+        id: response.creditedTransaction.transactionId,
+        quantity: response.creditedTransaction.transactionQuantity,
+        owner: response.creditedTransaction.destinationAddress,
+        winc: response.creditedTransaction.winstonCreditAmount,
+        token: response.creditedTransaction.tokenType,
+        status: 'confirmed',
+        block: response.creditedTransaction.blockHeight,
+      };
+    } else if ('pendingTransaction' in response) {
+      return {
+        id: response.pendingTransaction.transactionId,
+        quantity: response.pendingTransaction.transactionQuantity,
+        owner: response.pendingTransaction.destinationAddress,
+        winc: response.pendingTransaction.winstonCreditAmount,
+        token: response.pendingTransaction.tokenType,
+        status: 'pending',
+      };
+    } else if ('failedTransaction' in response) {
+      return {
+        id: response.failedTransaction.transactionId,
+        quantity: response.failedTransaction.transactionQuantity,
+        owner: response.failedTransaction.destinationAddress,
+        winc: response.failedTransaction.winstonCreditAmount,
+        token: response.failedTransaction.tokenType,
+        status: 'failed',
+      };
     }
-
-    return transactionData;
+    throw new Error('Unknown response from payment service: ' + response);
   }
 }
-
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
 export class TurboAuthenticatedPaymentService
   extends TurboUnauthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
   protected readonly signer: TurboDataItemSigner;
-
-  protected readonly arweave: Arweave;
+  protected readonly tokenMap: TokenMap;
 
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-    logger,
-    token,
-    gatewayUrl = 'https://arweave.net',
+    logger = new TurboWinstonLogger(),
+    token = 'arweave',
+    tokenMap = {
+      arweave: new ArweaveToken({
+        arweave: Arweave.init({
+          host: 'arweave.net',
+          port: 443,
+          protocol: 'https',
+        }),
+        logger,
+      }),
+    },
   }: TurboAuthenticatedPaymentServiceConfiguration) {
     super({ url, retryConfig, logger, token });
     this.signer = signer;
-
-    const gatewayAsUrl = new URL(gatewayUrl);
-
-    this.arweave = Arweave.init({
-      host: gatewayAsUrl.hostname,
-      port: gatewayAsUrl.port,
-      protocol: gatewayAsUrl.protocol.replace(':', ''),
-    });
+    this.tokenMap = tokenMap;
   }
 
   public async getBalance(): Promise<TurboBalanceResponse> {
@@ -285,92 +284,36 @@ export class TurboAuthenticatedPaymentService
     return addresses[this.token];
   }
 
-  // TODO: token based backoff
-  private async pollForTxBeingAvailableFromGateway(txId: string) {
-    const maxAttempts = 30;
-    const pollingIntervalMs = 1_000;
-    const initialBackoffMs = 5_000;
-
-    await new Promise((resolve) => setTimeout(resolve, initialBackoffMs));
-
-    let attempts = 0;
-    while (attempts < maxAttempts) {
-      const response = await this.arweave.api.post('/graphql', {
-        query: `
-          query {
-            transaction(id: "${txId}") {
-              recipient
-              owner {
-                address
-              }
-              quantity {
-                winston
-              }
-            }
-          }
-        `,
-      });
-
-      const transaction = response.data.data.transaction;
-
-      if (transaction) {
-        return;
-      }
-      attempts++;
-      this.logger.debug('Transaction not found after polling...', {
-        txId,
-        attempts,
-      });
-      await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
-    }
-
-    throw new Error('Transaction not found after polling');
-  }
-
-  public async fund(
-    tokenAmount: BigNumber.Value,
+  public async fundWithTokens({
     feeMultiplier = 1,
-  ): Promise<TurboCryptoFundResponse> {
+    tokenAmount: tokenAmountV,
+  }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
     this.logger.debug('Funding account...');
-    const bigNTokenAmount = new BigNumber(tokenAmount);
+    const tokenAmount = new BigNumber(tokenAmountV);
 
     const target = await this.getTargetWalletForFund();
 
-    // TODO: token based tx creation
-    const fundTx = await this.arweave.createTransaction({
+    const fundTx = await this.tokenMap[this.token].createTx({
       target,
-      quantity: bigNTokenAmount.toString(),
-      data: '',
+      tokenAmount,
+      feeMultiplier,
     });
 
-    if (feeMultiplier !== 1) {
-      fundTx.reward = BigNumber(fundTx.reward)
-        .times(new BigNumber(feeMultiplier))
-        .toFixed(0, BigNumber.ROUND_UP);
-    }
+    const signedTx = await this.tokenMap[this.token].signTx({
+      tx: fundTx,
+      signer: this.signer,
+    });
 
-    const signedTx = await this.signer.signTx(fundTx);
-
-    // TODO: token based tx posting
-    const response = await this.arweave.transactions.post(signedTx);
-
-    if (response.status !== 200) {
-      throw new Error(
-        'Failed to post fund transaction -- ' +
-          `Status ${response.status}, ${response.statusText}`,
-      );
-    }
-
-    this.logger.debug('Posted fund transaction...', { signedTx });
+    await this.tokenMap[this.token].submitTx({ tx: signedTx });
 
     const txId = signedTx.id;
 
     // Let transaction settle some time
-    await this.pollForTxBeingAvailableFromGateway(txId);
+    await this.tokenMap[this.token].pollForTxBeingAvailable({ txId });
 
     try {
       return {
-        ...(await this.submitFundTransaction(signedTx.id)),
+        ...(await this.submitFundTransaction({ txId })),
         target: signedTx.target,
         reward: signedTx.reward,
       };

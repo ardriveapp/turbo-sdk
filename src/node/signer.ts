@@ -22,15 +22,10 @@ import {
   DataItemOptions,
   StreamSizeFactory,
   TurboDataItemSignerParams,
-  TurboLogger,
-  TurboSigner,
 } from '../types.js';
 import { fromB64Url } from '../utils/base64.js';
 
 export class TurboNodeArweaveSigner extends TurboDataItemAbstractSigner {
-  protected signer: TurboSigner;
-  protected logger: TurboLogger;
-
   constructor(p: TurboDataItemSignerParams) {
     super(p);
   }

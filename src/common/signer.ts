@@ -17,7 +17,6 @@
 import { randomBytes } from 'crypto';
 
 import {
-  ArweaveTx,
   FileStreamFactory,
   TurboDataItemSigner,
   TurboDataItemSignerParams,
@@ -26,7 +25,7 @@ import {
   TurboSignedDataItemFactory,
   TurboSigner,
 } from '../types.js';
-import { sha256B64Url, toB64Url } from '../utils/base64.js';
+import { toB64Url } from '../utils/base64.js';
 
 export abstract class TurboDataItemAbstractSigner
   implements TurboDataItemSigner
@@ -57,25 +56,11 @@ export abstract class TurboDataItemAbstractSigner
     };
   }
 
-  public async signTx<T extends ArweaveTx>(tx: T): Promise<T> {
-    this.logger.debug('Signing  transaction...', {
-      tx,
-    });
+  public async getPublicKey(): Promise<Buffer> {
+    return this.signer.publicKey;
+  }
 
-    const publicKey = toB64Url(this.signer.publicKey);
-
-    tx.setOwner(publicKey);
-
-    const dataToSign = await tx.getSignatureData();
-    const signatureBuffer = Buffer.from(await this.signer.sign(dataToSign));
-    const id = sha256B64Url(signatureBuffer);
-
-    tx.setSignature({
-      id: id,
-      owner: toB64Url(this.signer.publicKey),
-      signature: toB64Url(signatureBuffer),
-    });
-
-    return tx;
+  public async signTx(dataToSign: Uint8Array): Promise<Uint8Array> {
+    return this.signer.sign(dataToSign);
   }
 }

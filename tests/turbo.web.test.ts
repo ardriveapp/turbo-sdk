@@ -221,9 +221,9 @@ describe('Browser environment', () => {
         const existingPaymentTxIdToDev = // cspell:disable
           'e5kVDnbpyjUFY0SciSvZ1dDqKOWIwnfGvlr4yz-uSSY';
 
-        const { id, winc, owner, token } = await turbo.submitFundTransaction(
-          existingPaymentTxIdToDev,
-        );
+        const { id, winc, owner, token } = await turbo.submitFundTransaction({
+          txId: existingPaymentTxIdToDev,
+        });
         expect(id).to.equal(existingPaymentTxIdToDev);
         expect(owner).to.equal('jaxl_dxqJ00gEgQazGASFXVRvO4h-Q0_vnaLtuOUoWU'); // cspell:enable
         expect(winc).to.equal('7');
@@ -233,7 +233,7 @@ describe('Browser environment', () => {
       it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
         const nonExistentPaymentTxId = 'non-existent-payment-tx-id';
         const error = await turbo
-          .submitFundTransaction(nonExistentPaymentTxId)
+          .submitFundTransaction({ txId: nonExistentPaymentTxId })
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Failed request: 404: Not Found');
@@ -360,14 +360,16 @@ describe('Browser environment', () => {
       // TODO: run arlocal in CI instead of using payment dev / arweave.net
       // before(async() => await arweave.api.post('fund' ... ))
       it.skip('should succeed', async () => {
-        const { winc } = await turbo.fund(10);
+        const { winc } = await turbo.fundWithTokens({ tokenAmount: 10 });
         expect(winc).to.equal('7');
       });
 
       it('should fail to post fund tx to arweave as wallet is underfunded', async () => {
-        const error = await turbo.fund(100).catch((error) => error);
+        const error = await turbo
+          .fundWithTokens({ tokenAmount: 100 })
+          .catch((error) => error);
         expect(error).to.be.instanceOf(Error);
-        expect(error.message).to.contain('Failed to post fund transaction');
+        expect(error.message).to.contain('Failed to post transaction');
       });
     });
   });
