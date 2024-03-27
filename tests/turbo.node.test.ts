@@ -487,7 +487,7 @@ describe('Node environment', () => {
       // TODO: run arlocal in CI instead of using payment dev / arweave.net
       // before(async() => await arweave.api.post('fund' ... ))
       it.skip('should succeed', async () => {
-        const { winc } = await turbo.fundWithTokens({ tokenAmount: 10 });
+        const { winc } = await turbo.topUpWithTokens({ tokenAmount: 10 });
         expect(winc).to.equal('7');
       });
 
@@ -508,7 +508,7 @@ describe('Node environment', () => {
           .resolves({ data: { data: { transaction: true } } } as any);
 
         const error = await turbo
-          .fundWithTokens({
+          .topUpWithTokens({
             tokenAmount: '100',
             feeMultiplier: 1.5,
           })

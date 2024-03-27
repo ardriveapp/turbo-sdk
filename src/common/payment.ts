@@ -284,7 +284,7 @@ export class TurboAuthenticatedPaymentService
     return addresses[this.token];
   }
 
-  public async fundWithTokens({
+  public async topUpWithTokens({
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {

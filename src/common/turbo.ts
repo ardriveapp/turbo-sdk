@@ -225,9 +225,9 @@ export class TurboAuthenticatedClient
    * Submits fund transaction to the token's blockchain then sends
    * the transaction ID to the Turbo Payment Service for processing.
    */
-  fundWithTokens(
+  topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse> {
-    return this.paymentService.fundWithTokens(p);
+    return this.paymentService.topUpWithTokens(p);
   }
 }

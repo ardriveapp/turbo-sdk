@@ -364,7 +364,7 @@ export type TurboFundWithTokensParams = {
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: () => Promise<TurboBalanceResponse>;
-  fundWithTokens(
+  topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
 }
