@@ -396,7 +396,7 @@ describe('Browser environment', () => {
         // simulate polling for transaction
         stub(arweave.api, 'post')
           .onFirstCall()
-          .resolves(undefined)
+          .throws()
           .onSecondCall()
           .resolves(undefined)
           .onThirdCall()
