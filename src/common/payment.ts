@@ -174,37 +174,44 @@ export class TurboUnauthenticatedPaymentService
       data: Buffer.from(JSON.stringify({ tx_id })),
     });
 
-    if ('creditedTransaction' in response) {
-      return {
-        id: response.creditedTransaction.transactionId,
-        quantity: response.creditedTransaction.transactionQuantity,
-        owner: response.creditedTransaction.destinationAddress,
-        winc: response.creditedTransaction.winstonCreditAmount,
-        token: response.creditedTransaction.tokenType,
-        status: 'confirmed',
-        block: response.creditedTransaction.blockHeight,
-      };
-    } else if ('pendingTransaction' in response) {
-      return {
-        id: response.pendingTransaction.transactionId,
-        quantity: response.pendingTransaction.transactionQuantity,
-        owner: response.pendingTransaction.destinationAddress,
-        winc: response.pendingTransaction.winstonCreditAmount,
-        token: response.pendingTransaction.tokenType,
-        status: 'pending',
-      };
-    } else if ('failedTransaction' in response) {
-      return {
-        id: response.failedTransaction.transactionId,
-        quantity: response.failedTransaction.transactionQuantity,
-        owner: response.failedTransaction.destinationAddress,
-        winc: response.failedTransaction.winstonCreditAmount,
-        token: response.failedTransaction.tokenType,
-        status: 'failed',
-      };
+    let transactionData;
+    switch (true) {
+      case 'creditedTransaction' in response:
+        transactionData = {
+          id: response.creditedTransaction.transactionId,
+          quantity: response.creditedTransaction.transactionQuantity,
+          owner: response.creditedTransaction.destinationAddress,
+          winc: response.creditedTransaction.winstonCreditAmount,
+          token: response.creditedTransaction.tokenType,
+          status: 'confirmed',
+          block: response.creditedTransaction.blockHeight,
+        };
+        break;
+      case 'pendingTransaction' in response:
+        transactionData = {
+          id: response.pendingTransaction.transactionId,
+          quantity: response.pendingTransaction.transactionQuantity,
+          owner: response.pendingTransaction.destinationAddress,
+          winc: response.pendingTransaction.winstonCreditAmount,
+          token: response.pendingTransaction.tokenType,
+          status: 'pending',
+        };
+        break;
+      case 'failedTransaction' in response:
+        transactionData = {
+          id: response.failedTransaction.transactionId,
+          quantity: response.failedTransaction.transactionQuantity,
+          owner: response.failedTransaction.destinationAddress,
+          winc: response.failedTransaction.winstonCreditAmount,
+          token: response.failedTransaction.tokenType,
+          status: 'failed',
+        };
+        break;
+      default:
+        throw new Error('Unknown response from payment service: ' + response);
     }
 
-    throw new Error('Unknown response from payment service: ' + response);
+    return transactionData;
   }
 }
 
