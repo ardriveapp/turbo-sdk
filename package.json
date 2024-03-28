@@ -60,7 +60,7 @@
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
     "test:docker": "docker compose up --exit-code-from test-runner --build",
     "prepare": "husky install",
-    "examples": "yarn example:mjs & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
+    "examples": "yarn example:esm & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
     "example:esm": "cd examples/esm && yarn && node index.mjs",
     "example:cjs": "cd examples/cjs && yarn && node index.cjs",
     "example:web": "http-server --port 8080 --host -o examples/web",

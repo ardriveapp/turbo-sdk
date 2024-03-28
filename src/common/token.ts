@@ -39,9 +39,9 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
     logger = new TurboWinstonLogger(),
     mintU = true,
     pollingOptions = {
-      maxAttempts: 30,
-      pollingIntervalMs: 1_000,
-      initialBackoffMs: 5_000,
+      maxAttempts: 10,
+      pollingIntervalMs: 3_000,
+      initialBackoffMs: 7_000,
     },
   }: {
     arweave: Arweave;

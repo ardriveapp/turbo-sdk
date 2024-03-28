@@ -315,7 +315,7 @@ export class TurboAuthenticatedPaymentService
         reward: signedTx.reward,
       };
     } catch (e) {
-      this.logger.error('Failed to submit fund transaction...', { e });
+      this.logger.error('Failed to submit fund transaction...', e);
 
       throw Error(
         `Failed to submit fund transaction! Save this Transaction ID and try again with 'turbo.submitFundTransaction(id)': ${txId}`,

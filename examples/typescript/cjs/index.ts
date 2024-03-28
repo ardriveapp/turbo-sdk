@@ -47,4 +47,13 @@ import path from 'path';
     signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   });
   console.log(JSON.stringify(uploadResult, null, 2));
+
+  /**
+   * Tops up a wallet with Credits using tokens.
+   * Default token is AR, using Winston as the unit.
+   */
+  const topUpResult = await turboAuthClient.topUpWithTokens({
+    tokenAmount: 1, /// 0.000_000_000_000_001 AR
+  });
+  console.log(JSON.stringify(topUpResult, null, 2));
 })();
