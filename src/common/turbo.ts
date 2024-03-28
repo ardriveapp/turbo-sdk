@@ -25,12 +25,15 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboFiatToArResponse,
   TurboFileFactory,
+  TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedDataItemFactory,
+  TurboSubmitFundTxResponse,
   TurboUnauthenticatedClientConfiguration,
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
@@ -167,6 +170,15 @@ export class TurboUnauthenticatedClient
   ): Promise<TurboCheckoutSessionResponse> {
     return this.paymentService.createCheckoutSession(params);
   }
+
+  /**
+   * Submits a transaction ID to the Turbo Payment Service for processing.
+   */
+  submitFundTransaction(p: {
+    txId: string;
+  }): Promise<TurboSubmitFundTxResponse> {
+    return this.paymentService.submitFundTransaction(p);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -207,5 +219,15 @@ export class TurboAuthenticatedClient
       signal,
       dataItemOpts,
     });
+  }
+
+  /**
+   * Submits fund transaction to the token's blockchain then sends
+   * the transaction ID to the Turbo Payment Service for processing.
+   */
+  topUpWithTokens(
+    p: TurboFundWithTokensParams,
+  ): Promise<TurboCryptoFundResponse> {
+    return this.paymentService.topUpWithTokens(p);
   }
 }

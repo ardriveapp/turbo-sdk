@@ -3,10 +3,13 @@ import Arweave from 'arweave';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import fs from 'fs';
+import { describe } from 'mocha';
 import { Readable } from 'node:stream';
+import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
+import { ArweaveToken } from '../src/common/token.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -20,6 +23,11 @@ import {
 } from './helpers.js';
 
 describe('Node environment', () => {
+  afterEach(() => {
+    // Restore all stubs
+    restore();
+  });
+
   describe('TurboFactory', () => {
     it('should return a TurboUnauthenticatedClient when running in Node environment and not provided a privateKey', () => {
       const turbo = TurboFactory.unauthenticated(
@@ -227,6 +235,30 @@ describe('Node environment', () => {
         expect(winc).to.be.a('string');
       });
     });
+
+    describe('submitFundTransaction()', () => {
+      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing', async () => {
+        const existingPaymentTxIdToDev = // cspell:disable
+          'e5kVDnbpyjUFY0SciSvZ1dDqKOWIwnfGvlr4yz-uSSY';
+
+        const { id, winc, owner, token } = await turbo.submitFundTransaction({
+          txId: existingPaymentTxIdToDev,
+        });
+        expect(id).to.equal(existingPaymentTxIdToDev);
+        expect(owner).to.equal('jaxl_dxqJ00gEgQazGASFXVRvO4h-Q0_vnaLtuOUoWU'); // cspell:enable
+        expect(winc).to.equal('7');
+        expect(token).to.equal('arweave');
+      });
+
+      it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
+        const nonExistentPaymentTxId = 'non-existent-payment-tx-id';
+        const error = await turbo
+          .submitFundTransaction({ txId: nonExistentPaymentTxId })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Failed request: 404: Not Found');
+      });
+    });
   });
 
   describe('TurboAuthenticatedNodeClient', () => {
@@ -234,11 +266,26 @@ describe('Node environment', () => {
     let turbo: TurboAuthenticatedClient;
     let address: string;
 
+    const arweave = Arweave.init({});
+    const arweaveToken = new ArweaveToken({
+      arweave,
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 0,
+        initialBackoffMs: 0,
+      },
+    });
+    const tokenMap = {
+      arweave: arweaveToken,
+    };
+
     before(async () => {
       jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
         privateKey: jwk,
         ...turboDevelopmentConfigurations,
+        // @ts-ignore
+        tokenMap,
       });
       address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
@@ -430,6 +477,44 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.equal('Failed request: 400: Bad Request');
+      });
+    });
+
+    describe('fund()', function () {
+      this.timeout(30_000); // Can take awhile for payment to retrieve transaction
+
+      // Skipped this test in CI because the provided fresh wallet is underfunded on arweave
+      // TODO: run arlocal in CI instead of using payment dev / arweave.net
+      // before(async() => await arweave.api.post('fund' ... ))
+      it.skip('should succeed', async () => {
+        const { winc } = await turbo.topUpWithTokens({ tokenAmount: 10 });
+        expect(winc).to.equal('7');
+      });
+
+      it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
+        stub(arweave.transactions, 'getTransactionAnchor').resolves(
+          'stub anchor',
+        );
+        stub(arweave.transactions, 'getPrice').resolves('101');
+        stub(arweaveToken, 'submitTx').resolves();
+
+        // simulate polling for transaction
+        stub(arweave.api, 'post')
+          .onFirstCall()
+          .throws()
+          .onSecondCall()
+          .resolves(undefined)
+          .onThirdCall()
+          .resolves({ data: { data: { transaction: true } } } as any);
+
+        const error = await turbo
+          .topUpWithTokens({
+            tokenAmount: '100',
+            feeMultiplier: 1.5,
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(Error);
+        expect(error.message).to.contain('Failed to submit fund transaction!');
       });
     });
   });

@@ -31,6 +31,7 @@ export class TurboFactory extends TurboBaseFactory {
     signer: providedSigner,
     paymentServiceConfig = {},
     uploadServiceConfig = {},
+    tokenMap,
   }: TurboAuthenticatedConfiguration) {
     let signer: TurboSigner;
 
@@ -50,6 +51,7 @@ export class TurboFactory extends TurboBaseFactory {
       ...paymentServiceConfig,
       signer: turboSigner,
       logger: this.logger,
+      tokenMap,
     });
     const uploadService = new TurboAuthenticatedUploadService({
       ...uploadServiceConfig,

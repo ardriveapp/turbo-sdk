@@ -258,6 +258,15 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   }
   ```
 
+- `submitFundTransaction({ txId })` - Submits a fund transaction to the Turbo Payment Service for processing. The `txId` is the transaction ID of the transaction to be submitted.
+
+  ```typescript
+  const turbo = TurboFactory.unauthenticated(); // defaults to arweave token type
+  const { status, id, ...fundResult } = await turbo.submitFundTransaction({
+    txId: 'my-valid-arweave-fund-transaction-id',
+  });
+  ```
+
 ### TurboAuthenticatedClient
 
 - `getBalance()` - Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
@@ -321,6 +330,19 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
       ],
       // no timeout or AbortSignal provided
     },
+  });
+  ```
+
+  - `topUpWithTokens({ tokenAmount, feeMultiplier })` - Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for processing.
+    - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
+    - The `feeMultiplier` is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain.
+
+  ```typescript
+  const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
+
+  const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+    tokenAmount: 1000,
+    feeMultiplier: 1.25,
   });
   ```
 
