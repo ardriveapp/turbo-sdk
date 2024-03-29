@@ -385,6 +385,7 @@ describe('Browser environment', () => {
       // Skipped this test in CI because the provided fresh wallet is underfunded on arweave
       // TODO: run arlocal in CI instead of using payment dev / arweave.net
       // before(async() => await arweave.api.post('fund' ... ))
+      it.skip('should succeed', async () => {
         const { winc } = await turbo.topUpWithTokens({
           tokenAmount: WinstonToTokenAmount(10),
         });
