@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import Arweave from 'arweave';
 import { BigNumber } from 'bignumber.js';
 
 import {
@@ -229,11 +228,6 @@ export class TurboAuthenticatedPaymentService
     token = 'arweave',
     tokenMap = {
       arweave: new ArweaveToken({
-        arweave: Arweave.init({
-          host: 'arweave.net',
-          port: 443,
-          protocol: 'https',
-        }),
         logger,
       }),
     },

@@ -35,7 +35,11 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
   protected pollingOptions: PollingOptions;
 
   constructor({
-    arweave,
+    arweave = Arweave.init({
+      host: 'arweave.net',
+      port: 443,
+      protocol: 'https',
+    }),
     logger = new TurboWinstonLogger(),
     mintU = true,
     pollingOptions = {
@@ -44,7 +48,7 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
       initialBackoffMs: 7_000,
     },
   }: {
-    arweave: Arweave;
+    arweave?: Arweave;
     logger?: TurboLogger;
     mintU?: boolean;
     pollingOptions?: PollingOptions;
