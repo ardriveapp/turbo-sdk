@@ -281,7 +281,11 @@ export class TurboAuthenticatedPaymentService
       endpoint: '/info',
     });
 
-    return addresses[this.token];
+    const walletAddress = addresses[this.token];
+    if (!walletAddress) {
+      throw new Error(`No wallet address found for token type: ${this.token}`);
+    }
+    return walletAddress;
   }
 
   public async topUpWithTokens({
