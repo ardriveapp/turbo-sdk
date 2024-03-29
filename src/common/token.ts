@@ -182,3 +182,7 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
     this.logger.debug('Posted transaction...', { tx });
   }
 }
+
+export const WinstonToTokenAmount = (winston: BigNumber.Value) => winston;
+export const ARToTokenAmount = (ar: BigNumber.Value) =>
+  new BigNumber(ar).times(1e12).valueOf();

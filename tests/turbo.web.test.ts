@@ -7,7 +7,11 @@ import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
 import { JWKInterface } from '../src/common/jwk.js';
-import { ArweaveToken } from '../src/common/token.js';
+import {
+  ARToTokenAmount,
+  ArweaveToken,
+  WinstonToTokenAmount,
+} from '../src/common/token.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -381,8 +385,9 @@ describe('Browser environment', () => {
       // Skipped this test in CI because the provided fresh wallet is underfunded on arweave
       // TODO: run arlocal in CI instead of using payment dev / arweave.net
       // before(async() => await arweave.api.post('fund' ... ))
-      it.skip('should succeed', async () => {
-        const { winc } = await turbo.topUpWithTokens({ tokenAmount: 10 });
+        const { winc } = await turbo.topUpWithTokens({
+          tokenAmount: WinstonToTokenAmount(10),
+        });
         expect(winc).to.equal('7');
       });
 
@@ -404,7 +409,7 @@ describe('Browser environment', () => {
 
         const error = await turbo
           .topUpWithTokens({
-            tokenAmount: '100',
+            tokenAmount: ARToTokenAmount(0.000_000_100_000),
             feeMultiplier: 1.5,
           })
           .catch((error) => error);

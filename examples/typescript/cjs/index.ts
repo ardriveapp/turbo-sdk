@@ -1,6 +1,7 @@
 import {
   TurboFactory,
   USD,
+  WinstonToTokenAmount,
   developmentTurboConfiguration,
 } from '@ardrive/turbo-sdk';
 import Arweave from 'arweave';
@@ -52,10 +53,8 @@ import path from 'path';
    * Tops up a wallet with Credits using tokens.
    * Default token is AR, using Winston as the unit.
    */
-  const topUpResult = await turboAuthClient
-    .topUpWithTokens({
-      tokenAmount: 1, /// 0.000_000_000_000_001 AR
-    })
-    .catch((err) => err); // Will throw an error with a wallet that has no tokens;
+  const topUpResult = await turboAuthClient.topUpWithTokens({
+    tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
+  });
   console.log(JSON.stringify(topUpResult, null, 2));
 })();
