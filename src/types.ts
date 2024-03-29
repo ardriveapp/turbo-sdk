@@ -19,7 +19,6 @@ import {
   ArweaveSigner,
   DataItemCreateOptions,
 } from 'arbundles';
-import * as Transaction from 'arweave/node/lib/transaction.js';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
@@ -320,8 +319,6 @@ export type TurboDataItemSignerParams = {
   logger: TurboLogger;
   signer: TurboSigner;
 };
-
-export declare type ArweaveTx = Transaction.default;
 
 export interface TurboDataItemSigner {
   signDataItem({
