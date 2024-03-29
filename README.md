@@ -344,8 +344,8 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 
   const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-    tokenAmount: 1000,
-    feeMultiplier: 1.25,
+    tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
+    feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
   });
   ```
 
