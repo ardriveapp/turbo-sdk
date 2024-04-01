@@ -17,7 +17,7 @@ services:
       DB_PASSWORD: postgres
       PAYMENT_SERVICE_BASE_URL: payment-service:4000
       PAYMENT_SERVICE_PROTOCOL: http
-      MIGRATE_ON_STARTUP: true
+      MIGRATE_ON_STARTUP: 'true'
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
@@ -54,8 +54,7 @@ services:
       DB_PORT: 5433
       DB_PASSWORD: postgres
       PORT: 4000
-      DISABLE_LOGS: false
-      MIGRATE_ON_STARTUP: true
+      MIGRATE_ON_STARTUP: 'true'
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-secret-key}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
