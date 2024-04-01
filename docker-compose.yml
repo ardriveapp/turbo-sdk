@@ -1,31 +1,30 @@
-version: 3.0.0
+version: '3.0'
 
 services:
-  test-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile.test
-    environment:
-      - NODE_ENV=test
-      - PAYMENT_SERVICE_BASE_URL=http://payment-service:4000
-      - UPLOAD_SERVICE_BASE_URL=http://upload-service:3000
-    depends_on:
-      - upload-service
-      - payment-service
   upload-service:
-    image: ghcr.io/ardriveapp/turbo-upload-service:latest
+    image: ghcr.io/ardriveapp/upload-service:latest
     ports:
       - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 10s
+      retries: 5
     environment:
       NODE_ENV: test
       DB_HOST: upload-service-pg
       DB_PORT: 5432
       DB_PASSWORD: postgres
-      PAYMENT_SERVICE_BASE_URL: http://payment-service:4000
-      MIGRATE_ON_STARTUP: true
-      JWT_SECRET: test-secret-key
+      PAYMENT_SERVICE_BASE_URL: payment-service:4000
+      PAYMENT_SERVICE_PROTOCOL: http
+      MIGRATE_ON_STARTUP: 'true'
+      JWT_SECRET: ${JWT_SECRET:-test-secret-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
+      TURBO_JWK_FILE: ./wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json
     volumes:
       - upload-service-data-items:/temp
+      - ./tests/wallets:/usr/src/app/wallets
     depends_on:
       - upload-service-pg
 
@@ -41,31 +40,37 @@ services:
       - upload-service-data:/var/lib/postgresql/data
 
   payment-service:
-    image: ghcr.io/ardriveapp/turbo-payment-service:latest
+    image: ghcr.io/ardriveapp/payment-service:latest
     ports:
       - '4000:4000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4000/health']
+      interval: 10s
+      timeout: 10s
+      retries: 5
     environment:
       NODE_ENV: test
       DB_HOST: payment-service-pg
       DB_PORT: 5433
       DB_PASSWORD: postgres
       PORT: 4000
-      DISABLE_LOGS: false
-      MIGRATE_ON_STARTUP: true
-      STRIPE_SECRET_KEY: secret-key
-      STRIPE_WEBHOOK_SECRET: webhook-secret-key
-      JWT_SECRET: test-secret-key
+      MIGRATE_ON_STARTUP: 'true'
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-secret-key}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
+      JWT_SECRET: ${JWT_SECRET:-test-secret-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       - payment-service-pg
 
   payment-service-pg:
     image: postgres:13.8
     environment:
+      PGPORT: 5433
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - '5433:5432'
+      - '5433:5433'
     volumes:
       - payment-service-data:/var/lib/postgresql/data
 
