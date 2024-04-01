@@ -2,7 +2,7 @@ version: 3.0.0
 
 services:
   upload-service:
-    image: upload-service
+    image: ghcr.io/ardriveapp/upload-service:latest
     ports:
       - '3000:3000'
     healthcheck:
