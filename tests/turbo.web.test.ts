@@ -2,6 +2,7 @@ import { ArconnectSigner, ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave/node/index.js';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
+import fs from 'fs';
 import { ReadableStream } from 'node:stream/web';
 
 import { USD } from '../src/common/currency.js';
@@ -272,19 +273,19 @@ describe('Browser environment', () => {
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
-        const oneMBBuffer = Buffer.alloc(1024 * 1024);
-        const readableStream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(oneMBBuffer);
-            controller.close();
-          },
+        const nonAllowListedJWK = await Arweave.crypto.generateJWK();
+        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+        const fileSize = fs.statSync(filePath).size;
+        const newTurbo = TurboFactory.authenticated({
+          privateKey: nonAllowListedJWK,
+          ...turboDevelopmentConfigurations,
         });
-        const error = await turbo
+        const error = await newTurbo
           .uploadFile({
-            fileStreamFactory: () => readableStream,
-            fileSizeFactory: () => oneMBBuffer.byteLength,
+            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
           })
-          .catch((err) => err);
+          .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Insufficient balance');
       });
