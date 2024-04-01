@@ -217,7 +217,6 @@ describe('Browser environment', () => {
   });
   describe('TurboAuthenticatedWebClient', () => {
     let turbo: TurboAuthenticatedClient;
-    let address: string;
 
     before(async () => {
       turbo = TurboFactory.authenticated({
@@ -315,7 +314,7 @@ describe('Browser environment', () => {
         const error = await turbo
           .createCheckoutSession({
             amount: USD(10),
-            owner: address,
+            owner: testWalletAddress,
             promoCodes: ['BAD_PROMO_CODE'],
           })
           .catch((error) => error);
