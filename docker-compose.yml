@@ -2,7 +2,7 @@ version: 3.0.0
 
 services:
   upload-service:
-    image: ghcr.io/ardriveapp/turbo-upload-service:latest
+    image: ghcr.io/ardriveapp/upload-service:latest
     ports:
       - '3000:3000'
     environment:
@@ -32,7 +32,7 @@ services:
       - upload-service-data:/var/lib/postgresql/data
 
   payment-service:
-    image: ghcr.io/ardriveapp/turbo-payment-service:latest
+    image: ghcr.io/ardriveapp/payment-service:latest
     ports:
       - '4000:4000'
     environment:
