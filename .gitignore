@@ -22,3 +22,6 @@ yarn-error.log
 
 # builds
 package/*
+
+# Prod env files
+.env

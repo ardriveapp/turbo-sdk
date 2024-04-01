@@ -6,16 +6,16 @@ import fs from 'fs';
 import { Readable } from 'node:stream';
 
 import { USD } from '../src/common/currency.js';
-import { JWKInterface } from '../src/common/jwk.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
-import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   expectAsyncErrorThrow,
+  testJwk,
+  testWalletAddress,
   turboDevelopmentConfigurations,
 } from './helpers.js';
 
@@ -28,18 +28,16 @@ describe('Node environment', () => {
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
     it('should return a TurboAuthenticatedClient when running in Node environment and provided a privateKey', async () => {
-      const jwk = await Arweave.crypto.generateJWK();
       const turbo = TurboFactory.authenticated({
-        privateKey: jwk,
+        privateKey: testJwk,
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and an ArweaveSigner', async () => {
-      const jwk = await Arweave.crypto.generateJWK();
       const turbo = TurboFactory.authenticated({
-        signer: new ArweaveSigner(jwk),
+        signer: new ArweaveSigner(testJwk),
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
@@ -69,7 +67,9 @@ describe('Node environment', () => {
     });
 
     it('getFiatToAR()', async () => {
-      const { currency, rate } = await turbo.getFiatToAR({ currency: 'usd' });
+      const { currency, rate } = await turbo.getFiatToAR({
+        currency: 'usd',
+      });
       expect(currency).to.equal('usd');
       expect(rate).to.be.a('number');
     });
@@ -116,9 +116,8 @@ describe('Node environment', () => {
     });
 
     describe('uploadSignedDataItem()', () => {
+      const signer = new ArweaveSigner(testJwk);
       it('should properly upload a signed Buffer to turbo', async () => {
-        const jwk = await Arweave.crypto.generateJWK();
-        const signer = new ArweaveSigner(jwk);
         const signedDataItem = createData('signed data item', signer, {});
         await signedDataItem.sign(signer);
 
@@ -130,12 +129,10 @@ describe('Node environment', () => {
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+        expect(response['owner']).to.equal(testWalletAddress);
       });
 
       it('should properly upload signed Readable to turbo', async () => {
-        const jwk = await Arweave.crypto.generateJWK();
-        const signer = new ArweaveSigner(jwk);
         const signedDataItem = createData('signed data item', signer, {});
         await signedDataItem.sign(signer);
 
@@ -147,12 +144,10 @@ describe('Node environment', () => {
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+        expect(response['owner']).to.equal(testWalletAddress);
       });
 
       it('should abort an upload when AbortController.signal is triggered', async () => {
-        const jwk = await Arweave.crypto.generateJWK();
-        const signer = new ArweaveSigner(jwk);
         const signedDataItem = createData('signed data item', signer, {});
         await signedDataItem.sign(signer);
         const error = await turbo
@@ -166,8 +161,6 @@ describe('Node environment', () => {
       });
 
       it('should return FailedRequestError for incorrectly signed data item', async () => {
-        const jwk = await Arweave.crypto.generateJWK();
-        const signer = new ArweaveSigner(jwk);
         const signedDataItem = createData('signed data item', signer, {});
         // not signed
         const error = await turbo
@@ -230,17 +223,13 @@ describe('Node environment', () => {
   });
 
   describe('TurboAuthenticatedNodeClient', () => {
-    let jwk: JWKInterface;
     let turbo: TurboAuthenticatedClient;
-    let address: string;
 
     before(async () => {
-      jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
-        privateKey: jwk,
+        privateKey: testJwk,
         ...turboDevelopmentConfigurations,
       });
-      address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
 
     it('getBalance()', async () => {
@@ -290,7 +279,7 @@ describe('Node environment', () => {
           expect(response).to.have.property('fastFinalityIndexes');
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+          expect(response['owner']).to.equal(testWalletAddress);
         });
       }
 
@@ -386,9 +375,14 @@ describe('Node environment', () => {
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
+        const nonAllowListedJWK = await Arweave.crypto.generateJWK();
         const filePath = new URL('files/1MB_file', import.meta.url).pathname;
         const fileSize = fs.statSync(filePath).size;
-        const error = await turbo
+        const newTurbo = TurboFactory.authenticated({
+          privateKey: nonAllowListedJWK,
+          ...turboDevelopmentConfigurations,
+        });
+        const error = await newTurbo
           .uploadFile({
             fileStreamFactory: () => fs.createReadStream(filePath),
             fileSizeFactory: () => fileSize,
@@ -424,7 +418,7 @@ describe('Node environment', () => {
         const error = await turbo
           .createCheckoutSession({
             amount: USD(10), // 10 USD
-            owner: address,
+            owner: testWalletAddress,
             promoCodes: ['BAD_PROMO_CODE'],
           })
           .catch((error) => error);
