@@ -2,9 +2,14 @@ version: 3.0.0
 
 services:
   upload-service:
-    image: ghcr.io/ardriveapp/upload-service:latest
+    image: upload-service
     ports:
       - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 10s
+      retries: 5
     environment:
       NODE_ENV: test
       DB_HOST: upload-service-pg
@@ -13,10 +18,13 @@ services:
       PAYMENT_SERVICE_BASE_URL: payment-service:4000
       PAYMENT_SERVICE_PROTOCOL: http
       MIGRATE_ON_STARTUP: true
-      JWT_SECRET: test-secret-key
-      LOG_LEVEL: ${LOG_LEVEL:-none}
+      JWT_SECRET: ${JWT_SECRET:-test-secret-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
+      TURBO_JWK_FILE: ./wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json
     volumes:
       - upload-service-data-items:/temp
+      - ./tests/wallets:/usr/src/app/wallets
     depends_on:
       - upload-service-pg
 
@@ -35,6 +43,11 @@ services:
     image: ghcr.io/ardriveapp/payment-service:latest
     ports:
       - '4000:4000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4000/health']
+      interval: 10s
+      timeout: 10s
+      retries: 5
     environment:
       NODE_ENV: test
       DB_HOST: payment-service-pg
@@ -43,10 +56,10 @@ services:
       PORT: 4000
       DISABLE_LOGS: false
       MIGRATE_ON_STARTUP: true
-      STRIPE_SECRET_KEY: secret-key
-      STRIPE_WEBHOOK_SECRET: webhook-secret-key
-      JWT_SECRET: test-secret-key
-      LOG_LEVEL: ${LOG_LEVEL:-none}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-secret-key}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
+      JWT_SECRET: ${JWT_SECRET:-test-secret-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       - payment-service-pg
 
@@ -61,18 +74,6 @@ services:
       - '5433:5433'
     volumes:
       - payment-service-data:/var/lib/postgresql/data
-
-  test-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile.test
-    environment:
-      - NODE_ENV=test
-      - PAYMENT_SERVICE_URL=http://payment-service:4000
-      - UPLOAD_SERVICE_URL=http://upload-service:3000
-    depends_on:
-      - upload-service
-      - payment-service
 
 volumes:
   payment-service-data:

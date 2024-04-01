@@ -5,15 +5,17 @@ import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
 
 import { USD } from '../src/common/currency.js';
-import { JWKInterface } from '../src/common/jwk.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
-import { jwkToPublicArweaveAddress } from '../src/utils/base64.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
-import { turboDevelopmentConfigurations } from './helpers.js';
+import {
+  testJwk,
+  testWalletAddress,
+  turboDevelopmentConfigurations,
+} from './helpers.js';
 
 describe('Browser environment', () => {
   before(() => {
@@ -33,9 +35,8 @@ describe('Browser environment', () => {
     });
 
     it('should be a TurboAuthenticatedClient running in the browser and provided a privateKey', async () => {
-      const jwk = await Arweave.crypto.generateJWK();
       const turbo = TurboFactory.authenticated({
-        privateKey: jwk,
+        privateKey: testJwk,
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
@@ -122,8 +123,7 @@ describe('Browser environment', () => {
 
       describe('uploadSignedDataItem()', () => {
         it('supports sending a signed Buffer to turbo', async () => {
-          const jwk = await Arweave.crypto.generateJWK();
-          const signer = new ArweaveSigner(jwk);
+          const signer = new ArweaveSigner(testJwk);
           const signedDataItem = createData('signed data item', signer);
           await signedDataItem.sign(signer);
 
@@ -135,12 +135,11 @@ describe('Browser environment', () => {
           expect(response).to.have.property('fastFinalityIndexes');
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+          expect(response['owner']).to.equal(testWalletAddress);
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
-          const jwk = await Arweave.crypto.generateJWK();
-          const signer = new ArweaveSigner(jwk);
+          const signer = new ArweaveSigner(testJwk);
           const signedDataItem = createData('signed data item', signer);
           await signedDataItem.sign(signer);
           const error = await turbo
@@ -154,8 +153,7 @@ describe('Browser environment', () => {
         });
 
         it('should return FailedRequestError for incorrectly signed data item', async () => {
-          const jwk = await Arweave.crypto.generateJWK();
-          const signer = new ArweaveSigner(jwk);
+          const signer = new ArweaveSigner(testJwk);
           const signedDataItem = createData('signed data item', signer, {});
           // not signed
           const error = await turbo
@@ -219,16 +217,13 @@ describe('Browser environment', () => {
   });
   describe('TurboAuthenticatedWebClient', () => {
     let turbo: TurboAuthenticatedClient;
-    let jwk: JWKInterface;
     let address: string;
 
     before(async () => {
-      jwk = await Arweave.crypto.generateJWK();
       turbo = TurboFactory.authenticated({
-        privateKey: jwk,
+        privateKey: testJwk,
         ...turboDevelopmentConfigurations,
       });
-      address = await Arweave.init({}).wallets.jwkToAddress(jwk);
     });
 
     it('getBalance()', async () => {
@@ -255,7 +250,7 @@ describe('Browser environment', () => {
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(jwkToPublicArweaveAddress(jwk));
+        expect(response['owner']).to.equal(testWalletAddress);
       });
 
       it('should abort the upload when AbortController.signal is triggered', async () => {

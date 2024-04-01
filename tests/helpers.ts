@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import * as fs from 'fs';
 
 interface expectAsyncErrorThrowParams {
   promiseToError: Promise<unknown>;
@@ -45,3 +46,14 @@ export const turboDevelopmentConfigurations = {
     url: process.env.UPLOAD_SERVICE_URL ?? 'https://upload.ardrive.dev',
   },
 };
+
+/**
+ * Local wallet allow listed for tests
+ */
+export const testWalletAddress = 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4';
+export const testJwk = JSON.parse(
+  fs.readFileSync(
+    new URL(`wallets/${testWalletAddress}.json`, import.meta.url).pathname,
+    'utf-8',
+  ),
+);
