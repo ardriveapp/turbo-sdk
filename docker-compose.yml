@@ -1,6 +1,16 @@
 version: '3.0'
 
 services:
+  arlocal:
+    image: textury/arlocal:v1.1.35
+    ports:
+      - '1984:1984'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:1984/']
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
   upload-service:
     image: ghcr.io/ardriveapp/upload-service:latest
     ports:
@@ -22,11 +32,14 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
       TURBO_JWK_FILE: ./wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json
+      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://localhost:1984}
     volumes:
       - upload-service-data-items:/temp
       - ./tests/wallets:/usr/src/app/wallets
     depends_on:
       - upload-service-pg
+      - payment-service
+      - arlocal
 
   upload-service-pg:
     image: postgres:13.8
@@ -59,8 +72,11 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
+      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://localhost:1984}
     depends_on:
       - payment-service-pg
+      - arlocal
 
   payment-service-pg:
     image: postgres:13.8
