@@ -258,6 +258,17 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
   }
   ```
 
+- `submitFundTransaction({ txId })` - Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
+
+  - Note: Use this API if you've already executed your token transfer to the Turbo wallet. Otherwise, consider using `topUpWithTokens` to execute a new token transfer to the Turbo wallet and submit its resulting transaction ID for top up processing all in one go
+
+  ```typescript
+  const turbo = TurboFactory.unauthenticated(); // defaults to arweave token type
+  const { status, id, ...fundResult } = await turbo.submitFundTransaction({
+    txId: 'my-valid-arweave-fund-transaction-id',
+  });
+  ```
+
 ### TurboAuthenticatedClient
 
 - `getBalance()` - Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
@@ -321,6 +332,20 @@ Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automa
       ],
       // no timeout or AbortSignal provided
     },
+  });
+  ```
+
+- `topUpWithTokens({ tokenAmount, feeMultiplier })` - Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
+
+  - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
+  - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
+
+  ```typescript
+  const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
+
+  const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+    tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
+    feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
   });
   ```
 

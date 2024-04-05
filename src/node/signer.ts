@@ -15,32 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { serializeTags, streamSigner } from 'arbundles';
-import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 
-import { JWKInterface } from '../common/jwk.js';
+import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   DataItemOptions,
   StreamSizeFactory,
-  TurboDataItemSigner,
-  TurboLogger,
-  TurboSigner,
+  TurboDataItemSignerParams,
 } from '../types.js';
-import { fromB64Url, toB64Url } from '../utils/base64.js';
+import { fromB64Url } from '../utils/base64.js';
 
-export class TurboNodeArweaveSigner implements TurboDataItemSigner {
-  protected privateKey: JWKInterface;
-  protected signer: TurboSigner;
-  protected logger: TurboLogger;
-  constructor({
-    signer,
-    logger,
-  }: {
-    signer: TurboSigner;
-    logger: TurboLogger;
-  }) {
-    this.logger = logger;
-    this.signer = signer;
+export class TurboNodeArweaveSigner extends TurboDataItemAbstractSigner {
+  constructor(p: TurboDataItemSignerParams) {
+    super(p);
   }
 
   async signDataItem({
@@ -74,19 +61,6 @@ export class TurboNodeArweaveSigner implements TurboDataItemSigner {
     return {
       dataItemStreamFactory: () => signedDataItem,
       dataItemSizeFactory: () => signedDataItemSize,
-    };
-  }
-
-  // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
-  async generateSignedRequestHeaders() {
-    const nonce = randomBytes(16).toString('hex');
-    const buffer = Buffer.from(nonce);
-    const signature = await this.signer.sign(buffer);
-    const publicKey = toB64Url(this.signer.publicKey);
-    return {
-      'x-public-key': publicKey,
-      'x-nonce': nonce,
-      'x-signature': toB64Url(Buffer.from(signature)),
     };
   }
 

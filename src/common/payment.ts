@@ -14,8 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { BigNumber } from 'bignumber.js';
+
 import {
   Currency,
+  TokenMap,
+  TokenType,
   TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
@@ -23,13 +27,18 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
   TurboFiatToArResponse,
+  TurboFundWithTokensParams,
+  TurboInfoResponse,
   TurboLogger,
+  TurboPostBalanceResponse,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboSignedRequestHeaders,
+  TurboSubmitFundTxResponse,
   TurboUnauthenticatedPaymentServiceConfiguration,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboWincForFiatParams,
@@ -37,6 +46,7 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+import { ArweaveToken } from './token.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
@@ -46,11 +56,13 @@ export class TurboUnauthenticatedPaymentService
 {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
+  protected readonly token: TokenType;
 
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
     logger = new TurboWinstonLogger(),
+    token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
     this.logger = logger;
     this.httpService = new TurboHTTPService({
@@ -58,6 +70,7 @@ export class TurboUnauthenticatedPaymentService
       retryConfig,
       logger: this.logger,
     });
+    this.token = token;
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
@@ -156,23 +169,72 @@ export class TurboUnauthenticatedPaymentService
   ): Promise<TurboCheckoutSessionResponse> {
     return this.getCheckout(params);
   }
-}
 
+  public async submitFundTransaction({
+    txId,
+  }: {
+    txId: string;
+  }): Promise<TurboSubmitFundTxResponse> {
+    const response = await this.httpService.post<TurboPostBalanceResponse>({
+      endpoint: `/account/balance/${this.token}`,
+      data: Buffer.from(JSON.stringify({ tx_id: txId })),
+    });
+
+    if ('creditedTransaction' in response) {
+      return {
+        id: response.creditedTransaction.transactionId,
+        quantity: response.creditedTransaction.transactionQuantity,
+        owner: response.creditedTransaction.destinationAddress,
+        winc: response.creditedTransaction.winstonCreditAmount,
+        token: response.creditedTransaction.tokenType,
+        status: 'confirmed',
+        block: response.creditedTransaction.blockHeight,
+      };
+    } else if ('pendingTransaction' in response) {
+      return {
+        id: response.pendingTransaction.transactionId,
+        quantity: response.pendingTransaction.transactionQuantity,
+        owner: response.pendingTransaction.destinationAddress,
+        winc: response.pendingTransaction.winstonCreditAmount,
+        token: response.pendingTransaction.tokenType,
+        status: 'pending',
+      };
+    } else if ('failedTransaction' in response) {
+      return {
+        id: response.failedTransaction.transactionId,
+        quantity: response.failedTransaction.transactionQuantity,
+        owner: response.failedTransaction.destinationAddress,
+        winc: response.failedTransaction.winstonCreditAmount,
+        token: response.failedTransaction.tokenType,
+        status: 'failed',
+      };
+    }
+    throw new Error('Unknown response from payment service: ' + response);
+  }
+}
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
 export class TurboAuthenticatedPaymentService
   extends TurboUnauthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
   protected readonly signer: TurboDataItemSigner;
+  protected readonly tokenMap: TokenMap;
 
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-    logger,
+    logger = new TurboWinstonLogger(),
+    token = 'arweave',
+    tokenMap = {
+      arweave: new ArweaveToken({
+        logger,
+      }),
+    },
   }: TurboAuthenticatedPaymentServiceConfiguration) {
-    super({ url, retryConfig, logger });
+    super({ url, retryConfig, logger, token });
     this.signer = signer;
+    this.tokenMap = tokenMap;
   }
 
   public async getBalance(): Promise<TurboBalanceResponse> {
@@ -206,5 +268,56 @@ export class TurboAuthenticatedPaymentService
       params,
       await this.signer.generateSignedRequestHeaders(),
     );
+  }
+
+  private async getTargetWalletForFund(): Promise<string> {
+    const { addresses } = await this.httpService.get<TurboInfoResponse>({
+      endpoint: '/info',
+    });
+
+    const walletAddress = addresses[this.token];
+    if (!walletAddress) {
+      throw new Error(`No wallet address found for token type: ${this.token}`);
+    }
+    return walletAddress;
+  }
+
+  public async topUpWithTokens({
+    feeMultiplier = 1,
+    tokenAmount: tokenAmountV,
+  }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
+    this.logger.debug('Funding account...');
+    const tokenAmount = new BigNumber(tokenAmountV);
+    const target = await this.getTargetWalletForFund();
+
+    const fundTx = await this.tokenMap[this.token].createTx({
+      target,
+      tokenAmount,
+      feeMultiplier,
+    });
+    const signedTx = await this.tokenMap[this.token].signTx({
+      tx: fundTx,
+      signer: this.signer,
+    });
+
+    await this.tokenMap[this.token].submitTx({ tx: signedTx });
+
+    const txId = signedTx.id;
+    try {
+      // Let transaction settle some time
+      await this.tokenMap[this.token].pollForTxBeingAvailable({ txId });
+
+      return {
+        ...(await this.submitFundTransaction({ txId })),
+        target: signedTx.target,
+        reward: signedTx.reward,
+      };
+    } catch (e) {
+      this.logger.error('Failed to submit fund transaction...', e);
+
+      throw Error(
+        `Failed to submit fund transaction! Save this Transaction ID and try again with 'turbo.submitFundTransaction(id)': ${txId}`,
+      );
+    }
   }
 }
