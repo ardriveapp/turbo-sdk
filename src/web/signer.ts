@@ -78,8 +78,8 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     return super.generateSignedRequestHeaders();
   }
 
-  public async signTx(dataToSign: Uint8Array): Promise<Uint8Array> {
+  public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {
     await this.setPublicKey();
-    return super.signTx(dataToSign);
+    return super.signData(dataToSign);
   }
 }

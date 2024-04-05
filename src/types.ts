@@ -327,7 +327,7 @@ export interface TurboDataItemSigner {
     dataItemOpts,
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
-  signTx(dataToSign: Uint8Array): Promise<Uint8Array>;
+  signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   getPublicKey(): Promise<Buffer>;
 }
 
