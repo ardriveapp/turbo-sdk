@@ -48,7 +48,7 @@ export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
 export type TokenMap = {
-  [key in TokenType]: BaseToken;
+  [key in TokenType]: TokenTools;
 };
 
 export type Adjustment = {
@@ -397,7 +397,7 @@ export type TokenCreateTxParams = {
 
 export type BaseTx = { id: string; target: string; reward: string };
 
-export interface BaseToken<T extends BaseTx = BaseTx> {
+export interface TokenTools<T extends BaseTx = BaseTx> {
   createTx: (p: TokenCreateTxParams) => Promise<T>;
   signTx: (p: { tx: T; signer: TurboDataItemSigner }) => Promise<T>;
   submitTx: (p: { tx: T }) => Promise<void>;

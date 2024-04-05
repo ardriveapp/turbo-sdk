@@ -18,7 +18,7 @@ import Arweave from 'arweave';
 import * as Transaction from 'arweave/node/lib/transaction.js';
 import { BigNumber } from 'bignumber.js';
 
-import { BaseToken, TurboDataItemSigner, TurboLogger } from '../types.js';
+import { TokenTools, TurboDataItemSigner, TurboLogger } from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -28,7 +28,7 @@ type PollingOptions = {
   initialBackoffMs: number;
 };
 
-export class ArweaveToken implements BaseToken<Transaction.default> {
+export class ArweaveToken implements TokenTools<Transaction.default> {
   protected logger: TurboLogger;
   protected arweave: Arweave;
   protected mintU: boolean;
