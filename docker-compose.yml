@@ -6,10 +6,16 @@ services:
     ports:
       - '1984:1984'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://arlocal:1984/']
+      test: ['CMD', 'curl', '-f', 'http://localhost:1984/']
       interval: 10s
       timeout: 10s
-      retries: 5
+      retries: 3
+
+  arlocal-setup:
+    image: curlimages/curl:latest
+    command: /bin/sh -c "while ! curl -f http://arlocal:1984/ >/dev/null 2>&1; do sleep 1; done; curl http://arlocal:1984/mine"
+    depends_on:
+      - arlocal
 
   upload-service:
     image: ghcr.io/ardriveapp/upload-service:latest
@@ -39,7 +45,7 @@ services:
     depends_on:
       - upload-service-pg
       - payment-service
-      - arlocal
+      - arlocal-setup
 
   upload-service-pg:
     image: postgres:13.8
@@ -76,7 +82,7 @@ services:
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
     depends_on:
       - payment-service-pg
-      - arlocal
+      - arlocal-setup
 
   payment-service-pg:
     image: postgres:13.8
