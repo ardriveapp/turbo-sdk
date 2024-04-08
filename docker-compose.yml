@@ -6,7 +6,7 @@ services:
     ports:
       - '1984:1984'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:1984/']
+      test: ['CMD', 'curl', '-f', 'http://arlocal:1984/']
       interval: 10s
       timeout: 10s
       retries: 5
@@ -32,7 +32,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
       TURBO_JWK_FILE: ./wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json
-      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://localhost:1984}
+      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
     volumes:
       - upload-service-data-items:/temp
       - ./tests/wallets:/usr/src/app/wallets
@@ -73,7 +73,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
-      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://localhost:1984}
+      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
     depends_on:
       - payment-service-pg
       - arlocal
