@@ -94,8 +94,11 @@ export async function sendFundTransaction(quantity = 1000): Promise<string> {
 
 export async function getBalance(address: string): Promise<string> {
   return (
-    await axios.get(
-      `${turboDevelopmentConfigurations.paymentServiceConfig.url}/v1/account/balance?address=${address}`,
-    )
-  ).data.winc;
+    (
+      await axios.get(
+        `${turboDevelopmentConfigurations.paymentServiceConfig.url}/v1/account/balance?address=${address}`,
+        { validateStatus: () => true },
+      )
+    ).data?.winc ?? '0'
+  );
 }

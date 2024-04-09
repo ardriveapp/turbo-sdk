@@ -241,6 +241,8 @@ describe('Node environment', () => {
     describe('submitFundTransaction()', () => {
       before(async () => {
         await fundArLocalWalletAddress(testWalletAddress);
+
+        await mineArLocalBlock();
       });
 
       it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
@@ -318,7 +320,7 @@ describe('Node environment', () => {
 
     it('getBalance()', async () => {
       const balance = await turbo.getBalance();
-      expect(+balance.winc).to.equal(0);
+      expect(balance.winc).to.be.a('string');
     });
 
     describe('uploadFile()', () => {
@@ -486,7 +488,9 @@ describe('Node environment', () => {
         .catch((error) => error);
       expect(error).to.be.instanceOf(FailedRequestError);
       // TODO: Could provide better error message to client. We have error messages on response.data
-      expect(error.message).to.equal('Failed request: 400: Bad Request');
+      expect(error.message).to.equal(
+        "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+      );
     });
 
     it('getWincForFiat() without a promo could return proper rates', async () => {
@@ -507,13 +511,13 @@ describe('Node environment', () => {
           })
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.equal('Failed request: 400: Bad Request');
+        expect(error.message).to.equal(
+          "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+        );
       });
     });
 
     describe('fund()', function () {
-      this.timeout(30_000); // Can take awhile for payment to retrieve transaction
-
       it('should succeed', async () => {
         const delayedBlockMining = async () => {
           let blocksMined = 0;

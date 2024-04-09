@@ -7,7 +7,7 @@ yarn dotenv -e .env.test yarn test
 exit_code=$?
 
 # Tear down the docker-compose setup
-docker-compose down -v
+# docker-compose down -v
 
 # Exit with the captured exit code
 exit $exit_code
