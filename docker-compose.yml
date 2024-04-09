@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
   arlocal:
-    image: textury/arlocal:v1.1.35
+    image: textury/arlocal:v1.1.66
     ports:
       - '1984:1984'
     healthcheck:

@@ -1,3 +1,4 @@
+import Arweave from 'arweave';
 import { expect } from 'chai';
 import * as fs from 'fs';
 
@@ -57,3 +58,14 @@ export const testJwk = JSON.parse(
     'utf-8',
   ),
 );
+
+export async function fundArLocalWalletAddress(
+  arweave: Arweave,
+  address: string,
+): Promise<void> {
+  await arweave.api.get(`mint/${address}/9999999999999999`);
+}
+
+export async function mineArLocalBlock(arweave: Arweave): Promise<void> {
+  await arweave.api.get('mine');
+}

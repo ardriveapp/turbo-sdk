@@ -1,6 +1,6 @@
 import { ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave';
-import { CanceledError } from 'axios';
+import axios, { CanceledError } from 'axios';
 import { expect } from 'chai';
 import fs from 'fs';
 import { describe } from 'mocha';
@@ -21,6 +21,8 @@ import { TurboFactory } from '../src/node/factory.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   expectAsyncErrorThrow,
+  fundArLocalWalletAddress,
+  mineArLocalBlock,
   testJwk,
   testWalletAddress,
   turboDevelopmentConfigurations,
@@ -30,6 +32,13 @@ describe('Node environment', () => {
   afterEach(() => {
     // Restore all stubs
     restore();
+  });
+  const urlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
+  const arweaveUrl = new URL(urlString);
+  const arweave = Arweave.init({
+    host: arweaveUrl.hostname,
+    port: +arweaveUrl.port,
+    protocol: arweaveUrl.protocol.replace(':', ''),
   });
 
   describe('TurboFactory', () => {
@@ -235,15 +244,37 @@ describe('Node environment', () => {
 
     describe('submitFundTransaction()', () => {
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing', async () => {
-        const existingPaymentTxIdToDev = // cspell:disable
-          'e5kVDnbpyjUFY0SciSvZ1dDqKOWIwnfGvlr4yz-uSSY';
+        await fundArLocalWalletAddress(arweave, testWalletAddress);
+
+        const paymentUrl = new URL(
+          turboDevelopmentConfigurations.paymentServiceConfig.url,
+        );
+        const target = (await axios.get(`${paymentUrl}/info`)).data.addresses
+          .arweave;
+        console.log('target', target);
+        const tx = await arweave.createTransaction({
+          quantity: '1000', // cspell:disable
+          target,
+        });
+
+        console.log('idb4', tx.id);
+
+        await arweave.transactions.sign(tx, testJwk);
+
+        const existingPaymentTxIdToDev = tx.id;
+        await arweave.transactions.post(tx);
+
+        await mineArLocalBlock(arweave);
+        await mineArLocalBlock(arweave);
+        await mineArLocalBlock(arweave);
+        console.log('existingPaymentTxIdToDev', existingPaymentTxIdToDev);
 
         const { id, winc, owner, token } = await turbo.submitFundTransaction({
           txId: existingPaymentTxIdToDev,
         });
         expect(id).to.equal(existingPaymentTxIdToDev);
         expect(owner).to.equal('jaxl_dxqJ00gEgQazGASFXVRvO4h-Q0_vnaLtuOUoWU'); // cspell:enable
-        expect(winc).to.equal('7');
+        expect(winc).to.equal('7670');
         expect(token).to.equal('arweave');
       });
 
@@ -261,13 +292,12 @@ describe('Node environment', () => {
   describe('TurboAuthenticatedNodeClient', () => {
     let turbo: TurboAuthenticatedClient;
 
-    const arweave = Arweave.init({});
     const arweaveToken = new ArweaveToken({
       arweave,
       pollingOptions: {
         maxAttempts: 3,
-        pollingIntervalMs: 0,
-        initialBackoffMs: 0,
+        pollingIntervalMs: 5,
+        initialBackoffMs: 10,
       },
     });
     const tokenMap = {
@@ -481,13 +511,22 @@ describe('Node environment', () => {
     describe('fund()', function () {
       this.timeout(30_000); // Can take awhile for payment to retrieve transaction
 
-      // Skipped this test in CI because the provided fresh wallet is underfunded on arweave
-      // TODO: run arlocal in CI instead of using payment dev / arweave.net
-      // before(async() => await arweave.api.post('fund' ... ))
-      it.skip('should succeed', async () => {
-        const { winc } = await turbo.topUpWithTokens({
-          tokenAmount: WinstonToTokenAmount(10),
-        });
+      it('should succeed', async () => {
+        const delayedBlockMining = async () => {
+          let blocksMined = 0;
+          while (blocksMined < 3) {
+            await mineArLocalBlock(arweave);
+            blocksMined++;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+        };
+        const [{ winc }] = await Promise.all([
+          turbo.topUpWithTokens({
+            tokenAmount: WinstonToTokenAmount(10),
+          }),
+          delayedBlockMining(),
+        ]);
+
         expect(winc).to.equal('7');
       });
 
