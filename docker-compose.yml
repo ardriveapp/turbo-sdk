@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
   arlocal:
-    image: textury/arlocal:v1.1.35
+    image: textury/arlocal:v1.1.66
     ports:
       - '1984:1984'
     healthcheck:
@@ -74,8 +74,8 @@ services:
       DB_PASSWORD: postgres
       PORT: 4000
       MIGRATE_ON_STARTUP: 'true'
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-secret-key}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_51JUAtwC8apPOWkDLKTV1n7OIhalqfit6pkabmaCAQ99cVFX3DnPqVpgkovblTeFXAfYOjoGp3qiBuPPgFutC5Ncc00doBx8Do6}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_49c361c301392ac2dc6e90b784970e5ae97daf865b6b61263beb48f6f14f3e5b}
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
