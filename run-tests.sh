@@ -1,8 +1,9 @@
 #!/bin/bash
-docker compose up --quiet-pull -d --pull always
+docker compose pull --quiet
+docker compose up --quiet-pull -d
 
 # Run tests and capture the exit code
-yarn dotenv -e .env.test -- -- yarn test "$@"
+yarn dotenv -e .env.test yarn test
 exit_code=$?
 
 # Tear down the docker-compose setup

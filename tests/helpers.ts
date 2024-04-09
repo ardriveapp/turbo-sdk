@@ -1,4 +1,5 @@
 import Arweave from 'arweave';
+import axios from 'axios';
 import { expect } from 'chai';
 import * as fs from 'fs';
 
@@ -59,13 +60,42 @@ export const testJwk = JSON.parse(
   ),
 );
 
-export async function fundArLocalWalletAddress(
-  arweave: Arweave,
-  address: string,
-): Promise<void> {
-  await arweave.api.get(`mint/${address}/9999999999999999`);
+const urlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
+const arweaveUrl = new URL(urlString);
+export const testArweave = Arweave.init({
+  host: arweaveUrl.hostname,
+  port: +arweaveUrl.port,
+  protocol: arweaveUrl.protocol.replace(':', ''),
+});
+
+export async function fundArLocalWalletAddress(address: string): Promise<void> {
+  await testArweave.api.get(`mint/${address}/9999999999999999`);
 }
 
-export async function mineArLocalBlock(arweave: Arweave): Promise<void> {
-  await arweave.api.get('mine');
+export async function mineArLocalBlock(): Promise<void> {
+  await testArweave.api.get('mine');
+}
+
+export async function sendFundTransaction(quantity = 1000): Promise<string> {
+  const paymentUrl = new URL(
+    turboDevelopmentConfigurations.paymentServiceConfig.url,
+  );
+  const target = (await axios.get(`${paymentUrl}info`)).data.addresses.arweave;
+  const tx = await testArweave.createTransaction({
+    quantity: `${quantity}`,
+    target,
+  });
+
+  await testArweave.transactions.sign(tx, testJwk);
+
+  await testArweave.transactions.post(tx);
+  return tx.id;
+}
+
+export async function getBalance(address: string): Promise<string> {
+  return (
+    await axios.get(
+      `${turboDevelopmentConfigurations.paymentServiceConfig.url}/v1/account/balance?address=${address}`,
+    )
+  ).data.winc;
 }

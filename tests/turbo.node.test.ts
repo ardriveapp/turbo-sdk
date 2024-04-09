@@ -1,6 +1,6 @@
 import { ArweaveSigner, createData } from 'arbundles';
 import Arweave from 'arweave';
-import axios, { CanceledError } from 'axios';
+import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import fs from 'fs';
 import { describe } from 'mocha';
@@ -22,7 +22,10 @@ import { FailedRequestError } from '../src/utils/errors.js';
 import {
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
+  getBalance,
   mineArLocalBlock,
+  sendFundTransaction,
+  testArweave,
   testJwk,
   testWalletAddress,
   turboDevelopmentConfigurations,
@@ -32,13 +35,6 @@ describe('Node environment', () => {
   afterEach(() => {
     // Restore all stubs
     restore();
-  });
-  const urlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
-  const arweaveUrl = new URL(urlString);
-  const arweave = Arweave.init({
-    host: arweaveUrl.hostname,
-    port: +arweaveUrl.port,
-    protocol: arweaveUrl.protocol.replace(':', ''),
   });
 
   describe('TurboFactory', () => {
@@ -243,39 +239,8 @@ describe('Node environment', () => {
     });
 
     describe('submitFundTransaction()', () => {
-      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing', async () => {
-        await fundArLocalWalletAddress(arweave, testWalletAddress);
-
-        const paymentUrl = new URL(
-          turboDevelopmentConfigurations.paymentServiceConfig.url,
-        );
-        const target = (await axios.get(`${paymentUrl}/info`)).data.addresses
-          .arweave;
-        console.log('target', target);
-        const tx = await arweave.createTransaction({
-          quantity: '1000', // cspell:disable
-          target,
-        });
-
-        console.log('idb4', tx.id);
-
-        await arweave.transactions.sign(tx, testJwk);
-
-        const existingPaymentTxIdToDev = tx.id;
-        await arweave.transactions.post(tx);
-
-        await mineArLocalBlock(arweave);
-        await mineArLocalBlock(arweave);
-        await mineArLocalBlock(arweave);
-        console.log('existingPaymentTxIdToDev', existingPaymentTxIdToDev);
-
-        const { id, winc, owner, token } = await turbo.submitFundTransaction({
-          txId: existingPaymentTxIdToDev,
-        });
-        expect(id).to.equal(existingPaymentTxIdToDev);
-        expect(owner).to.equal('jaxl_dxqJ00gEgQazGASFXVRvO4h-Q0_vnaLtuOUoWU'); // cspell:enable
-        expect(winc).to.equal('7670');
-        expect(token).to.equal('arweave');
+      before(async () => {
+        await fundArLocalWalletAddress(testWalletAddress);
       });
 
       it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
@@ -286,6 +251,44 @@ describe('Node environment', () => {
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Failed request: 404: Not Found');
       });
+
+      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a pending tx', async () => {
+        const txId = await sendFundTransaction(1000);
+
+        const { id, winc, owner, token, status } =
+          await turbo.submitFundTransaction({
+            txId,
+          });
+        expect(id).to.equal(txId);
+        expect(owner).to.equal(testWalletAddress);
+        expect(winc).to.equal('766');
+        expect(token).to.equal('arweave');
+        expect(status).to.equal('pending');
+      });
+
+      const minConfirmations = 25;
+      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
+        const balanceBefore = await getBalance(testWalletAddress);
+
+        const txId = await sendFundTransaction(1000);
+        for (let i = 0; i < minConfirmations; i++) {
+          await mineArLocalBlock();
+        }
+
+        const { id, winc, owner, token, status } =
+          await turbo.submitFundTransaction({
+            txId,
+          });
+        expect(id).to.equal(txId);
+        expect(owner).to.equal(testWalletAddress);
+        expect(winc).to.equal('766');
+        expect(token).to.equal('arweave');
+        expect(status).to.equal('confirmed');
+
+        const balanceAfter = await getBalance(testWalletAddress);
+
+        expect(+balanceAfter - +balanceBefore).to.equal(766);
+      });
     });
   });
 
@@ -293,7 +296,7 @@ describe('Node environment', () => {
     let turbo: TurboAuthenticatedClient;
 
     const arweaveToken = new ArweaveToken({
-      arweave,
+      arweave: testArweave,
       pollingOptions: {
         maxAttempts: 3,
         pollingIntervalMs: 5,
@@ -515,7 +518,7 @@ describe('Node environment', () => {
         const delayedBlockMining = async () => {
           let blocksMined = 0;
           while (blocksMined < 3) {
-            await mineArLocalBlock(arweave);
+            await mineArLocalBlock();
             blocksMined++;
             await new Promise((resolve) => setTimeout(resolve, 10));
           }
@@ -531,14 +534,14 @@ describe('Node environment', () => {
       });
 
       it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
-        stub(arweave.transactions, 'getTransactionAnchor').resolves(
+        stub(testArweave.transactions, 'getTransactionAnchor').resolves(
           'stub anchor',
         );
-        stub(arweave.transactions, 'getPrice').resolves('101');
+        stub(testArweave.transactions, 'getPrice').resolves('101');
         stub(arweaveToken, 'submitTx').resolves();
 
         // simulate polling for transaction
-        stub(arweave.api, 'post')
+        stub(testArweave.api, 'post')
           .onFirstCall()
           .throws()
           .onSecondCall()
