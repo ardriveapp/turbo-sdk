@@ -49,10 +49,11 @@ export const turboDevelopmentConfigurations = {
   },
 };
 
+// cspell:disable
 /**
  * Local wallet allow listed for tests
  */
-export const testWalletAddress = 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4';
+export const testWalletAddress = 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4'; // cspell:enable
 export const testJwk = JSON.parse(
   fs.readFileSync(
     new URL(`wallets/${testWalletAddress}.json`, import.meta.url).pathname,
@@ -92,7 +93,7 @@ export async function sendFundTransaction(quantity = 1000): Promise<string> {
   return tx.id;
 }
 
-export async function getBalance(address: string): Promise<string> {
+export async function getRawBalance(address: string): Promise<string> {
   return (
     (
       await axios.get(

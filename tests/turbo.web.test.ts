@@ -19,7 +19,7 @@ import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
 import {
   fundArLocalWalletAddress,
-  getBalance,
+  getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
   testArweave,
@@ -263,7 +263,7 @@ describe('Browser environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
-        const balanceBefore = await getBalance(testWalletAddress);
+        const balanceBefore = await getRawBalance(testWalletAddress);
 
         const txId = await sendFundTransaction(1000);
         for (let i = 0; i < minConfirmations; i++) {
@@ -280,7 +280,7 @@ describe('Browser environment', () => {
         expect(token).to.equal('arweave');
         expect(status).to.equal('confirmed');
 
-        const balanceAfter = await getBalance(testWalletAddress);
+        const balanceAfter = await getRawBalance(testWalletAddress);
 
         expect(+balanceAfter - +balanceBefore).to.equal(766);
       });
@@ -310,9 +310,22 @@ describe('Browser environment', () => {
       });
     });
 
-    it('getBalance()', async () => {
-      const balance = await turbo.getBalance();
-      expect(balance.winc).to.be.a('string');
+    describe('getBalance()', async () => {
+      it('returns correct balance for test wallet', async () => {
+        const rawBalance = await getRawBalance(testWalletAddress);
+        const balance = await turbo.getBalance();
+        expect(balance.winc).to.equal(rawBalance);
+      });
+
+      it('returns correct balance for an empty wallet', async () => {
+        const emptyJwk = await Arweave.crypto.generateJWK();
+        const emptyTurbo = TurboFactory.authenticated({
+          privateKey: emptyJwk,
+          ...turboDevelopmentConfigurations,
+        });
+        const balance = await emptyTurbo.getBalance();
+        expect(balance.winc).to.equal('0');
+      });
     });
 
     describe('uploadFile()', () => {
@@ -461,6 +474,18 @@ describe('Browser environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(Error);
         expect(error.message).to.contain('Failed to submit fund transaction!');
+      });
+
+      it('should fail to submit fund tx when fund tx fails to post to arweave', async () => {
+        stub(testArweave.transactions, 'post').throws();
+
+        const error = await turbo
+          .topUpWithTokens({
+            tokenAmount: WinstonToTokenAmount(1000),
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(Error);
+        expect(error.message).to.contain('Failed to post transaction');
       });
     });
   });

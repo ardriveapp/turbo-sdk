@@ -22,7 +22,7 @@ import { FailedRequestError } from '../src/utils/errors.js';
 import {
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
-  getBalance,
+  getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
   testArweave,
@@ -270,7 +270,7 @@ describe('Node environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
-        const balanceBefore = await getBalance(testWalletAddress);
+        const balanceBefore = await getRawBalance(testWalletAddress);
 
         const txId = await sendFundTransaction(1000);
         for (let i = 0; i < minConfirmations; i++) {
@@ -287,7 +287,7 @@ describe('Node environment', () => {
         expect(token).to.equal('arweave');
         expect(status).to.equal('confirmed');
 
-        const balanceAfter = await getBalance(testWalletAddress);
+        const balanceAfter = await getRawBalance(testWalletAddress);
 
         expect(+balanceAfter - +balanceBefore).to.equal(766);
       });
@@ -301,8 +301,8 @@ describe('Node environment', () => {
       arweave: testArweave,
       pollingOptions: {
         maxAttempts: 3,
-        pollingIntervalMs: 5,
-        initialBackoffMs: 10,
+        pollingIntervalMs: 10,
+        initialBackoffMs: 0,
       },
     });
     const tokenMap = {
@@ -318,9 +318,22 @@ describe('Node environment', () => {
       });
     });
 
-    it('getBalance()', async () => {
-      const balance = await turbo.getBalance();
-      expect(balance.winc).to.be.a('string');
+    describe('getBalance()', async () => {
+      it('returns correct balance for test wallet', async () => {
+        const rawBalance = await getRawBalance(testWalletAddress);
+        const balance = await turbo.getBalance();
+        expect(balance.winc).to.equal(rawBalance);
+      });
+
+      it('returns correct balance for an empty wallet', async () => {
+        const emptyJwk = await Arweave.crypto.generateJWK();
+        const emptyTurbo = TurboFactory.authenticated({
+          privateKey: emptyJwk,
+          ...turboDevelopmentConfigurations,
+        });
+        const balance = await emptyTurbo.getBalance();
+        expect(balance.winc).to.equal('0');
+      });
     });
 
     describe('uploadFile()', () => {
@@ -336,7 +349,8 @@ describe('Node environment', () => {
           ],
         },
         {
-          target: 'WeirdCharacters-_!felwfleowpfl12345678901234',
+          // cspell:disable
+          target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
           anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
           tags: [
             {
@@ -522,9 +536,9 @@ describe('Node environment', () => {
         const delayedBlockMining = async () => {
           let blocksMined = 0;
           while (blocksMined < 3) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
             await mineArLocalBlock();
             blocksMined++;
-            await new Promise((resolve) => setTimeout(resolve, 10));
           }
         };
         const [{ winc }] = await Promise.all([
@@ -538,10 +552,6 @@ describe('Node environment', () => {
       });
 
       it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
-        stub(testArweave.transactions, 'getTransactionAnchor').resolves(
-          'stub anchor',
-        );
-        stub(testArweave.transactions, 'getPrice').resolves('101');
         stub(arweaveToken, 'submitTx').resolves();
 
         // simulate polling for transaction
@@ -561,6 +571,18 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(Error);
         expect(error.message).to.contain('Failed to submit fund transaction!');
+      });
+
+      it('should fail to submit fund tx when fund tx fails to post to arweave', async () => {
+        stub(testArweave.transactions, 'post').throws();
+
+        const error = await turbo
+          .topUpWithTokens({
+            tokenAmount: WinstonToTokenAmount(1000),
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(Error);
+        expect(error.message).to.contain('Failed to post transaction');
       });
     });
   });
