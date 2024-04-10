@@ -75,8 +75,8 @@ export async function fundArLocalWalletAddress(address: string): Promise<void> {
   await testArweave.api.get(`mint/${address}/9999999999999999`);
 }
 
-export async function mineArLocalBlock(): Promise<void> {
-  await testArweave.api.get('mine');
+export async function mineArLocalBlock(numBlocks = 1): Promise<void> {
+  await testArweave.api.get(`mine/${numBlocks}`);
 }
 
 export async function sendFundTransaction(quantity = 1000): Promise<string> {
