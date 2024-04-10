@@ -15,6 +15,7 @@ import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
+import { sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
 import {
@@ -437,7 +438,7 @@ describe('Browser environment', () => {
           while (blocksMined < 3) {
             await mineArLocalBlock();
             blocksMined++;
-            await new Promise((resolve) => setTimeout(resolve, 10));
+            await sleep(10);
           }
         };
         const [{ winc }] = await Promise.all([

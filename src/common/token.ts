@@ -20,6 +20,7 @@ import { BigNumber } from 'bignumber.js';
 
 import { TokenTools, TurboDataItemSigner, TurboLogger } from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
+import { sleep } from '../utils/common.js';
 import { TurboWinstonLogger } from './logger.js';
 
 type PollingOptions = {
@@ -123,7 +124,7 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
       this.pollingOptions;
 
     this.logger.debug('Polling for transaction...', { txId });
-    await new Promise((resolve) => setTimeout(resolve, initialBackoffMs));
+    await sleep(initialBackoffMs);
 
     let attempts = 0;
     while (attempts < maxAttempts) {
@@ -162,7 +163,7 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
         maxAttempts,
         pollingIntervalMs,
       });
-      await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
+      await sleep(pollingIntervalMs);
     }
 
     throw new Error(

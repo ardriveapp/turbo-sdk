@@ -18,6 +18,7 @@ import {
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
+import { sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   expectAsyncErrorThrow,
@@ -536,7 +537,7 @@ describe('Node environment', () => {
         const delayedBlockMining = async () => {
           let blocksMined = 0;
           while (blocksMined < 3) {
-            await new Promise((resolve) => setTimeout(resolve, 5));
+            await sleep(5);
             await mineArLocalBlock();
             blocksMined++;
           }
