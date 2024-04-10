@@ -171,27 +171,20 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
   }
 
   public async submitTx({ tx }: { tx: Transaction.default }): Promise<void> {
-    let response:
-      | {
-          status: number;
-          statusText: string;
-          data: unknown;
-        }
-      | undefined = undefined;
     try {
-      response = await this.arweave.transactions.post(tx);
+      const response = await this.arweave.transactions.post(tx);
+
+      if (response.status !== 200) {
+        throw new Error(
+          'Failed to post transaction -- ' +
+            `Status ${response.status}, ${response.statusText}`,
+        );
+      }
     } catch (err) {
       throw new Error(
         `Failed to post transaction -- ${
           err instanceof Error ? err.message : err
         }`,
-      );
-    }
-
-    if (response.status !== 200) {
-      throw new Error(
-        'Failed to post transaction -- ' +
-          `Status ${response.status}, ${response.statusText}`,
       );
     }
 
