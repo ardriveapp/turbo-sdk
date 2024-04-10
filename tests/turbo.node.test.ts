@@ -274,9 +274,7 @@ describe('Node environment', () => {
         const balanceBefore = await getRawBalance(testWalletAddress);
 
         const txId = await sendFundTransaction(1000);
-        for (let i = 0; i < minConfirmations; i++) {
-          await mineArLocalBlock();
-        }
+        await mineArLocalBlock(minConfirmations);
 
         const { id, winc, owner, token, status } =
           await turbo.submitFundTransaction({
