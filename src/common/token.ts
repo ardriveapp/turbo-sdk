@@ -181,6 +181,7 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
             `Status ${response.status}, ${response.statusText}`,
         );
       }
+      this.logger.debug('Successfully posted fund transaction...', { tx });
     } catch (err) {
       throw new Error(
         `Failed to post transaction -- ${
