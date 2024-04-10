@@ -393,13 +393,13 @@ export type TokenCreateTxParams = {
   target: string;
   tokenAmount: BigNumber;
   feeMultiplier: number;
+  signer: TurboDataItemSigner;
 };
 
 export type BaseTx = { id: string; target: string; reward: string };
 
 export interface TokenTools<T extends BaseTx = BaseTx> {
-  createTx: (p: TokenCreateTxParams) => Promise<T>;
-  signTx: (p: { tx: T; signer: TurboDataItemSigner }) => Promise<T>;
+  createSignedTx: (p: TokenCreateTxParams) => Promise<T>;
   submitTx: (p: { tx: T }) => Promise<void>;
   pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
 }

@@ -1,5 +1,4 @@
 import { ArconnectSigner, ArweaveSigner, createData } from 'arbundles';
-import Arweave from 'arweave/node/index.js';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
@@ -36,7 +35,7 @@ describe('Browser environment', () => {
   });
 
   before(() => {
-    (global as any).window = { document: {}, arweaveWallet: Arweave.init({}) };
+    (global as any).window = { document: {}, arweaveWallet: testArweave };
   });
 
   after(() => {
@@ -317,7 +316,7 @@ describe('Browser environment', () => {
       });
 
       it('returns correct balance for an empty wallet', async () => {
-        const emptyJwk = await Arweave.crypto.generateJWK();
+        const emptyJwk = await testArweave.crypto.generateJWK();
         const emptyTurbo = TurboFactory.authenticated({
           privateKey: emptyJwk,
           ...turboDevelopmentConfigurations,
@@ -369,7 +368,7 @@ describe('Browser environment', () => {
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
-        const nonAllowListedJWK = await Arweave.crypto.generateJWK();
+        const nonAllowListedJWK = await testArweave.wallets.generate();
         const oneMBBuffer = Buffer.alloc(1024 * 1024);
         const readableStream = new ReadableStream({
           start(controller) {

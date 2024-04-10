@@ -14,11 +14,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import Arweave from 'arweave';
-import * as Transaction from 'arweave/node/lib/transaction.js';
+import { Arweave } from '@irys/arweave';
 import { BigNumber } from 'bignumber.js';
 
-import { TokenTools, TurboDataItemSigner, TurboLogger } from '../types.js';
+import {
+  BaseTx,
+  TokenCreateTxParams,
+  TokenTools,
+  TurboLogger,
+} from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
 import { sleep } from '../utils/common.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -29,7 +33,7 @@ type PollingOptions = {
   initialBackoffMs: number;
 };
 
-export class ArweaveToken implements TokenTools<Transaction.default> {
+export class ArweaveToken implements TokenTools {
   protected logger: TurboLogger;
   protected arweave: Arweave;
   protected mintU: boolean;
@@ -37,9 +41,7 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
 
   constructor({
     arweave = Arweave.init({
-      host: 'arweave.net',
-      port: 443,
-      protocol: 'https',
+      url: 'https://arweave.net',
     }),
     logger = new TurboWinstonLogger(),
     mintU = true,
@@ -60,15 +62,12 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
     this.pollingOptions = pollingOptions;
   }
 
-  public async createTx({
+  public async createSignedTx({
     feeMultiplier,
     target,
     tokenAmount,
-  }: {
-    target: string;
-    tokenAmount: BigNumber;
-    feeMultiplier: number;
-  }): Promise<Transaction.default> {
+    signer,
+  }: TokenCreateTxParams): Promise<BaseTx> {
     const tx = await this.arweave.createTransaction({
       target,
       quantity: tokenAmount.toString(),
@@ -88,16 +87,6 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
       tx.addTag('Input', JSON.stringify({ function: 'mint' }));
     }
 
-    return tx;
-  }
-
-  public async signTx({
-    tx,
-    signer,
-  }: {
-    tx: Transaction.default;
-    signer: TurboDataItemSigner;
-  }): Promise<Transaction.default> {
     const publicKeyB64Url = toB64Url(await signer.getPublicKey());
 
     tx.setOwner(publicKeyB64Url);
@@ -171,7 +160,7 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
     );
   }
 
-  public async submitTx({ tx }: { tx: Transaction.default }): Promise<void> {
+  public async submitTx({ tx }: { tx: BaseTx }): Promise<void> {
     try {
       const response = await this.arweave.transactions.post(tx);
 
