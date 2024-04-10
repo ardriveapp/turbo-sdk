@@ -15,7 +15,6 @@ import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
-import { sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
 import {

@@ -18,7 +18,6 @@ import {
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
-import { sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   delayedBlockMining,
