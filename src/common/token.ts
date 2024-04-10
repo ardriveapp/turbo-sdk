@@ -151,7 +151,6 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
       } catch (err) {
         // Continue retries when request errors
         this.logger.debug('Failed to poll for transaction...', { err });
-        continue;
       }
 
       if (transaction) {
