@@ -3,7 +3,7 @@ import axios from 'axios';
 import { expect } from 'chai';
 import * as fs from 'fs';
 
-import { sleep } from '../src/utils/common';
+import { sleep } from '../src/utils/common.js';
 
 interface expectAsyncErrorThrowParams {
   promiseToError: Promise<unknown>;
