@@ -21,6 +21,7 @@ import { TurboFactory } from '../src/node/factory.js';
 import { sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
+  delayedBlockMining,
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
   getRawBalance,
@@ -533,15 +534,7 @@ describe('Node environment', () => {
     });
 
     describe('fund()', function () {
-      it('should succeed', async () => {
-        const delayedBlockMining = async () => {
-          let blocksMined = 0;
-          while (blocksMined < 3) {
-            await sleep(5);
-            await mineArLocalBlock();
-            blocksMined++;
-          }
-        };
+      it('should succeed to fund account using arweave tokens', async () => {
         const [{ winc }] = await Promise.all([
           turbo.topUpWithTokens({
             tokenAmount: WinstonToTokenAmount(10),

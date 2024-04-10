@@ -3,6 +3,8 @@ import axios from 'axios';
 import { expect } from 'chai';
 import * as fs from 'fs';
 
+import { sleep } from '../src/utils/common';
+
 interface expectAsyncErrorThrowParams {
   promiseToError: Promise<unknown>;
 
@@ -102,4 +104,16 @@ export async function getRawBalance(address: string): Promise<string> {
       )
     ).data?.winc ?? '0'
   );
+}
+
+export async function delayedBlockMining(
+  numBlocks = 3,
+  delayMs = 5,
+): Promise<void> {
+  let blocksMined = 0;
+  while (blocksMined < numBlocks) {
+    await sleep(delayMs);
+    await mineArLocalBlock();
+    blocksMined++;
+  }
 }
