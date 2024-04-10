@@ -122,12 +122,16 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
     const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
       this.pollingOptions;
 
+    this.logger.debug('Polling for transaction...', { txId });
     await new Promise((resolve) => setTimeout(resolve, initialBackoffMs));
 
     let attempts = 0;
     while (attempts < maxAttempts) {
-      const response = await this.arweave.api
-        .post('/graphql', {
+      let transaction;
+      attempts++;
+
+      try {
+        const response = await this.arweave.api.post('/graphql', {
           query: `
           query {
             transaction(id: "${txId}") {
@@ -140,23 +144,24 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
               }
             }
           }
-        `,
-        })
-        .catch((err) => {
-          // Continue retries when request errors
-          this.logger.error('Failed to poll for transaction...', { err });
-          return undefined;
+          `,
         });
 
-      const transaction = response?.data?.data?.transaction;
+        transaction = response?.data?.data?.transaction;
+      } catch (err) {
+        // Continue retries when request errors
+        this.logger.debug('Failed to poll for transaction...', { err });
+        continue;
+      }
 
       if (transaction) {
         return;
       }
-      attempts++;
-      this.logger.debug('Transaction not found after polling...', {
+      this.logger.debug('Transaction not found...', {
         txId,
         attempts,
+        maxAttempts,
+        pollingIntervalMs,
       });
       await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
     }
@@ -167,14 +172,22 @@ export class ArweaveToken implements BaseToken<Transaction.default> {
   }
 
   public async submitTx({ tx }: { tx: Transaction.default }): Promise<void> {
-    const response = await this.arweave.transactions.post(tx).catch((err) => {
-      this.logger.error('Failed to post transaction...', { err });
-      return {
-        status: 500,
-        statusText:
-          err instanceof Error ? err.message : 'Failed to post Arweave Tx!',
-      };
-    });
+    let response:
+      | {
+          status: number;
+          statusText: string;
+          data: unknown;
+        }
+      | undefined = undefined;
+    try {
+      response = await this.arweave.transactions.post(tx);
+    } catch (err) {
+      throw new Error(
+        `Failed to post transaction -- ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+    }
 
     if (response.status !== 200) {
       throw new Error(

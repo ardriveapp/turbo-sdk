@@ -286,23 +286,30 @@ export class TurboAuthenticatedPaymentService
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
-    this.logger.debug('Funding account...');
     const tokenAmount = new BigNumber(tokenAmountV);
+
     const target = await this.getTargetWalletForFund();
+    this.logger.debug('Funding account...', {
+      feeMultiplier,
+      tokenAmount,
+      target,
+    });
 
     const fundTx = await this.tokenMap[this.token].createTx({
       target,
       tokenAmount,
       feeMultiplier,
     });
+
     const signedTx = await this.tokenMap[this.token].signTx({
       tx: fundTx,
       signer: this.signer,
     });
+    const txId = signedTx.id;
 
+    this.logger.debug('Submitting fund transaction...', { txId });
     await this.tokenMap[this.token].submitTx({ tx: signedTx });
 
-    const txId = signedTx.id;
     try {
       // Let transaction settle some time
       await this.tokenMap[this.token].pollForTxBeingAvailable({ txId });
@@ -313,7 +320,7 @@ export class TurboAuthenticatedPaymentService
         reward: signedTx.reward,
       };
     } catch (e) {
-      this.logger.error('Failed to submit fund transaction...', e);
+      this.logger.debug('Failed to submit fund transaction...', e);
 
       throw Error(
         `Failed to submit fund transaction! Save this Transaction ID and try again with 'turbo.submitFundTransaction(id)': ${txId}`,
