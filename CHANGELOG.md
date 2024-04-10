@@ -1,3 +1,15 @@
+# [1.5.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.2...v1.5.0-alpha.1) (2024-04-05)
+
+
+### Features
+
+* **crypto payments:** init fund methods PE-5849 ([5ec1687](https://github.com/ardriveapp/turbo-sdk/commit/5ec1687ca2d761cb3a516e5276cf9f67c5a4f20c))
+* **crypto payments:** refactor arweave-js out of signer PE-5849 ([aa7836b](https://github.com/ardriveapp/turbo-sdk/commit/aa7836bbd18cffb87b83a182e5cfe9a60f6c520f))
+* **fund with ar:** add ToTokenAmount helper utils PE-5849 ([37417dd](https://github.com/ardriveapp/turbo-sdk/commit/37417ddbe16b463fd2953ca37567e1cba7557a0b))
+* **fund with ar:** catch polling error PE-5849 ([8bb9b1f](https://github.com/ardriveapp/turbo-sdk/commit/8bb9b1f6438f46c5b49fd05ddfcbc2c9655ceb3d))
+* **fund with ar:** continue polling on request error PE-5849 ([a324ca1](https://github.com/ardriveapp/turbo-sdk/commit/a324ca1f02beb7faa171e0550cd6505926fa7dfc))
+* **fund with ar:** throw no wallet found as error PE-5849 ([d1d2e7a](https://github.com/ardriveapp/turbo-sdk/commit/d1d2e7aa1f33df3445d3d6bbc46c37d4ee1bd196))
+
 ## [1.4.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.1...v1.4.2) (2024-03-15)
 
 

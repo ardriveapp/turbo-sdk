@@ -60,7 +60,7 @@ export abstract class TurboDataItemAbstractSigner
     return this.signer.publicKey;
   }
 
-  public async signTx(dataToSign: Uint8Array): Promise<Uint8Array> {
+  public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {
     return this.signer.sign(dataToSign);
   }
 }
