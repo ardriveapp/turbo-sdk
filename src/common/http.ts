@@ -77,7 +77,11 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     });
 
     if (!allowedStatuses.includes(status)) {
-      throw new FailedRequestError(status, statusText);
+      throw new FailedRequestError(
+        status,
+        // Return error message from server if available
+        typeof data === 'string' ? data : statusText,
+      );
     }
 
     return data;
@@ -106,7 +110,11 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     });
 
     if (!allowedStatuses.includes(status)) {
-      throw new FailedRequestError(status, statusText);
+      throw new FailedRequestError(
+        status,
+        // Return error message from server if available
+        typeof data === 'string' ? data : statusText,
+      );
     }
 
     return response;

@@ -20,6 +20,7 @@ import { BigNumber } from 'bignumber.js';
 
 import { TokenTools, TurboDataItemSigner, TurboLogger } from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
+import { sleep } from '../utils/common.js';
 import { TurboWinstonLogger } from './logger.js';
 
 type PollingOptions = {
@@ -122,12 +123,16 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
     const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
       this.pollingOptions;
 
-    await new Promise((resolve) => setTimeout(resolve, initialBackoffMs));
+    this.logger.debug('Polling for transaction...', { txId });
+    await sleep(initialBackoffMs);
 
     let attempts = 0;
     while (attempts < maxAttempts) {
-      const response = await this.arweave.api
-        .post('/graphql', {
+      let transaction;
+      attempts++;
+
+      try {
+        const response = await this.arweave.api.post('/graphql', {
           query: `
           query {
             transaction(id: "${txId}") {
@@ -140,25 +145,25 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
               }
             }
           }
-        `,
-        })
-        .catch((err) => {
-          // Continue retries when request errors
-          this.logger.error('Failed to poll for transaction...', { err });
-          return undefined;
+          `,
         });
 
-      const transaction = response?.data?.data?.transaction;
+        transaction = response?.data?.data?.transaction;
+      } catch (err) {
+        // Continue retries when request errors
+        this.logger.debug('Failed to poll for transaction...', { err });
+      }
 
       if (transaction) {
         return;
       }
-      attempts++;
-      this.logger.debug('Transaction not found after polling...', {
+      this.logger.debug('Transaction not found...', {
         txId,
         attempts,
+        maxAttempts,
+        pollingIntervalMs,
       });
-      await new Promise((resolve) => setTimeout(resolve, pollingIntervalMs));
+      await sleep(pollingIntervalMs);
     }
 
     throw new Error(
@@ -167,19 +172,21 @@ export class ArweaveToken implements TokenTools<Transaction.default> {
   }
 
   public async submitTx({ tx }: { tx: Transaction.default }): Promise<void> {
-    const response = await this.arweave.transactions.post(tx).catch((err) => {
-      this.logger.error('Failed to post transaction...', { err });
-      return {
-        status: 500,
-        statusText:
-          err instanceof Error ? err.message : 'Failed to post Arweave Tx!',
-      };
-    });
+    try {
+      const response = await this.arweave.transactions.post(tx);
 
-    if (response.status !== 200) {
+      if (response.status !== 200) {
+        throw new Error(
+          'Failed to post transaction -- ' +
+            `Status ${response.status}, ${response.statusText}`,
+        );
+      }
+      this.logger.debug('Successfully posted fund transaction...', { tx });
+    } catch (err) {
       throw new Error(
-        'Failed to post transaction -- ' +
-          `Status ${response.status}, ${response.statusText}`,
+        `Failed to post transaction -- ${
+          err instanceof Error ? err.message : err
+        }`,
       );
     }
 

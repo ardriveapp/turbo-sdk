@@ -2,5 +2,5 @@ coverage:
   status:
     project:
       default:
-        target: 80% # TODO: bump back to 95% when arlocal is introduced
+        target: 95%
         threshold: 1%
