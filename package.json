@@ -70,7 +70,7 @@
     "docker:down": "docker compose down -v"
   },
   "dependencies": {
-    "@irys/arweave": "^0.0.3",
+    "@irys/arweave": "0.0.3",
     "arbundles": "0.9.9",
     "axios": "^1.4.0",
     "axios-retry": "^3.7.0",

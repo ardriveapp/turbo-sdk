@@ -780,7 +780,7 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@irys/arweave@^0.0.3":
+"@irys/arweave@0.0.3":
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/@irys/arweave/-/arweave-0.0.3.tgz#700824aabfc833fce0ab91ea4aef30e67a3acf33"
   integrity sha512-LVpR9PPvguW36aqEus71C8vqxMHUbgOxMYA+Bx6HZzf9BlBSjkHhtJ3e0d0rBjSMRKOT5Dw47VwqpHPz/VeH5A==
