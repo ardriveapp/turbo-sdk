@@ -1,4 +1,4 @@
-import Arweave from 'arweave';
+import Arweave from '@irys/arweave';
 import axios from 'axios';
 import { expect } from 'chai';
 import * as fs from 'fs';
@@ -66,9 +66,7 @@ export const testJwk = JSON.parse(
 const urlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
 const arweaveUrl = new URL(urlString);
 export const testArweave = Arweave.init({
-  host: arweaveUrl.hostname,
-  port: +arweaveUrl.port,
-  protocol: arweaveUrl.protocol.replace(':', ''),
+  url: arweaveUrl,
 });
 
 export async function fundArLocalWalletAddress(address: string): Promise<void> {

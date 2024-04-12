@@ -295,20 +295,17 @@ export class TurboAuthenticatedPaymentService
       target,
     });
 
-    const fundTx = await this.tokenMap[this.token].createTx({
+    const fundTx = await this.tokenMap[this.token].createSignedTx({
       target,
       tokenAmount,
       feeMultiplier,
-    });
-
-    const signedTx = await this.tokenMap[this.token].signTx({
-      tx: fundTx,
       signer: this.signer,
     });
-    const txId = signedTx.id;
+
+    const txId = fundTx.id;
 
     this.logger.debug('Submitting fund transaction...', { txId });
-    await this.tokenMap[this.token].submitTx({ tx: signedTx });
+    await this.tokenMap[this.token].submitTx({ tx: fundTx });
 
     try {
       // Let transaction settle some time
@@ -316,8 +313,8 @@ export class TurboAuthenticatedPaymentService
 
       return {
         ...(await this.submitFundTransaction({ txId })),
-        target: signedTx.target,
-        reward: signedTx.reward,
+        target: fundTx.target,
+        reward: fundTx.reward,
       };
     } catch (e) {
       this.logger.debug('Failed to submit fund transaction...', e);
