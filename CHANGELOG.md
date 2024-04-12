@@ -1,3 +1,10 @@
+# [1.5.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.5.0-alpha.1...v1.5.0-alpha.2) (2024-04-12)
+
+
+### Bug Fixes
+
+* **fund with ar:** add web esm compatible arweave export PE-5849 ([9681e06](https://github.com/ardriveapp/turbo-sdk/commit/9681e067f8ac03c381bef0c19e45454b5e9e14d9))
+
 # [1.5.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.2...v1.5.0-alpha.1) (2024-04-05)
 
 
