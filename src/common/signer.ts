@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { ArconnectSigner, ArweaveSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
 
 import {
@@ -27,6 +28,14 @@ import {
 } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
 
+/**
+ * Utility exports to avoid clients having to install arbundles
+ */
+export { ArconnectSigner, ArweaveSigner };
+
+/**
+ * Abstract class for signing TurboDataItems.
+ */
 export abstract class TurboDataItemAbstractSigner
   implements TurboDataItemSigner
 {
