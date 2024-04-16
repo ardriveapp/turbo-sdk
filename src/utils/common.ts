@@ -15,5 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// AUTOMATICALLY GENERATED FILE - DO NOT TOUCH
-export const version = '1.5.0-alpha.4';
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

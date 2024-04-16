@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.4.2",
+  "version": "1.5.0-alpha.4",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -58,20 +58,23 @@
     "test": "c8 mocha --config .mocharc --exit",
     "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
-    "test:docker": "docker compose up --quiet-pull -d; yarn dotenv -e .env.test yarn test; docker-compose down -v",
+    "test:docker": "./run-tests.sh",
     "prepare": "husky install",
-    "examples": "yarn example:mjs & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
+    "examples": "yarn example:esm & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
     "example:esm": "cd examples/esm && yarn && node index.mjs",
     "example:cjs": "cd examples/cjs && yarn && node index.cjs",
     "example:web": "http-server --port 8080 --host -o examples/web",
     "example:ts:esm": "cd examples/typescript/esm && yarn && yarn test",
-    "example:ts:cjs": "cd examples/typescript/cjs && yarn && yarn test"
+    "example:ts:cjs": "cd examples/typescript/cjs && yarn && yarn test",
+    "docker:up": "docker compose up --quiet-pull --pull always -d",
+    "docker:down": "docker compose down -v"
   },
   "dependencies": {
+    "@irys/arweave": "0.0.3",
     "arbundles": "0.9.9",
-    "arweave": "^1.14.4",
     "axios": "^1.4.0",
     "axios-retry": "^3.7.0",
+    "bignumber.js": "^9.1.2",
     "winston": "^3.10.0"
   },
   "devDependencies": {

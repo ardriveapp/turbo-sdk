@@ -14,36 +14,46 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArconnectSigner, createData } from 'arbundles';
-import { randomBytes } from 'crypto';
+import { ArconnectSigner, ArweaveSigner, createData } from 'arbundles';
 
-import { JWKInterface } from '../common/jwk.js';
+import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   StreamSizeFactory,
-  TurboDataItemSigner,
-  TurboLogger,
-  TurboSigner,
+  TurboDataItemSignerParams,
+  TurboSignedRequestHeaders,
   WebTurboFileFactory,
 } from '../types.js';
-import { toB64Url } from '../utils/base64.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
-export class TurboWebArweaveSigner implements TurboDataItemSigner {
-  protected privateKey: JWKInterface;
-  protected signer: TurboSigner;
-  protected logger: TurboLogger;
-  constructor({
-    logger,
-    signer,
-  }: {
-    logger: TurboLogger;
-    signer: TurboSigner;
-  }) {
-    this.logger = logger;
-    this.signer = signer;
+/**
+ * Utility exports to avoid clients having to install arbundles
+ */
+export { ArconnectSigner, ArweaveSigner };
+
+/**
+ * Web implementation of TurboDataItemSigner.
+ */
+export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
+  constructor(p: TurboDataItemSignerParams) {
+    super(p);
   }
 
-  async signDataItem({
+  private async setPublicKey() {
+    // for arconnect, we need to make sure we have the public key before create data
+    if (
+      this.signer.publicKey === undefined &&
+      this.signer instanceof ArconnectSigner
+    ) {
+      await this.signer.setPublicKey();
+    }
+  }
+
+  public async getPublicKey(): Promise<Buffer> {
+    await this.setPublicKey();
+    return super.getPublicKey();
+  }
+
+  public async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
@@ -52,19 +62,13 @@ export class TurboWebArweaveSigner implements TurboDataItemSigner {
     dataItemStreamFactory: () => Buffer;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
+    await this.setPublicKey();
+
     // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
     const buffer = await readableStreamToBuffer({
       stream: fileStreamFactory(),
       size: fileSizeFactory(),
     });
-
-    // for arconnect, we need to make sure we have the public key before create data
-    if (
-      this.signer.publicKey === undefined &&
-      this.signer instanceof ArconnectSigner
-    ) {
-      await this.signer.setPublicKey();
-    }
 
     this.logger.debug('Signing data item...');
     const signedDataItem = createData(buffer, this.signer, dataItemOpts);
@@ -77,25 +81,13 @@ export class TurboWebArweaveSigner implements TurboDataItemSigner {
     };
   }
 
-  // NOTE: this might be better in a parent class or elsewhere - easy enough to leave in here now and does require specific environment version of crypto
-  async generateSignedRequestHeaders() {
-    const nonce = randomBytes(16).toString('hex');
-    const buffer = Buffer.from(nonce);
-    const signature = await this.signer.sign(buffer);
+  public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {
+    await this.setPublicKey();
+    return super.generateSignedRequestHeaders();
+  }
 
-    // for arconnect, we need to make sure we have the public key
-    if (
-      this.signer.publicKey === undefined &&
-      this.signer instanceof ArconnectSigner
-    ) {
-      await this.signer.setPublicKey();
-    }
-    const publicKey = toB64Url(this.signer.publicKey);
-
-    return {
-      'x-public-key': publicKey,
-      'x-nonce': nonce,
-      'x-signature': toB64Url(Buffer.from(signature)),
-    };
+  public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {
+    await this.setPublicKey();
+    return super.signData(dataToSign);
   }
 }

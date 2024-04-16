@@ -1,9 +1,16 @@
 {
   "cSpell.words": [
+    "Arconnect",
     "ardriveapp",
+    "bignumber",
+    "commitlint",
     "iife",
+    "irys",
+    "mocharc",
     "nvmrc",
     "outfile",
+    "solana",
+    "trivago",
     "typecheck",
     "Winc"
   ],
@@ -22,6 +29,6 @@
   "search.exclude": {
     "**/node_modules": true,
     "**/lib": true,
-    "**/coverage": true,
+    "**/coverage": true
   }
 }

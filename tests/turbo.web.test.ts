@@ -1,10 +1,15 @@
 import { ArconnectSigner, ArweaveSigner, createData } from 'arbundles';
-import Arweave from 'arweave/node/index.js';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import { ReadableStream } from 'node:stream/web';
+import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
+import {
+  ARToTokenAmount,
+  ArweaveToken,
+  WinstonToTokenAmount,
+} from '../src/common/token.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -12,14 +17,25 @@ import {
 import { FailedRequestError } from '../src/utils/errors.js';
 import { TurboFactory } from '../src/web/index.js';
 import {
+  delayedBlockMining,
+  fundArLocalWalletAddress,
+  getRawBalance,
+  mineArLocalBlock,
+  sendFundTransaction,
+  testArweave,
   testJwk,
   testWalletAddress,
   turboDevelopmentConfigurations,
 } from './helpers.js';
 
 describe('Browser environment', () => {
+  afterEach(() => {
+    // Restore all stubs
+    restore();
+  });
+
   before(() => {
-    (global as any).window = { document: {}, arweaveWallet: Arweave.init({}) };
+    (global as any).window = { document: {}, arweaveWallet: testArweave };
   });
 
   after(() => {
@@ -214,20 +230,100 @@ describe('Browser environment', () => {
         expect(winc).to.be.a('string');
       });
     });
+
+    describe('submitFundTransaction()', () => {
+      before(async () => {
+        await fundArLocalWalletAddress(testWalletAddress);
+
+        await mineArLocalBlock();
+      });
+
+      it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
+        const nonExistentPaymentTxId = 'non-existent-payment-tx-id';
+        const error = await turbo
+          .submitFundTransaction({ txId: nonExistentPaymentTxId })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Failed request: 404: Not Found');
+      });
+
+      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a pending tx', async () => {
+        const txId = await sendFundTransaction(1000);
+
+        const { id, winc, owner, token, status } =
+          await turbo.submitFundTransaction({
+            txId,
+          });
+        expect(id).to.equal(txId);
+        expect(owner).to.equal(testWalletAddress);
+        expect(winc).to.equal('766');
+        expect(token).to.equal('arweave');
+        expect(status).to.equal('pending');
+      });
+
+      const minConfirmations = 25;
+      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
+        const balanceBefore = await getRawBalance(testWalletAddress);
+
+        const txId = await sendFundTransaction(1000);
+        await mineArLocalBlock(minConfirmations);
+
+        const { id, winc, owner, token, status } =
+          await turbo.submitFundTransaction({
+            txId,
+          });
+        expect(id).to.equal(txId);
+        expect(owner).to.equal(testWalletAddress);
+        expect(winc).to.equal('766');
+        expect(token).to.equal('arweave');
+        expect(status).to.equal('confirmed');
+
+        const balanceAfter = await getRawBalance(testWalletAddress);
+
+        expect(+balanceAfter - +balanceBefore).to.equal(766);
+      });
+    });
   });
   describe('TurboAuthenticatedWebClient', () => {
     let turbo: TurboAuthenticatedClient;
+
+    const arweaveToken = new ArweaveToken({
+      arweave: testArweave,
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 0,
+        initialBackoffMs: 0,
+      },
+    });
+    const tokenMap = {
+      arweave: arweaveToken,
+    };
 
     before(async () => {
       turbo = TurboFactory.authenticated({
         privateKey: testJwk,
         ...turboDevelopmentConfigurations,
+        // @ts-ignore
+        tokenMap,
       });
     });
 
-    it('getBalance()', async () => {
-      const balance = await turbo.getBalance();
-      expect(+balance.winc).to.equal(0);
+    describe('getBalance()', async () => {
+      it('returns correct balance for test wallet', async () => {
+        const rawBalance = await getRawBalance(testWalletAddress);
+        const balance = await turbo.getBalance();
+        expect(balance.winc).to.equal(rawBalance);
+      });
+
+      it('returns correct balance for an empty wallet', async () => {
+        const emptyJwk = await testArweave.crypto.generateJWK();
+        const emptyTurbo = TurboFactory.authenticated({
+          privateKey: emptyJwk,
+          ...turboDevelopmentConfigurations,
+        });
+        const balance = await emptyTurbo.getBalance();
+        expect(balance.winc).to.equal('0');
+      });
     });
 
     describe('uploadFile()', () => {
@@ -272,7 +368,7 @@ describe('Browser environment', () => {
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
-        const nonAllowListedJWK = await Arweave.crypto.generateJWK();
+        const nonAllowListedJWK = await testArweave.wallets.generate();
         const oneMBBuffer = Buffer.alloc(1024 * 1024);
         const readableStream = new ReadableStream({
           start(controller) {
@@ -303,7 +399,9 @@ describe('Browser environment', () => {
         })
         .catch((error) => error);
       expect(error).to.be.instanceOf(FailedRequestError);
-      expect(error?.message).to.equal('Failed request: 400: Bad Request');
+      expect(error?.message).to.equal(
+        "Failed request: 400: No promo code found with code 'BAD_CODE'",
+      );
     });
 
     it('getWincForFiat() without a promo could return proper rates', async () => {
@@ -324,7 +422,60 @@ describe('Browser environment', () => {
           })
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error?.message).to.equal('Failed request: 400: Bad Request');
+        expect(error?.message).to.equal(
+          "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+        );
+      });
+    });
+
+    describe('fund()', function () {
+      it('should succeed to fund account using arweave tokens', async () => {
+        const [{ winc }] = await Promise.all([
+          turbo.topUpWithTokens({
+            tokenAmount: WinstonToTokenAmount(10),
+          }),
+          delayedBlockMining(),
+        ]);
+
+        expect(winc).to.equal('7');
+      });
+
+      it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
+        stub(arweaveToken, 'submitTx').resolves();
+        stub(testArweave.transactions, 'getTransactionAnchor').resolves(
+          'stub anchor',
+        );
+        stub(testArweave.transactions, 'getPrice').resolves('101 :)');
+
+        // simulate polling for transaction
+        stub(testArweave.api, 'post')
+          .onFirstCall()
+          .throws()
+          .onSecondCall()
+          .resolves(undefined)
+          .onThirdCall()
+          .resolves({ data: { data: { transaction: true } } } as any);
+
+        const error = await turbo
+          .topUpWithTokens({
+            tokenAmount: ARToTokenAmount(0.000_000_100_000),
+            feeMultiplier: 1.5,
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(Error);
+        expect(error.message).to.contain('Failed to submit fund transaction!');
+      });
+
+      it('should fail to submit fund tx when fund tx fails to post to arweave', async () => {
+        stub(testArweave.transactions, 'post').throws();
+
+        const error = await turbo
+          .topUpWithTokens({
+            tokenAmount: WinstonToTokenAmount(1000),
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(Error);
+        expect(error.message).to.contain('Failed to post transaction');
       });
     });
   });
