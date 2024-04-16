@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArconnectSigner, createData } from 'arbundles';
+import { ArconnectSigner, ArweaveSigner, createData } from 'arbundles';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
@@ -25,6 +25,14 @@ import {
 } from '../types.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 
+/**
+ * Utility exports to avoid clients having to install arbundles
+ */
+export { ArconnectSigner, ArweaveSigner };
+
+/**
+ * Web implementation of TurboDataItemSigner.
+ */
 export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
   constructor(p: TurboDataItemSignerParams) {
     super(p);
