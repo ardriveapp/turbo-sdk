@@ -47,7 +47,7 @@ yarn add @ardrive/turbo-sdk
 ## Quick Start
 
 ```typescript
-import { TurboFactory } from '@ardrive/turbo-sdk';
+import { TurboFactory, ArweaveSigner } from '@ardrive/turbo-sdk';
 
 // load your JWK directly to authenticate
 const jwk = fs.readFileSync('./my-jwk.json');
