@@ -9,28 +9,31 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
-  - [NodeJS Environments](#nodejs)
-    - [CommonJS](#commonjs)
-    - [ESM](#esm)
-  - [Web Environments](#web)
-    - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
-    - [Browser](#browser)
+  - [Web](#web)
+  - [NodeJS](#nodejs)
   - [Typescript](#typescript)
+  - [Examples](#examples)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
+    - [`unauthenticated()`](#unauthenticated)
+    - [`authenticated()`](#authenticated)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
+    - [`getSupportedCurrencies()`](#getsupportedcurrencies)
+    - [`getSupportedCountries()`](#getsupportedcountries)
+    - [`getFiatToAR({ currency })`](#getfiattoar-currency-)
+    - [`getFiatRates()`](#getfiatrates)
+    - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
+    - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
+    - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
+    - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
+    - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
-- [Examples](./examples)
-  - [CJS](./examples/cjs/index.js)
-  - [ESM](./examples/esm/index.mjs)
-  - [Web](./examples/web/index.html)
+    - [`getBalance()`](#getbalance)
+    - [`getWincForFiat({ amount, promoCodes })`](#getwincforfiat-amount-promocodes-)
+    - [`createCheckoutSession({ amount, owner, promoCodes })`](#createcheckoutsession-amount-owner-promocodes-)
+    - [`uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`](#uploadfile-filestreamfactory-filesizefactory-signal-dataitemopts-)
+    - [`topUpWithTokens({ tokenAmount, feeMultiplier })`](#topupwithtokens-tokenamount-feemultiplier-)
 - [Developers](#developers)
-  - [Requirements](#requirements)
-  - [Setup & Build](#setup--build)
-  - [Testing](#testing)
-  - [Linting and Formatting](#linting--formatting)
-  - [Architecture](#architecture)
-- [Contributing](./CONTRIBUTING.md)
 
 ## Installation
 
@@ -156,198 +159,238 @@ import { TurboFactory } from '@ardrive/turbo-sdk/<node/web>';
 
 Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
 
+### Examples
+
+Examples are available in the [examples] directory. To run examples:
+
+- `yarn example:web` - opens up the example web page
+- `yarn example:cjs` - runs example CJS node script
+- `yarn example:esm` - runs example ESM node script
+
 ## APIs
 
 ### TurboFactory
 
-- `unauthenticated()` - Creates an instance of a client that accesses Turbo's unauthenticated services.
+#### `unauthenticated()`
 
-  ```typescript
-  const turbo = TurboFactory.unauthenticated();
-  ```
+Creates an instance of a client that accesses Turbo's unauthenticated services.
 
-- `authenticated()` - Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
+```typescript
+const turbo = TurboFactory.unauthenticated();
+```
 
-  ```typescript
-  const jwk = await arweave.crypto.generateJWK();
-  const turbo = TurboFactory.authenticated({ privateKey: jwk });
-  ```
+#### `authenticated()`
 
-  or
+Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
 
-  ```typescript
-  const signer = new ArweaveSigner(jwk);
-  const turbo = TurboFactory.authenticated({ signer });
-  ```
+```typescript
+const jwk = await arweave.crypto.generateJWK();
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+```
+
+or
+
+```typescript
+const signer = new ArweaveSigner(jwk);
+const turbo = TurboFactory.authenticated({ signer });
+```
 
 ### TurboUnauthenticatedClient
 
-- `getSupportedCurrencies()` - Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
+#### `getSupportedCurrencies()`
 
-  ```typescript
-  const currencies = await turbo.getSupportedCurrencies();
-  ```
+Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
 
-- `getSupportedCountries()` - Returns the list of countries supported by the Turbo Payment Service's top up workflow.
+```typescript
+const currencies = await turbo.getSupportedCurrencies();
+```
 
-  ```typescript
-  const countries = await turbo.getSupportedCountries();
-  ```
+#### `getSupportedCountries()`
 
-- `getFiatToAR({ currency })` - Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
+Returns the list of countries supported by the Turbo Payment Service's top up workflow.
 
-  ```typescript
-  const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
-  ```
+```typescript
+const countries = await turbo.getSupportedCountries();
+```
 
-- `getFiatRates()` - Returns the current fiat rates for 1 GiB of data for supported currencies, including all top-up adjustments and fees.
+#### `getFiatToAR({ currency })`
 
-  ```typescript
-  const rates = await turbo.getFiatRates();
-  ```
+Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
 
-- `getWincForFiat({ amount })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount. To leverage promo codes, see [TurboAuthenticatedClient].
+```typescript
+const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
+```
 
-  ```typescript
-  const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
-    await turbo.getWincForFiat({
-      amount: USD(100),
-      // promo codes require an authenticated client
-    });
-  ```
+#### `getFiatRates()`
 
-- `getUploadCosts({ bytes })` - Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
+Returns the current fiat rates for 1 GiB of data for supported currencies, including all top-up adjustments and fees.
 
-  ```typescript
-  const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
-  const { winc, adjustments } = uploadCostForFile;
-  ```
+```typescript
+const rates = await turbo.getFiatRates();
+```
 
-- `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })` - Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
+#### `getWincForFiat({ amount })`
 
-  ```typescript
-  const filePath = path.join(__dirname, './my-signed-data-item');
-  const dataItemSize = fs.statSync(filePath).size;
-  const uploadResponse = await turbo.uploadSignedDataItem({
-    dataItemStreamFactory: () => fs.createReadStream(filePath),
-    dataItemSizeFactory: () => dataItemSize,
-    signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount. To leverage promo codes, see [TurboAuthenticatedClient].
+
+```typescript
+const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+  await turbo.getWincForFiat({
+    amount: USD(100),
+    // promo codes require an authenticated client
   });
-  ```
+```
 
-- `createCheckoutSession({ amount, owner })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
+#### `getUploadCosts({ bytes })`
 
-  ```typescript
-  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
-    await turbo.createCheckoutSession({
-      amount: USD(10.0), // $10.00 USD
-      owner: publicArweaveAddress,
-      // promo codes require an authenticated client
-    });
+Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
 
-  // Open checkout session in a browser
-  if (process.platform === 'darwin') {
-    // macOS
-    exec(`open ${url}`);
-  } else if (process.platform === 'win32') {
-    // Windows
-    exec(`start "" "${url}"`, { shell: true });
-  } else {
-    // Linux/Unix
-    open(url);
-  }
-  ```
+```typescript
+const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
+const { winc, adjustments } = uploadCostForFile;
+```
 
-- `submitFundTransaction({ txId })` - Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
+#### `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`
 
-  - Note: Use this API if you've already executed your token transfer to the Turbo wallet. Otherwise, consider using `topUpWithTokens` to execute a new token transfer to the Turbo wallet and submit its resulting transaction ID for top up processing all in one go
+Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
 
-  ```typescript
-  const turbo = TurboFactory.unauthenticated(); // defaults to arweave token type
-  const { status, id, ...fundResult } = await turbo.submitFundTransaction({
-    txId: 'my-valid-arweave-fund-transaction-id',
+```typescript
+const filePath = path.join(__dirname, './my-signed-data-item');
+const dataItemSize = fs.statSync(filePath).size;
+const uploadResponse = await turbo.uploadSignedDataItem({
+  dataItemStreamFactory: () => fs.createReadStream(filePath),
+  dataItemSizeFactory: () => dataItemSize,
+  signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+});
+```
+
+#### `createCheckoutSession({ amount, owner })`
+
+Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
+
+```typescript
+const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+  await turbo.createCheckoutSession({
+    amount: USD(10.0), // $10.00 USD
+    owner: publicArweaveAddress,
+    // promo codes require an authenticated client
   });
-  ```
+
+// Open checkout session in a browser
+if (process.platform === 'darwin') {
+  // macOS
+  exec(`open ${url}`);
+} else if (process.platform === 'win32') {
+  // Windows
+  exec(`start "" "${url}"`, { shell: true });
+} else {
+  // Linux/Unix
+  open(url);
+}
+```
+
+#### `submitFundTransaction({ txId })`
+
+Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
+
+- Note: Use this API if you've already executed your token transfer to the Turbo wallet. Otherwise, consider using `topUpWithTokens` to execute a new token transfer to the Turbo wallet and submit its resulting transaction ID for top up processing all in one go
+
+```typescript
+const turbo = TurboFactory.unauthenticated(); // defaults to arweave token type
+const { status, id, ...fundResult } = await turbo.submitFundTransaction({
+  txId: 'my-valid-arweave-fund-transaction-id',
+});
+```
 
 ### TurboAuthenticatedClient
 
-- `getBalance()` - Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
+#### `getBalance()`
 
-  ```typescript
-  const { winc: balance } = await turbo.getBalance();
-  ```
+Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
 
-- `getWincForFiat({ amount, promoCodes })` - Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
+```typescript
+const { winc: balance } = await turbo.getBalance();
+```
 
-  ```typescript
-  const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
-    await turbo.getWincForFiat({
-      amount: USD(100),
-      promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
-    });
-  ```
+#### `getWincForFiat({ amount, promoCodes })`
 
-- `createCheckoutSession({ amount, owner, promoCodes })` - Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe. Promo codes require an authenticated client.
+Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
-  ```typescript
-  const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
-    await turbo.createCheckoutSession({
-      amount: USD(10.0), // $10.00 USD
-      owner: publicArweaveAddress,
-      promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
-    });
-
-  // Open checkout session in a browser
-  if (process.platform === 'darwin') {
-    // macOS
-    exec(`open ${url}`);
-  } else if (process.platform === 'win32') {
-    // Windows
-    exec(`start "" "${url}"`, { shell: true });
-  } else {
-    // Linux/Unix
-    open(url);
-  }
-  ```
-
-- `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })` - Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
-
-  ```typescript
-  const filePath = path.join(__dirname, './my-unsigned-file.txt');
-  const fileSize = fs.stateSync(filePath).size;
-  const uploadResult = await turbo.uploadFile({
-    fileStreamFactory: () => fs.createReadStream(filePath),
-    fileSizeFactory: () => fileSize,
-    dataItemOpts: {
-      // optional
-      tags: [
-        {
-          name: 'Content-Type',
-          value: 'text/plain',
-        },
-        {
-          name: 'My-Custom-Tag',
-          value: 'my-custom-value',
-        },
-      ],
-      // no timeout or AbortSignal provided
-    },
+```typescript
+const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+  await turbo.getWincForFiat({
+    amount: USD(100),
+    promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
   });
-  ```
+```
 
-- `topUpWithTokens({ tokenAmount, feeMultiplier })` - Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
+#### `createCheckoutSession({ amount, owner, promoCodes })`
 
-  - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
-  - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
+Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe. Promo codes require an authenticated client.
 
-  ```typescript
-  const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
-
-  const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-    tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
-    feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
+```typescript
+const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+  await turbo.createCheckoutSession({
+    amount: USD(10.0), // $10.00 USD
+    owner: publicArweaveAddress,
+    promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
   });
-  ```
+
+// Open checkout session in a browser
+if (process.platform === 'darwin') {
+  // macOS
+  exec(`open ${url}`);
+} else if (process.platform === 'win32') {
+  // Windows
+  exec(`start "" "${url}"`, { shell: true });
+} else {
+  // Linux/Unix
+  open(url);
+}
+```
+
+#### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`
+
+Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+
+```typescript
+const filePath = path.join(__dirname, './my-unsigned-file.txt');
+const fileSize = fs.stateSync(filePath).size;
+const uploadResult = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(filePath),
+  fileSizeFactory: () => fileSize,
+  dataItemOpts: {
+    // optional
+    tags: [
+      {
+        name: 'Content-Type',
+        value: 'text/plain',
+      },
+      {
+        name: 'My-Custom-Tag',
+        value: 'my-custom-value',
+      },
+    ],
+    // no timeout or AbortSignal provided
+  },
+});
+```
+
+#### `topUpWithTokens({ tokenAmount, feeMultiplier })`
+
+Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
+
+- The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
+- The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
+
+```typescript
+const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
+  feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
+});
+```
 
 ## Developers
 
