@@ -195,6 +195,20 @@ const signer = new ArweaveSigner(jwk);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
+or with ETH signer
+
+```typescript
+const signer = new EthereumSigner(privateKey);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+or with SOL signer
+
+```typescript
+const signer = new SolanaSigner(bs58.encode(secretKey));
+const turbo = TurboFactory.authenticated({ signer });
+```
+
 ### TurboUnauthenticatedClient
 
 #### `getSupportedCurrencies()`
