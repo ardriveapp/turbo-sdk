@@ -1,3 +1,11 @@
+# [1.6.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.5.0...v1.6.0) (2024-04-24)
+
+
+### Features
+
+* **top up:** allow eth/sol destination for fiat top up PE-6034 ([dabe123](https://github.com/ardriveapp/turbo-sdk/commit/dabe123270a55aa0167de0fec0029747cf639d8a))
+* **top up:** allow eth/sol destination for fiat top up PE-6034 ([8ca05ab](https://github.com/ardriveapp/turbo-sdk/commit/8ca05ab8c81cdee16bf7fb5ec36b42d6e8769ff1))
+
 # [1.5.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.4.2...v1.5.0) (2024-04-16)
 
 
