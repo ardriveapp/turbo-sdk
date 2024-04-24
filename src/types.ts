@@ -44,7 +44,7 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
+export const tokenTypes = ['arweave', 'solana', 'ethereum'] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
 export type TokenMap = {
