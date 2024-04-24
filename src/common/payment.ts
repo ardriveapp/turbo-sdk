@@ -17,9 +17,9 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  CreditableTokenType,
   Currency,
   TokenMap,
-  TokenType,
   TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
@@ -56,7 +56,7 @@ export class TurboUnauthenticatedPaymentService
 {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
-  protected readonly token: TokenType;
+  protected readonly token: CreditableTokenType;
 
   constructor({
     url = defaultPaymentServiceURL,
@@ -145,7 +145,7 @@ export class TurboUnauthenticatedPaymentService
       promoCodes.length > 0
         ? `&${this.appendPromoCodesToQuery(promoCodes)}`
         : ''
-    }`;
+    }&token=${this.token}`;
 
     const { adjustments, paymentSession, topUpQuote } =
       await this.httpService.get<TopUpRawResponse>({
@@ -286,6 +286,10 @@ export class TurboAuthenticatedPaymentService
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
+    if (!this.tokenMap[this.token]) {
+      throw new Error(`Token type not supported for crypto fund ${this.token}`);
+    }
+
     const tokenAmount = new BigNumber(tokenAmountV);
 
     const target = await this.getTargetWalletForFund();
