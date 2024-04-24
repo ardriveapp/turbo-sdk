@@ -26,7 +26,6 @@ import { Readable } from 'node:stream';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
-  CreditableTokenType,
   DataItemOptions,
   StreamSizeFactory,
   TurboDataItemSignerParams,
@@ -42,8 +41,6 @@ export { ArconnectSigner, ArweaveSigner, EthereumSigner, HexSolanaSigner };
  * Node implementation of TurboDataItemSigner.
  */
 export class TurboNodeSigner extends TurboDataItemAbstractSigner {
-  token: CreditableTokenType;
-
   constructor(p: TurboDataItemSignerParams) {
     super(p);
   }
