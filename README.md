@@ -289,6 +289,26 @@ if (process.platform === 'darwin') {
 }
 ```
 
+##### Top up to ETH or SOL wallets
+
+```ts
+const turbo = TurboFactory.unauthenticated({ token: 'ethereum' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicEthereumAddress,
+});
+```
+
+```ts
+const turbo = TurboFactory.unauthenticated({ token: 'solana' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicSolanaAddress,
+});
+```
+
 #### `submitFundTransaction({ txId })`
 
 Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
