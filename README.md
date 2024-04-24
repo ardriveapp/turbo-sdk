@@ -205,7 +205,7 @@ const turbo = TurboFactory.authenticated({ signer });
 or with SOL signer
 
 ```typescript
-const signer = new SolanaSigner(bs58.encode(secretKey));
+const signer = new HexSolanaSigner(bs58.encode(secretKey));
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
