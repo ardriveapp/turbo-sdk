@@ -18,6 +18,8 @@ import {
   ArconnectSigner,
   ArweaveSigner,
   DataItemCreateOptions,
+  EthereumSigner,
+  HexSolanaSigner,
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
@@ -238,7 +240,11 @@ export interface TurboLogger {
 export type DataItemOptions = DataItemCreateOptions;
 
 // Supported signers - we will continue to add more
-export type TurboSigner = ArconnectSigner | ArweaveSigner;
+export type TurboSigner =
+  | ArconnectSigner
+  | ArweaveSigner
+  | EthereumSigner
+  | HexSolanaSigner;
 
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
