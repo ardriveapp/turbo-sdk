@@ -245,7 +245,7 @@ export type TurboAuthenticatedConfiguration =
     privateKey?: TurboWallet;
     signer?: TurboSigner;
     tokenMap?: TokenMap;
-    token?: TokenType;
+    token?: AllowedFiatToken;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
