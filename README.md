@@ -349,6 +349,26 @@ if (process.platform === 'darwin') {
 }
 ```
 
+##### Top up to ETH or SOL wallets
+
+```ts
+const turbo = TurboFactory.unauthenticated({ token: 'ethereum' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicEthereumAddress,
+});
+```
+
+```ts
+const turbo = TurboFactory.unauthenticated({ token: 'solana' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicSolanaAddress,
+});
+```
+
 #### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`
 
 Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.

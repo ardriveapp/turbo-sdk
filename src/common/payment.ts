@@ -145,7 +145,7 @@ export class TurboUnauthenticatedPaymentService
       promoCodes.length > 0
         ? `&${this.appendPromoCodesToQuery(promoCodes)}`
         : ''
-    }`;
+    }&token=${this.token}`;
 
     const { adjustments, paymentSession, topUpQuote } =
       await this.httpService.get<TopUpRawResponse>({
