@@ -25,7 +25,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
     - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
     - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
-    - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)]
+    - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
     - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
     - [`getBalance()`](#getbalance)
