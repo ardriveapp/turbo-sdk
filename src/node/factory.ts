@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner } from 'arbundles';
+import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import { TurboBaseFactory } from '../common/factory.js';
 import {
@@ -23,7 +23,7 @@ import {
   TurboAuthenticatedUploadService,
 } from '../common/index.js';
 import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
-import { TurboNodeArweaveSigner } from './signer.js';
+import { TurboNodeSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {
   static authenticated({
@@ -32,18 +32,26 @@ export class TurboFactory extends TurboBaseFactory {
     paymentServiceConfig = {},
     uploadServiceConfig = {},
     tokenMap,
+    token,
   }: TurboAuthenticatedConfiguration) {
     let signer: TurboSigner;
 
     if (providedSigner) {
       signer = providedSigner;
+      if (!token) {
+        if (signer instanceof EthereumSigner) {
+          token = 'ethereum';
+        } else if (signer instanceof HexSolanaSigner) {
+          token = 'solana';
+        }
+      }
     } else if (privateKey) {
       signer = new ArweaveSigner(privateKey);
     } else {
       throw new Error('A privateKey or signer must be provided.');
     }
 
-    const turboSigner = new TurboNodeArweaveSigner({
+    const turboSigner = new TurboNodeSigner({
       signer,
       logger: this.logger,
     });

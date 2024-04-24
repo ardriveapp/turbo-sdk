@@ -17,6 +17,8 @@
 import {
   ArconnectSigner,
   ArweaveSigner,
+  EthereumSigner,
+  HexSolanaSigner,
   serializeTags,
   streamSigner,
 } from 'arbundles';
@@ -33,12 +35,12 @@ import { fromB64Url } from '../utils/base64.js';
 /**
  * Utility exports to avoid clients having to install arbundles
  */
-export { ArconnectSigner, ArweaveSigner };
+export { ArconnectSigner, ArweaveSigner, EthereumSigner, HexSolanaSigner };
 
 /**
  * Node implementation of TurboDataItemSigner.
  */
-export class TurboNodeArweaveSigner extends TurboDataItemAbstractSigner {
+export class TurboNodeSigner extends TurboDataItemAbstractSigner {
   constructor(p: TurboDataItemSignerParams) {
     super(p);
   }
@@ -98,9 +100,8 @@ export class TurboNodeArweaveSigner extends TurboDataItemAbstractSigner {
     const serializedTags = tags && tags.length > 0 ? serializeTags(tags) : null;
     const tagsLength = 16 + (serializedTags ? serializedTags.byteLength : 0);
 
-    // Arweave sig and owner length is 512 bytes
-    const signatureLength = 512;
-    const ownerLength = 512;
+    const { ownerLength, signatureLength } = this.sigConfig;
+
     const signatureTypeLength = 2;
 
     return [
