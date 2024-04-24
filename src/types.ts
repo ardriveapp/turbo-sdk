@@ -44,7 +44,11 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-export const tokenTypes = ['arweave', 'solana', 'ethereum'] as const;
+// TODO: Remove this var and Allow all tokens when crypto fund implemented for each PE-5993, PE-5992
+export const allowedFiatTokens = ['arweave', 'solana', 'ethereum'] as const;
+export type AllowedFiatToken = (typeof allowedFiatTokens)[number];
+
+export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
 export type TokenMap = {
@@ -201,7 +205,7 @@ type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: IAxiosRetryConfig;
   logger?: TurboLogger;
-  token?: TokenType;
+  token?: AllowedFiatToken;
 };
 
 export type TurboUnauthenticatedUploadServiceConfiguration =

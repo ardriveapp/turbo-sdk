@@ -17,6 +17,7 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  AllowedFiatToken,
   Currency,
   TokenMap,
   TokenType,
@@ -56,7 +57,7 @@ export class TurboUnauthenticatedPaymentService
 {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
-  protected readonly token: TokenType;
+  protected readonly token: AllowedFiatToken;
 
   constructor({
     url = defaultPaymentServiceURL,
@@ -286,6 +287,10 @@ export class TurboAuthenticatedPaymentService
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
+    if (!this.tokenMap[this.token]) {
+      throw new Error(`Token type not supported for crypto fund ${this.token}`);
+    }
+
     const tokenAmount = new BigNumber(tokenAmountV);
 
     const target = await this.getTargetWalletForFund();
