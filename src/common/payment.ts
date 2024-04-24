@@ -20,7 +20,6 @@ import {
   AllowedFiatToken,
   Currency,
   TokenMap,
-  TokenType,
   TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
