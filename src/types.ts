@@ -48,7 +48,7 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 
 // TODO: Remove this var and Allow all tokens when crypto fund implemented for each PE-5993, PE-5992
 export const allowedFiatTokens = ['arweave', 'solana', 'ethereum'] as const;
-export type AllowedFiatToken = (typeof allowedFiatTokens)[number];
+export type CreditableTokenType = (typeof allowedFiatTokens)[number];
 
 export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
 export type TokenType = (typeof tokenTypes)[number];
@@ -207,7 +207,7 @@ type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: IAxiosRetryConfig;
   logger?: TurboLogger;
-  token?: AllowedFiatToken;
+  token?: CreditableTokenType;
 };
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
@@ -251,7 +251,7 @@ export type TurboAuthenticatedConfiguration =
     privateKey?: TurboWallet;
     signer?: TurboSigner;
     tokenMap?: TokenMap;
-    token?: TokenType;
+    token?: CreditableTokenType;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
