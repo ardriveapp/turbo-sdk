@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.7.0...v1.7.1) (2024-04-25)
+
+
+### Bug Fixes
+
+* **signer:** use web signer if .window exists PE-6055 ([90cbd56](https://github.com/ardriveapp/turbo-sdk/commit/90cbd5624da8c63ab56a4ef516120df4a8831b65))
+
 # [1.7.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.7.0-alpha.1...v1.7.0-alpha.2) (2024-04-25)
 
 
