@@ -23,6 +23,7 @@ import {
   TurboAuthenticatedUploadService,
 } from '../common/index.js';
 import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
+import { TurboWebArweaveSigner } from '../web/signer.js';
 import { TurboNodeSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {
@@ -51,10 +52,18 @@ export class TurboFactory extends TurboBaseFactory {
       throw new Error('A privateKey or signer must be provided.');
     }
 
-    const turboSigner = new TurboNodeSigner({
-      signer,
-      logger: this.logger,
-    });
+    // when in browser, we use TurboWebArweaveSigner
+    const turboSigner =
+      typeof window !== 'undefined'
+        ? new TurboWebArweaveSigner({
+            signer,
+            logger: this.logger,
+          })
+        : new TurboNodeSigner({
+            signer,
+            logger: this.logger,
+          });
+
     const paymentService = new TurboAuthenticatedPaymentService({
       ...paymentServiceConfig,
       signer: turboSigner,
