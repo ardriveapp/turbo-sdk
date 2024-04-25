@@ -92,7 +92,11 @@ export class ArweaveToken implements TokenTools {
     tx.setOwner(publicKeyB64Url);
 
     const dataToSign = await tx.getSignatureData();
-    const signatureBuffer = Buffer.from(await signer.signData(dataToSign));
+
+    const signatureUint8Array = await signer.signData(dataToSign);
+
+    const signatureBuffer = Buffer.from(signatureUint8Array);
+
     const id = sha256B64Url(signatureBuffer);
 
     tx.setSignature({

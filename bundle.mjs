@@ -14,6 +14,7 @@ const bundle = () => {
       polyfillNode({
         polyfills: {
           crypto: true,
+          buffer: true,
         },
       }),
     ],
