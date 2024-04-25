@@ -1,5 +1,6 @@
 import Arweave from '@irys/arweave';
 import axios from 'axios';
+import bs58 from 'bs58';
 import { expect } from 'chai';
 import * as fs from 'fs';
 
@@ -55,11 +56,35 @@ export const turboDevelopmentConfigurations = {
 /**
  * Local wallet allow listed for tests
  */
-export const testWalletAddress = 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4'; // cspell:enable
+export const testWalletAddress = 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4';
 export const testJwk = JSON.parse(
   fs.readFileSync(
     new URL(`wallets/${testWalletAddress}.json`, import.meta.url).pathname,
     'utf-8',
+  ),
+);
+
+export const testEthAddressBase64 =
+  '3wfoux4MjIabQXIxtQ3h2jXs-FMAt3Uw1xmkbRcOtLE';
+export const testEthWallet = fs.readFileSync(
+  new URL(
+    `wallets/0x20c1DF6f3310600c8396111EB5182af9213828Dc.eth.pk.txt`,
+    import.meta.url,
+  ).pathname,
+  'utf-8',
+);
+
+export const testSolAddressBase64 =
+  'AlZOxuKT1uJTpCPb3FH76z31MunxMfQWfm7F1n2QiN4';
+export const testSolWallet = bs58.encode(
+  JSON.parse(
+    fs.readFileSync(
+      new URL(
+        `wallets/BTV1zY7njS5an91v9nphCK48d2vnMuecEgHLYiP25ycj.sol.sk.json`, // cspell:enable
+        import.meta.url,
+      ).pathname,
+      'utf-8',
+    ),
   ),
 );
 

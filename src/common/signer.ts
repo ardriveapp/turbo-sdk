@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
 
 import {
@@ -45,6 +46,27 @@ export abstract class TurboDataItemAbstractSigner
   constructor({ signer, logger }: TurboDataItemSignerParams) {
     this.logger = logger;
     this.signer = signer;
+  }
+
+  protected get sigConfig(): { ownerLength: number; signatureLength: number } {
+    if (this.signer instanceof EthereumSigner) {
+      return {
+        signatureLength: 65,
+        ownerLength: 65,
+      };
+    }
+    if (this.signer instanceof HexSolanaSigner) {
+      return {
+        signatureLength: 64,
+        ownerLength: 32,
+      };
+    }
+
+    // base case, arweave/arconnect signer
+    return {
+      ownerLength: 512,
+      signatureLength: 512,
+    };
   }
 
   public async generateSignedRequestHeaders() {

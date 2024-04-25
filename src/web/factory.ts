@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner } from 'arbundles';
+import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import { TurboBaseFactory } from '../common/factory.js';
 import {
@@ -38,6 +38,13 @@ export class TurboFactory extends TurboBaseFactory {
 
     if (providedSigner) {
       signer = providedSigner;
+      if (!token) {
+        if (signer instanceof EthereumSigner) {
+          token = 'ethereum';
+        } else if (signer instanceof HexSolanaSigner) {
+          token = 'solana';
+        }
+      }
     } else if (privateKey) {
       signer = new ArweaveSigner(privateKey);
     } else {

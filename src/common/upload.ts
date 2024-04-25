@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {
+  CreditableTokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
@@ -37,12 +38,15 @@ export class TurboUnauthenticatedUploadService
 {
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
+  protected token: CreditableTokenType;
 
   constructor({
     url = defaultUploadServiceURL,
     retryConfig,
     logger = new TurboWinstonLogger(),
+    token = 'arweave',
   }: TurboUnauthenticatedUploadServiceConfiguration) {
+    this.token = token;
     this.logger = logger;
     this.httpService = new TurboHTTPService({
       url: `${url}/v1`,
@@ -61,7 +65,7 @@ export class TurboUnauthenticatedUploadService
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
-      endpoint: `/tx`,
+      endpoint: `/tx/${this.token}`,
       signal,
       data: dataItemStreamFactory(),
       headers: {
@@ -84,8 +88,9 @@ export class TurboAuthenticatedUploadService
     retryConfig,
     signer,
     logger,
+    token,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger });
+    super({ url, retryConfig, logger, token });
     this.signer = signer;
   }
 
@@ -107,7 +112,7 @@ export class TurboAuthenticatedUploadService
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
-      endpoint: `/tx`,
+      endpoint: `/tx/${this.token}`,
       signal,
       data: signedDataItem,
       headers: {

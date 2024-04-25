@@ -1,4 +1,9 @@
-import { ArweaveSigner, createData } from 'arbundles';
+import {
+  ArweaveSigner,
+  EthereumSigner,
+  HexSolanaSigner,
+  createData,
+} from 'arbundles';
 import { CanceledError } from 'axios';
 import { expect } from 'chai';
 import fs from 'fs';
@@ -26,7 +31,11 @@ import {
   mineArLocalBlock,
   sendFundTransaction,
   testArweave,
+  testEthAddressBase64,
+  testEthWallet,
   testJwk,
+  testSolAddressBase64,
+  testSolWallet,
   testWalletAddress,
   turboDevelopmentConfigurations,
 } from './helpers.js';
@@ -55,6 +64,22 @@ describe('Node environment', () => {
     it('should return a TurboAuthenticatedClient when running in Node environment and an ArweaveSigner', async () => {
       const turbo = TurboFactory.authenticated({
         signer: new ArweaveSigner(testJwk),
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and an EthereumSigner', async () => {
+      const turbo = TurboFactory.authenticated({
+        signer: new EthereumSigner(testEthWallet),
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and a HexSolanaSigner', async () => {
+      const turbo = TurboFactory.authenticated({
+        signer: new HexSolanaSigner(testSolWallet),
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
@@ -574,6 +599,95 @@ describe('Node environment', () => {
         expect(error).to.be.instanceOf(Error);
         expect(error.message).to.contain('Failed to post transaction');
       });
+    });
+  });
+
+  describe('TurboAuthenticatedNodeClient with EthereumSigner', () => {
+    let turbo: TurboAuthenticatedClient;
+
+    const signer = new EthereumSigner(testEthWallet);
+    before(async () => {
+      turbo = TurboFactory.authenticated({
+        signer,
+        ...turboDevelopmentConfigurations,
+      });
+    });
+
+    it('should properly upload a Readable to turbo', async () => {
+      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+      const fileSize = fs.statSync(filePath).size;
+      const response = await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+      });
+      expect(response).to.not.be.undefined;
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('fastFinalityIndexes');
+      expect(response).to.have.property('dataCaches');
+      expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(testEthAddressBase64);
+    });
+
+    it('should properly upload a Buffer to turbo', async () => {
+      const signedDataItem = createData('signed data item', signer, {});
+      await signedDataItem.sign(signer);
+
+      const response = await turbo.uploadSignedDataItem({
+        dataItemStreamFactory: () => signedDataItem.getRaw(),
+        dataItemSizeFactory: () => signedDataItem.getRaw().length,
+      });
+
+      expect(response).to.not.be.undefined;
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('fastFinalityIndexes');
+      expect(response).to.have.property('dataCaches');
+      expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(testEthAddressBase64);
+    });
+  });
+
+  describe('TurboAuthenticatedNodeClient with HexSolanaSigner', () => {
+    let turbo: TurboAuthenticatedClient;
+
+    const signer = new HexSolanaSigner(testSolWallet);
+
+    before(async () => {
+      turbo = TurboFactory.authenticated({
+        signer,
+        ...turboDevelopmentConfigurations,
+      });
+    });
+
+    it('should properly upload a Readable to turbo', async () => {
+      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+      const fileSize = fs.statSync(filePath).size;
+      const response = await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+      });
+      expect(response).to.not.be.undefined;
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('fastFinalityIndexes');
+      expect(response).to.have.property('dataCaches');
+      expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(testSolAddressBase64);
+    });
+
+    it('should properly upload a Buffer to turbo', async () => {
+      const signedDataItem = createData('signed data item', signer, {});
+      await signedDataItem.sign(signer);
+
+      const response = await turbo.uploadSignedDataItem({
+        dataItemStreamFactory: () => signedDataItem.getRaw(),
+        dataItemSizeFactory: () => signedDataItem.getRaw().length,
+      });
+
+      expect(response).to.not.be.undefined;
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('fastFinalityIndexes');
+      expect(response).to.have.property('dataCaches');
+      expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(testSolAddressBase64);
     });
   });
 });
