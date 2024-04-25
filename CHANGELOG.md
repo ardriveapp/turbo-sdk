@@ -1,3 +1,11 @@
+# [1.7.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.6.0...v1.7.0) (2024-04-25)
+
+
+### Features
+
+* **upload:** allow eth and sol signing for upload PE-5941 ([bfcdc4b](https://github.com/ardriveapp/turbo-sdk/commit/bfcdc4b13fc18313034c39f80511cb9b58396fb8))
+* **upload:** allow eth/sol signer types PE-5941 ([9902501](https://github.com/ardriveapp/turbo-sdk/commit/99025013837afeeeaab7b66756296ea78538b62b))
+
 # [1.7.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.6.0...v1.7.0-alpha.1) (2024-04-24)
 
 
