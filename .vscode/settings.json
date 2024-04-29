@@ -9,6 +9,7 @@
     "iife",
     "irys",
     "Keypair",
+    "lamport",
     "lamports",
     "mocharc",
     "nacl",

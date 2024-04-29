@@ -341,3 +341,7 @@ export const tokenMap: TokenMap = {
   solana: (config: TokenConfig) => new SolanaToken(config),
   // ethereum: (config: TokenConfig) => new EthereumToken(config)
 } as const;
+
+export const lamportToTokenAmount = (winston: BigNumber.Value) => winston;
+export const SOLToTokenAmount = (sol: BigNumber.Value) =>
+  new BigNumber(sol).times(1e9).valueOf();
