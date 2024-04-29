@@ -14,62 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
-
 import { TurboBaseFactory } from '../common/factory.js';
-import {
-  TurboAuthenticatedClient,
-  TurboAuthenticatedPaymentService,
-  TurboAuthenticatedUploadService,
-} from '../common/index.js';
-import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
-import { TurboWebArweaveSigner } from './signer.js';
 
-export class TurboFactory extends TurboBaseFactory {
-  static authenticated({
-    privateKey,
-    signer: providedSigner,
-    paymentServiceConfig = {},
-    uploadServiceConfig = {},
-    tokenMap,
-    token,
-  }: TurboAuthenticatedConfiguration) {
-    let signer: TurboSigner;
-
-    if (providedSigner) {
-      signer = providedSigner;
-      if (!token) {
-        if (signer instanceof EthereumSigner) {
-          token = 'ethereum';
-        } else if (signer instanceof HexSolanaSigner) {
-          token = 'solana';
-        }
-      }
-    } else if (privateKey) {
-      signer = new ArweaveSigner(privateKey);
-    } else {
-      throw new Error('A privateKey or signer must be provided.');
-    }
-
-    const turboSigner = new TurboWebArweaveSigner({
-      signer,
-      logger: this.logger,
-    });
-    const paymentService = new TurboAuthenticatedPaymentService({
-      ...paymentServiceConfig,
-      signer: turboSigner,
-      logger: this.logger,
-      tokenMap,
-      token,
-    });
-    const uploadService = new TurboAuthenticatedUploadService({
-      ...uploadServiceConfig,
-      signer: turboSigner,
-      logger: this.logger,
-    });
-    return new TurboAuthenticatedClient({
-      uploadService,
-      paymentService,
-    });
-  }
-}
+export class TurboFactory extends TurboBaseFactory {}

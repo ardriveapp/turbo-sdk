@@ -50,12 +50,8 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 export const allowedFiatTokens = ['arweave', 'solana', 'ethereum'] as const;
 export type CreditableTokenType = (typeof allowedFiatTokens)[number];
 
-export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
+export const tokenTypes = ['arweave', 'solana' /* 'ethereum'*/] as const;
 export type TokenType = (typeof tokenTypes)[number];
-
-export type TokenMap = {
-  [key in TokenType]: TokenTools;
-};
 
 export type Adjustment = {
   name: string;
@@ -220,7 +216,7 @@ export type TurboUnauthenticatedPaymentServiceConfiguration =
 export type TurboAuthenticatedPaymentServiceConfiguration =
   TurboUnauthenticatedPaymentServiceConfiguration &
     TurboAuthConfiguration & {
-      tokenMap?: TokenMap;
+      tokenTools?: TokenTools;
     };
 
 export type TurboUnauthenticatedConfiguration = {
@@ -246,12 +242,19 @@ export type TurboSigner =
   | EthereumSigner
   | HexSolanaSigner;
 
+export type TokenPollingOptions = {
+  maxAttempts: number;
+  pollingIntervalMs: number;
+  initialBackoffMs: number;
+};
+
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
     signer?: TurboSigner;
-    tokenMap?: TokenMap;
+    tokenTools?: TokenTools;
     token?: CreditableTokenType;
+    gatewayUrl?: string;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {

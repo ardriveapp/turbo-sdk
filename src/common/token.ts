@@ -15,11 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import Arweave from '@irys/arweave';
+import {
+  Connection,
+  PublicKey,
+  RpcResponseAndContext,
+  SignatureStatus,
+  SystemProgram,
+  Transaction,
+} from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
+import bs58 from 'bs58';
 
 import {
   BaseTx,
   TokenCreateTxParams,
+  TokenPollingOptions,
   TokenTools,
   TurboLogger,
 } from '../types.js';
@@ -27,21 +37,16 @@ import { sha256B64Url, toB64Url } from '../utils/base64.js';
 import { sleep } from '../utils/common.js';
 import { TurboWinstonLogger } from './logger.js';
 
-type PollingOptions = {
-  maxAttempts: number;
-  pollingIntervalMs: number;
-  initialBackoffMs: number;
-};
-
 export class ArweaveToken implements TokenTools {
   protected logger: TurboLogger;
   protected arweave: Arweave;
   protected mintU: boolean;
-  protected pollingOptions: PollingOptions;
+  protected pollingOptions: TokenPollingOptions;
 
   constructor({
+    gatewayUrl = 'https://arweave.net',
     arweave = Arweave.init({
-      url: 'https://arweave.net',
+      url: gatewayUrl,
     }),
     logger = new TurboWinstonLogger(),
     mintU = true,
@@ -51,11 +56,12 @@ export class ArweaveToken implements TokenTools {
       initialBackoffMs: 7_000,
     },
   }: {
+    gatewayUrl?: string;
     arweave?: Arweave;
     logger?: TurboLogger;
     mintU?: boolean;
-    pollingOptions?: PollingOptions;
-  }) {
+    pollingOptions?: TokenPollingOptions;
+  } = {}) {
     this.arweave = arweave;
     this.logger = logger;
     this.mintU = mintU;
@@ -171,7 +177,7 @@ export class ArweaveToken implements TokenTools {
       if (response.status !== 200) {
         throw new Error(
           'Failed to post transaction -- ' +
-            `Status ${response.status}, ${response.statusText}`,
+            `Status ${response.status}, ${response.statusText}, ${response.data}`,
         );
       }
       this.logger.debug('Successfully posted fund transaction...', { tx });
@@ -190,3 +196,138 @@ export class ArweaveToken implements TokenTools {
 export const WinstonToTokenAmount = (winston: BigNumber.Value) => winston;
 export const ARToTokenAmount = (ar: BigNumber.Value) =>
   new BigNumber(ar).times(1e12).valueOf();
+
+export type SolTx = BaseTx & {
+  tx: Transaction;
+};
+
+export class SolanaToken implements TokenTools<SolTx> {
+  protected logger: TurboLogger;
+  protected connection: Connection;
+  protected gatewayUrl: string;
+  protected pollingOptions: TokenPollingOptions;
+
+  constructor({
+    logger = new TurboWinstonLogger(),
+    gatewayUrl = 'https://api.mainnet-beta.solana.com',
+    pollingOptions = {
+      maxAttempts: 10,
+      pollingIntervalMs: 3_000,
+      initialBackoffMs: 3_000,
+    },
+  }: TokenConfig = {}) {
+    this.logger = logger;
+
+    this.gatewayUrl = gatewayUrl;
+    this.connection = new Connection(gatewayUrl, 'confirmed');
+    this.pollingOptions = pollingOptions;
+  }
+
+  public async createSignedTx({
+    target,
+    tokenAmount,
+    signer,
+  }: TokenCreateTxParams): Promise<SolTx> {
+    const publicKey = new PublicKey(await signer.getPublicKey());
+
+    const tx = new Transaction({
+      feePayer: publicKey,
+      ...(await this.connection.getLatestBlockhash()),
+    });
+
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: new PublicKey(target),
+        lamports: +new BigNumber(tokenAmount),
+      }),
+    );
+
+    const serializedTx = tx.serializeMessage();
+    const signature = await signer.signData(serializedTx);
+
+    tx.addSignature(publicKey, Buffer.from(signature));
+
+    return { tx, id: bs58.encode(signature), reward: '0', target };
+  }
+
+  public async submitTx({ tx }: { tx: SolTx }): Promise<void> {
+    await this.connection.sendRawTransaction(tx.tx.serialize(), {
+      maxRetries: this.pollingOptions.maxAttempts,
+    });
+
+    await this.connection.confirmTransaction(
+      {
+        signature: tx.id,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        blockhash: tx.tx.recentBlockhash!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        lastValidBlockHeight: tx.tx.lastValidBlockHeight!,
+      },
+      'confirmed',
+    );
+  }
+
+  public async pollForTxBeingAvailable({
+    txId,
+  }: {
+    txId: string;
+  }): Promise<void> {
+    const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
+      this.pollingOptions;
+
+    this.logger.debug('Polling for transaction...', {
+      txId,
+      pollingOptions: this.pollingOptions,
+    });
+    await sleep(initialBackoffMs);
+
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      let status: RpcResponseAndContext<SignatureStatus | null> | undefined =
+        undefined;
+      attempts++;
+
+      try {
+        status = await this.connection.getSignatureStatus(txId);
+      } catch (err) {
+        // Continue retries when request errors
+        this.logger.debug('Failed to poll for transaction...', { err });
+      }
+
+      if (status && status.value && status.value.err !== null) {
+        throw new Error(`Transaction failed: ${status.value.err}`);
+      }
+
+      if (status && status.value && status.value.slot !== null) {
+        return;
+      }
+
+      this.logger.debug('Transaction not found, polling...', {
+        txId,
+        attempts,
+        maxAttempts,
+        pollingIntervalMs,
+      });
+      await sleep(pollingIntervalMs);
+    }
+
+    throw new Error(
+      'Transaction not found after polling, transaction id: ' + txId,
+    );
+  }
+}
+
+export type TokenConfig = {
+  gatewayUrl?: string;
+  logger?: TurboLogger;
+  pollingOptions?: TokenPollingOptions;
+};
+
+export type TokenMap = Record<string, (config: TokenConfig) => TokenTools>;
+
+export const tokenMap: TokenMap = {
+  arweave: (config: TokenConfig) => new ArweaveToken(config),
+  solana: (config: TokenConfig) => new SolanaToken(config),
+  // ethereum: (config: TokenConfig) => new EthereumToken(config)
+} as const;
