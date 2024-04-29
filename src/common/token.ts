@@ -250,7 +250,6 @@ export class SolanaToken implements TokenTools {
     );
 
     const serializedTx = tx.serializeMessage();
-    console.log('serializedTx', serializedTx);
     const signature = await signer.signData(serializedTx);
 
     tx.addSignature(publicKey, Buffer.from(signature));

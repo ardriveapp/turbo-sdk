@@ -15,6 +15,7 @@ import { USD } from '../src/common/currency.js';
 import {
   ARToTokenAmount,
   ArweaveToken,
+  SolanaToken,
   WinstonToTokenAmount,
 } from '../src/common/token.js';
 import {
@@ -35,6 +36,7 @@ import {
   testEthWallet,
   testJwk,
   testSolAddressBase64,
+  testSolBase58Address,
   testSolWallet,
   testWalletAddress,
   turboDevelopmentConfigurations,
@@ -647,10 +649,20 @@ describe('Node environment', () => {
 
     const signer = new HexSolanaSigner(testSolWallet);
 
+    const tokenTools = new SolanaToken({
+      gatewayUrl: 'https://api.devnet.solana.com',
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 10,
+        initialBackoffMs: 0,
+      },
+    });
+
     before(async () => {
       turbo = TurboFactory.authenticated({
         signer,
         ...turboDevelopmentConfigurations,
+        tokenTools,
       });
     });
 
@@ -684,6 +696,20 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testSolAddressBase64);
+    });
+
+    it('should topUpWithTokens() to a SOL wallet', async () => {
+      const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
+        {
+          tokenAmount: 100_000, // 0.0001 SOL
+        },
+      );
+
+      expect(id).to.be.a('string');
+      expect(target).to.be.a('string');
+      expect(winc).be.a('string');
+      expect(quantity).to.equal('100000');
+      expect(owner).to.equal(testSolBase58Address);
     });
   });
 });

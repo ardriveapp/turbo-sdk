@@ -77,9 +77,10 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-secret-key}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
+      SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com}
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
       - payment-service-pg
