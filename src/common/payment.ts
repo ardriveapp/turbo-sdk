@@ -294,7 +294,7 @@ export class TurboAuthenticatedPaymentService
       target,
     });
 
-    const fundTx = await this.tokenTools.createSignedTx({
+    const fundTx = await this.tokenTools.createAndSubmitTx({
       target,
       tokenAmount,
       feeMultiplier,
@@ -302,9 +302,6 @@ export class TurboAuthenticatedPaymentService
     });
 
     const txId = fundTx.id;
-
-    this.logger.debug('Submitting fund transaction...', { txId });
-    await this.tokenTools.submitTx({ tx: fundTx });
 
     try {
       // Let transaction settle some time

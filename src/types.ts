@@ -141,7 +141,7 @@ export type TurboSubmitFundTxResponse = {
 
 export type TurboCryptoFundResponse = TurboSubmitFundTxResponse & {
   target: string;
-  reward: string;
+  reward?: string;
 };
 
 export type TurboInfoResponse = {
@@ -409,10 +409,11 @@ export type TokenCreateTxParams = {
   signer: TurboDataItemSigner;
 };
 
-export type BaseTx = { id: string; target: string; reward: string };
-
-export interface TokenTools<T extends BaseTx = BaseTx> {
-  createSignedTx: (p: TokenCreateTxParams) => Promise<T>;
-  submitTx: (p: { tx: T }) => Promise<void>;
+export interface TokenTools {
+  createAndSubmitTx: (p: TokenCreateTxParams) => Promise<{
+    id: string;
+    target: string;
+    reward?: string;
+  }>;
   pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
 }

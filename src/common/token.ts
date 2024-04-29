@@ -27,7 +27,6 @@ import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
 
 import {
-  BaseTx,
   TokenCreateTxParams,
   TokenPollingOptions,
   TokenTools,
@@ -68,12 +67,16 @@ export class ArweaveToken implements TokenTools {
     this.pollingOptions = pollingOptions;
   }
 
-  public async createSignedTx({
+  public async createAndSubmitTx({
     feeMultiplier,
     target,
     tokenAmount,
     signer,
-  }: TokenCreateTxParams): Promise<BaseTx> {
+  }: TokenCreateTxParams): Promise<{
+    id: string;
+    target: string;
+    reward: string;
+  }> {
     const tx = await this.arweave.createTransaction({
       target,
       quantity: tokenAmount.toString(),
@@ -111,7 +114,10 @@ export class ArweaveToken implements TokenTools {
       signature: toB64Url(signatureBuffer),
     });
 
-    return tx;
+    this.logger.debug('Submitting fund transaction...', { id });
+    await this.submitTx(tx);
+
+    return { id, target, reward: tx.reward };
   }
 
   public async pollForTxBeingAvailable({
@@ -170,7 +176,8 @@ export class ArweaveToken implements TokenTools {
     );
   }
 
-  public async submitTx({ tx }: { tx: BaseTx }): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public async submitTx(tx: any): Promise<void> {
     try {
       const response = await this.arweave.transactions.post(tx);
 
@@ -197,11 +204,7 @@ export const WinstonToTokenAmount = (winston: BigNumber.Value) => winston;
 export const ARToTokenAmount = (ar: BigNumber.Value) =>
   new BigNumber(ar).times(1e12).valueOf();
 
-export type SolTx = BaseTx & {
-  tx: Transaction;
-};
-
-export class SolanaToken implements TokenTools<SolTx> {
+export class SolanaToken implements TokenTools {
   protected logger: TurboLogger;
   protected connection: Connection;
   protected gatewayUrl: string;
@@ -223,11 +226,15 @@ export class SolanaToken implements TokenTools<SolTx> {
     this.pollingOptions = pollingOptions;
   }
 
-  public async createSignedTx({
+  public async createAndSubmitTx({
     target,
     tokenAmount,
     signer,
-  }: TokenCreateTxParams): Promise<SolTx> {
+  }: TokenCreateTxParams): Promise<{
+    tx: Transaction;
+    id: string;
+    target: string;
+  }> {
     const publicKey = new PublicKey(await signer.getPublicKey());
 
     const tx = new Transaction({
@@ -248,21 +255,26 @@ export class SolanaToken implements TokenTools<SolTx> {
 
     tx.addSignature(publicKey, Buffer.from(signature));
 
-    return { tx, id: bs58.encode(signature), reward: '0', target };
+    const id = bs58.encode(signature);
+    await this.submitTx(tx, id);
+
+    return { tx, id, target };
   }
 
-  public async submitTx({ tx }: { tx: SolTx }): Promise<void> {
-    await this.connection.sendRawTransaction(tx.tx.serialize(), {
+  private async submitTx(tx: Transaction, id: string): Promise<void> {
+    this.logger.debug('Submitting fund transaction...', { id });
+
+    await this.connection.sendRawTransaction(tx.serialize(), {
       maxRetries: this.pollingOptions.maxAttempts,
     });
 
     await this.connection.confirmTransaction(
       {
-        signature: tx.id,
+        signature: id,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        blockhash: tx.tx.recentBlockhash!,
+        blockhash: tx.recentBlockhash!,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        lastValidBlockHeight: tx.tx.lastValidBlockHeight!,
+        lastValidBlockHeight: tx.lastValidBlockHeight!,
       },
       'confirmed',
     );
