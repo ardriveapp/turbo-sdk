@@ -231,7 +231,6 @@ export class SolanaToken implements TokenTools {
     tokenAmount,
     signer,
   }: TokenCreateTxParams): Promise<{
-    tx: Transaction;
     id: string;
     target: string;
   }> {
@@ -257,7 +256,7 @@ export class SolanaToken implements TokenTools {
     const id = bs58.encode(signature);
     await this.submitTx(tx, id);
 
-    return { tx, id, target };
+    return { id, target };
   }
 
   private async submitTx(tx: Transaction, id: string): Promise<void> {

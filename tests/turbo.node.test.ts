@@ -711,5 +711,23 @@ describe('Node environment', () => {
       expect(quantity).to.equal('100000');
       expect(owner).to.equal(testSolBase58Address);
     });
+
+    it('should fail to topUpWithTokens() to a SOL wallet if tx is stubbed to succeed but wont exist on chain', async () => {
+      stub(tokenTools, 'createAndSubmitTx').resolves({
+        id: 'stubbed-tx-id',
+        target: 'fake target',
+      });
+
+      await turbo
+        .topUpWithTokens({
+          tokenAmount: 100_000, // 0.0001 SOL
+        })
+        .catch((error) => {
+          expect(error).to.be.instanceOf(Error);
+          expect(error.message).to.contain(
+            'Failed to submit fund transaction!',
+          );
+        });
+    });
   });
 });
