@@ -14,29 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles/node';
-
-import { TurboNodeSigner } from '../node/signer.js';
-import {
-  TurboAuthenticatedConfiguration,
-  TurboSigner,
-  TurboUnauthenticatedConfiguration,
-} from '../types.js';
-import { TurboWebArweaveSigner } from '../web/signer.js';
+import { TurboUnauthenticatedConfiguration } from '../types.js';
 import { TurboWinstonLogger } from './logger.js';
-import {
-  TurboAuthenticatedPaymentService,
-  TurboUnauthenticatedPaymentService,
-} from './payment.js';
-import { tokenMap } from './token.js';
-import {
-  TurboAuthenticatedClient,
-  TurboUnauthenticatedClient,
-} from './turbo.js';
-import {
-  TurboAuthenticatedUploadService,
-  TurboUnauthenticatedUploadService,
-} from './upload.js';
+import { TurboUnauthenticatedPaymentService } from './payment.js';
+import { TurboUnauthenticatedClient } from './turbo.js';
+import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboBaseFactory {
   protected static logger = new TurboWinstonLogger();
@@ -62,78 +44,6 @@ export class TurboBaseFactory {
       logger: this.logger,
     });
     return new TurboUnauthenticatedClient({
-      uploadService,
-      paymentService,
-    });
-  }
-
-  static authenticated({
-    privateKey,
-    signer: providedSigner,
-    paymentServiceConfig = {},
-    uploadServiceConfig = {},
-    token,
-    gatewayUrl,
-    tokenTools,
-  }: TurboAuthenticatedConfiguration) {
-    let signer: TurboSigner;
-
-    if (providedSigner) {
-      signer = providedSigner;
-
-      // Derive token from signer if not provided
-      if (!token) {
-        if (signer instanceof EthereumSigner) {
-          token = 'ethereum';
-        } else if (signer instanceof HexSolanaSigner) {
-          token = 'solana';
-        }
-      }
-    } else if (privateKey) {
-      if (token === 'solana') {
-        // TODO: test wallet creation
-        signer = new HexSolanaSigner(privateKey);
-      } else {
-        signer = new ArweaveSigner(privateKey);
-      }
-    } else {
-      throw new Error('A privateKey or signer must be provided.');
-    }
-
-    // when in browser, we use TurboWebArweaveSigner
-    const turboSigner =
-      typeof window !== 'undefined'
-        ? new TurboWebArweaveSigner({
-            signer,
-            logger: this.logger,
-          })
-        : new TurboNodeSigner({
-            signer,
-            logger: this.logger,
-          });
-
-    token ??= 'arweave'; // default to arweave if token is not provided
-    if (!tokenTools) {
-      tokenTools = tokenMap[token]?.({
-        gatewayUrl,
-        logger: this.logger,
-      });
-    }
-
-    const paymentService = new TurboAuthenticatedPaymentService({
-      ...paymentServiceConfig,
-      signer: turboSigner,
-      logger: this.logger,
-      token,
-      tokenTools,
-    });
-    const uploadService = new TurboAuthenticatedUploadService({
-      ...uploadServiceConfig,
-      signer: turboSigner,
-      logger: this.logger,
-      token,
-    });
-    return new TurboAuthenticatedClient({
       uploadService,
       paymentService,
     });

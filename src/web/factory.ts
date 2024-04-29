@@ -14,6 +14,82 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TurboBaseFactory } from '../common/factory.js';
+import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
-export class TurboFactory extends TurboBaseFactory {}
+import { TurboBaseFactory } from '../common/factory.js';
+import {
+  TurboAuthenticatedClient,
+  TurboAuthenticatedPaymentService,
+  TurboAuthenticatedUploadService,
+  tokenMap,
+} from '../common/index.js';
+import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
+import { TurboWebArweaveSigner } from './signer.js';
+
+export class TurboFactory extends TurboBaseFactory {
+  static authenticated({
+    privateKey,
+    signer: providedSigner,
+    paymentServiceConfig = {},
+    uploadServiceConfig = {},
+    token,
+    gatewayUrl,
+    tokenTools,
+  }: TurboAuthenticatedConfiguration) {
+    let signer: TurboSigner;
+
+    if (providedSigner) {
+      signer = providedSigner;
+
+      // Derive token from signer if not provided
+      if (!token) {
+        if (signer instanceof EthereumSigner) {
+          token = 'ethereum';
+        } else if (signer instanceof HexSolanaSigner) {
+          token = 'solana';
+        }
+      }
+    } else if (privateKey) {
+      if (token === 'solana') {
+        // TODO: test wallet creation
+        signer = new HexSolanaSigner(privateKey);
+      } else {
+        signer = new ArweaveSigner(privateKey);
+      }
+    } else {
+      throw new Error('A privateKey or signer must be provided.');
+    }
+
+    // when in browser, we use TurboWebArweaveSigner
+    const turboSigner = new TurboWebArweaveSigner({
+      signer,
+      logger: this.logger,
+    });
+
+    token ??= 'arweave'; // default to arweave if token is not provided
+    if (!tokenTools) {
+      tokenTools = tokenMap[token]?.({
+        gatewayUrl,
+        logger: this.logger,
+      });
+    }
+
+    const paymentService = new TurboAuthenticatedPaymentService({
+      ...paymentServiceConfig,
+      signer: turboSigner,
+      logger: this.logger,
+      token,
+      tokenTools,
+    });
+    const uploadService = new TurboAuthenticatedUploadService({
+      ...uploadServiceConfig,
+      signer: turboSigner,
+      logger: this.logger,
+      token,
+    });
+    return new TurboAuthenticatedClient({
+      uploadService,
+      paymentService,
+    });
+  }
+}
