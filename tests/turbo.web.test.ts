@@ -321,16 +321,12 @@ describe('Browser environment', () => {
         initialBackoffMs: 0,
       },
     });
-    const tokenMap = {
-      arweave: arweaveToken,
-    };
 
     before(async () => {
       turbo = TurboFactory.authenticated({
         privateKey: testJwk,
         ...turboDevelopmentConfigurations,
-        // @ts-ignore
-        tokenMap,
+        tokenTools: arweaveToken,
       });
     });
 
