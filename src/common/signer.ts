@@ -14,9 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Keypair } from '@solana/web3.js';
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
-import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import nacl from 'tweetnacl';
 
@@ -90,11 +88,15 @@ export abstract class TurboDataItemAbstractSigner
 
   public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {
     if (this.signer instanceof HexSolanaSigner) {
-      const sk = bs58.encode(Buffer.from(this.signer.pk));
-      const kp = Keypair.fromSecretKey(bs58.decode(sk));
+      const privateKey = this.signer.key;
+      const publicKey = Uint8Array.from(await this.getPublicKey());
 
-      // TODO: Can We use the below instead?
-      const signature = nacl.sign.detached(dataToSign, kp.secretKey);
+      // Concatenate the private and public keys correctly
+      const combinedKey = new Uint8Array(privateKey.length + publicKey.length);
+      combinedKey.set(privateKey);
+      combinedKey.set(publicKey, privateKey.length);
+
+      const signature = nacl.sign.detached(dataToSign, combinedKey);
       return signature;
     }
 

@@ -76,13 +76,13 @@ export const testEthWallet = fs.readFileSync(
 
 export const testSolAddressBase64 =
   'AlZOxuKT1uJTpCPb3FH76z31MunxMfQWfm7F1n2QiN4';
+export const testSolBase58Address =
+  'BTV1zY7njS5an91v9nphCK48d2vnMuecEgHLYiP25ycj'; // cspell:enable
 export const testSolWallet = bs58.encode(
   JSON.parse(
     fs.readFileSync(
-      new URL(
-        `wallets/BTV1zY7njS5an91v9nphCK48d2vnMuecEgHLYiP25ycj.sol.sk.json`, // cspell:enable
-        import.meta.url,
-      ).pathname,
+      new URL(`wallets/${testSolBase58Address}.sol.sk.json`, import.meta.url)
+        .pathname,
       'utf-8',
     ),
   ),

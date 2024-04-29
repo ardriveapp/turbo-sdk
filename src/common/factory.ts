@@ -72,7 +72,7 @@ export class TurboBaseFactory {
     signer: providedSigner,
     paymentServiceConfig = {},
     uploadServiceConfig = {},
-    token = 'arweave',
+    token,
     gatewayUrl,
     tokenTools,
   }: TurboAuthenticatedConfiguration) {
@@ -112,6 +112,7 @@ export class TurboBaseFactory {
             logger: this.logger,
           });
 
+    token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
       tokenTools = tokenMap[token]?.({
         gatewayUrl,
@@ -123,12 +124,14 @@ export class TurboBaseFactory {
       ...paymentServiceConfig,
       signer: turboSigner,
       logger: this.logger,
+      token,
       tokenTools,
     });
     const uploadService = new TurboAuthenticatedUploadService({
       ...uploadServiceConfig,
       signer: turboSigner,
       logger: this.logger,
+      token,
     });
     return new TurboAuthenticatedClient({
       uploadService,
