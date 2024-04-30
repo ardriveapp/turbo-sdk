@@ -12,17 +12,17 @@ import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
 import {
-  ARToTokenAmount,
-  ArweaveToken,
-  SolanaToken,
-  WinstonToTokenAmount,
-} from '../src/common/token';
-import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { FailedRequestError } from '../src/utils/errors.js';
-import { TurboFactory } from '../src/web/index.js';
+import {
+  ARToTokenAmount,
+  ArweaveToken,
+  SolanaToken,
+  TurboFactory,
+  WinstonToTokenAmount,
+} from '../src/web/index.js';
 import {
   delayedBlockMining,
   fundArLocalWalletAddress,
