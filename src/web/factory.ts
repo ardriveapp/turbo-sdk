@@ -34,6 +34,7 @@ export class TurboFactory extends TurboBaseFactory {
     uploadServiceConfig = {},
     token,
     gatewayUrl,
+    tokenMap,
     tokenTools,
   }: TurboAuthenticatedConfiguration) {
     let signer: TurboSigner;
@@ -68,6 +69,9 @@ export class TurboFactory extends TurboBaseFactory {
 
     token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
+      if (tokenMap && token === 'arweave') {
+        tokenTools = tokenMap.arweave;
+      }
       tokenTools = defaultTokenMap[token]?.({
         gatewayUrl,
         logger: this.logger,

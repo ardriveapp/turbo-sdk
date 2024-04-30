@@ -252,6 +252,8 @@ export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
     signer?: TurboSigner;
+    /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
+    tokenMap?: TokenMap;
     tokenTools?: TokenTools;
     token?: CreditableTokenType;
     gatewayUrl?: string;
@@ -424,4 +426,7 @@ export type TokenConfig = {
   pollingOptions?: TokenPollingOptions;
 };
 
-export type TokenMap = Record<string, (config: TokenConfig) => TokenTools>;
+/** @deprecated -- This type was provided as a parameter in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl`  directly in the Factory constructor. This type will be removed in a v2 release  */
+export type TokenMap = { arweave: TokenTools };
+
+export type TokenFactory = Record<string, (config: TokenConfig) => TokenTools>;

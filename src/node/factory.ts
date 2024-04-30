@@ -32,6 +32,7 @@ export class TurboFactory extends TurboBaseFactory {
     paymentServiceConfig = {},
     uploadServiceConfig = {},
     token,
+    tokenMap,
     gatewayUrl,
     tokenTools,
   }: TurboAuthenticatedConfiguration) {
@@ -73,6 +74,9 @@ export class TurboFactory extends TurboBaseFactory {
 
     token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
+      if (tokenMap && token === 'arweave') {
+        tokenTools = tokenMap.arweave;
+      }
       tokenTools = defaultTokenMap[token]?.({
         gatewayUrl,
         logger: this.logger,
