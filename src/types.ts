@@ -188,7 +188,9 @@ export type TurboPostBalanceResponse =
       message: string;
     };
 
-export type TurboWallet = JWKInterface; // TODO: add other wallet types
+type Base58String = string;
+export type SolSecretKey = Base58String;
+export type TurboWallet = JWKInterface | SolSecretKey; // TODO: add other wallet types
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
