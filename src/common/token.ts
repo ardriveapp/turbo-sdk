@@ -215,8 +215,8 @@ export class SolanaToken implements TokenTools {
     gatewayUrl = 'https://api.mainnet-beta.solana.com',
     pollingOptions = {
       maxAttempts: 10,
-      pollingIntervalMs: 3_000,
-      initialBackoffMs: 3_000,
+      pollingIntervalMs: 5_000,
+      initialBackoffMs: 7_000,
     },
   }: TokenConfig = {}) {
     this.logger = logger;
@@ -274,7 +274,7 @@ export class SolanaToken implements TokenTools {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         lastValidBlockHeight: tx.lastValidBlockHeight!,
       },
-      'confirmed',
+      'finalized',
     );
   }
 
