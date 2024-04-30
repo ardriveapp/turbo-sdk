@@ -266,13 +266,21 @@ export class SolanaToken implements TokenTools {
       maxRetries: this.pollingOptions.maxAttempts,
     });
 
+    if (
+      tx.recentBlockhash === undefined ||
+      tx.lastValidBlockHeight === undefined
+    ) {
+      throw new Error(
+        'Failed to submit Transaction --  missing blockhash or lastValidBlockHeight from transaction creation. Solana Gateway Url:' +
+          this.gatewayUrl,
+      );
+    }
+
     await this.connection.confirmTransaction(
       {
         signature: id,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        blockhash: tx.recentBlockhash!,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        lastValidBlockHeight: tx.lastValidBlockHeight!,
+        blockhash: tx.recentBlockhash,
+        lastValidBlockHeight: tx.lastValidBlockHeight,
       },
       'finalized',
     );
