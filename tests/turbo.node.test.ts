@@ -31,6 +31,7 @@ import {
   getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
+  solanaUrlString,
   testArweave,
   testEthAddressBase64,
   testEthWallet,
@@ -650,7 +651,7 @@ describe('Node environment', () => {
     const signer = new HexSolanaSigner(testSolWallet);
 
     const tokenTools = new SolanaToken({
-      gatewayUrl: 'https://api.devnet.solana.com',
+      gatewayUrl: solanaUrlString,
       pollingOptions: {
         maxAttempts: 3,
         pollingIntervalMs: 10,

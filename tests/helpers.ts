@@ -88,11 +88,14 @@ export const testSolWallet = bs58.encode(
   ),
 );
 
-const urlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
-const arweaveUrl = new URL(urlString);
+const arweaveUrlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
+const arweaveUrl = new URL(arweaveUrlString);
 export const testArweave = Arweave.init({
   url: arweaveUrl,
 });
+
+export const solanaUrlString =
+  process.env.SOLANA_GATEWAY ?? 'https://api.devnet.solana.com';
 
 export async function fundArLocalWalletAddress(address: string): Promise<void> {
   await testArweave.api.get(`mint/${address}/9999999999999999`);
