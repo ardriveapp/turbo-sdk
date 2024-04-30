@@ -16,7 +16,7 @@ import {
   ArweaveToken,
   SolanaToken,
   WinstonToTokenAmount,
-} from '../src/common/token.js';
+} from '../src/common/token';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
