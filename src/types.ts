@@ -417,3 +417,11 @@ export interface TokenTools {
   }>;
   pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
 }
+
+export type TokenConfig = {
+  gatewayUrl?: string;
+  logger?: TurboLogger;
+  pollingOptions?: TokenPollingOptions;
+};
+
+export type TokenMap = Record<string, (config: TokenConfig) => TokenTools>;

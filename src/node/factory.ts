@@ -17,8 +17,8 @@
 import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import { TurboBaseFactory } from '../common/factory.js';
+import { defaultTokenMap } from '../common/index.js';
 import { TurboAuthenticatedPaymentService } from '../common/payment.js';
-import { tokenMap } from '../common/token.js';
 import { TurboAuthenticatedClient } from '../common/turbo.js';
 import { TurboAuthenticatedUploadService } from '../common/upload.js';
 import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
@@ -73,7 +73,7 @@ export class TurboFactory extends TurboBaseFactory {
 
     token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
-      tokenTools = tokenMap[token]?.({
+      tokenTools = defaultTokenMap[token]?.({
         gatewayUrl,
         logger: this.logger,
       });

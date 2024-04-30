@@ -21,7 +21,7 @@ import {
   TurboAuthenticatedClient,
   TurboAuthenticatedPaymentService,
   TurboAuthenticatedUploadService,
-  tokenMap,
+  defaultTokenMap,
 } from '../common/index.js';
 import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
 import { TurboWebArweaveSigner } from './signer.js';
@@ -68,7 +68,7 @@ export class TurboFactory extends TurboBaseFactory {
 
     token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
-      tokenTools = tokenMap[token]?.({
+      tokenTools = defaultTokenMap[token]?.({
         gatewayUrl,
         logger: this.logger,
       });

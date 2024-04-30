@@ -14,7 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { EthereumSigner, HexSolanaSigner } from 'arbundles';
+import {
+  EthereumSigner,
+  HexInjectedSolanaSigner,
+  HexSolanaSigner,
+} from 'arbundles';
 import { randomBytes } from 'crypto';
 import nacl from 'tweetnacl';
 
