@@ -19,7 +19,7 @@ import { BigNumber } from 'bignumber.js';
 import {
   CreditableTokenType,
   Currency,
-  TokenMap,
+  TokenTools,
   TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
@@ -46,7 +46,6 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
-import { ArweaveToken } from './token.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
@@ -218,7 +217,7 @@ export class TurboAuthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
   protected readonly signer: TurboDataItemSigner;
-  protected readonly tokenMap: TokenMap;
+  protected readonly tokenTools: TokenTools | undefined;
 
   constructor({
     url = defaultPaymentServiceURL,
@@ -226,15 +225,11 @@ export class TurboAuthenticatedPaymentService
     signer,
     logger = new TurboWinstonLogger(),
     token = 'arweave',
-    tokenMap = {
-      arweave: new ArweaveToken({
-        logger,
-      }),
-    },
+    tokenTools,
   }: TurboAuthenticatedPaymentServiceConfiguration) {
     super({ url, retryConfig, logger, token });
     this.signer = signer;
-    this.tokenMap = tokenMap;
+    this.tokenTools = tokenTools;
   }
 
   public async getBalance(): Promise<TurboBalanceResponse> {
@@ -286,7 +281,7 @@ export class TurboAuthenticatedPaymentService
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
-    if (!this.tokenMap[this.token]) {
+    if (!this.tokenTools) {
       throw new Error(`Token type not supported for crypto fund ${this.token}`);
     }
 
@@ -299,7 +294,7 @@ export class TurboAuthenticatedPaymentService
       target,
     });
 
-    const fundTx = await this.tokenMap[this.token].createSignedTx({
+    const fundTx = await this.tokenTools.createAndSubmitTx({
       target,
       tokenAmount,
       feeMultiplier,
@@ -308,12 +303,9 @@ export class TurboAuthenticatedPaymentService
 
     const txId = fundTx.id;
 
-    this.logger.debug('Submitting fund transaction...', { txId });
-    await this.tokenMap[this.token].submitTx({ tx: fundTx });
-
     try {
       // Let transaction settle some time
-      await this.tokenMap[this.token].pollForTxBeingAvailable({ txId });
+      await this.tokenTools.pollForTxBeingAvailable({ txId });
 
       return {
         ...(await this.submitFundTransaction({ txId })),

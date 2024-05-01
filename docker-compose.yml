@@ -80,6 +80,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
+      SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com}
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
       - payment-service-pg
