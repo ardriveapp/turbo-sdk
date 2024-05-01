@@ -121,6 +121,26 @@ describe('Browser environment', () => {
         }),
       ).to.throw('A privateKey or signer must be provided.');
     });
+
+    it('should construct a TurboAuthenticatedClient with a provided deprecated tokenMap', async () => {
+      const tokenMap = {
+        arweave: new ArweaveToken({
+          arweave: testArweave,
+          pollingOptions: {
+            maxAttempts: 3,
+            pollingIntervalMs: 10,
+            initialBackoffMs: 0,
+          },
+        }),
+      };
+
+      const turbo = TurboFactory.authenticated({
+        privateKey: testJwk,
+        tokenMap,
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
   });
 
   describe('TurboUnauthenticatedWebClient', () => {
