@@ -191,6 +191,10 @@ export type TurboPostBalanceResponse =
 type Base58String = string;
 export type SolSecretKey = Base58String;
 export type TurboWallet = JWKInterface | SolSecretKey; // TODO: add other wallet types
+
+export const isJWK = (wallet: TurboWallet): wallet is JWKInterface =>
+  (wallet as JWKInterface).kty !== undefined;
+
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;

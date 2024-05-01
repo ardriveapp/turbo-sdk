@@ -30,6 +30,7 @@ import {
   TurboAuthenticatedConfiguration,
   TurboSigner,
   TurboWallet,
+  isJWK,
 } from '../types.js';
 import { TurboWebArweaveSigner } from './signer.js';
 
@@ -46,10 +47,11 @@ export class TurboFactory extends TurboBaseFactory {
     } else if (providedPrivateKey !== undefined) {
       if (token === 'solana') {
         signer = new HexSolanaSigner(providedPrivateKey);
-
-        // TODO: else if ethereum signer
+        // TODO: else if (token === 'ethereum') {signer = new EthereumSigner(providedPrivateKey);}
       } else {
-        // TODO: consider typecheck key for jwk fields over `as`
+        if (!isJWK(providedPrivateKey)) {
+          throw new Error('A JWK must be provided for ArweaveSigner.');
+        }
         signer = new ArweaveSigner(providedPrivateKey as JWKInterface);
       }
     } else {

@@ -56,6 +56,7 @@ describe('Node environment', () => {
       );
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
+
     it('should return a TurboAuthenticatedClient when running in Node environment and provided a privateKey', async () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testJwk,
@@ -86,6 +87,25 @@ describe('Node environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
+      const turbo = TurboFactory.authenticated({
+        privateKey: testSolWallet,
+        token: 'solana',
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Arweave signer', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          privateKey: testSolWallet,
+          token: 'arweave',
+          ...turboDevelopmentConfigurations,
+        }),
+      ).to.throw('A JWK must be provided for ArweaveSigner.');
     });
 
     it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
