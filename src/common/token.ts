@@ -34,6 +34,7 @@ import {
 } from '../types.js';
 import { sha256B64Url, toB64Url } from '../utils/base64.js';
 import { sleep } from '../utils/common.js';
+import { EthereumToken } from './ethereum.js';
 import { TurboWinstonLogger } from './logger.js';
 
 export class ArweaveToken implements TokenTools {
@@ -339,7 +340,7 @@ export type TokenMap = Record<string, (config: TokenConfig) => TokenTools>;
 export const tokenMap: TokenMap = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
   solana: (config: TokenConfig) => new SolanaToken(config),
-  // ethereum: (config: TokenConfig) => new EthereumToken(config)
+  ethereum: (config: TokenConfig) => new EthereumToken(config),
 } as const;
 
 export const lamportToTokenAmount = (winston: BigNumber.Value) => winston;

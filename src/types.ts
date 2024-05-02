@@ -23,6 +23,7 @@ import {
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
+import { Provider as EthereumProvider } from 'ethers';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
@@ -328,6 +329,11 @@ export type SendFundTxParams = {
   feeMultiplier?: number | undefined;
 };
 
+export type SendTxWithSignerParams = SendFundTxParams & {
+  // TODO: Allow more abstract providers
+  provider: EthereumProvider;
+};
+
 export type TurboDataItemSignerParams = {
   logger: TurboLogger;
   signer: TurboSigner;
@@ -342,6 +348,7 @@ export interface TurboDataItemSigner {
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   getPublicKey(): Promise<Buffer>;
+  sendTransaction(p: SendTxWithSignerParams): Promise<string>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
