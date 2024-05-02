@@ -15,27 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import Arweave from '@irys/arweave';
-import {
-  Connection,
-  PublicKey,
-  RpcResponseAndContext,
-  SignatureStatus,
-  SystemProgram,
-  Transaction,
-} from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
-import bs58 from 'bs58';
 
 import {
   TokenCreateTxParams,
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
-} from '../types.js';
-import { sha256B64Url, toB64Url } from '../utils/base64.js';
-import { sleep } from '../utils/common.js';
-import { EthereumToken } from './ethereum.js';
-import { TurboWinstonLogger } from './logger.js';
+} from '../../types.js';
+import { sha256B64Url, toB64Url } from '../../utils/base64.js';
+import { sleep } from '../../utils/common.js';
+import { TurboWinstonLogger } from '../logger.js';
 
 export class ArweaveToken implements TokenTools {
   protected logger: TurboLogger;
@@ -204,145 +194,3 @@ export class ArweaveToken implements TokenTools {
 export const WinstonToTokenAmount = (winston: BigNumber.Value) => winston;
 export const ARToTokenAmount = (ar: BigNumber.Value) =>
   new BigNumber(ar).times(1e12).valueOf();
-
-export class SolanaToken implements TokenTools {
-  protected logger: TurboLogger;
-  protected connection: Connection;
-  protected gatewayUrl: string;
-  protected pollingOptions: TokenPollingOptions;
-
-  constructor({
-    logger = new TurboWinstonLogger(),
-    gatewayUrl = 'https://api.mainnet-beta.solana.com',
-    pollingOptions = {
-      maxAttempts: 10,
-      pollingIntervalMs: 3_000,
-      initialBackoffMs: 3_000,
-    },
-  }: TokenConfig = {}) {
-    this.logger = logger;
-
-    this.gatewayUrl = gatewayUrl;
-    this.connection = new Connection(gatewayUrl, 'confirmed');
-    this.pollingOptions = pollingOptions;
-  }
-
-  public async createAndSubmitTx({
-    target,
-    tokenAmount,
-    signer,
-  }: TokenCreateTxParams): Promise<{
-    id: string;
-    target: string;
-  }> {
-    const publicKey = new PublicKey(bs58.encode(await signer.getPublicKey()));
-    const tx = new Transaction({
-      feePayer: publicKey,
-      ...(await this.connection.getLatestBlockhash()),
-    });
-
-    tx.add(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: new PublicKey(target),
-        lamports: +new BigNumber(tokenAmount),
-      }),
-    );
-
-    const serializedTx = tx.serializeMessage();
-    const signature = await signer.signData(serializedTx);
-
-    tx.addSignature(publicKey, Buffer.from(signature));
-
-    const id = bs58.encode(signature);
-    await this.submitTx(tx, id);
-
-    return { id, target };
-  }
-
-  private async submitTx(tx: Transaction, id: string): Promise<void> {
-    this.logger.debug('Submitting fund transaction...', { id });
-
-    await this.connection.sendRawTransaction(tx.serialize(), {
-      maxRetries: this.pollingOptions.maxAttempts,
-    });
-
-    await this.connection.confirmTransaction(
-      {
-        signature: id,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        blockhash: tx.recentBlockhash!,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        lastValidBlockHeight: tx.lastValidBlockHeight!,
-      },
-      'confirmed',
-    );
-  }
-
-  public async pollForTxBeingAvailable({
-    txId,
-  }: {
-    txId: string;
-  }): Promise<void> {
-    const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
-      this.pollingOptions;
-
-    this.logger.debug('Polling for transaction...', {
-      txId,
-      pollingOptions: this.pollingOptions,
-    });
-    await sleep(initialBackoffMs);
-
-    let attempts = 0;
-    while (attempts < maxAttempts) {
-      let status: RpcResponseAndContext<SignatureStatus | null> | undefined =
-        undefined;
-      attempts++;
-
-      try {
-        status = await this.connection.getSignatureStatus(txId);
-      } catch (err) {
-        // Continue retries when request errors
-        this.logger.debug('Failed to poll for transaction...', { err });
-      }
-
-      if (status && status.value && status.value.err !== null) {
-        throw new Error(`Transaction failed: ${status.value.err}`);
-      }
-
-      if (status && status.value && status.value.slot !== null) {
-        return;
-      }
-
-      this.logger.debug('Transaction not found, polling...', {
-        txId,
-        attempts,
-        maxAttempts,
-        pollingIntervalMs,
-      });
-      await sleep(pollingIntervalMs);
-    }
-
-    throw new Error(
-      'Transaction not found after polling, transaction id: ' + txId,
-    );
-  }
-}
-
-export type TokenConfig = {
-  gatewayUrl?: string;
-  logger?: TurboLogger;
-  pollingOptions?: TokenPollingOptions;
-};
-
-export type TokenMap = Record<string, (config: TokenConfig) => TokenTools>;
-
-export const tokenMap: TokenMap = {
-  arweave: (config: TokenConfig) => new ArweaveToken(config),
-  solana: (config: TokenConfig) => new SolanaToken(config),
-  ethereum: (config: TokenConfig) => new EthereumToken(config),
-} as const;
-
-export const lamportToTokenAmount = (winston: BigNumber.Value) => winston;
-export const SOLToTokenAmount = (sol: BigNumber.Value) =>
-  new BigNumber(sol).times(1e9).valueOf();

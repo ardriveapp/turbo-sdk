@@ -21,12 +21,49 @@ import {
   TurboAuthenticatedClient,
   TurboAuthenticatedPaymentService,
   TurboAuthenticatedUploadService,
-  tokenMap,
+  defaultTokenMap,
 } from '../common/index.js';
-import { TurboAuthenticatedConfiguration, TurboSigner } from '../types.js';
+import { JWKInterface } from '../common/jwk.js';
+import { TurboDataItemAbstractSigner } from '../common/signer.js';
+import {
+  CreditableTokenType,
+  TurboAuthenticatedConfiguration,
+  TurboSigner,
+  TurboWallet,
+  isJWK,
+} from '../types.js';
 import { TurboWebArweaveSigner } from './signer.js';
 
 export class TurboFactory extends TurboBaseFactory {
+  protected static getSigner(
+    providedSigner: TurboSigner | undefined,
+    providedPrivateKey: TurboWallet | undefined,
+    token: CreditableTokenType,
+  ): TurboDataItemAbstractSigner {
+    let signer: TurboSigner;
+
+    if (providedSigner !== undefined) {
+      signer = providedSigner;
+    } else if (providedPrivateKey !== undefined) {
+      if (token === 'solana') {
+        signer = new HexSolanaSigner(providedPrivateKey);
+        // TODO: else if (token === 'ethereum') {signer = new EthereumSigner(providedPrivateKey);}
+      } else {
+        if (!isJWK(providedPrivateKey)) {
+          throw new Error('A JWK must be provided for ArweaveSigner.');
+        }
+        signer = new ArweaveSigner(providedPrivateKey as JWKInterface);
+      }
+    } else {
+      throw new Error('A privateKey or signer must be provided.');
+    }
+
+    return new TurboWebArweaveSigner({
+      signer,
+      logger: this.logger,
+    });
+  }
+
   static authenticated({
     privateKey,
     signer: providedSigner,
@@ -34,41 +71,32 @@ export class TurboFactory extends TurboBaseFactory {
     uploadServiceConfig = {},
     token,
     gatewayUrl,
+    tokenMap,
     tokenTools,
   }: TurboAuthenticatedConfiguration) {
-    let signer: TurboSigner;
-
-    if (providedSigner) {
-      signer = providedSigner;
-
-      // Derive token from signer if not provided
-      if (!token) {
-        if (signer instanceof EthereumSigner) {
+    if (!token) {
+      if (providedSigner) {
+        // Derive token from signer if not provided
+        if (providedSigner instanceof EthereumSigner) {
           token = 'ethereum';
-        } else if (signer instanceof HexSolanaSigner) {
+        } else if (providedSigner instanceof HexSolanaSigner) {
           token = 'solana';
+        } else {
+          token = 'arweave';
         }
-      }
-    } else if (privateKey) {
-      if (token === 'solana') {
-        // TODO: test wallet creation
-        signer = new HexSolanaSigner(privateKey);
       } else {
-        signer = new ArweaveSigner(privateKey);
+        token = 'arweave';
       }
-    } else {
-      throw new Error('A privateKey or signer must be provided.');
     }
 
-    // when in browser, we use TurboWebArweaveSigner
-    const turboSigner = new TurboWebArweaveSigner({
-      signer,
-      logger: this.logger,
-    });
+    const turboSigner = this.getSigner(providedSigner, privateKey, token);
 
     token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
-      tokenTools = tokenMap[token]?.({
+      if (tokenMap && token === 'arweave') {
+        tokenTools = tokenMap.arweave;
+      }
+      tokenTools = defaultTokenMap[token]?.({
         gatewayUrl,
         logger: this.logger,
       });

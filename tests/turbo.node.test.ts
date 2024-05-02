@@ -17,7 +17,7 @@ import {
   ArweaveToken,
   SolanaToken,
   WinstonToTokenAmount,
-} from '../src/common/token.js';
+} from '../src/common/token/index.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -31,6 +31,7 @@ import {
   getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
+  solanaUrlString,
   testArweave,
   testEthAddressBase64,
   testEthWallet,
@@ -55,6 +56,7 @@ describe('Node environment', () => {
       );
       expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
     });
+
     it('should return a TurboAuthenticatedClient when running in Node environment and provided a privateKey', async () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testJwk,
@@ -87,12 +89,51 @@ describe('Node environment', () => {
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
 
+    it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
+      const turbo = TurboFactory.authenticated({
+        privateKey: testSolWallet,
+        token: 'solana',
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Arweave signer', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          privateKey: testSolWallet,
+          token: 'arweave',
+          ...turboDevelopmentConfigurations,
+        }),
+      ).to.throw('A JWK must be provided for ArweaveSigner.');
+    });
+
     it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
       expect(() =>
         TurboFactory.authenticated({
           ...turboDevelopmentConfigurations,
         }),
       ).to.throw('A privateKey or signer must be provided.');
+    });
+
+    it('should construct a TurboAuthenticatedClient with a provided deprecated tokenMap', async () => {
+      const tokenMap = {
+        arweave: new ArweaveToken({
+          arweave: testArweave,
+          pollingOptions: {
+            maxAttempts: 3,
+            pollingIntervalMs: 10,
+            initialBackoffMs: 0,
+          },
+        }),
+      };
+
+      const turbo = TurboFactory.authenticated({
+        privateKey: testJwk,
+        tokenMap,
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
   });
 
@@ -650,7 +691,7 @@ describe('Node environment', () => {
     const signer = new HexSolanaSigner(testSolWallet);
 
     const tokenTools = new SolanaToken({
-      gatewayUrl: 'https://api.devnet.solana.com',
+      gatewayUrl: solanaUrlString,
       pollingOptions: {
         maxAttempts: 3,
         pollingIntervalMs: 10,

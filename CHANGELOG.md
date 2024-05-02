@@ -1,3 +1,17 @@
+# [1.8.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.7.1...v1.8.0) (2024-05-02)
+
+
+### Features
+
+* **solana payments:** init solana token tools for sol payment PE-5993 ([e5ab6a9](https://github.com/ardriveapp/turbo-sdk/commit/e5ab6a9839c5f4fdfeaf6b85d80ae02821336c82))
+
+# [1.8.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.7.1...v1.8.0-alpha.1) (2024-05-01)
+
+
+### Features
+
+* **solana payments:** init solana token tools for sol payment PE-5993 ([e5ab6a9](https://github.com/ardriveapp/turbo-sdk/commit/e5ab6a9839c5f4fdfeaf6b85d80ae02821336c82))
+
 ## [1.7.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.7.0...v1.7.1) (2024-04-25)
 
 
