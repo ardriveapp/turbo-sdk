@@ -17,13 +17,13 @@
 import { ethers } from 'ethers';
 
 import {
+  TokenConfig,
   TokenCreateTxParams,
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
 } from '../types.js';
 import { TurboWinstonLogger } from './logger.js';
-import { TokenConfig } from './token.js';
 
 export class EthereumToken implements TokenTools {
   protected logger: TurboLogger;
@@ -56,9 +56,11 @@ export class EthereumToken implements TokenTools {
     id: string;
     target: string;
   }> {
+    // convert wei to eth
+    const eth = tokenAmount.shiftedBy(-18);
     const txId = await signer.sendTransaction({
       target,
-      tokenAmount,
+      amount: eth,
       provider: this.rpcProvider,
     });
 

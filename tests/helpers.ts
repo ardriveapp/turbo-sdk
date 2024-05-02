@@ -66,11 +66,11 @@ export const testJwk = JSON.parse(
 
 export const testEthAddressBase64 =
   '3wfoux4MjIabQXIxtQ3h2jXs-FMAt3Uw1xmkbRcOtLE';
+export const testEthNativeAddress =
+  '0x20c1df6f3310600c8396111eb5182af9213828dc';
 export const testEthWallet = fs.readFileSync(
-  new URL(
-    `wallets/0x20c1DF6f3310600c8396111EB5182af9213828Dc.eth.pk.txt`,
-    import.meta.url,
-  ).pathname,
+  new URL(`wallets/${testEthNativeAddress}.eth.pk.txt`, import.meta.url)
+    .pathname,
   'utf-8',
 );
 
@@ -96,6 +96,9 @@ export const testArweave = Arweave.init({
 
 export const solanaUrlString =
   process.env.SOLANA_GATEWAY ?? 'https://api.devnet.solana.com';
+
+export const ethereumGatewayUrl =
+  process.env.ETHEREUM_GATEWAY ?? 'http://localhost:8545';
 
 export async function fundArLocalWalletAddress(address: string): Promise<void> {
   await testArweave.api.get(`mint/${address}/9999999999999999`);

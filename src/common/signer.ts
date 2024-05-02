@@ -92,7 +92,7 @@ export abstract class TurboDataItemAbstractSigner
   /** Let the signer handle sending tx for better compat with cross chain libraries/web wallets */
   public async sendTransaction({
     target,
-    tokenAmount,
+    amount,
     provider,
   }: SendTxWithSignerParams): Promise<string> {
     if (!(this.signer instanceof EthereumSigner)) {
@@ -100,21 +100,18 @@ export abstract class TurboDataItemAbstractSigner
         'Only EthereumSigner is supported for sendTransaction API currently!',
       );
     }
-    const keyAsStringFromUint8Array = this.signer.key.toString();
-    console.log('keyAsStringfromUint8Array', keyAsStringFromUint8Array);
+    const keyAsStringFromUint8Array = Buffer.from(this.signer.key).toString(
+      'hex',
+    );
     const ethWalletAndProvider = new EthereumWallet(
       keyAsStringFromUint8Array,
       provider,
     );
 
-    // convert wei to eth
-    const eth = tokenAmount.shiftedBy(18).toString();
-
     const tx = await ethWalletAndProvider.sendTransaction({
       to: target,
-      value: parseEther(eth),
+      value: parseEther(amount.toFixed(18)),
     });
-
     await tx.wait();
 
     return tx.hash;

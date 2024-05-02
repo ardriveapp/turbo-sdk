@@ -23,7 +23,7 @@ import {
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
-import { Provider as EthereumProvider } from 'ethers';
+import { JsonRpcApiProvider as EthereumProvider } from 'ethers';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
@@ -47,11 +47,7 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-// TODO: Remove this var and Allow all tokens when crypto fund implemented for each PE-5993, PE-5992
-export const allowedFiatTokens = ['arweave', 'solana', 'ethereum'] as const;
-export type CreditableTokenType = (typeof allowedFiatTokens)[number];
-
-export const tokenTypes = ['arweave', 'solana' /* 'ethereum'*/] as const;
+export const tokenTypes = ['arweave', 'solana', 'ethereum'] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
 export type Adjustment = {
@@ -210,7 +206,7 @@ type TurboServiceConfiguration = {
   url?: string;
   retryConfig?: IAxiosRetryConfig;
   logger?: TurboLogger;
-  token?: CreditableTokenType;
+  token?: TokenType;
 };
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
@@ -262,7 +258,7 @@ export type TurboAuthenticatedConfiguration =
     /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
     tokenMap?: TokenMap;
     tokenTools?: TokenTools;
-    token?: CreditableTokenType;
+    token?: TokenType;
     gatewayUrl?: string;
   };
 
@@ -337,7 +333,10 @@ export type SendFundTxParams = {
   feeMultiplier?: number | undefined;
 };
 
-export type SendTxWithSignerParams = SendFundTxParams & {
+export type SendTxWithSignerParams = {
+  amount: BigNumber;
+  target: string;
+
   // TODO: Allow more abstract providers
   provider: EthereumProvider;
 };
