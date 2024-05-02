@@ -18,30 +18,25 @@ import Arweave from '@irys/arweave';
 import { BigNumber } from 'bignumber.js';
 
 import {
-  BaseTx,
   TokenCreateTxParams,
+  TokenPollingOptions,
   TokenTools,
   TurboLogger,
-} from '../types.js';
-import { sha256B64Url, toB64Url } from '../utils/base64.js';
-import { sleep } from '../utils/common.js';
-import { TurboWinstonLogger } from './logger.js';
-
-type PollingOptions = {
-  maxAttempts: number;
-  pollingIntervalMs: number;
-  initialBackoffMs: number;
-};
+} from '../../types.js';
+import { sha256B64Url, toB64Url } from '../../utils/base64.js';
+import { sleep } from '../../utils/common.js';
+import { TurboWinstonLogger } from '../logger.js';
 
 export class ArweaveToken implements TokenTools {
   protected logger: TurboLogger;
   protected arweave: Arweave;
   protected mintU: boolean;
-  protected pollingOptions: PollingOptions;
+  protected pollingOptions: TokenPollingOptions;
 
   constructor({
+    gatewayUrl = 'https://arweave.net',
     arweave = Arweave.init({
-      url: 'https://arweave.net',
+      url: gatewayUrl,
     }),
     logger = new TurboWinstonLogger(),
     mintU = true,
@@ -51,23 +46,28 @@ export class ArweaveToken implements TokenTools {
       initialBackoffMs: 7_000,
     },
   }: {
+    gatewayUrl?: string;
     arweave?: Arweave;
     logger?: TurboLogger;
     mintU?: boolean;
-    pollingOptions?: PollingOptions;
-  }) {
+    pollingOptions?: TokenPollingOptions;
+  } = {}) {
     this.arweave = arweave;
     this.logger = logger;
     this.mintU = mintU;
     this.pollingOptions = pollingOptions;
   }
 
-  public async createSignedTx({
+  public async createAndSubmitTx({
     feeMultiplier,
     target,
     tokenAmount,
     signer,
-  }: TokenCreateTxParams): Promise<BaseTx> {
+  }: TokenCreateTxParams): Promise<{
+    id: string;
+    target: string;
+    reward: string;
+  }> {
     const tx = await this.arweave.createTransaction({
       target,
       quantity: tokenAmount.toString(),
@@ -105,7 +105,10 @@ export class ArweaveToken implements TokenTools {
       signature: toB64Url(signatureBuffer),
     });
 
-    return tx;
+    this.logger.debug('Submitting fund transaction...', { id });
+    await this.submitTx(tx);
+
+    return { id, target, reward: tx.reward };
   }
 
   public async pollForTxBeingAvailable({
@@ -164,14 +167,15 @@ export class ArweaveToken implements TokenTools {
     );
   }
 
-  public async submitTx({ tx }: { tx: BaseTx }): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public async submitTx(tx: any): Promise<void> {
     try {
       const response = await this.arweave.transactions.post(tx);
 
       if (response.status !== 200) {
         throw new Error(
           'Failed to post transaction -- ' +
-            `Status ${response.status}, ${response.statusText}`,
+            `Status ${response.status}, ${response.statusText}, ${response.data}`,
         );
       }
       this.logger.debug('Successfully posted fund transaction...', { tx });

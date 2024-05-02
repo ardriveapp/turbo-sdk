@@ -12,27 +12,30 @@ import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
 import {
-  ARToTokenAmount,
-  ArweaveToken,
-  WinstonToTokenAmount,
-} from '../src/common/token.js';
-import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
 import { FailedRequestError } from '../src/utils/errors.js';
-import { TurboFactory } from '../src/web/index.js';
+import {
+  ARToTokenAmount,
+  ArweaveToken,
+  SolanaToken,
+  TurboFactory,
+  WinstonToTokenAmount,
+} from '../src/web/index.js';
 import {
   delayedBlockMining,
   fundArLocalWalletAddress,
   getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
+  solanaUrlString,
   testArweave,
   testEthAddressBase64,
   testEthWallet,
   testJwk,
   testSolAddressBase64,
+  testSolBase58Address,
   testSolWallet,
   testWalletAddress,
   turboDevelopmentConfigurations,
@@ -92,12 +95,51 @@ describe('Browser environment', () => {
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
 
+    it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
+      const turbo = TurboFactory.authenticated({
+        privateKey: testSolWallet,
+        token: 'solana',
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Arweave signer', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          privateKey: testSolWallet,
+          token: 'arweave',
+          ...turboDevelopmentConfigurations,
+        }),
+      ).to.throw('A JWK must be provided for ArweaveSigner.');
+    });
+
     it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
       expect(() =>
         TurboFactory.authenticated({
           ...turboDevelopmentConfigurations,
         }),
       ).to.throw('A privateKey or signer must be provided.');
+    });
+
+    it('should construct a TurboAuthenticatedClient with a provided deprecated tokenMap', async () => {
+      const tokenMap = {
+        arweave: new ArweaveToken({
+          arweave: testArweave,
+          pollingOptions: {
+            maxAttempts: 3,
+            pollingIntervalMs: 10,
+            initialBackoffMs: 0,
+          },
+        }),
+      };
+
+      const turbo = TurboFactory.authenticated({
+        privateKey: testJwk,
+        tokenMap,
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
     });
   });
 
@@ -321,16 +363,12 @@ describe('Browser environment', () => {
         initialBackoffMs: 0,
       },
     });
-    const tokenMap = {
-      arweave: arweaveToken,
-    };
 
     before(async () => {
       turbo = TurboFactory.authenticated({
         privateKey: testJwk,
         ...turboDevelopmentConfigurations,
-        // @ts-ignore
-        tokenMap,
+        tokenTools: arweaveToken,
       });
     });
 
@@ -562,10 +600,20 @@ describe('Browser environment', () => {
 
     const signer = new HexSolanaSigner(testSolWallet);
 
+    const tokenTools = new SolanaToken({
+      gatewayUrl: solanaUrlString,
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 10,
+        initialBackoffMs: 0,
+      },
+    });
+
     before(async () => {
       turbo = TurboFactory.authenticated({
         signer,
         ...turboDevelopmentConfigurations,
+        tokenTools,
       });
     });
 
@@ -606,6 +654,38 @@ describe('Browser environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testSolAddressBase64);
+    });
+
+    it('should topUpWithTokens() to a SOL wallet', async () => {
+      const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
+        {
+          tokenAmount: 100_000, // 0.0001 SOL
+        },
+      );
+
+      expect(id).to.be.a('string');
+      expect(target).to.be.a('string');
+      expect(winc).be.a('string');
+      expect(quantity).to.equal('100000');
+      expect(owner).to.equal(testSolBase58Address);
+    });
+
+    it('should fail to topUpWithTokens() to a SOL wallet if tx is stubbed to succeed but wont exist on chain', async () => {
+      stub(tokenTools, 'createAndSubmitTx').resolves({
+        id: 'stubbed-tx-id',
+        target: 'fake target',
+      });
+
+      await turbo
+        .topUpWithTokens({
+          tokenAmount: 100_000, // 0.0001 SOL
+        })
+        .catch((error) => {
+          expect(error).to.be.instanceOf(Error);
+          expect(error.message).to.contain(
+            'Failed to submit fund transaction!',
+          );
+        });
     });
   });
 });

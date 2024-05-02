@@ -16,6 +16,7 @@
  */
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
+import nacl from 'tweetnacl';
 
 import {
   FileStreamFactory,
@@ -86,6 +87,19 @@ export abstract class TurboDataItemAbstractSigner
   }
 
   public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {
+    if (this.signer instanceof HexSolanaSigner) {
+      const privateKey = this.signer.key;
+      const publicKey = Uint8Array.from(await this.getPublicKey());
+
+      // Concatenate the private and public keys correctly
+      const combinedKey = new Uint8Array(privateKey.length + publicKey.length);
+      combinedKey.set(privateKey);
+      combinedKey.set(publicKey, privateKey.length);
+
+      const signature = nacl.sign.detached(dataToSign, combinedKey);
+      return signature;
+    }
+
     return this.signer.sign(dataToSign);
   }
 }

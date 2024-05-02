@@ -14,8 +14,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export * from './upload.js';
-export * from './payment.js';
-export * from './turbo.js';
-export * from './currency.js';
-export * from './token/index.js';
+import { TokenConfig, TokenFactory } from '../../types.js';
+import { ArweaveToken } from './arweave.js';
+import { SolanaToken } from './solana.js';
+
+export const defaultTokenMap: TokenFactory = {
+  arweave: (config: TokenConfig) => new ArweaveToken(config),
+  solana: (config: TokenConfig) => new SolanaToken(config),
+  // ethereum: (config: TokenConfig) => new EthereumToken(config)
+} as const;
+
+export * from './arweave.js';
+export * from './solana.js';

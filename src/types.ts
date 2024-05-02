@@ -50,12 +50,8 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 export const allowedFiatTokens = ['arweave', 'solana', 'ethereum'] as const;
 export type CreditableTokenType = (typeof allowedFiatTokens)[number];
 
-export const tokenTypes = ['arweave' /*'solana', 'ethereum'*/] as const;
+export const tokenTypes = ['arweave', 'solana' /* 'ethereum'*/] as const;
 export type TokenType = (typeof tokenTypes)[number];
-
-export type TokenMap = {
-  [key in TokenType]: TokenTools;
-};
 
 export type Adjustment = {
   name: string;
@@ -145,7 +141,7 @@ export type TurboSubmitFundTxResponse = {
 
 export type TurboCryptoFundResponse = TurboSubmitFundTxResponse & {
   target: string;
-  reward: string;
+  reward?: string;
 };
 
 export type TurboInfoResponse = {
@@ -192,7 +188,13 @@ export type TurboPostBalanceResponse =
       message: string;
     };
 
-export type TurboWallet = JWKInterface; // TODO: add other wallet types
+type Base58String = string;
+export type SolSecretKey = Base58String;
+export type TurboWallet = JWKInterface | SolSecretKey; // TODO: add other wallet types
+
+export const isJWK = (wallet: TurboWallet): wallet is JWKInterface =>
+  (wallet as JWKInterface).kty !== undefined;
+
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
@@ -220,7 +222,7 @@ export type TurboUnauthenticatedPaymentServiceConfiguration =
 export type TurboAuthenticatedPaymentServiceConfiguration =
   TurboUnauthenticatedPaymentServiceConfiguration &
     TurboAuthConfiguration & {
-      tokenMap?: TokenMap;
+      tokenTools?: TokenTools;
     };
 
 export type TurboUnauthenticatedConfiguration = {
@@ -246,12 +248,21 @@ export type TurboSigner =
   | EthereumSigner
   | HexSolanaSigner;
 
+export type TokenPollingOptions = {
+  maxAttempts: number;
+  pollingIntervalMs: number;
+  initialBackoffMs: number;
+};
+
 export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
     signer?: TurboSigner;
+    /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
     tokenMap?: TokenMap;
+    tokenTools?: TokenTools;
     token?: CreditableTokenType;
+    gatewayUrl?: string;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
@@ -406,10 +417,22 @@ export type TokenCreateTxParams = {
   signer: TurboDataItemSigner;
 };
 
-export type BaseTx = { id: string; target: string; reward: string };
-
-export interface TokenTools<T extends BaseTx = BaseTx> {
-  createSignedTx: (p: TokenCreateTxParams) => Promise<T>;
-  submitTx: (p: { tx: T }) => Promise<void>;
+export interface TokenTools {
+  createAndSubmitTx: (p: TokenCreateTxParams) => Promise<{
+    id: string;
+    target: string;
+    reward?: string;
+  }>;
   pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
 }
+
+export type TokenConfig = {
+  gatewayUrl?: string;
+  logger?: TurboLogger;
+  pollingOptions?: TokenPollingOptions;
+};
+
+/** @deprecated -- This type was provided as a parameter in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl`  directly in the Factory constructor. This type will be removed in a v2 release  */
+export type TokenMap = { arweave: TokenTools };
+
+export type TokenFactory = Record<string, (config: TokenConfig) => TokenTools>;
