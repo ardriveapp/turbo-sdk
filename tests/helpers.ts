@@ -67,7 +67,7 @@ export const testJwk = JSON.parse(
 export const testEthAddressBase64 =
   '3wfoux4MjIabQXIxtQ3h2jXs-FMAt3Uw1xmkbRcOtLE';
 export const testEthNativeAddress =
-  '0x20c1df6f3310600c8396111eb5182af9213828dc';
+  '0x20c1DF6f3310600c8396111EB5182af9213828Dc';
 export const testEthWallet = fs.readFileSync(
   new URL(`wallets/${testEthNativeAddress}.eth.pk.txt`, import.meta.url)
     .pathname,
