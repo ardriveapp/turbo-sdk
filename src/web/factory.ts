@@ -26,7 +26,7 @@ import {
 import { JWKInterface } from '../common/jwk.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
-  CreditableTokenType,
+  TokenType,
   TurboAuthenticatedConfiguration,
   TurboSigner,
   TurboWallet,
@@ -38,7 +38,7 @@ export class TurboFactory extends TurboBaseFactory {
   protected static getSigner(
     providedSigner: TurboSigner | undefined,
     providedPrivateKey: TurboWallet | undefined,
-    token: CreditableTokenType,
+    token: TokenType,
   ): TurboDataItemAbstractSigner {
     let signer: TurboSigner;
 

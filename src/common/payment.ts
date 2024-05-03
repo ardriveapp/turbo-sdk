@@ -17,9 +17,9 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
-  CreditableTokenType,
   Currency,
   TokenTools,
+  TokenType,
   TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
@@ -55,7 +55,7 @@ export class TurboUnauthenticatedPaymentService
 {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
-  protected readonly token: CreditableTokenType;
+  protected readonly token: TokenType;
 
   constructor({
     url = defaultPaymentServiceURL,

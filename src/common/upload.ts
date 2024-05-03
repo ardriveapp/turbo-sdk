@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {
-  CreditableTokenType,
+  TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
@@ -38,7 +38,7 @@ export class TurboUnauthenticatedUploadService
 {
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
-  protected token: CreditableTokenType;
+  protected token: TokenType;
 
   constructor({
     url = defaultUploadServiceURL,

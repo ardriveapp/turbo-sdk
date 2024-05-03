@@ -9,7 +9,7 @@
     "ts-node/register/transpile-only",
     "./mocha.setup.cjs"
   ],
-  "timeout": "15000",
+  "timeout": "60000",
   "parallel": false,
   "recursive": true,
   "loader": "ts-node/esm"

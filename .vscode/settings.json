@@ -6,6 +6,7 @@
     "Blockhash",
     "codecov",
     "commitlint",
+    "holesky",
     "iife",
     "irys",
     "Keypair",

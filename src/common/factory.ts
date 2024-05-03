@@ -18,7 +18,7 @@ import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import { TurboNodeSigner } from '../node/signer.js';
 import {
-  CreditableTokenType,
+  TokenType,
   TurboAuthenticatedConfiguration,
   TurboSigner,
   TurboUnauthenticatedConfiguration,
@@ -75,7 +75,7 @@ export class TurboBaseFactory {
   protected static getSigner(
     providedSigner: TurboSigner | undefined,
     providedPrivateKey: TurboWallet | undefined,
-    token: CreditableTokenType,
+    token: TokenType,
   ): TurboDataItemAbstractSigner {
     let signer: TurboSigner;
 

@@ -16,10 +16,12 @@
  */
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
+import { Wallet as EthereumWallet, parseEther } from 'ethers';
 import nacl from 'tweetnacl';
 
 import {
   FileStreamFactory,
+  SendTxWithSignerParams,
   TurboDataItemSigner,
   TurboDataItemSignerParams,
   TurboFileFactory,
@@ -84,6 +86,34 @@ export abstract class TurboDataItemAbstractSigner
 
   public async getPublicKey(): Promise<Buffer> {
     return this.signer.publicKey;
+  }
+
+  /** Let the signer handle sending tx for better compat with cross chain libraries/web wallets */
+  public async sendTransaction({
+    target,
+    amount,
+    provider,
+  }: SendTxWithSignerParams): Promise<string> {
+    if (!(this.signer instanceof EthereumSigner)) {
+      throw new Error(
+        'Only EthereumSigner is supported for sendTransaction API currently!',
+      );
+    }
+    const keyAsStringFromUint8Array = Buffer.from(this.signer.key).toString(
+      'hex',
+    );
+    const ethWalletAndProvider = new EthereumWallet(
+      keyAsStringFromUint8Array,
+      provider,
+    );
+
+    const tx = await ethWalletAndProvider.sendTransaction({
+      to: target,
+      value: parseEther(amount.toFixed(18)),
+    });
+    await tx.wait();
+
+    return tx.hash;
   }
 
   public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {
