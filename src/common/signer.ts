@@ -111,7 +111,7 @@ export abstract class TurboDataItemAbstractSigner
       to: target,
       value: parseEther(amount.toFixed(18)),
     });
-    await tx.wait();
+    this.logger.debug('Sent transaction', { tx });
 
     return tx.hash;
   }
