@@ -6,12 +6,15 @@ import {
   createData,
 } from 'arbundles';
 import { CanceledError } from 'axios';
+import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
+import { JsonRpcProvider } from 'ethers';
 import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
 import { EthereumToken } from '../src/common/ethereum.js';
+import { TurboWinstonLogger } from '../src/common/logger.js';
 import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
@@ -22,6 +25,7 @@ import {
   ArweaveToken,
   SolanaToken,
   TurboFactory,
+  TurboWebArweaveSigner,
   WinstonToTokenAmount,
 } from '../src/web/index.js';
 import {
@@ -143,6 +147,23 @@ describe('Browser environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('TurboDataItemSigner errors when using an invalid signer on sendTransaction api', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const turboSigner = new TurboWebArweaveSigner({
+        signer,
+        logger: new TurboWinstonLogger(),
+      });
+      const error = await turboSigner
+        .sendTransaction({
+          target: 'fake target',
+          amount: BigNumber('1'),
+          provider: new JsonRpcProvider(''),
+        })
+        .catch((error) => error);
+      expect(error).to.be.instanceOf(Error);
+      expect(error.message).to.contain('Only EthereumSigner is supported');
     });
   });
 
