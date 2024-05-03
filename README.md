@@ -183,7 +183,7 @@ const turbo = TurboFactory.unauthenticated();
 
 Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
 
-##### Construct Turbo with a JWK
+##### Construct Turbo with an Arweave JWK
 
 ```typescript
 const jwk = await arweave.crypto.generateJWK();
