@@ -115,6 +115,27 @@ describe('Node environment', () => {
       ).to.throw('A JWK must be provided for ArweaveSigner.');
     });
 
+    it('should return a TurboAuthenticatedClient when running in Node environment and a provided ethereum private key', async () => {
+      const turbo = TurboFactory.authenticated({
+        privateKey: testEthWallet,
+        token: 'ethereum',
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Ethereum signer', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          privateKey: testSolWallet,
+          token: 'ethereum',
+          ...turboDevelopmentConfigurations,
+        }),
+      ).to.throw(
+        'An Ethereum private key must be provided for EthereumSigner.',
+      );
+    });
+
     it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
       expect(() =>
         TurboFactory.authenticated({

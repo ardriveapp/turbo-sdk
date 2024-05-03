@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { BigNumber } from 'bignumber.js';
 import { ethers } from 'ethers';
 
 import {
@@ -24,6 +25,10 @@ import {
   TurboLogger,
 } from '../types.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
+export const ETHToTokenAmount = (eth: BigNumber.Value) =>
+  new BigNumber(eth).times(1e18).valueOf();
 
 export class EthereumToken implements TokenTools {
   protected logger: TurboLogger;

@@ -185,12 +185,24 @@ export type TurboPostBalanceResponse =
       message: string;
     };
 
+export type ArweaveJWK = JWKInterface;
+
 type Base58String = string;
 export type SolSecretKey = Base58String;
-export type TurboWallet = JWKInterface | SolSecretKey; // TODO: add other wallet types
 
-export const isJWK = (wallet: TurboWallet): wallet is JWKInterface =>
-  (wallet as JWKInterface).kty !== undefined;
+type HexadecimalString = string;
+export type EthPrivateKey = HexadecimalString;
+
+export function isEthPrivateKey(wallet: TurboWallet): wallet is EthPrivateKey {
+  if (typeof wallet !== 'string') return false;
+
+  return wallet.startsWith('0x');
+}
+
+export type TurboWallet = ArweaveJWK | SolSecretKey | EthPrivateKey;
+
+export const isJWK = (wallet: TurboWallet): wallet is ArweaveJWK =>
+  (wallet as ArweaveJWK).kty !== undefined;
 
 export type TurboSignedRequestHeaders = {
   'x-public-key': string;
