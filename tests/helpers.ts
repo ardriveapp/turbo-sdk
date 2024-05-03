@@ -2,6 +2,7 @@ import Arweave from '@irys/arweave';
 import axios from 'axios';
 import bs58 from 'bs58';
 import { expect } from 'chai';
+import { JsonRpcProvider, parseEther } from 'ethers';
 import * as fs from 'fs';
 
 import { sleep } from '../src/utils/common.js';
@@ -74,6 +75,23 @@ export const testEthWallet = fs.readFileSync(
   'utf-8',
 );
 
+export async function fundETHWallet() {
+  const provider = new JsonRpcProvider(ethereumGatewayUrl);
+
+  const [account] = await provider.listAccounts();
+  const transaction = {
+    to: testEthNativeAddress,
+    value: parseEther('100'), // Change the amount as necessary
+  };
+
+  const txResponse = await account.sendTransaction(transaction);
+  await txResponse.wait();
+  await provider.send('evm_mine', []);
+
+  console.log(`Funded ${testEthNativeAddress} with 100 Ether.`);
+}
+console.log('fundETHWallet', fundETHWallet);
+
 export const testSolAddressBase64 =
   'AlZOxuKT1uJTpCPb3FH76z31MunxMfQWfm7F1n2QiN4';
 export const testSolBase58Address =
@@ -94,11 +112,11 @@ export const testArweave = Arweave.init({
   url: arweaveUrl,
 });
 
-export const solanaUrlString =
+export const solanaUrlString = // TODO: Local SOL net in integration test
   process.env.SOLANA_GATEWAY ?? 'https://api.devnet.solana.com';
 
-export const ethereumGatewayUrl =
-  process.env.ETHEREUM_GATEWAY ?? 'http://localhost:8545';
+export const ethereumGatewayUrl = // TODO: Local ETH net in integration test -- 'http://localhost:8545'
+  process.env.ETHEREUM_GATEWAY ?? 'https://ethereum-holesky-rpc.publicnode.com'; // holesky testnet rpc
 
 export async function fundArLocalWalletAddress(address: string): Promise<void> {
   await testArweave.api.get(`mint/${address}/9999999999999999`);

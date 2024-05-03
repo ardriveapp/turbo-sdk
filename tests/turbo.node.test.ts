@@ -12,6 +12,7 @@ import { Readable } from 'node:stream';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
+import { EthereumToken } from '../src/common/ethereum.js';
 import {
   ARToTokenAmount,
   ArweaveToken,
@@ -26,14 +27,17 @@ import { TurboFactory } from '../src/node/factory.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   delayedBlockMining,
+  ethereumGatewayUrl,
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
+  fundETHWallet,
   getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
   solanaUrlString,
   testArweave,
   testEthAddressBase64,
+  testEthNativeAddress,
   testEthWallet,
   testJwk,
   testSolAddressBase64,
@@ -645,9 +649,23 @@ describe('Node environment', () => {
     let turbo: TurboAuthenticatedClient;
 
     const signer = new EthereumSigner(testEthWallet);
+
+    const tokenTools = new EthereumToken({
+      gatewayUrl: ethereumGatewayUrl,
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 10,
+        initialBackoffMs: 0,
+      },
+    });
+
     before(async () => {
+      // TODO: ETH Local Gateway
+      // await fundGanacheWallet();
+
       turbo = TurboFactory.authenticated({
         signer,
+        tokenTools,
         ...turboDevelopmentConfigurations,
       });
     });
@@ -682,6 +700,38 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
+    });
+
+    it('should topUpWithTokens() to an ETH wallet', async () => {
+      const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
+        {
+          tokenAmount: 100_000_000, // 0.000_000_000_100_000_000 ETH
+        },
+      );
+
+      expect(id).to.be.a('string');
+      expect(target).to.be.a('string');
+      expect(winc).be.a('string');
+      expect(quantity).to.equal('100000000');
+      expect(owner).to.equal(testEthNativeAddress);
+    });
+
+    it('should fail to topUpWithTokens() to an ETH wallet if tx is stubbed to succeed but wont exist on chain', async () => {
+      stub(tokenTools, 'createAndSubmitTx').resolves({
+        id: 'stubbed-tx-id',
+        target: 'fake target',
+      });
+
+      await turbo
+        .topUpWithTokens({
+          tokenAmount: 100_000, // 0.0001 ETH
+        })
+        .catch((error) => {
+          expect(error).to.be.instanceOf(Error);
+          expect(error.message).to.contain(
+            'Failed to submit fund transaction!',
+          );
+        });
     });
   });
 
