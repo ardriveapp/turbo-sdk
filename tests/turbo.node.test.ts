@@ -14,8 +14,8 @@ import { Readable } from 'node:stream';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
-import { EthereumToken } from '../src/common/ethereum.js';
 import { TurboWinstonLogger } from '../src/common/logger.js';
+import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
   ARToTokenAmount,
   ArweaveToken,

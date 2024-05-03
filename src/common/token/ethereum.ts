@@ -23,8 +23,8 @@ import {
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
-} from '../types.js';
-import { TurboWinstonLogger } from './logger.js';
+} from '../../types.js';
+import { TurboWinstonLogger } from '../logger.js';
 
 export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
 export const ETHToTokenAmount = (eth: BigNumber.Value) =>
