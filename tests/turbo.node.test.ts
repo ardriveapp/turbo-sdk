@@ -30,7 +30,6 @@ import {
   ethereumGatewayUrl,
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
-  fundETHWallet,
   getRawBalance,
   mineArLocalBlock,
   sendFundTransaction,
