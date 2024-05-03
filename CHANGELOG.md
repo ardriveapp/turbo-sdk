@@ -1,3 +1,10 @@
+# [1.9.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.9.0-alpha.1...v1.9.0-alpha.2) (2024-05-03)
+
+
+### Bug Fixes
+
+* **eth payments:** setup ETH in default constructor, remove default wait() PE-5992 ([4cbc6bd](https://github.com/ardriveapp/turbo-sdk/commit/4cbc6bd7211014b7ef415f30b5ef08c8b51b7d86))
+
 # [1.9.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.8.0...v1.9.0-alpha.1) (2024-05-03)
 
 
