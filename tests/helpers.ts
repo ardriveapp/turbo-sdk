@@ -90,7 +90,6 @@ export async function fundETHWallet() {
 
   console.log(`Funded ${testEthNativeAddress} with 100 Ether.`);
 }
-console.log('fundETHWallet', fundETHWallet);
 
 export const testSolAddressBase64 =
   'AlZOxuKT1uJTpCPb3FH76z31MunxMfQWfm7F1n2QiN4';

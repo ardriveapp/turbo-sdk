@@ -81,10 +81,14 @@ export class EthereumToken implements TokenTools {
 
     let attempts = 0;
     while (attempts < this.pollingOptions.maxAttempts) {
-      const tx = await this.rpcProvider.getTransaction(txId);
+      try {
+        const tx = await this.rpcProvider.getTransaction(txId);
 
-      if (tx) {
-        return;
+        if (tx) {
+          return;
+        }
+      } catch (e) {
+        this.logger.debug('Error polling for tx', { txId, e });
       }
 
       await new Promise((resolve) =>
@@ -93,6 +97,6 @@ export class EthereumToken implements TokenTools {
       attempts++;
     }
 
-    throw new Error('Transaction not found');
+    throw new Error('Transaction not found after polling!');
   }
 }
