@@ -26,10 +26,11 @@ import {
 import { JWKInterface } from '../common/jwk.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
-  CreditableTokenType,
+  TokenType,
   TurboAuthenticatedConfiguration,
   TurboSigner,
   TurboWallet,
+  isEthPrivateKey,
   isJWK,
 } from '../types.js';
 import { TurboWebArweaveSigner } from './signer.js';
@@ -38,7 +39,7 @@ export class TurboFactory extends TurboBaseFactory {
   protected static getSigner(
     providedSigner: TurboSigner | undefined,
     providedPrivateKey: TurboWallet | undefined,
-    token: CreditableTokenType,
+    token: TokenType,
   ): TurboDataItemAbstractSigner {
     let signer: TurboSigner;
 
@@ -47,7 +48,13 @@ export class TurboFactory extends TurboBaseFactory {
     } else if (providedPrivateKey !== undefined) {
       if (token === 'solana') {
         signer = new HexSolanaSigner(providedPrivateKey);
-        // TODO: else if (token === 'ethereum') {signer = new EthereumSigner(providedPrivateKey);}
+      } else if (token === 'ethereum') {
+        if (!isEthPrivateKey(providedPrivateKey)) {
+          throw new Error(
+            'An Ethereum private key must be provided for EthereumSigner.',
+          );
+        }
+        signer = new EthereumSigner(providedPrivateKey);
       } else {
         if (!isJWK(providedPrivateKey)) {
           throw new Error('A JWK must be provided for ArweaveSigner.');

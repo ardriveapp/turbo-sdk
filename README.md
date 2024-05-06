@@ -183,30 +183,57 @@ const turbo = TurboFactory.unauthenticated();
 
 Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
 
+##### Construct Turbo with an Arweave JWK
+
 ```typescript
 const jwk = await arweave.crypto.generateJWK();
 const turbo = TurboFactory.authenticated({ privateKey: jwk });
 ```
 
-or
+##### Construct Turbo with an Arweave signer
 
 ```typescript
 const signer = new ArweaveSigner(jwk);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-or with ETH signer
+##### Construct Turbo with an Arconnect signer
+
+```typescript
+const signer = new ArconnectSigner(window.arweaveWallet);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+##### Construct Turbo with an ETH signer
 
 ```typescript
 const signer = new EthereumSigner(privateKey);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-or with SOL signer
+##### Construct Turbo with an ETH private key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'ethereum',
+});
+```
+
+##### Construct Turbo with a SOL signer
 
 ```typescript
 const signer = new HexSolanaSigner(bs58.encode(secretKey));
 const turbo = TurboFactory.authenticated({ signer });
+```
+
+##### Construct Turbo with a SOL secret key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana',
+});
 ```
 
 ### TurboUnauthenticatedClient
@@ -423,6 +450,26 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
+});
+```
+
+##### Top up ETH tokens to ETH wallet
+
+```ts
+const turbo = TurboFactory.authenticated({ signer, token: 'ethereum' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: ETHToTokenAmount(0.00001), // 0.00001 ETH
+});
+```
+
+##### Top up SOL tokens to SOL wallet
+
+```ts
+const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: SOLToTokenAmount(0.00001), // 0.00001 SOL
 });
 ```
 

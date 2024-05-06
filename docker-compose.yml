@@ -17,6 +17,13 @@ services:
     depends_on:
       - arlocal
 
+  # TODO: Local ETH node
+  # ganache:
+  #   image: trufflesuite/ganache-cli:latest
+  #   command: ganache-cli --accounts 10 --defaultBalanceEther 1000 --mnemonic 'myth like bonus scare over problem client lizard pioneer submit female collect'
+  #   ports:
+  #     - '8545:8545'
+
   upload-service:
     image: ghcr.io/ardriveapp/upload-service:latest
     ports:
@@ -79,8 +86,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
-      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
-      SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com}
+      ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984} # AR local gateway
+      SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com} # SOL devnet gateway
+      ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://ethereum-holesky-rpc.publicnode.com} # ETH holesky testnet gateway
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
       - payment-service-pg
