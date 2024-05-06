@@ -43,7 +43,7 @@ export class EthereumToken implements TokenTools {
     pollingOptions = {
       maxAttempts: 10,
       pollingIntervalMs: 4_000,
-      initialBackoffMs: 6_000,
+      initialBackoffMs: 10_000,
     },
   }: TokenConfig = {}) {
     this.logger = logger;
