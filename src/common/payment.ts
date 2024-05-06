@@ -306,7 +306,14 @@ export class TurboAuthenticatedPaymentService
     try {
       // Let transaction settle some time
       await this.tokenTools.pollForTxBeingAvailable({ txId });
+    } catch (e) {
+      this.logger.error(
+        `Failed to poll for transaction being available from ${this.token} gateway... Attempting to submit fund tx to Turbo...`,
+        e,
+      );
+    }
 
+    try {
       return {
         ...(await this.submitFundTransaction({ txId })),
         target: fundTx.target,

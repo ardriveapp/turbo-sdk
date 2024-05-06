@@ -42,8 +42,8 @@ export class EthereumToken implements TokenTools {
     gatewayUrl = 'https://cloudflare-eth.com/',
     pollingOptions = {
       maxAttempts: 10,
-      pollingIntervalMs: 3_000,
-      initialBackoffMs: 5_000,
+      pollingIntervalMs: 4_000,
+      initialBackoffMs: 10_000,
     },
   }: TokenConfig = {}) {
     this.logger = logger;
