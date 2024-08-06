@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {
+  ArweaveManifest,
+  DataItemOptions,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
@@ -26,6 +28,8 @@ import {
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboUploadFolderParams,
+  TurboUploadFolderResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -77,7 +81,7 @@ export class TurboUnauthenticatedUploadService
 }
 
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
-export class TurboAuthenticatedUploadService
+export abstract class TurboAuthenticatedBaseUploadService
   extends TurboUnauthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
@@ -121,4 +125,51 @@ export class TurboAuthenticatedUploadService
       },
     });
   }
+
+  protected async uploadManifest({
+    dataItemOpts,
+    paths,
+    indexFile,
+    signal,
+  }: {
+    paths: Record<string, { id: string }>;
+    indexFile?: string;
+    signal?: AbortSignal;
+    dataItemOpts?: DataItemOptions;
+  }): Promise<{
+    manifest: ArweaveManifest;
+    manifestResponse: TurboUploadDataItemResponse;
+  }> {
+    const indexPath =
+      // Use the user provided index file if it exists,
+      indexFile !== undefined && paths[indexFile]?.id !== undefined
+        ? indexFile
+        : // Else use index.html if it exists,
+        paths['index.html']?.id !== undefined
+        ? 'index.html'
+        : // Else use the first file in the paths object.
+          Object.keys(paths)[0];
+
+    const manifest: ArweaveManifest = {
+      manifest: 'arweave/paths',
+      version: '0.2.0',
+      index: { path: indexPath },
+      paths,
+      fallback: { id: paths['404.html']?.id ?? paths[indexPath].id },
+    };
+
+    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
+    const manifestResponse = await this.uploadFile({
+      fileStreamFactory: () => manifestBuffer,
+      fileSizeFactory: () => manifestBuffer.byteLength,
+      signal,
+      dataItemOpts,
+    });
+
+    return { manifest, manifestResponse };
+  }
+
+  abstract uploadFolder(
+    p: TurboUploadFolderParams,
+  ): Promise<TurboUploadFolderResponse>;
 }

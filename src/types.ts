@@ -126,6 +126,43 @@ export type TurboUploadDataItemResponse = {
   owner: PublicArweaveAddress;
 };
 
+type UploadFolderParams = {
+  dataItemOpts?: DataItemOptions;
+  indexFile?: string;
+} & TurboAbortSignal;
+
+export type NodeUploadFolderParams = {
+  folderPath: string;
+} & UploadFolderParams;
+export type WebUploadFolderParams = {
+  files: File[];
+} & UploadFolderParams;
+export type TurboUploadFolderParams =
+  | NodeUploadFolderParams
+  | WebUploadFolderParams;
+export const isNodeUploadFolderParams = (
+  p: TurboUploadFolderParams,
+): p is NodeUploadFolderParams =>
+  (p as NodeUploadFolderParams).folderPath !== undefined;
+export const isWebUploadFolderParams = (
+  p: TurboUploadFolderParams,
+): p is WebUploadFolderParams =>
+  (p as WebUploadFolderParams).files !== undefined;
+
+export type TurboUploadFolderResponse = {
+  fileResponses: TurboUploadDataItemResponse[];
+  manifestResponse: TurboUploadDataItemResponse;
+  manifest: ArweaveManifest;
+};
+
+export type ArweaveManifest = {
+  manifest: 'arweave/paths';
+  version: '0.2.0';
+  index: { path: string };
+  paths: Record<string, { id: string }>;
+  fallback?: { id: string };
+};
+
 export type TurboSubmitFundTxResponse = {
   id: string;
   quantity: string;
@@ -419,6 +456,8 @@ export interface TurboAuthenticatedUploadServiceInterface
     fileStreamFactory,
     fileSizeFactory,
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+
+  uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 }
 
 export interface TurboUnauthenticatedClientInterface

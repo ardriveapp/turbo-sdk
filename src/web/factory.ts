@@ -20,7 +20,6 @@ import { TurboBaseFactory } from '../common/factory.js';
 import {
   TurboAuthenticatedClient,
   TurboAuthenticatedPaymentService,
-  TurboAuthenticatedUploadService,
   defaultTokenMap,
 } from '../common/index.js';
 import { JWKInterface } from '../common/jwk.js';
@@ -34,6 +33,7 @@ import {
   isJWK,
 } from '../types.js';
 import { TurboWebArweaveSigner } from './signer.js';
+import { TurboAuthenticatedWebUploadService } from './upload.js';
 
 export class TurboFactory extends TurboBaseFactory {
   protected static getSigner(
@@ -116,7 +116,7 @@ export class TurboFactory extends TurboBaseFactory {
       token,
       tokenTools,
     });
-    const uploadService = new TurboAuthenticatedUploadService({
+    const uploadService = new TurboAuthenticatedWebUploadService({
       ...uploadServiceConfig,
       signer: turboSigner,
       logger: this.logger,
