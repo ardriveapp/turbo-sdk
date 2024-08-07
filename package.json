@@ -34,8 +34,8 @@
       "types": "./lib/types/node/index.d.ts"
     },
     "./web": {
-      "import": "./bundles/web.bundle.min.js",
-      "require": "./bundles/web.bundle.min.js",
+      "import": "./lib/esm/web/index.js",
+      "require": "./lib/cjs/web/index.js",
       "types": "./lib/types/web/index.d.ts",
       "browser": "./bundles/web.bundle.min.js"
     }
@@ -67,7 +67,8 @@
     "example:ts:esm": "cd examples/typescript/esm && yarn && yarn test",
     "example:ts:cjs": "cd examples/typescript/cjs && yarn && yarn test",
     "docker:up": "docker compose up --quiet-pull --pull always -d",
-    "docker:down": "docker compose down -v"
+    "docker:down": "docker compose down -v",
+    "docs": "markdown-toc-gen insert README.md"
   },
   "dependencies": {
     "@irys/arweave": "0.0.3",
@@ -111,6 +112,7 @@
     "eslint-plugin-promise": "^6.1.1",
     "http-server": "^14.1.1",
     "husky": "^8.0.3",
+    "markdown-toc-gen": "^1.0.1",
     "mocha": "^10.2.0",
     "prettier": "^3.0.2",
     "rimraf": "^5.0.1",
