@@ -16,6 +16,7 @@
  */
 import { createReadStream, promises, statSync } from 'fs';
 import { lookup } from 'mime-types';
+import { Readable } from 'node:stream';
 import { join } from 'path';
 import { pLimit } from 'plimit-lit';
 
@@ -122,16 +123,27 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       absoluteFilePaths.map((path) => limit(() => uploadFile(path))),
     );
 
-    const manifestResult = await this.uploadManifest({
-      dataItemOpts,
+    const manifest = await this.generateManifest({
       paths,
       indexFile,
+    });
+
+    const tagsWithManifestContentType = [
+      ...(dataItemOpts?.tags ?? []),
+      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
+    ];
+    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
+    const manifestResponse = await this.uploadFile({
+      fileStreamFactory: () => Readable.from(manifestBuffer),
+      fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
+      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
     });
 
     return {
       fileResponses,
-      ...manifestResult,
+      manifest,
+      manifestResponse,
       errors: errors.length ? errors : undefined,
     };
   }

@@ -500,6 +500,29 @@ describe('Browser environment', () => {
       });
     });
 
+    describe('uploadFolder()', () => {
+      it('uploads expected data items and manifest', async () => {
+        const files = [
+          new File(['test data'], 'stubFile.txt', { type: 'text/plain' }),
+          new File(['test data 2'], 'stubFile2.txt', { type: 'text/plain' }),
+          new File(
+            [`{ "key":  "val", "key2" : [1, 2, 3] }`],
+            'nested/stubFile5.json',
+            { type: 'application/json' },
+          ),
+        ];
+
+        const result = await turbo.uploadFolder({
+          files,
+        });
+        expect(result).to.not.be.undefined;
+        expect(result).to.have.property('manifest');
+
+        expect(result['fileResponses']).to.have.length(3);
+        expect(result['manifestResponse']).to.not.be.undefined;
+      });
+    });
+
     it('getWincForFiat() fails with bad promo code', async () => {
       const error = await turbo
         .getWincForFiat({

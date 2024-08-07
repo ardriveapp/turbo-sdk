@@ -64,9 +64,9 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
       const contentType = file.type ?? 'application/octet-stream';
 
       try {
-        const buffer = await file.arrayBuffer().then((b) => Buffer.from(b));
         const result = await this.uploadFile({
-          fileStreamFactory: () => buffer,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fileStreamFactory: () => file.stream() as any,
           fileSizeFactory: () => file.size,
           signal,
           dataItemOpts: {
@@ -93,16 +93,31 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
 
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
 
-    const manifestResult = await this.uploadManifest({
-      dataItemOpts,
+    const manifest = await this.generateManifest({
       paths,
       indexFile,
+    });
+
+    const tagsWithManifestContentType = [
+      ...(dataItemOpts?.tags ?? []),
+      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
+    ];
+    const manifestFile = new File([JSON.stringify(manifest)], 'manifest.json', {
+      type: 'application/x.arweave-manifest+json',
+    });
+
+    const manifestResponse = await this.uploadFile({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fileStreamFactory: () => manifestFile.stream() as any,
+      fileSizeFactory: () => manifestFile.size,
       signal,
+      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
     });
 
     return {
       fileResponses,
-      ...manifestResult,
+      manifest,
+      manifestResponse,
       errors: errors.length > 0 ? errors : undefined,
     };
   }

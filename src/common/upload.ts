@@ -14,11 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Readable } from 'stream';
-
 import {
   ArweaveManifest,
-  DataItemOptions,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
@@ -128,20 +125,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
-  protected async uploadManifest({
-    dataItemOpts,
+  protected async generateManifest({
     paths,
     indexFile,
-    signal,
   }: {
     paths: Record<string, { id: string }>;
     indexFile?: string;
-    signal?: AbortSignal;
-    dataItemOpts?: DataItemOptions;
-  }): Promise<{
-    manifest: ArweaveManifest;
-    manifestResponse: TurboUploadDataItemResponse;
-  }> {
+  }): Promise<ArweaveManifest> {
     const indexPath =
       // Use the user provided index file if it exists,
       indexFile !== undefined && paths[indexFile]?.id !== undefined
@@ -160,19 +150,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       fallback: { id: paths['404.html']?.id ?? paths[indexPath].id },
     };
 
-    const tagsWithManifestContentType = [
-      ...(dataItemOpts?.tags ?? []),
-      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
-    ];
-    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
-    const manifestResponse = await this.uploadFile({
-      fileStreamFactory: () => Readable.from(manifestBuffer),
-      fileSizeFactory: () => manifestBuffer.byteLength,
-      signal,
-      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
-    });
-
-    return { manifest, manifestResponse };
+    return manifest;
   }
 
   abstract uploadFolder(
