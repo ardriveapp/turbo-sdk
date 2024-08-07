@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { createReadStream, promises, statSync } from 'fs';
+import { lookup } from 'mime-types';
 import { join } from 'path';
 import { pLimit } from 'plimit-lit';
 
@@ -85,11 +86,20 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     const limit = pLimit(maxConcurrentUploads ?? 5);
 
     const uploadFile = async (absoluteFilePath: string) => {
+      const contentType =
+        lookup(absoluteFilePath) || 'application/octet-stream';
+
       const result = await this.uploadFile({
         fileStreamFactory: () => createReadStream(absoluteFilePath),
         fileSizeFactory: () => statSync(absoluteFilePath).size,
         signal,
-        dataItemOpts,
+        dataItemOpts: {
+          ...dataItemOpts,
+          tags: [
+            ...(dataItemOpts?.tags ?? []),
+            { name: 'Content-Type', value: contentType },
+          ],
+        },
       });
 
       fileResponses.push(result);

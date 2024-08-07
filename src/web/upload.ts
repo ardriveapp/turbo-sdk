@@ -54,12 +54,20 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     const limit = pLimit(maxConcurrentUploads ?? 5);
 
     const uploadFile = async (file: File) => {
+      const contentType = file.type ?? 'application/octet-stream';
+
       const buffer = await file.arrayBuffer().then((b) => Buffer.from(b));
       const result = await this.uploadFile({
         fileStreamFactory: () => buffer,
         fileSizeFactory: () => file.size,
         signal,
-        dataItemOpts,
+        dataItemOpts: {
+          ...dataItemOpts,
+          tags: [
+            ...(dataItemOpts?.tags ?? []),
+            { name: 'Content-Type', value: contentType },
+          ],
+        },
       });
 
       const relativePath = file.name ?? file.webkitRelativePath;
