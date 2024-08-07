@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { pLimit } from 'plimit-lit';
+
 import {
   TurboAuthenticatedBaseUploadService,
   defaultUploadServiceURL,
@@ -43,12 +45,15 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     if (!isWebUploadFolderParams(params)) {
       throw new Error('files are required for web uploadFolder');
     }
-    const { files, indexFile, dataItemOpts, signal } = params;
+    const { files, indexFile, dataItemOpts, signal, maxConcurrentUploads } =
+      params;
 
     const paths: Record<string, { id: string }> = {};
     const fileResponses: TurboUploadDataItemResponse[] = [];
 
-    for (const file of files) {
+    const limit = pLimit(maxConcurrentUploads ?? 5);
+
+    const uploadFile = async (file: File) => {
       const buffer = await file.arrayBuffer().then((b) => Buffer.from(b));
       const result = await this.uploadFile({
         fileStreamFactory: () => buffer,
@@ -60,7 +65,9 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
       const relativePath = file.name ?? file.webkitRelativePath;
       paths[relativePath] = { id: result.id };
       fileResponses.push(result);
-    }
+    };
+
+    await Promise.all(files.map((file) => limit(() => uploadFile(file))));
 
     const manifestResult = await this.uploadManifest({
       dataItemOpts,

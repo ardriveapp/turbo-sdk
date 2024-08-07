@@ -16,6 +16,7 @@
  */
 import { createReadStream, promises, statSync } from 'fs';
 import { join } from 'path';
+import { pLimit } from 'plimit-lit';
 
 import {
   TurboAuthenticatedBaseUploadService,
@@ -67,7 +68,13 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     if (!isNodeUploadFolderParams(params)) {
       throw new Error('folderPath is required for node uploadFolder');
     }
-    const { folderPath, indexFile, dataItemOpts, signal } = params;
+    const {
+      folderPath,
+      indexFile,
+      dataItemOpts,
+      signal,
+      maxConcurrentUploads,
+    } = params;
 
     const paths: Record<string, { id: string }> = {};
     const fileResponses: TurboUploadDataItemResponse[] = [];
@@ -75,7 +82,9 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     const absoluteFilePaths =
       await this.getAbsoluteFilePathsFromFolder(folderPath);
 
-    for (const absoluteFilePath of absoluteFilePaths) {
+    const limit = pLimit(maxConcurrentUploads ?? 5);
+
+    const uploadFile = async (absoluteFilePath: string) => {
       const result = await this.uploadFile({
         fileStreamFactory: () => createReadStream(absoluteFilePath),
         fileSizeFactory: () => statSync(absoluteFilePath).size,
@@ -86,7 +95,11 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       fileResponses.push(result);
       const relativePath = absoluteFilePath.replace(folderPath + '/', '');
       paths[relativePath] = { id: result.id };
-    }
+    };
+
+    await Promise.all(
+      absoluteFilePaths.map((path) => limit(() => uploadFile(path))),
+    );
 
     const manifestResult = await this.uploadManifest({
       dataItemOpts,

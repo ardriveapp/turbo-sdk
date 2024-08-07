@@ -129,6 +129,7 @@ export type TurboUploadDataItemResponse = {
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   indexFile?: string;
+  maxConcurrentUploads?: number;
 } & TurboAbortSignal;
 
 export type NodeUploadFolderParams = {
