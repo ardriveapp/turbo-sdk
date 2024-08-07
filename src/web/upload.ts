@@ -102,14 +102,22 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
       ...(dataItemOpts?.tags ?? []),
       { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
     ];
-    const manifestFile = new File([JSON.stringify(manifest)], 'manifest.json', {
-      type: 'application/x.arweave-manifest+json',
-    });
+
+    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
+    const readableStreamFromManifest = () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(manifestBuffer);
+          controller.close();
+        },
+      });
+      return stream;
+    };
 
     const manifestResponse = await this.uploadFile({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fileStreamFactory: () => manifestFile.stream() as any,
-      fileSizeFactory: () => manifestFile.size,
+      fileStreamFactory: () => readableStreamFromManifest() as any,
+      fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
     });
