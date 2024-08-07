@@ -74,37 +74,47 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       indexFile,
       dataItemOpts,
       signal,
-      maxConcurrentUploads,
+      maxConcurrentUploads = 5,
+      throwOnFailure = true,
     } = params;
 
     const paths: Record<string, { id: string }> = {};
     const fileResponses: TurboUploadDataItemResponse[] = [];
+    const errors: Error[] = [];
 
     const absoluteFilePaths =
       await this.getAbsoluteFilePathsFromFolder(folderPath);
 
-    const limit = pLimit(maxConcurrentUploads ?? 5);
+    const limit = pLimit(maxConcurrentUploads);
 
     const uploadFile = async (absoluteFilePath: string) => {
       const contentType =
         lookup(absoluteFilePath) || 'application/octet-stream';
 
-      const result = await this.uploadFile({
-        fileStreamFactory: () => createReadStream(absoluteFilePath),
-        fileSizeFactory: () => statSync(absoluteFilePath).size,
-        signal,
-        dataItemOpts: {
-          ...dataItemOpts,
-          tags: [
-            ...(dataItemOpts?.tags ?? []),
-            { name: 'Content-Type', value: contentType },
-          ],
-        },
-      });
-
-      fileResponses.push(result);
-      const relativePath = absoluteFilePath.replace(folderPath + '/', '');
-      paths[relativePath] = { id: result.id };
+      try {
+        const result = await this.uploadFile({
+          fileStreamFactory: () => createReadStream(absoluteFilePath),
+          fileSizeFactory: () => statSync(absoluteFilePath).size,
+          signal,
+          dataItemOpts: {
+            ...dataItemOpts,
+            tags: [
+              ...(dataItemOpts?.tags ?? []),
+              { name: 'Content-Type', value: contentType },
+            ],
+          },
+        });
+        fileResponses.push(result);
+        const relativePath = absoluteFilePath.replace(folderPath + '/', '');
+        paths[relativePath] = { id: result.id };
+      } catch (error) {
+        if (throwOnFailure) {
+          throw error;
+        }
+        this.logger.error(`Error uploading file: ${absoluteFilePath}`);
+        this.logger.error(error);
+        errors.push(error);
+      }
     };
 
     await Promise.all(
@@ -118,6 +128,10 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       signal,
     });
 
-    return { fileResponses, ...manifestResult };
+    return {
+      fileResponses,
+      ...manifestResult,
+      errors: errors.length ? errors : undefined,
+    };
   }
 }

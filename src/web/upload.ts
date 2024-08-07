@@ -45,34 +45,50 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     if (!isWebUploadFolderParams(params)) {
       throw new Error('files are required for web uploadFolder');
     }
-    const { files, indexFile, dataItemOpts, signal, maxConcurrentUploads } =
-      params;
+    const {
+      files,
+      indexFile,
+      dataItemOpts,
+      signal,
+      maxConcurrentUploads = 5,
+      throwOnFailure = true,
+    } = params;
 
     const paths: Record<string, { id: string }> = {};
     const fileResponses: TurboUploadDataItemResponse[] = [];
+    const errors: Error[] = [];
 
-    const limit = pLimit(maxConcurrentUploads ?? 5);
+    const limit = pLimit(maxConcurrentUploads);
 
     const uploadFile = async (file: File) => {
       const contentType = file.type ?? 'application/octet-stream';
 
-      const buffer = await file.arrayBuffer().then((b) => Buffer.from(b));
-      const result = await this.uploadFile({
-        fileStreamFactory: () => buffer,
-        fileSizeFactory: () => file.size,
-        signal,
-        dataItemOpts: {
-          ...dataItemOpts,
-          tags: [
-            ...(dataItemOpts?.tags ?? []),
-            { name: 'Content-Type', value: contentType },
-          ],
-        },
-      });
+      try {
+        const buffer = await file.arrayBuffer().then((b) => Buffer.from(b));
+        const result = await this.uploadFile({
+          fileStreamFactory: () => buffer,
+          fileSizeFactory: () => file.size,
+          signal,
+          dataItemOpts: {
+            ...dataItemOpts,
+            tags: [
+              ...(dataItemOpts?.tags ?? []),
+              { name: 'Content-Type', value: contentType },
+            ],
+          },
+        });
 
-      const relativePath = file.name ?? file.webkitRelativePath;
-      paths[relativePath] = { id: result.id };
-      fileResponses.push(result);
+        const relativePath = file.name ?? file.webkitRelativePath;
+        paths[relativePath] = { id: result.id };
+        fileResponses.push(result);
+      } catch (error) {
+        if (throwOnFailure) {
+          throw error;
+        }
+        this.logger.error(`Error uploading file: ${file.name}`);
+        this.logger.error(error);
+        errors.push(error);
+      }
     };
 
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
@@ -84,6 +100,10 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
       signal,
     });
 
-    return { fileResponses, ...manifestResult };
+    return {
+      fileResponses,
+      ...manifestResult,
+      errors: errors.length > 0 ? errors : undefined,
+    };
   }
 }
