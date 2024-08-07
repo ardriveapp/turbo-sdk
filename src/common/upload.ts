@@ -160,12 +160,16 @@ export abstract class TurboAuthenticatedBaseUploadService
       fallback: { id: paths['404.html']?.id ?? paths[indexPath].id },
     };
 
+    const tagsWithManifestContentType = [
+      ...(dataItemOpts?.tags ?? []),
+      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
+    ];
     const manifestBuffer = Buffer.from(JSON.stringify(manifest));
     const manifestResponse = await this.uploadFile({
       fileStreamFactory: () => Readable.from(manifestBuffer),
       fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
-      dataItemOpts,
+      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
     });
 
     return { manifest, manifestResponse };
