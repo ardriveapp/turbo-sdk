@@ -1,3 +1,10 @@
+## [1.9.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.9.0...v1.9.1-alpha.1) (2024-08-07)
+
+
+### Bug Fixes
+
+* **build:** update build outputs for web and README ([74cce09](https://github.com/ardriveapp/turbo-sdk/commit/74cce094393672b1c96b795f6d1ab642d89b1bc9))
+
 # [1.9.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.8.0...v1.9.0) (2024-05-06)
 
 
