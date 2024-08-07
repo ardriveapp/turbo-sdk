@@ -88,8 +88,9 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     const limit = pLimit(maxConcurrentUploads);
 
     const uploadFile = async (absoluteFilePath: string) => {
+      const mimeType = lookup(absoluteFilePath);
       const contentType =
-        lookup(absoluteFilePath) || 'application/octet-stream';
+        mimeType === false ? 'application/octet-stream' : mimeType;
 
       try {
         const result = await this.uploadFile({
