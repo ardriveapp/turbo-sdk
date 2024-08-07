@@ -93,6 +93,7 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       const contentType =
         mimeType === false ? 'application/octet-stream' : mimeType;
 
+      try {
         const result = await this.uploadFile({
           fileStreamFactory: () => createReadStream(absoluteFilePath),
           fileSizeFactory: () => statSync(absoluteFilePath).size,
@@ -104,19 +105,18 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
               { name: 'Content-Type', value: contentType },
             ],
           },
-        }).catch((error: any) => {
-             this.logger.error(`Error uploading file: ${absoluteFilePath}`, {
-                  message: error?.message,
-                  stack: error?.stack
-             });
-             if (throwOnFailure) {
-                throw error;
-             }
-             errors.push(error);
         });
         fileResponses.push(result);
         const relativePath = absoluteFilePath.replace(folderPath + '/', '');
         paths[relativePath] = { id: result.id };
+      } catch (error) {
+        if (throwOnFailure) {
+          throw error;
+        }
+        this.logger.error(`Error uploading file: ${absoluteFilePath}`);
+        this.logger.error(error);
+        errors.push(error);
+      }
     };
 
     await Promise.all(
