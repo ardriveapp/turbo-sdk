@@ -27,6 +27,7 @@ import {
   isEthPrivateKey,
   isJWK,
 } from '../types.js';
+import { isWeb } from '../utils/common.js';
 import { TurboWebArweaveSigner } from '../web/signer.js';
 import { TurboAuthenticatedWebUploadService } from '../web/upload.js';
 import { JWKInterface } from './jwk.js';
@@ -52,10 +53,6 @@ export class TurboBaseFactory {
 
   static setLogFormat(format: string) {
     this.logger.setLogFormat(format);
-  }
-
-  private static isWeb() {
-    return typeof window !== 'undefined';
   }
 
   static unauthenticated({
@@ -105,7 +102,7 @@ export class TurboBaseFactory {
       throw new Error('A privateKey or signer must be provided.');
     }
 
-    if (this.isWeb()) {
+    if (isWeb()) {
       return new TurboWebArweaveSigner({
         signer,
         logger: this.logger,
@@ -161,7 +158,7 @@ export class TurboBaseFactory {
       token,
       tokenTools,
     });
-    const uploadService = this.isWeb()
+    const uploadService = isWeb()
       ? new TurboAuthenticatedWebUploadService({
           ...uploadServiceConfig,
           signer: turboSigner,
