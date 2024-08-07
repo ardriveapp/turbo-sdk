@@ -84,7 +84,7 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       });
 
       fileResponses.push(result);
-      const relativePath = absoluteFilePath.replace(folderPath, '');
+      const relativePath = absoluteFilePath.replace(folderPath + '/', '');
       paths[relativePath] = { id: result.id };
     }
 
