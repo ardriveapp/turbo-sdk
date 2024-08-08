@@ -71,7 +71,7 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
         if (userDefinedContentType !== undefined) {
           return undefined;
         }
-        file.type ?? 'application/octet-stream';
+        return file.type || 'application/octet-stream';
       })();
 
       const dataItemOptsWithContentType =

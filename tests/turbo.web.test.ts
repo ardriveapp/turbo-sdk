@@ -511,6 +511,7 @@ describe('Browser environment', () => {
             'nested/stubFile5.json',
             { type: 'application/json' },
           ),
+          new File(['test data 3'], 'stubFile3.txt'),
         ];
 
         const result = await turbo.uploadFolder({
@@ -519,7 +520,7 @@ describe('Browser environment', () => {
         expect(result).to.not.be.undefined;
         expect(result).to.have.property('manifest');
 
-        expect(result['fileResponses']).to.have.length(3);
+        expect(result['fileResponses']).to.have.length(4);
         expect(result['manifestResponse']).to.not.be.undefined;
       });
     });
