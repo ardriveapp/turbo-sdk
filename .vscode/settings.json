@@ -22,6 +22,7 @@
     "trivago",
     "tweetnacl",
     "typecheck",
+    "webkitdirectory",
     "Winc"
   ],
   "cSpell.ignorePaths": ["yarn.lock", "node_modules", ".vscode"],

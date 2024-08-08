@@ -511,13 +511,20 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 ##### Browser Upload Folder
 
 ```html
-<input type="file" id="file" name="file" />
+<input type="file" id="folder" name="folder" webkitdirectory />
 <script>
-  const fileInput = document.getElementById('file');
-  const selectedFiles = fileInput.files;
-  const {
-  manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({ files:
-  Array.from(selectedFiles).map((file) => file), });
+  const folderInput = document.getElementById('folder');
+
+  folderInput.addEventListener('change', async (event) => {
+    const selectedFiles = folderInput.files;
+    const { manifest, fileResponses, manifestResponse } =
+      await turbo.uploadFolder({
+        files: Array.from(selectedFiles).map((file) => file),
+      });
+
+    // Handle the responses as needed
+    console.log(manifest, fileResponses, manifestResponse);
+  });
 </script>
 ```
 
