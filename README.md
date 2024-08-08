@@ -49,6 +49,9 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getWincForFiat({ amount, promoCodes })`](#getwincforfiat-amount-promocodes-)
     - [`createCheckoutSession({ amount, owner, promoCodes })`](#createcheckoutsession-amount-owner-promocodes-)
     - [`uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`](#uploadfile-filestreamfactory-filesizefactory-signal-dataitemopts-)
+    - [`uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`](#uploadfolder-folderpath-files-dataitemopts-signal-maxconcurrentuploads-throwonfailure-manifestoptions-)
+      - [NodeJS Upload Folder](#nodejs-upload-folder)
+      - [Browser Upload Folder](#browser-upload-folder)
     - [`topUpWithTokens({ tokenAmount, feeMultiplier })`](#topupwithtokens-tokenamount-feemultiplier-)
       - [Ethereum (ETH)](#ethereum-eth-1)
       - [Solana (SOL)](#solana-sol-1)
@@ -469,6 +472,53 @@ const uploadResult = await turbo.uploadFile({
     // no timeout or AbortSignal provided
   },
 });
+```
+
+#### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
+
+Signs and uploads a folder of files. The `folderPath` is required on NodeJS. It is the path to the folder to upload. The `files` are a required array of file paths to upload. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
+
+##### NodeJS Upload Folder
+
+```typescript
+const folderPath = path.join(__dirname, './my-folder');
+const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
+  folderPath,
+  dataItemOpts: {
+    // optional
+    tags: [
+      {
+        // User defined content type will overwrite file content type
+        name: 'Content-Type',
+        value: 'text/plain',
+      },
+      {
+        name: 'My-Custom-Tag',
+        value: 'my-custom-value',
+      },
+    ],
+    // no timeout or AbortSignal provided
+  },
+  manifestOptions: {
+    // optional
+    indexFile: 'custom-index.html',
+    fallbackFile: 'custom-fallback.html',
+    disableManifests: false,
+  },
+});
+```
+
+##### Browser Upload Folder
+
+```html
+<input type="file" id="file" name="file" />
+<script>
+  const fileInput = document.getElementById('file');
+  const selectedFiles = fileInput.files;
+  const {
+  manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({ files:
+  Array.from(selectedFiles).map((file) => file), });
+</script>
 ```
 
 #### `topUpWithTokens({ tokenAmount, feeMultiplier })`
