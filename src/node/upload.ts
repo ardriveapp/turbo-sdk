@@ -26,7 +26,6 @@ import {
 } from '../common/upload.js';
 import {
   TurboAuthenticatedUploadServiceConfiguration,
-  TurboUploadDataItemResponse,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   isNodeUploadFolderParams,
@@ -72,15 +71,19 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     }
     const {
       folderPath,
-      indexFile,
       dataItemOpts,
       signal,
+      manifestOptions = {},
       maxConcurrentUploads = 5,
       throwOnFailure = true,
     } = params;
 
+    const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+
     const paths: Record<string, { id: string }> = {};
-    const fileResponses: TurboUploadDataItemResponse[] = [];
+    const response: TurboUploadFolderResponse = {
+      fileResponses: [],
+    };
     const errors: Error[] = [];
 
     const absoluteFilePaths =
@@ -118,7 +121,7 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
           signal,
           dataItemOpts: dataItemOptsWithContentType,
         });
-        fileResponses.push(result);
+        response.fileResponses.push(result);
         const relativePath = absoluteFilePath.replace(folderPath + '/', '');
         paths[relativePath] = { id: result.id };
       } catch (error) {
@@ -135,9 +138,18 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
       absoluteFilePaths.map((path) => limit(() => uploadFile(path))),
     );
 
+    if (errors.length) {
+      response.errors = errors;
+    }
+
+    if (disableManifest) {
+      return response;
+    }
+
     const manifest = await this.generateManifest({
       paths,
       indexFile,
+      fallbackFile,
     });
 
     const tagsWithManifestContentType = [
@@ -154,10 +166,9 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     });
 
     return {
-      fileResponses,
+      ...response,
       manifest,
       manifestResponse,
-      errors: errors.length ? errors : undefined,
     };
   }
 }

@@ -128,9 +128,13 @@ export type TurboUploadDataItemResponse = {
 
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
-  indexFile?: string;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
+  manifestOptions?: {
+    disableManifest?: boolean;
+    fallbackFile?: string;
+    indexFile?: string;
+  };
 } & TurboAbortSignal;
 
 export type NodeUploadFolderParams = {
@@ -153,8 +157,8 @@ export const isWebUploadFolderParams = (
 
 export type TurboUploadFolderResponse = {
   fileResponses: TurboUploadDataItemResponse[];
-  manifestResponse: TurboUploadDataItemResponse;
-  manifest: ArweaveManifest;
+  manifestResponse?: TurboUploadDataItemResponse;
+  manifest?: ArweaveManifest;
   errors?: Error[];
 };
 

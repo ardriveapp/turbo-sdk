@@ -22,7 +22,6 @@ import {
 } from '../common/upload.js';
 import {
   TurboAuthenticatedUploadServiceConfiguration,
-  TurboUploadDataItemResponse,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   isWebUploadFolderParams,
@@ -47,15 +46,19 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     }
     const {
       files,
-      indexFile,
       dataItemOpts,
       signal,
+      manifestOptions = {},
       maxConcurrentUploads = 5,
       throwOnFailure = true,
     } = params;
 
+    const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+
     const paths: Record<string, { id: string }> = {};
-    const fileResponses: TurboUploadDataItemResponse[] = [];
+    const response: TurboUploadFolderResponse = {
+      fileResponses: [],
+    };
     const errors: Error[] = [];
 
     const limit = pLimit(maxConcurrentUploads);
@@ -93,7 +96,7 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
 
         const relativePath = file.name ?? file.webkitRelativePath;
         paths[relativePath] = { id: result.id };
-        fileResponses.push(result);
+        response.fileResponses.push(result);
       } catch (error) {
         if (throwOnFailure) {
           throw error;
@@ -105,9 +108,18 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
 
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
 
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+
+    if (disableManifest) {
+      return response;
+    }
+
     const manifest = await this.generateManifest({
       paths,
       indexFile,
+      fallbackFile,
     });
 
     const tagsWithManifestContentType = [
@@ -136,10 +148,9 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     });
 
     return {
-      fileResponses,
+      ...response,
       manifest,
       manifestResponse,
-      errors: errors.length > 0 ? errors : undefined,
     };
   }
 }

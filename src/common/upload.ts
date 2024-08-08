@@ -128,9 +128,11 @@ export abstract class TurboAuthenticatedBaseUploadService
   protected async generateManifest({
     paths,
     indexFile,
+    fallbackFile,
   }: {
     paths: Record<string, { id: string }>;
     indexFile?: string;
+    fallbackFile?: string;
   }): Promise<ArweaveManifest> {
     const indexPath =
       // Use the user provided index file if it exists,
@@ -142,12 +144,17 @@ export abstract class TurboAuthenticatedBaseUploadService
         : // Else use the first file in the paths object.
           Object.keys(paths)[0];
 
+    const fallbackId =
+      fallbackFile !== undefined && paths[fallbackFile]?.id !== undefined
+        ? paths[fallbackFile].id
+        : paths['404.html']?.id ?? paths[indexPath].id;
+
     const manifest: ArweaveManifest = {
       manifest: 'arweave/paths',
       version: '0.2.0',
       index: { path: indexPath },
       paths,
-      fallback: { id: paths['404.html']?.id ?? paths[indexPath].id },
+      fallback: { id: fallbackId },
     };
 
     return manifest;
