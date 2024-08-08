@@ -85,8 +85,7 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
         if (throwOnFailure) {
           throw error;
         }
-        this.logger.error(`Error uploading file: ${file.name}`);
-        this.logger.error(error);
+        this.logger.error(`Error uploading file: ${file.name}`, error);
         errors.push(error);
       }
     };
