@@ -607,6 +607,9 @@ describe('Node environment', () => {
 
         const result = await turbo.uploadFolder({
           folderPath,
+          dataItemOpts: {
+            tags: [{ name: 'Content-Type', value: 'total/gibberish' }],
+          },
         });
         expect(result).to.not.be.undefined;
         expect(result).to.have.property('manifest');

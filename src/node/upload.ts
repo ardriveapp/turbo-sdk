@@ -18,16 +18,15 @@ import { createReadStream, promises, statSync } from 'fs';
 import { lookup } from 'mime-types';
 import { Readable } from 'node:stream';
 import { join } from 'path';
-import { pLimit } from 'plimit-lit';
 
 import {
   TurboAuthenticatedBaseUploadService,
   defaultUploadServiceURL,
 } from '../common/upload.js';
 import {
+  NodeUploadFolderParams,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboUploadFolderParams,
-  TurboUploadFolderResponse,
   isNodeUploadFolderParams,
 } from '../types.js';
 
@@ -63,111 +62,38 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     return absoluteFilePaths;
   }
 
-  async uploadFolder(
-    params: TurboUploadFolderParams,
-  ): Promise<TurboUploadFolderResponse> {
+  getFiles(params: TurboUploadFolderParams): Promise<string[]> {
     if (!isNodeUploadFolderParams(params)) {
       throw new Error('folderPath is required for node uploadFolder');
     }
-    const {
-      folderPath,
-      dataItemOpts,
-      signal,
-      manifestOptions = {},
-      maxConcurrentUploads = 5,
-      throwOnFailure = true,
-    } = params;
+    return this.getAbsoluteFilePathsFromFolder(params.folderPath);
+  }
 
-    const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+  getFileStreamForFile(file: string): Readable {
+    return createReadStream(file);
+  }
 
-    const paths: Record<string, { id: string }> = {};
-    const response: TurboUploadFolderResponse = {
-      fileResponses: [],
-    };
-    const errors: Error[] = [];
+  getFileSize(file: string): number {
+    return statSync(file).size;
+  }
 
-    const absoluteFilePaths =
-      await this.getAbsoluteFilePathsFromFolder(folderPath);
+  getFileName(file: string): string {
+    return file;
+  }
 
-    const limit = pLimit(maxConcurrentUploads);
-
-    const uploadFile = async (absoluteFilePath: string) => {
-      const contentType = (() => {
-        const userDefinedContentType = dataItemOpts?.tags?.find(
-          (tag) => tag.name === 'Content-Type',
-        )?.value;
-        if (userDefinedContentType !== undefined) {
-          return undefined;
-        }
-        const mimeType = lookup(absoluteFilePath);
-        return mimeType !== false ? mimeType : 'application/octet-stream';
-      })();
-
-      const dataItemOptsWithContentType =
-        contentType === undefined
-          ? dataItemOpts
-          : {
-              ...dataItemOpts,
-              tags: [
-                ...(dataItemOpts?.tags ?? []),
-                { name: 'Content-Type', value: contentType },
-              ],
-            };
-
-      try {
-        const result = await this.uploadFile({
-          fileStreamFactory: () => createReadStream(absoluteFilePath),
-          fileSizeFactory: () => statSync(absoluteFilePath).size,
-          signal,
-          dataItemOpts: dataItemOptsWithContentType,
-        });
-        response.fileResponses.push(result);
-        const relativePath = absoluteFilePath.replace(folderPath + '/', '');
-        paths[relativePath] = { id: result.id };
-      } catch (error) {
-        if (throwOnFailure) {
-          throw error;
-        }
-        this.logger.error(`Error uploading file: ${absoluteFilePath}`, error);
-        errors.push(error);
-      }
-    };
-
-    await Promise.all(
-      absoluteFilePaths.map((path) => limit(() => uploadFile(path))),
+  getRelativePath(file: string, params: TurboUploadFolderParams): string {
+    return file.replace(
+      (params as NodeUploadFolderParams).folderPath + '/',
+      '',
     );
+  }
 
-    if (errors.length) {
-      response.errors = errors;
-    }
+  contentTypeFromFile(file: string): string {
+    const mimeType = lookup(file);
+    return mimeType !== false ? mimeType : 'application/octet-stream';
+  }
 
-    if (disableManifest) {
-      return response;
-    }
-
-    const manifest = await this.generateManifest({
-      paths,
-      indexFile,
-      fallbackFile,
-    });
-
-    const tagsWithManifestContentType = [
-      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
-        []),
-      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
-    ];
-    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
-    const manifestResponse = await this.uploadFile({
-      fileStreamFactory: () => Readable.from(manifestBuffer),
-      fileSizeFactory: () => manifestBuffer.byteLength,
-      signal,
-      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
-    });
-
-    return {
-      ...response,
-      manifest,
-      manifestResponse,
-    };
+  createManifestStream(manifestBuffer: Buffer): Readable {
+    return Readable.from(manifestBuffer);
   }
 }

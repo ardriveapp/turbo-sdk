@@ -14,8 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { pLimit } from 'plimit-lit';
-
 import {
   TurboAuthenticatedBaseUploadService,
   defaultUploadServiceURL,
@@ -23,7 +21,6 @@ import {
 import {
   TurboAuthenticatedUploadServiceConfiguration,
   TurboUploadFolderParams,
-  TurboUploadFolderResponse,
   isWebUploadFolderParams,
 } from '../types.js';
 
@@ -38,119 +35,40 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     super({ url, retryConfig, logger, token, signer });
   }
 
-  async uploadFolder(
-    params: TurboUploadFolderParams,
-  ): Promise<TurboUploadFolderResponse> {
+  getFiles(params: TurboUploadFolderParams): Promise<File[]> {
     if (!isWebUploadFolderParams(params)) {
       throw new Error('files are required for web uploadFolder');
     }
-    const {
-      files,
-      dataItemOpts,
-      signal,
-      manifestOptions = {},
-      maxConcurrentUploads = 5,
-      throwOnFailure = true,
-    } = params;
+    return Promise.resolve(params.files);
+  }
 
-    const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+  getFileStreamForFile(file: File): ReadableStream {
+    return file.stream();
+  }
 
-    const paths: Record<string, { id: string }> = {};
-    const response: TurboUploadFolderResponse = {
-      fileResponses: [],
-    };
-    const errors: Error[] = [];
+  getFileSize(file: File): number {
+    return file.size;
+  }
 
-    const limit = pLimit(maxConcurrentUploads);
+  getFileName(file: File): string {
+    return file.name;
+  }
 
-    const uploadFile = async (file: File) => {
-      const contentType = (() => {
-        const userDefinedContentType = dataItemOpts?.tags?.find(
-          (tag) => tag.name === 'Content-Type',
-        )?.value;
-        if (userDefinedContentType !== undefined) {
-          return undefined;
-        }
-        return file.type || 'application/octet-stream';
-      })();
+  getRelativePath(file: File): string {
+    return file.name || file.webkitRelativePath;
+  }
 
-      const dataItemOptsWithContentType =
-        contentType === undefined
-          ? dataItemOpts
-          : {
-              ...dataItemOpts,
-              tags: [
-                ...(dataItemOpts?.tags ?? []),
-                { name: 'Content-Type', value: contentType },
-              ],
-            };
+  contentTypeFromFile(file: File): string {
+    return file.type || 'application/octet-stream';
+  }
 
-      try {
-        const result = await this.uploadFile({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fileStreamFactory: () => file.stream() as any,
-          fileSizeFactory: () => file.size,
-          signal,
-          dataItemOpts: dataItemOptsWithContentType,
-        });
-
-        const relativePath = file.name ?? file.webkitRelativePath;
-        paths[relativePath] = { id: result.id };
-        response.fileResponses.push(result);
-      } catch (error) {
-        if (throwOnFailure) {
-          throw error;
-        }
-        this.logger.error(`Error uploading file: ${file.name}`, error);
-        errors.push(error);
-      }
-    };
-
-    await Promise.all(files.map((file) => limit(() => uploadFile(file))));
-
-    if (errors.length > 0) {
-      response.errors = errors;
-    }
-
-    if (disableManifest) {
-      return response;
-    }
-
-    const manifest = await this.generateManifest({
-      paths,
-      indexFile,
-      fallbackFile,
+  createManifestStream(manifestBuffer: Buffer): ReadableStream {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(manifestBuffer);
+        controller.close();
+      },
     });
-
-    const tagsWithManifestContentType = [
-      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
-        []),
-      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
-    ];
-
-    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
-    const readableStreamFromManifest = () => {
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(manifestBuffer);
-          controller.close();
-        },
-      });
-      return stream;
-    };
-
-    const manifestResponse = await this.uploadFile({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fileStreamFactory: () => readableStreamFromManifest() as any,
-      fileSizeFactory: () => manifestBuffer.byteLength,
-      signal,
-      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
-    });
-
-    return {
-      ...response,
-      manifest,
-      manifestResponse,
-    };
+    return stream;
   }
 }

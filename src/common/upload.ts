@@ -14,8 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Readable } from 'node:stream';
+import { pLimit } from 'plimit-lit';
+
 import {
   ArweaveManifest,
+  DataItemOptions,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
@@ -162,7 +166,126 @@ export abstract class TurboAuthenticatedBaseUploadService
     return manifest;
   }
 
-  abstract uploadFolder(
-    p: TurboUploadFolderParams,
-  ): Promise<TurboUploadFolderResponse>;
+  abstract getFiles(
+    params: TurboUploadFolderParams,
+  ): Promise<(File | string)[]>;
+  abstract contentTypeFromFile(file: File | string): string;
+  abstract getFileStreamForFile(file: string | File): Readable | ReadableStream;
+  abstract getFileSize(file: string | File): number;
+  abstract getRelativePath(
+    file: string | File,
+    params: TurboUploadFolderParams,
+  ): string;
+  abstract createManifestStream(
+    manifestBuffer: Buffer,
+  ): Readable | ReadableStream;
+
+  private getContentType(
+    file: string | File,
+    dataItemOpts?: DataItemOptions,
+  ): string {
+    const userDefinedContentType = dataItemOpts?.tags?.find(
+      (tag) => tag.name === 'Content-Type',
+    )?.value;
+    if (userDefinedContentType !== undefined) {
+      return userDefinedContentType;
+    }
+
+    return this.contentTypeFromFile(file);
+  }
+
+  async uploadFolder(
+    params: TurboUploadFolderParams,
+  ): Promise<TurboUploadFolderResponse> {
+    const {
+      dataItemOpts,
+      signal,
+      manifestOptions = {},
+      maxConcurrentUploads = 5,
+      throwOnFailure = true,
+    } = params;
+
+    const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+
+    const paths: Record<string, { id: string }> = {};
+    const response: TurboUploadFolderResponse = {
+      fileResponses: [],
+    };
+    const errors: Error[] = [];
+
+    const uploadFile = async (file: string | File) => {
+      const contentType = this.getContentType(file, dataItemOpts);
+
+      const dataItemOptsWithContentType = {
+        ...dataItemOpts,
+        tags: [
+          ...(dataItemOpts?.tags?.filter(
+            (tag) => tag.name !== 'Content-Type',
+          ) ?? []),
+          { name: 'Content-Type', value: contentType },
+        ],
+      };
+
+      try {
+        const result = await this.uploadFile({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fileStreamFactory: () => this.getFileStreamForFile(file) as any,
+          fileSizeFactory: () => this.getFileSize(file),
+          signal,
+          dataItemOpts: dataItemOptsWithContentType,
+        });
+
+        const relativePath = this.getRelativePath(file, params);
+        paths[relativePath] = { id: result.id };
+        response.fileResponses.push(result);
+      } catch (error) {
+        if (throwOnFailure) {
+          throw error;
+        }
+        this.logger.error(`Error uploading file: ${file}`, error);
+        errors.push(error);
+      }
+    };
+
+    const files = await this.getFiles(params);
+    const limit = pLimit(maxConcurrentUploads);
+
+    await Promise.all(files.map((file) => limit(() => uploadFile(file))));
+
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+
+    if (disableManifest) {
+      return response;
+    }
+
+    const manifest = await this.generateManifest({
+      paths,
+      indexFile,
+      fallbackFile,
+    });
+
+    const tagsWithManifestContentType = [
+      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
+        []),
+      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
+    ];
+
+    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
+
+    const manifestResponse = await this.uploadFile({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
+      fileSizeFactory: () => manifestBuffer.byteLength,
+      signal,
+      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
+    });
+
+    return {
+      ...response,
+      manifest,
+      manifestResponse,
+    };
+  }
 }
