@@ -145,9 +145,11 @@ export abstract class TurboAuthenticatedBaseUploadService
           Object.keys(paths)[0];
 
     const fallbackId =
+      // Use the user provided fallback file if it exists,
       fallbackFile !== undefined && paths[fallbackFile]?.id !== undefined
         ? paths[fallbackFile].id
-        : paths['404.html']?.id ?? paths[indexPath].id;
+        : // Else use 404.html if it exists, else use the index path.
+          paths['404.html']?.id ?? paths[indexPath].id;
 
     const manifest: ArweaveManifest = {
       manifest: 'arweave/paths',
