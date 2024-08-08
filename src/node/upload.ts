@@ -128,8 +128,7 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
         if (throwOnFailure) {
           throw error;
         }
-        this.logger.error(`Error uploading file: ${absoluteFilePath}`);
-        this.logger.error(error);
+        this.logger.error(`Error uploading file: ${absoluteFilePath}`, error);
         errors.push(error);
       }
     };
