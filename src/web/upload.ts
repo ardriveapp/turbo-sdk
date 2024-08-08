@@ -61,7 +61,26 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     const limit = pLimit(maxConcurrentUploads);
 
     const uploadFile = async (file: File) => {
-      const contentType = file.type ?? 'application/octet-stream';
+      const contentType = (() => {
+        const userDefinedContentType = dataItemOpts?.tags?.find(
+          (tag) => tag.name === 'Content-Type',
+        )?.value;
+        if (userDefinedContentType !== undefined) {
+          return undefined;
+        }
+        file.type ?? 'application/octet-stream';
+      })();
+
+      const dataItemOptsWithContentType =
+        contentType === undefined
+          ? dataItemOpts
+          : {
+              ...dataItemOpts,
+              tags: [
+                ...(dataItemOpts?.tags ?? []),
+                { name: 'Content-Type', value: contentType },
+              ],
+            };
 
       try {
         const result = await this.uploadFile({
@@ -69,13 +88,7 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
           fileStreamFactory: () => file.stream() as any,
           fileSizeFactory: () => file.size,
           signal,
-          dataItemOpts: {
-            ...dataItemOpts,
-            tags: [
-              ...(dataItemOpts?.tags ?? []),
-              { name: 'Content-Type', value: contentType },
-            ],
-          },
+          dataItemOpts: dataItemOptsWithContentType,
         });
 
         const relativePath = file.name ?? file.webkitRelativePath;
@@ -98,7 +111,8 @@ export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUp
     });
 
     const tagsWithManifestContentType = [
-      ...(dataItemOpts?.tags ?? []),
+      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
+        []),
       { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
     ];
 

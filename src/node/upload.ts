@@ -89,22 +89,34 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     const limit = pLimit(maxConcurrentUploads);
 
     const uploadFile = async (absoluteFilePath: string) => {
-      const mimeType = lookup(absoluteFilePath);
-      const contentType =
-        mimeType === false ? 'application/octet-stream' : mimeType;
+      const contentType = (() => {
+        const userDefinedContentType = dataItemOpts?.tags?.find(
+          (tag) => tag.name === 'Content-Type',
+        )?.value;
+        if (userDefinedContentType !== undefined) {
+          return undefined;
+        }
+        const mimeType = lookup(absoluteFilePath);
+        return mimeType !== false ? mimeType : 'application/octet-stream';
+      })();
+
+      const dataItemOptsWithContentType =
+        contentType === undefined
+          ? dataItemOpts
+          : {
+              ...dataItemOpts,
+              tags: [
+                ...(dataItemOpts?.tags ?? []),
+                { name: 'Content-Type', value: contentType },
+              ],
+            };
 
       try {
         const result = await this.uploadFile({
           fileStreamFactory: () => createReadStream(absoluteFilePath),
           fileSizeFactory: () => statSync(absoluteFilePath).size,
           signal,
-          dataItemOpts: {
-            ...dataItemOpts,
-            tags: [
-              ...(dataItemOpts?.tags ?? []),
-              { name: 'Content-Type', value: contentType },
-            ],
-          },
+          dataItemOpts: dataItemOptsWithContentType,
         });
         fileResponses.push(result);
         const relativePath = absoluteFilePath.replace(folderPath + '/', '');
@@ -129,7 +141,8 @@ export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseU
     });
 
     const tagsWithManifestContentType = [
-      ...(dataItemOpts?.tags ?? []),
+      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
+        []),
       { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
     ];
     const manifestBuffer = Buffer.from(JSON.stringify(manifest));
