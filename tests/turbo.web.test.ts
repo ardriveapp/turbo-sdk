@@ -9,6 +9,7 @@ import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
 import { JsonRpcProvider } from 'ethers';
+import { File } from 'node-fetch';
 import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
 
@@ -497,6 +498,30 @@ describe('Browser environment', () => {
           .catch((err) => err);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Insufficient balance');
+      });
+    });
+
+    describe('uploadFolder()', () => {
+      it('uploads expected data items and manifest', async () => {
+        const files = [
+          new File(['test data'], 'stubFile.txt', { type: 'text/plain' }),
+          new File(['test data 2'], 'stubFile2.txt', { type: 'text/plain' }),
+          new File(
+            [`{ "key":  "val", "key2" : [1, 2, 3] }`],
+            'nested/stubFile5.json',
+            { type: 'application/json' },
+          ),
+          new File(['test data 3'], 'stubFile3.txt'),
+        ];
+
+        const result = await turbo.uploadFolder({
+          files,
+        });
+        expect(result).to.not.be.undefined;
+        expect(result).to.have.property('manifest');
+
+        expect(result['fileResponses']).to.have.length(4);
+        expect(result['manifestResponse']).to.not.be.undefined;
       });
     });
 

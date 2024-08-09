@@ -17,6 +17,7 @@
 import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import { TurboNodeSigner } from '../node/signer.js';
+import { TurboAuthenticatedNodeUploadService } from '../node/upload.js';
 import {
   TokenType,
   TurboAuthenticatedConfiguration,
@@ -26,7 +27,9 @@ import {
   isEthPrivateKey,
   isJWK,
 } from '../types.js';
+import { isWeb } from '../utils/common.js';
 import { TurboWebArweaveSigner } from '../web/signer.js';
+import { TurboAuthenticatedWebUploadService } from '../web/upload.js';
 import { JWKInterface } from './jwk.js';
 import { TurboWinstonLogger } from './logger.js';
 import {
@@ -39,10 +42,7 @@ import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from './turbo.js';
-import {
-  TurboAuthenticatedUploadService,
-  TurboUnauthenticatedUploadService,
-} from './upload.js';
+import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboBaseFactory {
   protected static logger = new TurboWinstonLogger();
@@ -102,7 +102,7 @@ export class TurboBaseFactory {
       throw new Error('A privateKey or signer must be provided.');
     }
 
-    if (typeof window !== 'undefined') {
+    if (isWeb()) {
       return new TurboWebArweaveSigner({
         signer,
         logger: this.logger,
@@ -158,12 +158,19 @@ export class TurboBaseFactory {
       token,
       tokenTools,
     });
-    const uploadService = new TurboAuthenticatedUploadService({
-      ...uploadServiceConfig,
-      signer: turboSigner,
-      logger: this.logger,
-      token,
-    });
+    const uploadService = isWeb()
+      ? new TurboAuthenticatedWebUploadService({
+          ...uploadServiceConfig,
+          signer: turboSigner,
+          logger: this.logger,
+          token,
+        })
+      : new TurboAuthenticatedNodeUploadService({
+          ...uploadServiceConfig,
+          signer: turboSigner,
+          logger: this.logger,
+          token,
+        });
     return new TurboAuthenticatedClient({
       uploadService,
       paymentService,

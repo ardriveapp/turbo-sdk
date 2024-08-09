@@ -22,7 +22,7 @@ import { version } from '../version.js';
 export class TurboWinstonLogger implements TurboLogger {
   protected logger: winston.Logger;
   constructor({
-    level = 'debug',
+    level = 'info',
     logFormat = 'simple',
   }: {
     level?: 'info' | 'debug' | 'error' | 'none' | undefined;
