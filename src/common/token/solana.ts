@@ -46,7 +46,7 @@ export class SolanaToken implements TokenTools {
   protected pollingOptions: TokenPollingOptions;
 
   constructor({
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     gatewayUrl = 'https://api.mainnet-beta.solana.com',
     pollingOptions = {
       maxAttempts: 10,

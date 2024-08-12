@@ -45,12 +45,14 @@ import {
 import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export class TurboBaseFactory {
-  protected static logger = new TurboWinstonLogger();
+  protected static logger = TurboWinstonLogger.default;
 
+  /* @deprecated - use TurboWinstonLogger directly */
   static setLogLevel(level: string) {
     this.logger.setLogLevel(level);
   }
 
+  /* @deprecated - use TurboWinstonLogger directly */
   static setLogFormat(format: string) {
     this.logger.setLogFormat(format);
   }

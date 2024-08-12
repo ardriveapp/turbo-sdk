@@ -175,7 +175,7 @@ describe('Browser environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const turboSigner = new TurboWebArweaveSigner({
         signer,
-        logger: new TurboWinstonLogger(),
+        logger: TurboWinstonLogger.default,
       });
       const error = await turboSigner
         .sendTransaction({

@@ -20,7 +20,11 @@ import { TurboLogger } from '../types.js';
 import { version } from '../version.js';
 
 export class TurboWinstonLogger implements TurboLogger {
-  protected logger: winston.Logger;
+  protected logger: winston.Logger | Console;
+  private silent = false;
+
+  static default = new TurboWinstonLogger();
+
   constructor({
     level = 'info',
     logFormat = 'simple',
@@ -28,37 +32,68 @@ export class TurboWinstonLogger implements TurboLogger {
     level?: 'info' | 'debug' | 'error' | 'none' | undefined;
     logFormat?: 'simple' | 'json' | undefined;
   } = {}) {
-    this.logger = createLogger({
-      level,
-      defaultMeta: { client: 'turbo-sdk', version },
-      silent: level === 'none',
-      format: getLogFormat(logFormat),
-      transports: [new transports.Console()],
-    });
+    if (level === 'none') {
+      this.silent = true;
+    }
+    if (typeof window !== 'undefined') {
+      this.logger = console;
+    } else {
+      this.logger = createLogger({
+        level,
+        silent: this.silent,
+        defaultMeta: {
+          name: 'ar-io-sdk',
+          version,
+        },
+        format: format.combine(format.timestamp(), format.json()),
+        transports: [
+          new transports.Console({
+            format: getLogFormat(logFormat),
+          }),
+        ],
+      });
+    }
   }
 
   info(message: string, ...args: unknown[]) {
+    if (this.silent) return;
+
     this.logger.info(message, ...args);
   }
 
   warn(message: string, ...args: unknown[]) {
+    if (this.silent) return;
+
     this.logger.warn(message, ...args);
   }
 
   error(message: string, ...args: unknown[]) {
+    if (this.silent) return;
+
     this.logger.error(message, ...args);
   }
 
   debug(message: string, ...args: unknown[]) {
+    if (this.silent) return;
+
     this.logger.debug(message, ...args);
   }
 
   setLogLevel(level: string) {
-    this.logger.level = level;
+    this.silent = level === 'none';
+    if ('silent' in this.logger) {
+      this.logger.silent = level === 'none';
+    }
+
+    if ('level' in this.logger) {
+      this.logger.level = level;
+    }
   }
 
   setLogFormat(logFormat: string) {
-    this.logger.format = getLogFormat(logFormat);
+    if ('format' in this.logger) {
+      this.logger.format = getLogFormat(logFormat);
+    }
   }
 }
 

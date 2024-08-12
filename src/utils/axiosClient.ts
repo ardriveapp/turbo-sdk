@@ -33,7 +33,7 @@ export interface AxiosInstanceParameters {
 }
 
 export const createAxiosInstance = ({
-  logger = new TurboWinstonLogger(),
+  logger = TurboWinstonLogger.default,
   axiosConfig = {},
   retryConfig = {
     retryDelay: axiosRetry.exponentialDelay,
