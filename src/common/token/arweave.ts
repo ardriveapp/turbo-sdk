@@ -16,6 +16,7 @@
  */
 import Arweave from '@irys/arweave';
 import { BigNumber } from 'bignumber.js';
+import { Buffer } from 'node:buffer';
 
 import {
   TokenCreateTxParams,

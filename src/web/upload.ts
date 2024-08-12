@@ -24,7 +24,7 @@ import {
   isWebUploadFolderParams,
 } from '../types.js';
 
-export class TurboAuthenticatedWebUploadService extends TurboAuthenticatedBaseUploadService {
+export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploadService {
   constructor({
     url = defaultUploadServiceURL,
     retryConfig,

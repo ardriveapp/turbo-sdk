@@ -24,6 +24,7 @@ import {
 } from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
+import { Buffer } from 'node:buffer';
 
 import {
   TokenConfig,

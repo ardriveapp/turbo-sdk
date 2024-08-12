@@ -17,6 +17,7 @@
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, parseEther } from 'ethers';
+import { Buffer } from 'node:buffer';
 import nacl from 'tweetnacl';
 
 import {

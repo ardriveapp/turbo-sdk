@@ -33,7 +33,7 @@ import {
   isJWK,
 } from '../types.js';
 import { TurboWebArweaveSigner } from './signer.js';
-import { TurboAuthenticatedWebUploadService } from './upload.js';
+import { TurboAuthenticatedUploadService } from './upload.js';
 
 export class TurboFactory extends TurboBaseFactory {
   protected static getSigner(
@@ -116,7 +116,7 @@ export class TurboFactory extends TurboBaseFactory {
       token,
       tokenTools,
     });
-    const uploadService = new TurboAuthenticatedWebUploadService({
+    const uploadService = new TurboAuthenticatedUploadService({
       ...uploadServiceConfig,
       signer: turboSigner,
       logger: this.logger,

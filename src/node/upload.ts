@@ -30,7 +30,7 @@ import {
   isNodeUploadFolderParams,
 } from '../types.js';
 
-export class TurboAuthenticatedNodeUploadService extends TurboAuthenticatedBaseUploadService {
+export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploadService {
   constructor({
     url = defaultUploadServiceURL,
     retryConfig,
