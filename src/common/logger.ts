@@ -42,7 +42,7 @@ export class TurboWinstonLogger implements TurboLogger {
         level,
         silent: this.silent,
         defaultMeta: {
-          name: 'ar-io-sdk',
+          name: 'turbo-sdk',
           version,
         },
         format: format.combine(format.timestamp(), format.json()),
