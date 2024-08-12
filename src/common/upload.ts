@@ -198,11 +198,13 @@ export abstract class TurboAuthenticatedBaseUploadService
   async uploadFolder(
     params: TurboUploadFolderParams,
   ): Promise<TurboUploadFolderResponse> {
+    this.logger.debug('Uploading folder...', { params });
+
     const {
       dataItemOpts,
       signal,
       manifestOptions = {},
-      maxConcurrentUploads = 5,
+      maxConcurrentUploads = 1,
       throwOnFailure = true,
     } = params;
 
@@ -252,6 +254,12 @@ export abstract class TurboAuthenticatedBaseUploadService
     const limit = pLimit(maxConcurrentUploads);
 
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
+
+    this.logger.debug('Finished uploading files', {
+      numFiles: files.length,
+      numErrors: errors.length,
+      results: response.fileResponses,
+    });
 
     if (errors.length > 0) {
       response.errors = errors;
