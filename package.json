@@ -82,7 +82,7 @@
     "mime-types": "^2.1.35",
     "plimit-lit": "^3.0.1",
     "tweetnacl": "^1.0.3",
-    "winston": "^3.10.0"
+    "winston": "^3.14.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",
