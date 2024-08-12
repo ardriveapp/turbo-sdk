@@ -1,3 +1,10 @@
+# [1.10.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.0-alpha.1...v1.10.0-alpha.2) (2024-08-12)
+
+
+### Bug Fixes
+
+* **logger:** fix winston setImmediate issue in web export for logger ([481cbe6](https://github.com/ardriveapp/turbo-sdk/commit/481cbe6bbe05b542f498f2d68333854259e98497))
+
 # [1.10.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.9.1-alpha.1...v1.10.0-alpha.1) (2024-08-09)
 
 
