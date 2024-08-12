@@ -1,3 +1,17 @@
+# [1.10.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.9.1-alpha.1...v1.10.0-alpha.1) (2024-08-09)
+
+
+### Features
+
+* **upload folder:** add manifest content type PE-4643 ([af35d7b](https://github.com/ardriveapp/turbo-sdk/commit/af35d7bb4841822b62bc892e7dcca451b436117c))
+* **upload folder:** add manifestOptions with disable, index, and fallback parameters PE-4643 ([708ea15](https://github.com/ardriveapp/turbo-sdk/commit/708ea157c17450921de2a4d64989508f52ac6a2c))
+* **upload folder:** add mime types for content type PE-4643 ([44d1240](https://github.com/ardriveapp/turbo-sdk/commit/44d124006089b21f0cc7649f822e16a3c0a259e9))
+* **upload folder:** add throw on failure option PE-4643 ([a258aa6](https://github.com/ardriveapp/turbo-sdk/commit/a258aa6d97573233ef44a7e68c5696d19468b55c))
+* **upload folder:** defer to use user defined content type on files when provided PE-4643 ([5d5ef89](https://github.com/ardriveapp/turbo-sdk/commit/5d5ef899686a23adcfffcf196824bb00684ceb88))
+* **upload folder:** init web and node upload folder with manifest implementations PE-4643 ([70d3135](https://github.com/ardriveapp/turbo-sdk/commit/70d313538cbe522995d742b923459ed39aecc84c))
+* **upload folder:** slice leading `/` from relative manifest paths PE-4643 ([c6e3b7c](https://github.com/ardriveapp/turbo-sdk/commit/c6e3b7c961699a57a5b43626f10283dbe9d4b12e))
+* **upload folder:** use concurrency with plimit-lit PE-4643 ([110a424](https://github.com/ardriveapp/turbo-sdk/commit/110a424db68cfca985303187b318e5a4b1c43b30))
+
 ## [1.9.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.9.0...v1.9.1-alpha.1) (2024-08-07)
 
 

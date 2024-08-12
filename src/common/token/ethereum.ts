@@ -38,7 +38,7 @@ export class EthereumToken implements TokenTools {
   protected rpcProvider: ethers.JsonRpcProvider;
 
   constructor({
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     gatewayUrl = 'https://cloudflare-eth.com/',
     pollingOptions = {
       maxAttempts: 10,

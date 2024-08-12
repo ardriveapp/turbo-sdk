@@ -51,7 +51,7 @@ export class TurboUnauthenticatedUploadService
   constructor({
     url = defaultUploadServiceURL,
     retryConfig,
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     token = 'arweave',
   }: TurboUnauthenticatedUploadServiceConfiguration) {
     this.token = token;

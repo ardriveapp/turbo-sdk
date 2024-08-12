@@ -168,7 +168,7 @@ describe('Node environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const turboSigner = new TurboNodeSigner({
         signer,
-        logger: new TurboWinstonLogger(),
+        logger: TurboWinstonLogger.default,
       });
       const error = await turboSigner
         .sendTransaction({

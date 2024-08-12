@@ -61,7 +61,7 @@ export class TurboUnauthenticatedPaymentService
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
     this.logger = logger;
@@ -224,7 +224,7 @@ export class TurboAuthenticatedPaymentService
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     token = 'arweave',
     tokenTools,
   }: TurboAuthenticatedPaymentServiceConfiguration) {
