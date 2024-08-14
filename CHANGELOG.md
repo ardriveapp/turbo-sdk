@@ -1,3 +1,11 @@
+# [1.10.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.0-alpha.2...v1.10.0-alpha.3) (2024-08-14)
+
+
+### Bug Fixes
+
+* **upload folder:** improve node exports PE-4643 ([a6c073b](https://github.com/ardriveapp/turbo-sdk/commit/a6c073bb8b8e8bebf818f08b2ae4b4613ae28c9f))
+* **upload folder:** improve web exports PE-4643 ([4b50778](https://github.com/ardriveapp/turbo-sdk/commit/4b50778707cc74b03058eddd98cf1b8818ec39c4))
+
 # [1.10.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.0-alpha.1...v1.10.0-alpha.2) (2024-08-12)
 
 
