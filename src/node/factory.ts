@@ -34,8 +34,6 @@ import {
   isEthPrivateKey,
   isJWK,
 } from '../types.js';
-import { isWeb } from '../utils/common.js';
-import { TurboWebArweaveSigner } from '../web/signer.js';
 import { TurboNodeSigner } from './signer.js';
 import { TurboAuthenticatedUploadService } from './upload.js';
 
@@ -69,12 +67,6 @@ export class TurboFactory extends TurboBaseFactory {
       throw new Error('A privateKey or signer must be provided.');
     }
 
-    if (isWeb()) {
-      return new TurboWebArweaveSigner({
-        signer,
-        logger: this.logger,
-      });
-    }
     return new TurboNodeSigner({
       signer,
       logger: this.logger,
@@ -125,19 +117,13 @@ export class TurboFactory extends TurboBaseFactory {
       token,
       tokenTools,
     });
-    const uploadService = isWeb()
-      ? new TurboAuthenticatedUploadService({
-          ...uploadServiceConfig,
-          signer: turboSigner,
-          logger: this.logger,
-          token,
-        })
-      : new TurboAuthenticatedUploadService({
-          ...uploadServiceConfig,
-          signer: turboSigner,
-          logger: this.logger,
-          token,
-        });
+
+    const uploadService = new TurboAuthenticatedUploadService({
+      ...uploadServiceConfig,
+      signer: turboSigner,
+      logger: this.logger,
+      token,
+    });
     return new TurboAuthenticatedClient({
       uploadService,
       paymentService,
