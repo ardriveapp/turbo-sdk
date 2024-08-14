@@ -14,12 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  ArweaveSigner,
-  EthereumSigner,
-  HexSolanaSigner,
-  JWKInterface,
-} from 'arbundles';
+import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import { TurboBaseFactory } from '../common/factory.js';
 import { defaultTokenMap } from '../common/index.js';
@@ -31,9 +26,8 @@ import {
   TurboAuthenticatedConfiguration,
   TurboSigner,
   TurboWallet,
-  isEthPrivateKey,
-  isJWK,
 } from '../types.js';
+import { createTurboSigner } from '../utils/common.js';
 import { TurboNodeSigner } from './signer.js';
 import { TurboAuthenticatedUploadService } from './upload.js';
 
@@ -43,32 +37,12 @@ export class TurboFactory extends TurboBaseFactory {
     providedPrivateKey: TurboWallet | undefined,
     token: TokenType,
   ): TurboDataItemAbstractSigner {
-    let signer: TurboSigner;
-
-    if (providedSigner !== undefined) {
-      signer = providedSigner;
-    } else if (providedPrivateKey !== undefined) {
-      if (token === 'solana') {
-        signer = new HexSolanaSigner(providedPrivateKey);
-      } else if (token === 'ethereum') {
-        if (!isEthPrivateKey(providedPrivateKey)) {
-          throw new Error(
-            'An Ethereum private key must be provided for EthereumSigner.',
-          );
-        }
-        signer = new EthereumSigner(providedPrivateKey);
-      } else {
-        if (!isJWK(providedPrivateKey)) {
-          throw new Error('A JWK must be provided for ArweaveSigner.');
-        }
-        signer = new ArweaveSigner(providedPrivateKey as JWKInterface);
-      }
-    } else {
-      throw new Error('A privateKey or signer must be provided.');
-    }
-
     return new TurboNodeSigner({
-      signer,
+      signer: createTurboSigner({
+        signer: providedSigner,
+        privateKey: providedPrivateKey,
+        token,
+      }),
       logger: this.logger,
     });
   }
@@ -117,7 +91,6 @@ export class TurboFactory extends TurboBaseFactory {
       token,
       tokenTools,
     });
-
     const uploadService = new TurboAuthenticatedUploadService({
       ...uploadServiceConfig,
       signer: turboSigner,
