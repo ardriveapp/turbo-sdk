@@ -16,6 +16,7 @@
  */
 import { bufferTob64Url } from 'arweave/node/lib/utils.js';
 import { createHash } from 'crypto';
+import { Buffer } from 'node:buffer';
 
 import { JWKInterface } from '../common/jwk.js';
 import { Base64String, PublicArweaveAddress } from '../types.js';

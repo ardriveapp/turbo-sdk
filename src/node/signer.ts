@@ -22,6 +22,7 @@ import {
   serializeTags,
   streamSigner,
 } from 'arbundles';
+import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
