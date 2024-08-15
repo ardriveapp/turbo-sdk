@@ -6,17 +6,31 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 
 ## Table of Contents
 
+<!-- toc -->
+
+- [Table of Contents](#table-of-contents)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Web](#web)
+    - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
+    - [Browser](#browser)
   - [NodeJS](#nodejs)
+    - [CommonJS](#commonjs)
+    - [ESM](#esm)
   - [Typescript](#typescript)
   - [Examples](#examples)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
     - [`unauthenticated()`](#unauthenticated)
     - [`authenticated()`](#authenticated)
+      - [Arweave JWK](#arweave-jwk)
+      - [ArweaveSigner](#arweavesigner)
+      - [ArconnectSigner](#arconnectsigner)
+      - [EthereumSigner](#ethereumsigner)
+      - [Ethereum Private Key](#ethereum-private-key)
+      - [HexSolanaSigner](#hexsolanasigner)
+      - [Solana Secret Key](#solana-secret-key)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
     - [`getSupportedCurrencies()`](#getsupportedcurrencies)
     - [`getSupportedCountries()`](#getsupportedcountries)
@@ -26,14 +40,29 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
     - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
     - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
+      - [Arweave (AR)](#arweave-ar)
+      - [Ethereum (ETH)](#ethereum-eth)
+      - [Solana (SOL)](#solana-sol)
     - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
     - [`getBalance()`](#getbalance)
     - [`getWincForFiat({ amount, promoCodes })`](#getwincforfiat-amount-promocodes-)
     - [`createCheckoutSession({ amount, owner, promoCodes })`](#createcheckoutsession-amount-owner-promocodes-)
     - [`uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`](#uploadfile-filestreamfactory-filesizefactory-signal-dataitemopts-)
+    - [`uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`](#uploadfolder-folderpath-files-dataitemopts-signal-maxconcurrentuploads-throwonfailure-manifestoptions-)
+      - [NodeJS Upload Folder](#nodejs-upload-folder)
+      - [Browser Upload Folder](#browser-upload-folder)
     - [`topUpWithTokens({ tokenAmount, feeMultiplier })`](#topupwithtokens-tokenamount-feemultiplier-)
+      - [Ethereum (ETH)](#ethereum-eth-1)
+      - [Solana (SOL)](#solana-sol-1)
 - [Developers](#developers)
+  - [Requirements](#requirements)
+  - [Setup & Build](#setup--build)
+  - [Testing](#testing)
+  - [Linting & Formatting](#linting--formatting)
+  - [Architecture](#architecture)
+
+<!-- tocstop -->
 
 ## Installation
 
@@ -119,6 +148,9 @@ const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
 ```
 
+> [!WARNING]
+> Polyfills are not provided by default for bundled web projects (Vite, ESBuild, Webpack, Rollup, etc.) . Depending on your apps bundler configuration and plugins, you will need to provide polyfills for various imports including `crypto`, `process`, `fs` and `buffer`. Refer to your bundler's documentation for how to provide the necessary polyfills.
+
 ESM:
 
 ```javascript
@@ -183,35 +215,35 @@ const turbo = TurboFactory.unauthenticated();
 
 Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
 
-##### Construct Turbo with an Arweave JWK
+##### Arweave JWK
 
 ```typescript
 const jwk = await arweave.crypto.generateJWK();
 const turbo = TurboFactory.authenticated({ privateKey: jwk });
 ```
 
-##### Construct Turbo with an Arweave signer
+##### ArweaveSigner
 
 ```typescript
 const signer = new ArweaveSigner(jwk);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-##### Construct Turbo with an Arconnect signer
+##### ArconnectSigner
 
 ```typescript
 const signer = new ArconnectSigner(window.arweaveWallet);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-##### Construct Turbo with an ETH signer
+##### EthereumSigner
 
 ```typescript
 const signer = new EthereumSigner(privateKey);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-##### Construct Turbo with an ETH private key
+##### Ethereum Private Key
 
 ```typescript
 const turbo = TurboFactory.authenticated({
@@ -220,14 +252,14 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-##### Construct Turbo with a SOL signer
+##### HexSolanaSigner
 
 ```typescript
 const signer = new HexSolanaSigner(bs58.encode(secretKey));
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-##### Construct Turbo with a SOL secret key
+##### Solana Secret Key
 
 ```typescript
 const turbo = TurboFactory.authenticated({
@@ -309,6 +341,8 @@ const uploadResponse = await turbo.uploadSignedDataItem({
 
 Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
 
+##### Arweave (AR)
+
 ```typescript
 const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
   await turbo.createCheckoutSession({
@@ -330,7 +364,7 @@ if (process.platform === 'darwin') {
 }
 ```
 
-##### Top up to ETH or SOL wallets
+##### Ethereum (ETH)
 
 ```ts
 const turbo = TurboFactory.unauthenticated({ token: 'ethereum' });
@@ -340,6 +374,8 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
   owner: publicEthereumAddress,
 });
 ```
+
+##### Solana (SOL)
 
 ```ts
 const turbo = TurboFactory.unauthenticated({ token: 'solana' });
@@ -354,7 +390,8 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
 
-- Note: Use this API if you've already executed your token transfer to the Turbo wallet. Otherwise, consider using `topUpWithTokens` to execute a new token transfer to the Turbo wallet and submit its resulting transaction ID for top up processing all in one go
+> [!NOTE]
+> Use this API if you've already executed your token transfer to the Turbo wallet. Otherwise, consider using `topUpWithTokens` to execute a new token transfer to the Turbo wallet and submit its resulting transaction ID for top up processing all in one go
 
 ```typescript
 const turbo = TurboFactory.unauthenticated(); // defaults to arweave token type
@@ -437,6 +474,61 @@ const uploadResult = await turbo.uploadFile({
 });
 ```
 
+#### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
+
+Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
+
+##### NodeJS Upload Folder
+
+```typescript
+const folderPath = path.join(__dirname, './my-folder');
+const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
+  folderPath,
+  dataItemOpts: {
+    // optional
+    tags: [
+      {
+        // User defined content type will overwrite file content type
+        name: 'Content-Type',
+        value: 'text/plain',
+      },
+      {
+        name: 'My-Custom-Tag',
+        value: 'my-custom-value',
+      },
+    ],
+    // no timeout or AbortSignal provided
+  },
+  manifestOptions: {
+    // optional
+    indexFile: 'custom-index.html',
+    fallbackFile: 'custom-fallback.html',
+    disableManifests: false,
+  },
+});
+```
+
+##### Browser Upload Folder
+
+```html
+<input type="file" id="folder" name="folder" webkitdirectory />
+<script type="module">
+  const folderInput = document.getElementById('folder');
+
+  folderInput.addEventListener('change', async (event) => {
+    const selectedFiles = folderInput.files;
+    console.log('Folder selected:', selectedFiles);
+
+    const { manifest, fileResponses, manifestResponse } =
+      await turbo.uploadFolder({
+        files: Array.from(selectedFiles).map((file) => file),
+      });
+
+    console.log(manifest, fileResponses, manifestResponse);
+  });
+</script>
+```
+
 #### `topUpWithTokens({ tokenAmount, feeMultiplier })`
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
@@ -453,7 +545,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
-##### Top up ETH tokens to ETH wallet
+##### Ethereum (ETH)
 
 ```ts
 const turbo = TurboFactory.authenticated({ signer, token: 'ethereum' });
@@ -463,7 +555,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
-##### Top up SOL tokens to SOL wallet
+##### Solana (SOL)
 
 ```ts
 const turbo = TurboFactory.authenticated({ signer, token: 'solana' });

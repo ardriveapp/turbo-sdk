@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { BigNumber } from 'bignumber.js';
+import { Buffer } from 'node:buffer';
 
 import {
   Currency,
@@ -60,7 +61,7 @@ export class TurboUnauthenticatedPaymentService
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
     this.logger = logger;
@@ -223,7 +224,7 @@ export class TurboAuthenticatedPaymentService
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     token = 'arweave',
     tokenTools,
   }: TurboAuthenticatedPaymentServiceConfiguration) {

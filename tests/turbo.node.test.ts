@@ -168,7 +168,7 @@ describe('Node environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const turboSigner = new TurboNodeSigner({
         signer,
-        logger: new TurboWinstonLogger(),
+        logger: TurboWinstonLogger.default,
       });
       const error = await turboSigner
         .sendTransaction({
@@ -597,6 +597,65 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Insufficient balance');
+      });
+    });
+
+    describe('uploadFolder()', () => {
+      it('uploads expected data items and manifest', async () => {
+        const folderPath = new URL('files/stubFolder', import.meta.url)
+          .pathname;
+
+        const result = await turbo.uploadFolder({
+          folderPath,
+          dataItemOpts: {
+            tags: [{ name: 'Content-Type', value: 'total/gibberish' }],
+          },
+        });
+        expect(result).to.not.be.undefined;
+        expect(result).to.have.property('manifest');
+
+        expect(result['fileResponses']).to.have.length(7);
+        expect(result['manifestResponse']).to.not.be.undefined;
+      });
+
+      it('uploads expected manifest with an index.html', async () => {
+        const folderPath = new URL(
+          'files/stubFolderWithIndexFile',
+          import.meta.url,
+        ).pathname;
+
+        const result = await turbo.uploadFolder({
+          folderPath,
+        });
+        expect(result).to.not.be.undefined;
+        expect(result).to.have.property('manifest');
+
+        expect(result['fileResponses']).to.have.length(5);
+        expect(result.manifest?.index.path).to.equal('index.html');
+        expect(result.manifest?.fallback?.id).to.equal(
+          result.manifest?.paths['404.html'].id,
+        );
+      });
+
+      it('uploads expected manifest with specified index file and fallback files', async () => {
+        const folderPath = new URL(
+          'files/stubFolderWithIndexFile',
+          import.meta.url,
+        ).pathname;
+
+        const result = await turbo.uploadFolder({
+          folderPath,
+          manifestOptions: {
+            indexFile: '3.txt',
+            fallbackFile: 'content/4.txt',
+          },
+        });
+
+        expect(result['fileResponses']).to.have.length(5);
+        expect(result.manifest?.index.path).to.equal('3.txt');
+        expect(result.manifest?.fallback?.id).to.equal(
+          result.manifest?.paths['content/4.txt'].id,
+        );
       });
     });
 

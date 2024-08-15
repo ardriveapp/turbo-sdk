@@ -39,6 +39,8 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboUploadFolderParams,
+  TurboUploadFolderResponse,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
@@ -219,6 +221,10 @@ export class TurboAuthenticatedClient
       signal,
       dataItemOpts,
     });
+  }
+
+  uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse> {
+    return this.uploadService.uploadFolder(p);
   }
 
   /**

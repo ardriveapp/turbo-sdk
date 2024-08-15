@@ -15,6 +15,8 @@ const bundle = () => {
         polyfills: {
           crypto: true,
           buffer: true,
+          fs: true,
+          'fs/promises': true,
         },
       }),
     ],

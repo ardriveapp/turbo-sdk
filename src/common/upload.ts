@@ -14,7 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Buffer } from 'node:buffer';
+import { Readable } from 'node:stream';
+import { pLimit } from 'plimit-lit';
+
 import {
+  ArweaveManifest,
+  DataItemOptions,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
@@ -26,6 +32,8 @@ import {
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboUploadFolderParams,
+  TurboUploadFolderResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -43,7 +51,7 @@ export class TurboUnauthenticatedUploadService
   constructor({
     url = defaultUploadServiceURL,
     retryConfig,
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     token = 'arweave',
   }: TurboUnauthenticatedUploadServiceConfiguration) {
     this.token = token;
@@ -77,7 +85,7 @@ export class TurboUnauthenticatedUploadService
 }
 
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
-export class TurboAuthenticatedUploadService
+export abstract class TurboAuthenticatedBaseUploadService
   extends TurboUnauthenticatedUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
@@ -120,5 +128,173 @@ export class TurboAuthenticatedUploadService
         'content-length': `${fileSize}`,
       },
     });
+  }
+
+  protected async generateManifest({
+    paths,
+    indexFile,
+    fallbackFile,
+  }: {
+    paths: Record<string, { id: string }>;
+    indexFile?: string;
+    fallbackFile?: string;
+  }): Promise<ArweaveManifest> {
+    const indexPath =
+      // Use the user provided index file if it exists,
+      indexFile !== undefined && paths[indexFile]?.id !== undefined
+        ? indexFile
+        : // Else use index.html if it exists,
+        paths['index.html']?.id !== undefined
+        ? 'index.html'
+        : // Else use the first file in the paths object.
+          Object.keys(paths)[0];
+
+    const fallbackId =
+      // Use the user provided fallback file if it exists,
+      fallbackFile !== undefined && paths[fallbackFile]?.id !== undefined
+        ? paths[fallbackFile].id
+        : // Else use 404.html if it exists, else use the index path.
+          paths['404.html']?.id ?? paths[indexPath].id;
+
+    const manifest: ArweaveManifest = {
+      manifest: 'arweave/paths',
+      version: '0.2.0',
+      index: { path: indexPath },
+      paths,
+      fallback: { id: fallbackId },
+    };
+
+    return manifest;
+  }
+
+  abstract getFiles(
+    params: TurboUploadFolderParams,
+  ): Promise<(File | string)[]>;
+  abstract contentTypeFromFile(file: File | string): string;
+  abstract getFileStreamForFile(file: string | File): Readable | ReadableStream;
+  abstract getFileSize(file: string | File): number;
+  abstract getRelativePath(
+    file: string | File,
+    params: TurboUploadFolderParams,
+  ): string;
+  abstract createManifestStream(
+    manifestBuffer: Buffer,
+  ): Readable | ReadableStream;
+
+  private getContentType(
+    file: string | File,
+    dataItemOpts?: DataItemOptions,
+  ): string {
+    const userDefinedContentType = dataItemOpts?.tags?.find(
+      (tag) => tag.name === 'Content-Type',
+    )?.value;
+    if (userDefinedContentType !== undefined) {
+      return userDefinedContentType;
+    }
+
+    return this.contentTypeFromFile(file);
+  }
+
+  async uploadFolder(
+    params: TurboUploadFolderParams,
+  ): Promise<TurboUploadFolderResponse> {
+    this.logger.debug('Uploading folder...', { params });
+
+    const {
+      dataItemOpts,
+      signal,
+      manifestOptions = {},
+      maxConcurrentUploads = 1,
+      throwOnFailure = true,
+    } = params;
+
+    const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+
+    const paths: Record<string, { id: string }> = {};
+    const response: TurboUploadFolderResponse = {
+      fileResponses: [],
+    };
+    const errors: Error[] = [];
+
+    const uploadFile = async (file: string | File) => {
+      const contentType = this.getContentType(file, dataItemOpts);
+
+      const dataItemOptsWithContentType = {
+        ...dataItemOpts,
+        tags: [
+          ...(dataItemOpts?.tags?.filter(
+            (tag) => tag.name !== 'Content-Type',
+          ) ?? []),
+          { name: 'Content-Type', value: contentType },
+        ],
+      };
+
+      try {
+        const result = await this.uploadFile({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fileStreamFactory: () => this.getFileStreamForFile(file) as any,
+          fileSizeFactory: () => this.getFileSize(file),
+          signal,
+          dataItemOpts: dataItemOptsWithContentType,
+        });
+
+        const relativePath = this.getRelativePath(file, params);
+        paths[relativePath] = { id: result.id };
+        response.fileResponses.push(result);
+      } catch (error) {
+        if (throwOnFailure) {
+          throw error;
+        }
+        this.logger.error(`Error uploading file: ${file}`, error);
+        errors.push(error);
+      }
+    };
+
+    const files = await this.getFiles(params);
+    const limit = pLimit(maxConcurrentUploads);
+
+    await Promise.all(files.map((file) => limit(() => uploadFile(file))));
+
+    this.logger.debug('Finished uploading files', {
+      numFiles: files.length,
+      numErrors: errors.length,
+      results: response.fileResponses,
+    });
+
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+
+    if (disableManifest) {
+      return response;
+    }
+
+    const manifest = await this.generateManifest({
+      paths,
+      indexFile,
+      fallbackFile,
+    });
+
+    const tagsWithManifestContentType = [
+      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
+        []),
+      { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
+    ];
+
+    const manifestBuffer = Buffer.from(JSON.stringify(manifest));
+
+    const manifestResponse = await this.uploadFile({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
+      fileSizeFactory: () => manifestBuffer.byteLength,
+      signal,
+      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
+    });
+
+    return {
+      ...response,
+      manifest,
+      manifestResponse,
+    };
   }
 }

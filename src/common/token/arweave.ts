@@ -16,6 +16,7 @@
  */
 import Arweave from '@irys/arweave';
 import { BigNumber } from 'bignumber.js';
+import { Buffer } from 'node:buffer';
 
 import {
   TokenCreateTxParams,
@@ -38,7 +39,7 @@ export class ArweaveToken implements TokenTools {
     arweave = Arweave.init({
       url: gatewayUrl,
     }),
-    logger = new TurboWinstonLogger(),
+    logger = TurboWinstonLogger.default,
     mintU = true,
     pollingOptions = {
       maxAttempts: 10,
