@@ -36,14 +36,17 @@ export abstract class TurboBaseFactory {
   static unauthenticated({
     paymentServiceConfig = {},
     uploadServiceConfig = {},
+    token,
   }: TurboUnauthenticatedConfiguration = {}) {
     const paymentService = new TurboUnauthenticatedPaymentService({
       ...paymentServiceConfig,
       logger: this.logger,
+      token,
     });
     const uploadService = new TurboUnauthenticatedUploadService({
       ...uploadServiceConfig,
       logger: this.logger,
+      token,
     });
     return new TurboUnauthenticatedClient({
       uploadService,
