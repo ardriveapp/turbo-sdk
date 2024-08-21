@@ -71,7 +71,11 @@
     "docs": "markdown-toc-gen insert README.md"
   },
   "dependencies": {
+    "@cosmjs/amino": "^0.32.4",
+    "@cosmjs/crypto": "^0.32.4",
+    "@cosmjs/encoding": "^0.32.4",
     "@irys/arweave": "0.0.3",
+    "@kyvejs/sdk": "^1.3.2",
     "@solana/web3.js": "^1.91.7",
     "arbundles": "0.9.9",
     "axios": "^1.4.0",
