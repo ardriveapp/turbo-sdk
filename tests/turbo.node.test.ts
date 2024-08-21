@@ -1,4 +1,4 @@
-import KyveSDK from '@kyvejs/sdk';
+import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import {
   ArweaveSigner,
   EthereumSigner,
@@ -925,7 +925,7 @@ describe('Node environment', () => {
     });
   });
 
-  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
+  describe.only('TurboAuthenticatedNodeClient with KyveSigner', () => {
     let turbo: TurboAuthenticatedClient;
 
     // TODO: KYVE Gateway
@@ -940,10 +940,17 @@ describe('Node environment', () => {
 
     let signer: TurboSigner; // KyveSigner
     before(async () => {
-      signer = await signerFromKyveMnemonic(await KyveSDK.generateMnemonic());
+      signer = await signerFromKyveMnemonic(
+        (
+          await DirectSecp256k1HdWallet.generate(24, {
+            prefix: 'kyve',
+          })
+        ).mnemonic,
+      );
       turbo = TurboFactory.authenticated({
         signer,
         ...turboDevelopmentConfigurations,
+        token: 'kyve',
         // tokenTools,
       });
     });
@@ -978,6 +985,20 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testSolAddressBase64);
+    });
+
+    it('should get a checkout session with kyve token', async () => {
+      const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
+        await turbo.createCheckoutSession({
+          amount: USD(10), // 10 USD
+          owner: testWalletAddress,
+        });
+
+      expect(adjustments).to.deep.equal([]);
+      expect(paymentAmount).to.equal(1000);
+      expect(quotedPaymentAmount).to.equal(1000);
+      expect(url).to.be.a('string');
+      expect(id).to.be.a('string');
     });
   });
 });
