@@ -70,6 +70,13 @@ export function createTurboSigner({
   }
 }
 
+export async function signerFromKyvePrivateKey(
+  privateKey: string,
+): Promise<TurboSigner> {
+  // TODO: Use KyveSigner when implemented for on chain native address support
+  return new EthereumSigner(privateKey);
+}
+
 export async function signerFromKyveMnemonic(
   mnemonic: string,
 ): Promise<TurboSigner> {
@@ -85,5 +92,5 @@ export async function signerFromKyveMnemonic(
     ).privkey,
   );
 
-  return new EthereumSigner(privateKey);
+  return signerFromKyvePrivateKey(privateKey);
 }

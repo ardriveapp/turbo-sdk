@@ -925,7 +925,7 @@ describe('Node environment', () => {
     });
   });
 
-  describe.only('TurboAuthenticatedNodeClient with KyveSigner', () => {
+  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
     let turbo: TurboAuthenticatedClient;
 
     // TODO: KYVE Gateway
@@ -939,14 +939,14 @@ describe('Node environment', () => {
     // });
 
     let signer: TurboSigner; // KyveSigner
+    let kyveAddress: string;
     before(async () => {
-      signer = await signerFromKyveMnemonic(
-        (
-          await DirectSecp256k1HdWallet.generate(24, {
-            prefix: 'kyve',
-          })
-        ).mnemonic,
-      );
+      const wallet = await DirectSecp256k1HdWallet.generate(24, {
+        prefix: 'kyve',
+      });
+      kyveAddress = (await wallet.getAccounts())[0].address;
+      signer = await signerFromKyveMnemonic(wallet.mnemonic);
+
       turbo = TurboFactory.authenticated({
         signer,
         ...turboDevelopmentConfigurations,
@@ -967,7 +967,7 @@ describe('Node environment', () => {
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testSolAddressBase64);
+      expect(response['owner']).to.equal(kyveAddress);
     });
 
     it('should properly upload a Buffer to turbo', async () => {
@@ -984,14 +984,14 @@ describe('Node environment', () => {
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testSolAddressBase64);
+      expect(response['owner']).to.equal(kyveAddress);
     });
 
     it('should get a checkout session with kyve token', async () => {
       const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
         await turbo.createCheckoutSession({
           amount: USD(10), // 10 USD
-          owner: testWalletAddress,
+          owner: kyveAddress,
         });
 
       expect(adjustments).to.deep.equal([]);
