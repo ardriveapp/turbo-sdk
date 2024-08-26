@@ -52,27 +52,32 @@ export function createTurboSigner({
     throw new Error('A privateKey or signer must be provided.');
   }
 
-  if (token === 'solana') {
-    // TODO: Add a type check for SOL private keys shape for detailed error message
-    return new HexSolanaSigner(clientProvidedPrivateKey);
-  } else if (token === 'ethereum') {
-    if (!isEthPrivateKey(clientProvidedPrivateKey)) {
-      throw new Error(
-        'An Ethereum private key must be provided for EthereumSigner.',
-      );
-    }
-    return new EthereumSigner(clientProvidedPrivateKey);
-  } else {
-    if (!isJWK(clientProvidedPrivateKey)) {
-      throw new Error('A JWK must be provided for ArweaveSigner.');
-    }
-    return new ArweaveSigner(clientProvidedPrivateKey);
+  switch (token) {
+    case 'solana':
+      return new HexSolanaSigner(clientProvidedPrivateKey);
+    case 'ethereum':
+      if (!isEthPrivateKey(clientProvidedPrivateKey)) {
+        throw new Error(
+          'An Ethereum private key must be provided for EthereumSigner.',
+        );
+      }
+      return new EthereumSigner(clientProvidedPrivateKey);
+    case 'kyve':
+      if (!isEthPrivateKey(clientProvidedPrivateKey)) {
+        throw new Error(
+          'An valid private key must be provided for KyveSigner.',
+        );
+      }
+      return signerFromKyvePrivateKey(clientProvidedPrivateKey);
+    default:
+      if (!isJWK(clientProvidedPrivateKey)) {
+        throw new Error('A JWK must be provided for ArweaveSigner.');
+      }
+      return new ArweaveSigner(clientProvidedPrivateKey);
   }
 }
 
-export async function signerFromKyvePrivateKey(
-  privateKey: string,
-): Promise<TurboSigner> {
+export function signerFromKyvePrivateKey(privateKey: string): TurboSigner {
   // TODO: Use KyveSigner when implemented for on chain native address support
   return new EthereumSigner(privateKey);
 }

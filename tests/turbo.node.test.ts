@@ -8,7 +8,6 @@ import {
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
-import { JsonRpcProvider } from 'ethers';
 import fs from 'fs';
 import { describe } from 'mocha';
 import { Readable } from 'node:stream';
@@ -172,12 +171,13 @@ describe('Node environment', () => {
       const turboSigner = new TurboNodeSigner({
         signer,
         logger: TurboWinstonLogger.default,
+        token: 'arweave',
       });
       const error = await turboSigner
         .sendTransaction({
           target: 'fake target',
           amount: BigNumber('1'),
-          provider: new JsonRpcProvider(''),
+          gatewayUrl: '',
         })
         .catch((error) => error);
       expect(error).to.be.instanceOf(Error);

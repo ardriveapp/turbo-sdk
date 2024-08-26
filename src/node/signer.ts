@@ -101,7 +101,8 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
     const serializedTags = tags && tags.length > 0 ? serializeTags(tags) : null;
     const tagsLength = 16 + (serializedTags ? serializedTags.byteLength : 0);
 
-    const { ownerLength, signatureLength } = this.sigConfig;
+    const ownerLength = this.signer.ownerLength;
+    const signatureLength = this.signer.signatureLength;
 
     const signatureTypeLength = 2;
 

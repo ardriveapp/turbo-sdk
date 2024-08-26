@@ -23,7 +23,6 @@ import {
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
-import { JsonRpcApiProvider as EthereumProvider } from 'ethers';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
@@ -393,13 +392,13 @@ export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
 
-  // TODO: Allow more abstract providers
-  provider: EthereumProvider;
+  gatewayUrl: string;
 };
 
 export type TurboDataItemSignerParams = {
   logger: TurboLogger;
   signer: TurboSigner;
+  token: TokenType;
 };
 
 export interface TurboDataItemSigner {
