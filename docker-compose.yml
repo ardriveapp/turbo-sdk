@@ -86,7 +86,7 @@ services:
     image: ghcr.io/ardriveapp/turbo-upload-service-localstack:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     restart: on-failure
     ports:
-      - '4566' # don't expose localstack externally by default
+      - '4566:4566' # don't expose localstack externally by default
       #- "127.0.0.1:4510-4559:4510-4559" # external services port range
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
@@ -110,7 +110,7 @@ services:
       interval: 10s
       timeout: 30s
       retries: 10
-      start_period: 100s
+      start_period: 10s
 
   payment-service:
     image: ghcr.io/ardriveapp/payment-service:latest
