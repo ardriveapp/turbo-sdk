@@ -17,14 +17,17 @@
 import { TokenConfig, TokenFactory } from '../../types.js';
 import { ArweaveToken } from './arweave.js';
 import { EthereumToken } from './ethereum.js';
+import { KyveToken } from './kyve.js';
 import { SolanaToken } from './solana.js';
 
 export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
+  kyve: (config: TokenConfig) => new KyveToken(config),
 } as const;
 
 export * from './arweave.js';
 export * from './solana.js';
 export * from './ethereum.js';
+export * from './kyve.js';

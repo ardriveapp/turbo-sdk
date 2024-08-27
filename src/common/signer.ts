@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { KyveSDK } from '@kyvejs/sdk/src/sdk.js';
+import { KyveSDK } from '@kyvejs/sdk/dist/sdk.js';
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';

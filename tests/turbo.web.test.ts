@@ -8,7 +8,6 @@ import {
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
-import { JsonRpcProvider } from 'ethers';
 import { File } from 'node-fetch';
 import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
@@ -176,12 +175,13 @@ describe('Browser environment', () => {
       const turboSigner = new TurboWebArweaveSigner({
         signer,
         logger: TurboWinstonLogger.default,
+        token: 'arweave',
       });
       const error = await turboSigner
         .sendTransaction({
           target: 'fake target',
           amount: BigNumber('1'),
-          provider: new JsonRpcProvider(''),
+          gatewayUrl: '',
         })
         .catch((error) => error);
       expect(error).to.be.instanceOf(Error);

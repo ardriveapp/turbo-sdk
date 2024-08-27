@@ -19,6 +19,7 @@ import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
   ARToTokenAmount,
   ArweaveToken,
+  KyveToken,
   SolanaToken,
   WinstonToTokenAmount,
 } from '../src/common/token/index.js';
@@ -37,6 +38,7 @@ import {
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
   getRawBalance,
+  kyveUrlString,
   mineArLocalBlock,
   sendFundTransaction,
   solanaUrlString,
@@ -929,14 +931,14 @@ describe('Node environment', () => {
     let turbo: TurboAuthenticatedClient;
 
     // TODO: KYVE Gateway
-    // const tokenTools = new KyveToken({
-    //   gatewayUrl: kyveUrlString,
-    //   pollingOptions: {
-    //     maxAttempts: 3,
-    //     pollingIntervalMs: 10,
-    //     initialBackoffMs: 0,
-    //   },
-    // });
+    const tokenTools = new KyveToken({
+      gatewayUrl: kyveUrlString,
+      pollingOptions: {
+        maxAttempts: 3,
+        pollingIntervalMs: 10,
+        initialBackoffMs: 0,
+      },
+    });
 
     let signer: TurboSigner; // KyveSigner
     let kyveAddress: string;
@@ -999,6 +1001,38 @@ describe('Node environment', () => {
       expect(quotedPaymentAmount).to.equal(1000);
       expect(url).to.be.a('string');
       expect(id).to.be.a('string');
+    });
+
+    it.only('should topUpWithTokens() to a KYVE wallet', async () => {
+      const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
+        {
+          tokenAmount: 1_000, // 0.001_000 KYVE
+        },
+      );
+
+      expect(id).to.be.a('string');
+      expect(target).to.be.a('string');
+      expect(winc).be.a('string');
+      expect(quantity).to.equal('100000000');
+      expect(owner).to.equal(kyveAddress);
+    });
+
+    it('should fail to topUpWithTokens() to a KYVE wallet if tx is stubbed to succeed but wont exist on chain', async () => {
+      stub(tokenTools, 'createAndSubmitTx').resolves({
+        id: 'stubbed-tx-id',
+        target: 'fake target',
+      });
+
+      await turbo
+        .topUpWithTokens({
+          tokenAmount: 1_000, // 0.001_000 KYVE
+        })
+        .catch((error) => {
+          expect(error).to.be.instanceOf(Error);
+          expect(error.message).to.contain(
+            'Failed to submit fund transaction!',
+          );
+        });
     });
   });
 });
