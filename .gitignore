@@ -6,6 +6,8 @@ coverage
 dist
 .husky/_
 
+data
+
 # Example files
 *.min.js
 
