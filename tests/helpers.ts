@@ -105,6 +105,11 @@ export const testSolWallet = bs58.encode(
   ),
 );
 
+export const testKyveMnemonic = // cspell:disable
+  'industry addict wink hero diet bitter obscure need melt road fuel error category jealous eye cushion castle satoshi hungry clean observe lobster normal lazy';
+export const testKyveAddress = 'kyve1xddfun7awnee70xdq5fnt5ja3vxh93v3dj4k8v';
+export const base64KyveAddress = 'Rdhf8cqIdoeb7scy9l0d1iVmhu6nmRJIGR-V7YQPKy8'; // cspell:enable
+
 const arweaveUrlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
 const arweaveUrl = new URL(arweaveUrlString);
 export const testArweave = Arweave.init({
