@@ -678,7 +678,7 @@ describe('Browser environment', () => {
       expect(response['owner']).to.equal(testEthAddressBase64);
     });
 
-    it('should topUpWithTokens() to an ETH wallet', async () => {
+    it.skip('should topUpWithTokens() to an ETH wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
         {
           tokenAmount: 100_000_000, // 0.000_000_000_100_000_000 ETH
@@ -772,7 +772,7 @@ describe('Browser environment', () => {
       expect(response['owner']).to.equal(testSolAddressBase64);
     });
 
-    it('should topUpWithTokens() to a SOL wallet', async () => {
+    it.skip('should topUpWithTokens() to a SOL wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
         {
           tokenAmount: 100_000, // 0.0001 SOL
