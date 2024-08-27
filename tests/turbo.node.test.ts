@@ -1,4 +1,3 @@
-import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import {
   ArweaveSigner,
   EthereumSigner,
@@ -930,10 +929,9 @@ describe('Node environment', () => {
     });
   });
 
-  describe.only('TurboAuthenticatedNodeClient with KyveSigner', () => {
+  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
     let turbo: TurboAuthenticatedClient;
 
-    // TODO: KYVE Gateway
     const tokenTools = new KyveToken({
       gatewayUrl: kyveUrlString,
       pollingOptions: {
@@ -945,17 +943,13 @@ describe('Node environment', () => {
 
     let signer: TurboSigner; // KyveSigner
     before(async () => {
-      const wallet = await DirectSecp256k1HdWallet.generate(24, {
-        prefix: 'kyve',
-      });
-
       signer = await signerFromKyveMnemonic(testKyveMnemonic);
 
       turbo = TurboFactory.authenticated({
         signer,
         ...turboDevelopmentConfigurations,
         token: 'kyve',
-        // tokenTools,
+        tokenTools,
       });
     });
 
@@ -1005,7 +999,7 @@ describe('Node environment', () => {
       expect(id).to.be.a('string');
     });
 
-    it.only('should topUpWithTokens() to a KYVE wallet', async () => {
+    it('should topUpWithTokens() to a KYVE wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
         {
           tokenAmount: 1_000, // 0.001_000 KYVE
@@ -1015,8 +1009,8 @@ describe('Node environment', () => {
       expect(id).to.be.a('string');
       expect(target).to.be.a('string');
       expect(winc).be.a('string');
-      expect(quantity).to.equal('100000000');
-      expect(owner).to.equal(kyveAddress);
+      expect(quantity).to.equal('1000');
+      expect(owner).to.equal(testKyveAddress);
     });
 
     it('should fail to topUpWithTokens() to a KYVE wallet if tx is stubbed to succeed but wont exist on chain', async () => {
