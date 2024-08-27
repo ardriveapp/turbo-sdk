@@ -105,12 +105,12 @@ services:
       test:
         [
           'CMD-SHELL',
-          'curl -f http://localhost:4566/_localstack/health || exit 1',
+          'if curl -s http://localhost:4566/_localstack/health | grep -q ''"secretsmanager": "running"''; then echo ''Localstack is ready''; exit 0; else echo ''Localstack is not ready''; exit 1; fi',
         ]
       interval: 10s
       timeout: 30s
       retries: 10
-      start_period: 15s
+      start_period: 10s
 
   payment-service:
     image: ghcr.io/ardriveapp/payment-service:latest
