@@ -33,6 +33,7 @@ import { TurboSigner } from '../src/types.js';
 import { signerFromKyveMnemonic } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
+  base64KyveAddress,
   delayedBlockMining,
   ethereumGatewayUrl,
   expectAsyncErrorThrow,
@@ -46,6 +47,8 @@ import {
   testEthNativeAddress,
   testEthWallet,
   testJwk,
+  testKyveAddress,
+  testKyveMnemonic,
   testSolAddressBase64,
   testSolBase58Address,
   testSolWallet,
@@ -925,7 +928,7 @@ describe('Node environment', () => {
     });
   });
 
-  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
+  describe.only('TurboAuthenticatedNodeClient with KyveSigner', () => {
     let turbo: TurboAuthenticatedClient;
 
     // TODO: KYVE Gateway
@@ -939,13 +942,12 @@ describe('Node environment', () => {
     // });
 
     let signer: TurboSigner; // KyveSigner
-    let kyveAddress: string;
     before(async () => {
       const wallet = await DirectSecp256k1HdWallet.generate(24, {
         prefix: 'kyve',
       });
-      kyveAddress = (await wallet.getAccounts())[0].address;
-      signer = await signerFromKyveMnemonic(wallet.mnemonic);
+
+      signer = await signerFromKyveMnemonic(testKyveMnemonic);
 
       turbo = TurboFactory.authenticated({
         signer,
@@ -967,7 +969,7 @@ describe('Node environment', () => {
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(kyveAddress);
+      expect(response['owner']).to.equal(base64KyveAddress);
     });
 
     it('should properly upload a Buffer to turbo', async () => {
@@ -984,14 +986,14 @@ describe('Node environment', () => {
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(kyveAddress);
+      expect(response['owner']).to.equal(base64KyveAddress);
     });
 
     it('should get a checkout session with kyve token', async () => {
       const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
         await turbo.createCheckoutSession({
           amount: USD(10), // 10 USD
-          owner: kyveAddress,
+          owner: testKyveAddress,
         });
 
       expect(adjustments).to.deep.equal([]);
