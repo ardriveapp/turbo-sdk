@@ -1,4 +1,3 @@
-import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import {
   ArweaveSigner,
   EthereumSigner,
@@ -928,7 +927,7 @@ describe('Node environment', () => {
     });
   });
 
-  describe.only('TurboAuthenticatedNodeClient with KyveSigner', () => {
+  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
     let turbo: TurboAuthenticatedClient;
 
     // TODO: KYVE Gateway
@@ -943,10 +942,6 @@ describe('Node environment', () => {
 
     let signer: TurboSigner; // KyveSigner
     before(async () => {
-      const wallet = await DirectSecp256k1HdWallet.generate(24, {
-        prefix: 'kyve',
-      });
-
       signer = await signerFromKyveMnemonic(testKyveMnemonic);
 
       turbo = TurboFactory.authenticated({
