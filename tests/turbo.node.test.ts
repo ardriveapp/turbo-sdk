@@ -28,8 +28,11 @@ import {
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
 import { TurboNodeSigner } from '../src/node/signer.js';
+import { TurboSigner } from '../src/types.js';
+import { signerFromKyveMnemonic } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
+  base64KyveAddress,
   delayedBlockMining,
   ethereumGatewayUrl,
   expectAsyncErrorThrow,
@@ -43,6 +46,8 @@ import {
   testEthNativeAddress,
   testEthWallet,
   testJwk,
+  testKyveAddress,
+  testKyveMnemonic,
   testSolAddressBase64,
   testSolBase58Address,
   testSolWallet,
@@ -919,6 +924,78 @@ describe('Node environment', () => {
             'Failed to submit fund transaction!',
           );
         });
+    });
+  });
+
+  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
+    let turbo: TurboAuthenticatedClient;
+
+    // TODO: KYVE Gateway
+    // const tokenTools = new KyveToken({
+    //   gatewayUrl: kyveUrlString,
+    //   pollingOptions: {
+    //     maxAttempts: 3,
+    //     pollingIntervalMs: 10,
+    //     initialBackoffMs: 0,
+    //   },
+    // });
+
+    let signer: TurboSigner; // KyveSigner
+    before(async () => {
+      signer = await signerFromKyveMnemonic(testKyveMnemonic);
+
+      turbo = TurboFactory.authenticated({
+        signer,
+        ...turboDevelopmentConfigurations,
+        token: 'kyve',
+        // tokenTools,
+      });
+    });
+
+    it('should properly upload a Readable to turbo', async () => {
+      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+      const fileSize = fs.statSync(filePath).size;
+      const response = await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+      });
+      expect(response).to.not.be.undefined;
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('fastFinalityIndexes');
+      expect(response).to.have.property('dataCaches');
+      expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(base64KyveAddress);
+    });
+
+    it('should properly upload a Buffer to turbo', async () => {
+      const signedDataItem = createData('signed data item', signer, {});
+      await signedDataItem.sign(signer);
+
+      const response = await turbo.uploadSignedDataItem({
+        dataItemStreamFactory: () => signedDataItem.getRaw(),
+        dataItemSizeFactory: () => signedDataItem.getRaw().length,
+      });
+
+      expect(response).to.not.be.undefined;
+      expect(response).to.not.be.undefined;
+      expect(response).to.have.property('fastFinalityIndexes');
+      expect(response).to.have.property('dataCaches');
+      expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(base64KyveAddress);
+    });
+
+    it('should get a checkout session with kyve token', async () => {
+      const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
+        await turbo.createCheckoutSession({
+          amount: USD(10), // 10 USD
+          owner: testKyveAddress,
+        });
+
+      expect(adjustments).to.deep.equal([]);
+      expect(paymentAmount).to.equal(1000);
+      expect(quotedPaymentAmount).to.equal(1000);
+      expect(url).to.be.a('string');
+      expect(id).to.be.a('string');
     });
   });
 });
