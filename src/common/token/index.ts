@@ -14,9 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import BigNumber from 'bignumber.js';
+import { BigNumber } from 'bignumber.js';
 
-import { TokenConfig, TokenFactory } from '../../types.js';
+import {
+  TokenConfig,
+  TokenFactory,
+  TokenType,
+  tokenTypes,
+} from '../../types.js';
 import { ARToTokenAmount, ArweaveToken } from './arweave.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 import { KYVEToTokenAmount, KyveToken } from './kyve.js';
@@ -30,11 +35,15 @@ export const defaultTokenMap: TokenFactory = {
 } as const;
 
 export const tokenToBaseMap = {
-  arweave: (a: BigNumber.BigNumber.Value) => ARToTokenAmount(a),
-  solana: (a: BigNumber.BigNumber.Value) => SOLToTokenAmount(a),
-  ethereum: (a: BigNumber.BigNumber.Value) => ETHToTokenAmount(a),
-  kyve: (a: BigNumber.BigNumber.Value) => KYVEToTokenAmount(a),
+  arweave: (a: BigNumber.Value) => ARToTokenAmount(a),
+  solana: (a: BigNumber.Value) => SOLToTokenAmount(a),
+  ethereum: (a: BigNumber.Value) => ETHToTokenAmount(a),
+  kyve: (a: BigNumber.Value) => KYVEToTokenAmount(a),
 } as const;
+
+export function isTokenType(token: string): token is TokenType {
+  return token in tokenTypes;
+}
 
 export * from './arweave.js';
 export * from './solana.js';
