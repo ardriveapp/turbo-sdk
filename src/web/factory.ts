@@ -46,6 +46,7 @@ export class TurboFactory extends TurboBaseFactory {
         token,
       }),
       logger: this.logger,
+      token,
     });
   }
 

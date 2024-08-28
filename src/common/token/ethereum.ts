@@ -66,7 +66,7 @@ export class EthereumToken implements TokenTools {
     const txId = await signer.sendTransaction({
       target,
       amount: eth,
-      provider: this.rpcProvider,
+      gatewayUrl: this.gatewayUrl,
     });
 
     return {

@@ -23,7 +23,6 @@ import {
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
-import { JsonRpcApiProvider as EthereumProvider } from 'ethers';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
@@ -236,7 +235,16 @@ export type SolSecretKey = Base58String;
 
 type HexadecimalString = string;
 export type EthPrivateKey = HexadecimalString;
+export type KyvePrivateKey = HexadecimalString;
 
+export function isKyvePrivateKey(
+  wallet: TurboWallet,
+): wallet is KyvePrivateKey {
+  if (typeof wallet !== 'string') return false;
+
+  // TODO: Hexadecimal regex
+  return true;
+}
 export function isEthPrivateKey(wallet: TurboWallet): wallet is EthPrivateKey {
   if (typeof wallet !== 'string') return false;
 
@@ -393,13 +401,13 @@ export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
 
-  // TODO: Allow more abstract providers
-  provider: EthereumProvider;
+  gatewayUrl: string;
 };
 
 export type TurboDataItemSignerParams = {
   logger: TurboLogger;
   signer: TurboSigner;
+  token: TokenType;
 };
 
 export interface TurboDataItemSigner {

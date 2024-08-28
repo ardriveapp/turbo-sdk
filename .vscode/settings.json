@@ -12,6 +12,7 @@
     "iife",
     "irys",
     "Keypair",
+    "korellia",
     "kyve",
     "kyvejs",
     "lamport",
@@ -28,6 +29,7 @@
     "trivago",
     "tweetnacl",
     "typecheck",
+    "ukyve",
     "webkitdirectory",
     "Winc"
   ],

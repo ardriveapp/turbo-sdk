@@ -122,6 +122,9 @@ export const solanaUrlString = // TODO: Local SOL net in integration test
 export const ethereumGatewayUrl = // TODO: Local ETH net in integration test -- 'http://localhost:8545'
   process.env.ETHEREUM_GATEWAY ?? 'https://ethereum-holesky-rpc.publicnode.com'; // holesky testnet rpc
 
+export const kyveUrlString = // TODO: Local KYVE net in integration test
+  process.env.KYVE_GATEWAY ?? 'https://api.korellia.kyve.network';
+
 export async function fundArLocalWalletAddress(address: string): Promise<void> {
   await testArweave.api.get(`mint/${address}/9999999999999999`);
 }
