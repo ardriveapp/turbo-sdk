@@ -17,7 +17,6 @@
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
-import { KyveClient } from '@kyvejs/sdk';
 import { EthereumSigner } from 'arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
@@ -83,8 +82,6 @@ export class KyveToken implements TokenTools {
   protected logger: TurboLogger;
   protected gatewayUrl: string;
   protected pollingOptions: TokenPollingOptions;
-
-  protected kyveClient: KyveClient;
 
   constructor({
     logger = TurboWinstonLogger.default,

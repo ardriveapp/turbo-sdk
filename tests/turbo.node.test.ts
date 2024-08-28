@@ -21,6 +21,7 @@ import {
   KyveToken,
   SolanaToken,
   WinstonToTokenAmount,
+  privateKeyFromKyveMnemonic,
 } from '../src/common/token/index.js';
 import {
   TurboAuthenticatedClient,
@@ -125,6 +126,15 @@ describe('Node environment', () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testEthWallet,
         token: 'ethereum',
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
+      const turbo = TurboFactory.authenticated({
+        privateKey: await privateKeyFromKyveMnemonic(testKyveMnemonic),
+        token: 'kyve',
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
