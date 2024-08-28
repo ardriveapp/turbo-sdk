@@ -187,6 +187,11 @@ describe('Node environment', () => {
       expect(error).to.be.instanceOf(Error);
       expect(error.message).to.contain('Only EthereumSigner is supported');
     });
+
+    it('signerFromKyveMnemonic() should return a TurboSigner', async () => {
+      const signer = await signerFromKyveMnemonic(testKyveMnemonic);
+      expect(signer).to.be.instanceOf(EthereumSigner);
+    });
   });
 
   describe('TurboUnauthenticatedNodeClient', () => {
