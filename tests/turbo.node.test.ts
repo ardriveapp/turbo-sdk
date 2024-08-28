@@ -138,7 +138,7 @@ describe('Node environment', () => {
           ...turboDevelopmentConfigurations,
         }),
       ).to.throw(
-        'An Ethereum private key must be provided for EthereumSigner.',
+        'A valid Ethereum private key must be provided for EthereumSigner.',
       );
     });
 
