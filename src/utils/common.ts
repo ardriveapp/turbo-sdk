@@ -25,6 +25,7 @@ import {
   TurboWallet,
   isEthPrivateKey,
   isJWK,
+  isKyvePrivateKey,
 } from '../types.js';
 
 export function sleep(ms: number): Promise<void> {
@@ -58,14 +59,14 @@ export function createTurboSigner({
     case 'ethereum':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
-          'An Ethereum private key must be provided for EthereumSigner.',
+          'A valid Ethereum private key must be provided for EthereumSigner.',
         );
       }
       return new EthereumSigner(clientProvidedPrivateKey);
     case 'kyve':
-      if (!isEthPrivateKey(clientProvidedPrivateKey)) {
+      if (!isKyvePrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
-          'An valid private key must be provided for KyveSigner.',
+          'A valid Kyve private key must be provided for KyveSigner.',
         );
       }
       return signerFromKyvePrivateKey(clientProvidedPrivateKey);

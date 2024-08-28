@@ -14,7 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
+import { Slip10, Slip10Curve } from '@cosmjs/crypto';
+import { toHex } from '@cosmjs/encoding';
 import { KyveClient } from '@kyvejs/sdk';
+import { EthereumSigner } from 'arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 
@@ -24,6 +28,7 @@ import {
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
+  TurboSigner,
 } from '../../types.js';
 import { createAxiosInstance } from '../../utils/axiosClient.js';
 import { sleep } from '../../utils/common.js';
@@ -165,4 +170,33 @@ export class KyveToken implements TokenTools {
       'Transaction not found after polling, transaction id: ' + txId,
     );
   }
+}
+
+export function signerFromKyvePrivateKey(privateKey: string): TurboSigner {
+  // TODO: Use KyveSigner when implemented for on chain native address support
+  return new EthereumSigner(privateKey);
+}
+
+export async function privateKeyFromKyveMnemonic(
+  mnemonic: string,
+): Promise<string> {
+  const kyveWallet = await Secp256k1HdWallet.fromMnemonic(mnemonic, {
+    prefix: 'kyve',
+  });
+
+  return toHex(
+    Slip10.derivePath(
+      Slip10Curve.Secp256k1,
+      kyveWallet['seed'],
+      makeCosmoshubPath(0),
+    ).privkey,
+  );
+}
+
+export async function signerFromKyveMnemonic(
+  mnemonic: string,
+): Promise<TurboSigner> {
+  const privateKey = await privateKeyFromKyveMnemonic(mnemonic);
+
+  return signerFromKyvePrivateKey(privateKey);
 }

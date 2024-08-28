@@ -42,7 +42,7 @@ export const tokenToBaseMap = {
 } as const;
 
 export function isTokenType(token: string): token is TokenType {
-  return token in tokenTypes;
+  return tokenTypes.includes(token as TokenType);
 }
 
 export * from './arweave.js';

@@ -235,7 +235,16 @@ export type SolSecretKey = Base58String;
 
 type HexadecimalString = string;
 export type EthPrivateKey = HexadecimalString;
+export type KyvePrivateKey = HexadecimalString;
 
+export function isKyvePrivateKey(
+  wallet: TurboWallet,
+): wallet is KyvePrivateKey {
+  if (typeof wallet !== 'string') return false;
+
+  // TODO: Hexadecimal regex
+  return true;
+}
 export function isEthPrivateKey(wallet: TurboWallet): wallet is EthPrivateKey {
   if (typeof wallet !== 'string') return false;
 
