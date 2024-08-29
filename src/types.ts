@@ -290,6 +290,7 @@ export type TurboUnauthenticatedConfiguration = {
   paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
   token?: TokenType;
+  gatewayUrl?: string;
 };
 
 export interface TurboLogger {
@@ -323,7 +324,6 @@ export type TurboAuthenticatedConfiguration =
     /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
     tokenMap?: TokenMap;
     tokenTools?: TokenTools;
-    gatewayUrl?: string;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
