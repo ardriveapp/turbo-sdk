@@ -236,4 +236,6 @@ export class TurboAuthenticatedClient
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
   }
+
+  // TODO:  walletNativeAddress() {
 }
