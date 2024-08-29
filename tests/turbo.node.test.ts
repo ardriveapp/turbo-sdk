@@ -48,8 +48,8 @@ import {
   testEthNativeAddress,
   testEthWallet,
   testJwk,
-  testKyveAddress,
   testKyveMnemonic,
+  testKyveNativeAddress,
   testSolAddressBase64,
   testSolBase58Address,
   testSolWallet,
@@ -447,6 +447,13 @@ describe('Node environment', () => {
       });
     });
 
+    describe('getNativeAddress()', () => {
+      it('should return the native address for the provided wallet', async () => {
+        const nativeAddress = await turbo.getNativeAddress();
+        expect(nativeAddress).to.equal(testWalletAddress);
+      });
+    });
+
     describe('getBalance()', async () => {
       it('returns correct balance for test wallet', async () => {
         const rawBalance = await getRawBalance(testWalletAddress);
@@ -792,6 +799,11 @@ describe('Node environment', () => {
       });
     });
 
+    it('getNativeAddress() should return the native address for the provided wallet', async () => {
+      const nativeAddress = await turbo.getNativeAddress();
+      expect(nativeAddress).to.equal(testEthNativeAddress);
+    });
+
     it('should properly upload a Readable to turbo', async () => {
       const filePath = new URL('files/1KB_file', import.meta.url).pathname;
       const fileSize = fs.statSync(filePath).size;
@@ -877,6 +889,11 @@ describe('Node environment', () => {
         ...turboDevelopmentConfigurations,
         tokenTools,
       });
+    });
+
+    it('getNativeAddress() should return the native address for the provided wallet', async () => {
+      const nativeAddress = await turbo.getNativeAddress();
+      expect(nativeAddress).to.equal(testSolBase58Address);
     });
 
     it('should properly upload a Readable to turbo', async () => {
@@ -968,6 +985,11 @@ describe('Node environment', () => {
       });
     });
 
+    it('getNativeAddress() should return the native address for the provided wallet', async () => {
+      const nativeAddress = await turbo.getNativeAddress();
+      expect(nativeAddress).to.equal(testKyveNativeAddress);
+    });
+
     it('should properly upload a Readable to turbo', async () => {
       const filePath = new URL('files/1KB_file', import.meta.url).pathname;
       const fileSize = fs.statSync(filePath).size;
@@ -1004,7 +1026,7 @@ describe('Node environment', () => {
       const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
         await turbo.createCheckoutSession({
           amount: USD(10), // 10 USD
-          owner: testKyveAddress,
+          owner: testKyveNativeAddress,
         });
 
       expect(adjustments).to.deep.equal([]);
@@ -1025,7 +1047,7 @@ describe('Node environment', () => {
       expect(target).to.be.a('string');
       expect(winc).be.a('string');
       expect(quantity).to.equal('1000');
-      expect(owner).to.equal(testKyveAddress);
+      expect(owner).to.equal(testKyveNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to a KYVE wallet if tx is stubbed to succeed but wont exist on chain', async () => {

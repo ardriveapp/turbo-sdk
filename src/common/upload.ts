@@ -35,6 +35,8 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
 } from '../types.js';
+import { toB64Url } from '../utils/base64.js';
+import { NativeAddress, ownerToNativeAddress } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -296,5 +298,12 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifest,
       manifestResponse,
     };
+  }
+
+  async getNativeAddress(): Promise<NativeAddress> {
+    return ownerToNativeAddress(
+      toB64Url(await this.signer.getPublicKey()),
+      this.token,
+    );
   }
 }

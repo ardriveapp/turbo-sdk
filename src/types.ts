@@ -473,6 +473,8 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
+
+  getNativeAddress(): Promise<string>;
 }
 
 export interface TurboUnauthenticatedClientInterface

@@ -44,6 +44,7 @@ import {
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
+import { NativeAddress } from '../utils/common.js';
 import {
   TurboUnauthenticatedPaymentService,
   defaultPaymentServiceURL,
@@ -237,5 +238,7 @@ export class TurboAuthenticatedClient
     return this.paymentService.topUpWithTokens(p);
   }
 
-  // TODO:  walletNativeAddress() {
+  getNativeAddress(): Promise<NativeAddress> {
+    return this.uploadService.getNativeAddress();
+  }
 }
