@@ -20,6 +20,7 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
+import { cryptoFund, getBalance } from './commands.js';
 import {
   applyOptions,
   configFromOptions,
@@ -29,8 +30,7 @@ import {
   tokenFromOptions,
   valueFromOptions,
   walletOptions,
-} from './cliUtils.js';
-import { cryptoFund, getBalance } from './commands.js';
+} from './utils.js';
 
 applyOptions(
   program
