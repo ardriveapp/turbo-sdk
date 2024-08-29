@@ -1,3 +1,10 @@
+# [1.11.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.11.0-alpha.2...v1.11.0-alpha.3) (2024-08-29)
+
+
+### Bug Fixes
+
+* **cli:** include bin/turbo in argv check PE-6449 ([cf57515](https://github.com/ardriveapp/turbo-sdk/commit/cf575154a679ea846ff049d3390ca0cea6989a7a))
+
 # [1.11.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.11.0-alpha.1...v1.11.0-alpha.2) (2024-08-29)
 
 
