@@ -1,3 +1,20 @@
+# [1.11.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.1...v1.11.0) (2024-08-29)
+
+
+### Bug Fixes
+
+* **cli:** include bin/turbo in argv check PE-6449 ([cf57515](https://github.com/ardriveapp/turbo-sdk/commit/cf575154a679ea846ff049d3390ca0cea6989a7a))
+
+
+### Features
+
+* **cli:** init a turbo cli tool featuring KYVE crypto fund PE-6449 ([2eff402](https://github.com/ardriveapp/turbo-sdk/commit/2eff402a7d759a91930d898343a0a97f1c2e9cb2))
+* **kyve:** add exported isTokenType helper PE-6448 ([bf70d59](https://github.com/ardriveapp/turbo-sdk/commit/bf70d596e9f3f4e31b63525ae533a166206ad736))
+* **kyve:** add tokenAmountToBase map PE-6448 ([b2864b3](https://github.com/ardriveapp/turbo-sdk/commit/b2864b3ccad2b0488868b1740fbbf3bb55f1e8d0))
+* **kyve:** allow kyve token type for uploads and top ups PE-6447 ([861d542](https://github.com/ardriveapp/turbo-sdk/commit/861d542a7198620e94c1e5210e8c18420953749e))
+* **kyve:** init KYVE crypto fund PE-6448 ([120735f](https://github.com/ardriveapp/turbo-sdk/commit/120735f8f0d342d6ebbeb16c05cabcdef2ec20f9))
+* **kyve:** update exported types PE-6448 ([e06608c](https://github.com/ardriveapp/turbo-sdk/commit/e06608ccb49e40c8ec0df686838c8ded370c2d2a))
+
 ## [1.10.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.0...v1.10.1) (2024-08-23)
 
 
