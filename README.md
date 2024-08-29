@@ -661,7 +661,7 @@ Usage: turbo [options] [command]
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
 - `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE or ETH private key as a string, or SOL Secret Key as a Uint8Array
-- `-m, --mnemonic <phrase>` - Mnemonic to use with the action
+- `-m, --mnemonic <phrase>` - Mnemonic to use with the action (KYVE only)
 - `-p, --private-key <key>` - Private key to use with the action
 
 #### Commands

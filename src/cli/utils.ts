@@ -101,6 +101,7 @@ export const globalOptions = [
   optionMap.gateway,
   optionMap.debug,
   optionMap.quiet,
+  optionMap.token,
 ];
 
 export function applyOptions(
@@ -149,6 +150,7 @@ export async function privateKeyFromOptions(
     if (token === 'kyve') {
       return privateKeyFromKyveMnemonic(mnemonic);
     } else {
+      // TODO: Implement other token types mnemonic to wallet
       throw new Error(
         'mnemonic provided but this token type mnemonic to wallet is not supported',
       );
@@ -160,8 +162,10 @@ export async function privateKeyFromOptions(
   } else if (privateKey !== undefined) {
     return privateKey;
   }
+  // TODO: Get TURBO_WALLET_FILE, TURBO_MNEMONIC, TURBO_PRIVATE_KEY or similar from ENV variables
+  // TODO: Add prompts for selecting wallet type and secure input
 
-  throw new Error('mnemonic or wallet file required');
+  throw new Error('mnemonic or wallet file or private key is required');
 }
 
 const tokenToDevGatewayMap: Record<TokenType, string> = {

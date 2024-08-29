@@ -62,7 +62,7 @@ applyOptions(
 
 applyOptions(
   program.command('crypto-fund').description('Top up a wallet with crypto'),
-  [...walletOptions, optionMap.token, optionMap.value],
+  [...walletOptions, optionMap.value],
 ).action(async (_commandOptions, command: Command) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const options: any = command.optsWithGlobals();
@@ -88,7 +88,7 @@ applyOptions(
 });
 
 if (
-  process.argv[1].includes('.bin/turbo') || // Running from global .bin
+  process.argv[1].includes('bin/turbo') || // Running from global .bin
   process.argv[1].includes('cli/cli') // Running from source
 ) {
   program.parse(process.argv);
