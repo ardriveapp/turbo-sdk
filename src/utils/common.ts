@@ -14,6 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
+import { Slip10, Slip10Curve } from '@cosmjs/crypto';
+import { toHex } from '@cosmjs/encoding';
 import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import {
@@ -22,6 +25,7 @@ import {
   TurboWallet,
   isEthPrivateKey,
   isJWK,
+  isKyvePrivateKey,
 } from '../types.js';
 
 export function sleep(ms: number): Promise<void> {
@@ -49,20 +53,50 @@ export function createTurboSigner({
     throw new Error('A privateKey or signer must be provided.');
   }
 
-  if (token === 'solana') {
-    // TODO: Add a type check for SOL private keys shape for detailed error message
-    return new HexSolanaSigner(clientProvidedPrivateKey);
-  } else if (token === 'ethereum') {
-    if (!isEthPrivateKey(clientProvidedPrivateKey)) {
-      throw new Error(
-        'An Ethereum private key must be provided for EthereumSigner.',
-      );
-    }
-    return new EthereumSigner(clientProvidedPrivateKey);
-  } else {
-    if (!isJWK(clientProvidedPrivateKey)) {
-      throw new Error('A JWK must be provided for ArweaveSigner.');
-    }
-    return new ArweaveSigner(clientProvidedPrivateKey);
+  switch (token) {
+    case 'solana':
+      return new HexSolanaSigner(clientProvidedPrivateKey);
+    case 'ethereum':
+      if (!isEthPrivateKey(clientProvidedPrivateKey)) {
+        throw new Error(
+          'A valid Ethereum private key must be provided for EthereumSigner.',
+        );
+      }
+      return new EthereumSigner(clientProvidedPrivateKey);
+    case 'kyve':
+      if (!isKyvePrivateKey(clientProvidedPrivateKey)) {
+        throw new Error(
+          'A valid Kyve private key must be provided for KyveSigner.',
+        );
+      }
+      return signerFromKyvePrivateKey(clientProvidedPrivateKey);
+    default:
+      if (!isJWK(clientProvidedPrivateKey)) {
+        throw new Error('A JWK must be provided for ArweaveSigner.');
+      }
+      return new ArweaveSigner(clientProvidedPrivateKey);
   }
+}
+
+export function signerFromKyvePrivateKey(privateKey: string): TurboSigner {
+  // TODO: Use KyveSigner when implemented for on chain native address support
+  return new EthereumSigner(privateKey);
+}
+
+export async function signerFromKyveMnemonic(
+  mnemonic: string,
+): Promise<TurboSigner> {
+  const kyveWallet = await Secp256k1HdWallet.fromMnemonic(mnemonic, {
+    prefix: 'kyve',
+  });
+
+  const privateKey = toHex(
+    Slip10.derivePath(
+      Slip10Curve.Secp256k1,
+      kyveWallet['seed'],
+      makeCosmoshubPath(0),
+    ).privkey,
+  );
+
+  return signerFromKyvePrivateKey(privateKey);
 }

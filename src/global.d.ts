@@ -14,6 +14,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-// AUTOMATICALLY GENERATED FILE - DO NOT TOUCH
-export const version = '1.11.0-alpha.3';
+interface Window {
+  keplr?: any;
+  cosmostation?: any;
+  leap?: any;
+  arweaveWallet?: any;
+}

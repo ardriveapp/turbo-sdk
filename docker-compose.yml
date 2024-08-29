@@ -25,7 +25,7 @@ services:
   #     - '8545:8545'
 
   upload-service:
-    image: ghcr.io/ardriveapp/upload-service:65bb8f2f0408b521c170d67162b12e128ce783f8 # TODO: Setup localstack
+    image: ghcr.io/ardriveapp/upload-service:latest
     ports:
       - '3000:3000'
     healthcheck:
@@ -46,6 +46,22 @@ services:
       ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
       TURBO_JWK_FILE: ./wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ENDPOINT: ${AWS_ENDPOINT:-http://localstack:4566}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      SQS_PREPARE_BUNDLE_URL: ${SQS_PREPARE_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/prepare-bundle-queue}
+      SQS_FINALIZE_UPLOAD_URL: ${SQS_FINALIZE_UPLOAD_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/finalize-multipart-queue}
+      SQS_OPTICAL_URL: ${SQS_OPTICAL_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/optical-post-queue}
+      SQS_NEW_DATA_ITEM_URL: ${SQS_NEW_DATA_ITEM_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/batch-insert-new-data-items-queue}
+      SQS_UNBUNDLE_BDI_URL: ${SQS_UNBUNDLE_BDI_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/bdi-unbundle-queue}
+      DATA_ITEM_BUCKET: ${DATA_ITEM_BUCKET:-turbo-sdk}
+      DATA_ITEM_BUCKET_REGION: ${DATA_ITEM_BUCKET_REGION:-us-east-1}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      DATA_ITEM_S3_PREFIX: ${DATA_ITEM_S3_PREFIX:-data}
+      BUNDLE_PAYLOAD_S3_PREFIX: ${BUNDLE_PAYLOAD_S3_PREFIX:-data}
+      FREE_UPLOAD_LIMIT: '107520'
+      ALLOW_ARFS_DATA: 'true'
     volumes:
       - upload-service-data-items:/temp
       - ./tests/wallets:/usr/src/app/wallets
@@ -53,6 +69,7 @@ services:
       - upload-service-pg
       - payment-service
       - arlocal-setup
+      - localstack
 
   upload-service-pg:
     image: postgres:13.8
@@ -64,6 +81,35 @@ services:
       - '5432:5432'
     volumes:
       - upload-service-data:/var/lib/postgresql/data
+
+  localstack:
+    image: ghcr.io/ardriveapp/turbo-upload-service-localstack:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
+    restart: on-failure
+    ports:
+      - '4566:4566'
+    environment:
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - SERVICES=${SERVICES:-s3,sqs,secretsmanager}
+      - DEBUG=${DEBUG:-0}
+      - NODE_ENV=${NODE_ENV:-local}
+      - ARWEAVE_WALLET=${ARWEAVE_WALLET:-$BUNDLER_ARWEAVE_WALLET}
+      - TURBO_OPTICAL_KEY=${TURBO_OPTICAL_KEY:-$BUNDLER_ARWEAVE_WALLET}
+      - PERSIST_DEFAULT=${PERSIST_LOCALSTACK:-1} # set to 0 to disable persistence of resources and s3 objects between restarts
+      - DATA_ITEM_BUCKET=${AWS_S3_BUCKET:-turbo-sdk}
+    volumes:
+      - '${LOCALSTACK_VOLUME_DIR:-./data/localstack}:/var/lib/localstack'
+      - '${LOCALSTACK_VOLUME_DIR:-./data/localstack}:/persisted-data'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'if curl -s http://localhost:4566/_localstack/health | grep -q ''"secretsmanager": "running"''; then echo ''Localstack is ready''; exit 0; else echo ''Localstack is not ready''; exit 1; fi',
+        ]
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 10s
 
   payment-service:
     image: ghcr.io/ardriveapp/payment-service:latest
@@ -89,6 +135,7 @@ services:
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984} # AR local gateway
       SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com} # SOL devnet gateway
       ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://ethereum-holesky-rpc.publicnode.com} # ETH holesky testnet gateway
+      KYVE_GATEWAY: ${KYVE_GATEWAY:-https://api.korellia.kyve.network} # KYVE testnet gateway
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
       - payment-service-pg

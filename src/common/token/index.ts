@@ -14,17 +14,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TokenConfig, TokenFactory } from '../../types.js';
-import { ArweaveToken } from './arweave.js';
-import { EthereumToken } from './ethereum.js';
-import { SolanaToken } from './solana.js';
+import { BigNumber } from 'bignumber.js';
+
+import {
+  TokenConfig,
+  TokenFactory,
+  TokenType,
+  tokenTypes,
+} from '../../types.js';
+import { ARToTokenAmount, ArweaveToken } from './arweave.js';
+import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
+import { KYVEToTokenAmount, KyveToken } from './kyve.js';
+import { SOLToTokenAmount, SolanaToken } from './solana.js';
 
 export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
+  kyve: (config: TokenConfig) => new KyveToken(config),
 } as const;
+
+export const tokenToBaseMap = {
+  arweave: (a: BigNumber.Value) => ARToTokenAmount(a),
+  solana: (a: BigNumber.Value) => SOLToTokenAmount(a),
+  ethereum: (a: BigNumber.Value) => ETHToTokenAmount(a),
+  kyve: (a: BigNumber.Value) => KYVEToTokenAmount(a),
+} as const;
+
+export function isTokenType(token: string): token is TokenType {
+  return tokenTypes.includes(token as TokenType);
+}
 
 export * from './arweave.js';
 export * from './solana.js';
 export * from './ethereum.js';
+export * from './kyve.js';

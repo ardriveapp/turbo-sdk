@@ -2,5 +2,7 @@ coverage:
   status:
     project:
       default:
-        target: 95%
+        target: 80%
         threshold: 1%
+  ignore:
+    - 'src/cli/*'

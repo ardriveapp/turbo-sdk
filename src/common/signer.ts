@@ -14,15 +14,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { KyveSDK } from '@kyvejs/sdk/dist/sdk.js';
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import { randomBytes } from 'crypto';
-import { Wallet as EthereumWallet, parseEther } from 'ethers';
+import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
 import { Buffer } from 'node:buffer';
 import nacl from 'tweetnacl';
 
 import {
   FileStreamFactory,
   SendTxWithSignerParams,
+  TokenType,
   TurboDataItemSigner,
   TurboDataItemSignerParams,
   TurboFileFactory,
@@ -46,31 +48,12 @@ export abstract class TurboDataItemAbstractSigner
 
   protected logger: TurboLogger;
   protected signer: TurboSigner;
+  protected token: TokenType;
 
-  constructor({ signer, logger }: TurboDataItemSignerParams) {
+  constructor({ signer, logger, token }: TurboDataItemSignerParams) {
     this.logger = logger;
     this.signer = signer;
-  }
-
-  protected get sigConfig(): { ownerLength: number; signatureLength: number } {
-    if (this.signer instanceof EthereumSigner) {
-      return {
-        signatureLength: 65,
-        ownerLength: 65,
-      };
-    }
-    if (this.signer instanceof HexSolanaSigner) {
-      return {
-        signatureLength: 64,
-        ownerLength: 32,
-      };
-    }
-
-    // base case, arweave/arconnect signer
-    return {
-      ownerLength: 512,
-      signatureLength: 512,
-    };
+    this.token = token;
   }
 
   public async generateSignedRequestHeaders() {
@@ -93,7 +76,7 @@ export abstract class TurboDataItemAbstractSigner
   public async sendTransaction({
     target,
     amount,
-    provider,
+    gatewayUrl,
   }: SendTxWithSignerParams): Promise<string> {
     if (!(this.signer instanceof EthereumSigner)) {
       throw new Error(
@@ -103,6 +86,30 @@ export abstract class TurboDataItemAbstractSigner
     const keyAsStringFromUint8Array = Buffer.from(this.signer.key).toString(
       'hex',
     );
+
+    if (this.token === 'kyve') {
+      const chainId = gatewayUrl.includes('kaon')
+        ? 'kaon-1'
+        : gatewayUrl.includes('korellia')
+        ? 'korellia-2'
+        : 'kyve-1';
+
+      // TODO: KYVE Web wallet tx signing/sending
+      const client = await new KyveSDK(chainId).fromPrivateKey(
+        keyAsStringFromUint8Array,
+      );
+
+      const tx = await client.kyve.base.v1beta1.transfer(
+        target,
+        amount.toString(),
+      );
+      await tx.execute();
+
+      return tx.txHash;
+    }
+
+    // TODO: ETH Web wallet tx signing/sending
+    const provider = new ethers.JsonRpcProvider(gatewayUrl);
     const ethWalletAndProvider = new EthereumWallet(
       keyAsStringFromUint8Array,
       provider,

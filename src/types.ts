@@ -23,7 +23,6 @@ import {
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
-import { JsonRpcApiProvider as EthereumProvider } from 'ethers';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
@@ -47,7 +46,7 @@ export type Currency =
   | 'brl';
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-export const tokenTypes = ['arweave', 'solana', 'ethereum'] as const;
+export const tokenTypes = ['arweave', 'solana', 'ethereum', 'kyve'] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
 export type Adjustment = {
@@ -236,7 +235,16 @@ export type SolSecretKey = Base58String;
 
 type HexadecimalString = string;
 export type EthPrivateKey = HexadecimalString;
+export type KyvePrivateKey = HexadecimalString;
 
+export function isKyvePrivateKey(
+  wallet: TurboWallet,
+): wallet is KyvePrivateKey {
+  if (typeof wallet !== 'string') return false;
+
+  // TODO: Hexadecimal regex
+  return true;
+}
 export function isEthPrivateKey(wallet: TurboWallet): wallet is EthPrivateKey {
   if (typeof wallet !== 'string') return false;
 
@@ -282,6 +290,7 @@ export type TurboUnauthenticatedConfiguration = {
   paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
   token?: TokenType;
+  gatewayUrl?: string;
 };
 
 export interface TurboLogger {
@@ -315,7 +324,6 @@ export type TurboAuthenticatedConfiguration =
     /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
     tokenMap?: TokenMap;
     tokenTools?: TokenTools;
-    gatewayUrl?: string;
   };
 
 export type TurboUnauthenticatedClientConfiguration = {
@@ -393,13 +401,13 @@ export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
 
-  // TODO: Allow more abstract providers
-  provider: EthereumProvider;
+  gatewayUrl: string;
 };
 
 export type TurboDataItemSignerParams = {
   logger: TurboLogger;
   signer: TurboSigner;
+  token: TokenType;
 };
 
 export interface TurboDataItemSigner {

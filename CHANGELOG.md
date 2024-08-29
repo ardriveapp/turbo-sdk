@@ -5,12 +5,6 @@
 
 * expose `token` on unauthenticated turbo factory PE-6569 ([7f0c44c](https://github.com/ardriveapp/turbo-sdk/commit/7f0c44cfc319d0f303d252d0aa73f0d42a635e03))
 
-## [1.10.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.0...v1.10.1-alpha.1) (2024-08-16)
-
-
-### Bug Fixes
-
-* expose `token` on unauthenticated turbo factory PE-6569 ([7f0c44c](https://github.com/ardriveapp/turbo-sdk/commit/7f0c44cfc319d0f303d252d0aa73f0d42a635e03))
 
 # [1.10.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.9.0...v1.10.0) (2024-08-15)
 

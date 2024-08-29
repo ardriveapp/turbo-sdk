@@ -44,6 +44,7 @@ export class TurboFactory extends TurboBaseFactory {
         token,
       }),
       logger: this.logger,
+      token,
     });
   }
 
@@ -78,6 +79,7 @@ export class TurboFactory extends TurboBaseFactory {
       if (tokenMap && token === 'arweave') {
         tokenTools = tokenMap.arweave;
       }
+
       tokenTools = defaultTokenMap[token]?.({
         gatewayUrl,
         logger: this.logger,
