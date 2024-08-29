@@ -31,6 +31,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Ethereum Private Key](#ethereum-private-key)
       - [HexSolanaSigner](#hexsolanasigner)
       - [Solana Secret Key](#solana-secret-key)
+      - [KYVE Private Key](#kyve-private-key)
+      - [KYVE Mnemonic](#kyve-mnemonic)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
     - [`getSupportedCurrencies()`](#getsupportedcurrencies)
     - [`getSupportedCountries()`](#getsupportedcountries)
