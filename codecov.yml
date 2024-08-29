@@ -5,4 +5,4 @@ coverage:
         target: 80%
         threshold: 1%
   ignore:
-    - 'cli/*'
+    - 'src/cli/*'
