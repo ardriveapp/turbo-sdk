@@ -45,6 +45,8 @@ import {
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
+import { toB64Url } from '../utils/base64.js';
+import { ownerToNativeAddress } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -71,6 +73,15 @@ export class TurboUnauthenticatedPaymentService
       logger: this.logger,
     });
     this.token = token;
+  }
+
+  public async getBalance(address: string): Promise<TurboBalanceResponse> {
+    const balance = await this.httpService.get<TurboBalanceResponse>({
+      endpoint: `/account/balance/${this.token}?address=${address}`,
+      allowedStatuses: [200, 404],
+    });
+
+    return balance.winc ? balance : { winc: '0' };
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
@@ -233,16 +244,13 @@ export class TurboAuthenticatedPaymentService
     this.tokenTools = tokenTools;
   }
 
-  public async getBalance(): Promise<TurboBalanceResponse> {
-    const headers = await this.signer.generateSignedRequestHeaders();
-    const balance = await this.httpService.get<TurboBalanceResponse>({
-      endpoint: '/balance',
-      headers,
-      allowedStatuses: [200, 404],
-    });
+  public async getBalance(address?: string): Promise<TurboBalanceResponse> {
+    address ??= ownerToNativeAddress(
+      toB64Url(await this.signer.getPublicKey()),
+      this.token,
+    );
 
-    // 404's don't return a balance, so default to 0
-    return balance.winc ? balance : { winc: '0' };
+    return super.getBalance(address);
   }
 
   public async getWincForFiat({
@@ -260,10 +268,7 @@ export class TurboAuthenticatedPaymentService
   public async createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
-    return this.getCheckout(
-      params,
-      await this.signer.generateSignedRequestHeaders(),
-    );
+    return this.getCheckout(params);
   }
 
   private async getTargetWalletForFund(): Promise<string> {
