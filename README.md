@@ -21,10 +21,6 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [Typescript](#typescript)
   - [Examples](#examples)
 - [APIs](#apis)
-- [CLI](#cli)
-
-  - [Install CLI](#install-cli)
-
   - [TurboFactory](#turbofactory)
     - [`unauthenticated()`](#unauthenticated)
     - [`authenticated()`](#authenticated)
@@ -62,7 +58,12 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Ethereum (ETH) Crypto Top Up](#ethereum-eth-crypto-top-up)
       - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
-
+- [CLI](#cli)
+  - [Install CLI](#install-cli)
+  - [CLI Usage](#cli-usage)
+    - [Options](#options)
+    - [Commands](#commands)
+      - [`crypto-fund`](#crypto-fund)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -632,7 +633,19 @@ or
 yarn global add @ardrive/turbo-sdk
 ```
 
-### Usage
+or install locally as a dev dependency:
+
+```shell
+npm install --save-dev @ardrive/turbo-sdk
+```
+
+or
+
+```shell
+yarn add -D @ardrive/turbo-sdk
+```
+
+### CLI Usage
 
 ```shell
 turbo --help
@@ -646,10 +659,6 @@ yarn turbo --help
 
 ```shell
 npx turbo --help
-```
-
-```shell
-Usage: turbo [options] [command]
 ```
 
 #### Options
@@ -670,12 +679,14 @@ Usage: turbo [options] [command]
 
 Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
 
+Command Options:
+
 - `-v, --value <value>` - Amount of tokens in the token type's smallest unit value to fund the wallet with
 
 e.g:
 
 ```shell
-turbo crypto-fund --value 0.0001 --token kyve --private-key ./my-kyve-private-key.txt
+turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 ```
 
 ## Developers
@@ -722,7 +733,3 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 [TurboAuthenticatedClient]: #turboauthenticatedclient
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
-
-```
-
-```
