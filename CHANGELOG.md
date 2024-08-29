@@ -1,3 +1,10 @@
+# [1.11.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.11.0-alpha.1...v1.11.0-alpha.2) (2024-08-29)
+
+
+### Features
+
+* **cli:** init a turbo cli tool featuring KYVE crypto fund PE-6449 ([2eff402](https://github.com/ardriveapp/turbo-sdk/commit/2eff402a7d759a91930d898343a0a97f1c2e9cb2))
+
 # [1.11.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.1...v1.11.0-alpha.1) (2024-08-28)
 
 
