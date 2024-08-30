@@ -1,11 +1,3 @@
-# [1.12.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.11.0...v1.12.0-alpha.1) (2024-08-30)
-
-
-### Features
-
-* **balance:** add an unauthenticated getBalance method PE-6630 ([63bb4f8](https://github.com/ardriveapp/turbo-sdk/commit/63bb4f8b05560848a67016d08f6bbe4d3724cf74))
-* **native address:** get native address from connected signer PE-6629 ([7432156](https://github.com/ardriveapp/turbo-sdk/commit/7432156311811e921eff99254c4c44dfb97ca353))
-
 # [1.11.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.10.1...v1.11.0) (2024-08-29)
 
 
