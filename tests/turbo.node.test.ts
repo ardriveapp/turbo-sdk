@@ -29,8 +29,8 @@ import {
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
 import { TurboNodeSigner } from '../src/node/signer.js';
-import { TurboSigner } from '../src/types.js';
-import { signerFromKyveMnemonic } from '../src/utils/common.js';
+import { TokenType, TurboSigner } from '../src/types.js';
+import { NativeAddress, signerFromKyveMnemonic } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   base64KyveAddress,
@@ -44,16 +44,17 @@ import {
   sendFundTransaction,
   solanaUrlString,
   testArweave,
+  testArweaveNativeB64Address,
   testEthAddressBase64,
   testEthNativeAddress,
   testEthWallet,
   testJwk,
   testKyveMnemonic,
   testKyveNativeAddress,
+  testKyvePrivatekey,
   testSolAddressBase64,
-  testSolBase58Address,
+  testSolNativeAddress,
   testSolWallet,
-  testWalletAddress,
   turboDevelopmentConfigurations,
 } from './helpers.js';
 
@@ -61,6 +62,29 @@ describe('Node environment', () => {
   afterEach(() => {
     // Restore all stubs
     restore();
+  });
+
+  describe.only('TurboDataItemSigner', () => {
+    const signers: Record<TokenType, [TurboSigner, NativeAddress]> = {
+      arweave: [new ArweaveSigner(testJwk), testArweaveNativeB64Address],
+      ethereum: [new EthereumSigner(testEthWallet), testEthNativeAddress],
+      solana: [new HexSolanaSigner(testSolWallet), testSolNativeAddress],
+      kyve: [new EthereumSigner(testKyvePrivatekey), testKyveNativeAddress],
+    };
+
+    for (const [token, [signer, expectedNativeAddress]] of Object.entries(
+      signers,
+    )) {
+      const turboSigner = new TurboNodeSigner({
+        signer,
+        token: token as TokenType,
+      });
+
+      it(`should return the correct native address for ${token}`, async () => {
+        const nativeAddress = await turboSigner.getNativeAddress();
+        expect(nativeAddress).to.equal(expectedNativeAddress);
+      });
+    }
   });
 
   describe('TurboFactory', () => {
@@ -85,6 +109,9 @@ describe('Node environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      expect(await turbo.signer.getNativeAddress()).to.equal(
+        testArweaveNativeB64Address,
+      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and an EthereumSigner', async () => {
@@ -93,6 +120,21 @@ describe('Node environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      expect(await turbo.signer.getNativeAddress()).to.equal(
+        testEthNativeAddress,
+      );
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
+      const turbo = TurboFactory.authenticated({
+        privateKey: await privateKeyFromKyveMnemonic(testKyveMnemonic),
+        token: 'kyve',
+        ...turboDevelopmentConfigurations,
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      expect(await turbo.signer.getNativeAddress()).to.equal(
+        testKyveNativeAddress,
+      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a HexSolanaSigner', async () => {
@@ -101,6 +143,9 @@ describe('Node environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      expect(await turbo.signer.getNativeAddress()).to.equal(
+        testSolNativeAddress,
+      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
@@ -126,15 +171,6 @@ describe('Node environment', () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testEthWallet,
         token: 'ethereum',
-        ...turboDevelopmentConfigurations,
-      });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
-    });
-
-    it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
-      const turbo = TurboFactory.authenticated({
-        privateKey: await privateKeyFromKyveMnemonic(testKyveMnemonic),
-        token: 'kyve',
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
@@ -281,7 +317,7 @@ describe('Node environment', () => {
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(testWalletAddress);
+        expect(response['owner']).to.equal(testArweaveNativeB64Address);
       });
 
       it('should properly upload signed Readable to turbo', async () => {
@@ -296,7 +332,7 @@ describe('Node environment', () => {
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(testWalletAddress);
+        expect(response['owner']).to.equal(testArweaveNativeB64Address);
       });
 
       it('should abort an upload when AbortController.signal is triggered', async () => {
@@ -375,7 +411,7 @@ describe('Node environment', () => {
 
     describe('submitFundTransaction()', () => {
       before(async () => {
-        await fundArLocalWalletAddress(testWalletAddress);
+        await fundArLocalWalletAddress(testArweaveNativeB64Address);
 
         await mineArLocalBlock();
       });
@@ -397,7 +433,7 @@ describe('Node environment', () => {
             txId,
           });
         expect(id).to.equal(txId);
-        expect(owner).to.equal(testWalletAddress);
+        expect(owner).to.equal(testArweaveNativeB64Address);
         expect(winc).to.equal('766');
         expect(token).to.equal('arweave');
         expect(status).to.equal('pending');
@@ -405,7 +441,7 @@ describe('Node environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
-        const balanceBefore = await getRawBalance(testWalletAddress);
+        const balanceBefore = await getRawBalance(testArweaveNativeB64Address);
 
         const txId = await sendFundTransaction(1000);
         await mineArLocalBlock(minConfirmations);
@@ -415,12 +451,12 @@ describe('Node environment', () => {
             txId,
           });
         expect(id).to.equal(txId);
-        expect(owner).to.equal(testWalletAddress);
+        expect(owner).to.equal(testArweaveNativeB64Address);
         expect(winc).to.equal('766');
         expect(token).to.equal('arweave');
         expect(status).to.equal('confirmed');
 
-        const balanceAfter = await getRawBalance(testWalletAddress);
+        const balanceAfter = await getRawBalance(testArweaveNativeB64Address);
 
         expect(+balanceAfter - +balanceBefore).to.equal(766);
       });
@@ -447,16 +483,9 @@ describe('Node environment', () => {
       });
     });
 
-    describe('getNativeAddress()', () => {
-      it('should return the native address for the provided wallet', async () => {
-        const nativeAddress = await turbo.getNativeAddress();
-        expect(nativeAddress).to.equal(testWalletAddress);
-      });
-    });
-
     describe('getBalance()', async () => {
       it('returns correct balance for test wallet', async () => {
-        const rawBalance = await getRawBalance(testWalletAddress);
+        const rawBalance = await getRawBalance(testArweaveNativeB64Address);
         const balance = await turbo.getBalance();
         expect(balance.winc).to.equal(rawBalance);
       });
@@ -515,7 +544,7 @@ describe('Node environment', () => {
           expect(response).to.have.property('fastFinalityIndexes');
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(testWalletAddress);
+          expect(response['owner']).to.equal(testArweaveNativeB64Address);
         });
       }
 
@@ -715,7 +744,7 @@ describe('Node environment', () => {
         const error = await turbo
           .createCheckoutSession({
             amount: USD(10), // 10 USD
-            owner: testWalletAddress,
+            owner: testArweaveNativeB64Address,
             promoCodes: ['BAD_PROMO_CODE'],
           })
           .catch((error) => error);
@@ -797,11 +826,6 @@ describe('Node environment', () => {
         tokenTools,
         ...turboDevelopmentConfigurations,
       });
-    });
-
-    it('getNativeAddress() should return the native address for the provided wallet', async () => {
-      const nativeAddress = await turbo.getNativeAddress();
-      expect(nativeAddress).to.equal(testEthNativeAddress);
     });
 
     it('should properly upload a Readable to turbo', async () => {
@@ -891,11 +915,6 @@ describe('Node environment', () => {
       });
     });
 
-    it('getNativeAddress() should return the native address for the provided wallet', async () => {
-      const nativeAddress = await turbo.getNativeAddress();
-      expect(nativeAddress).to.equal(testSolBase58Address);
-    });
-
     it('should properly upload a Readable to turbo', async () => {
       const filePath = new URL('files/1KB_file', import.meta.url).pathname;
       const fileSize = fs.statSync(filePath).size;
@@ -939,7 +958,7 @@ describe('Node environment', () => {
       expect(target).to.be.a('string');
       expect(winc).be.a('string');
       expect(quantity).to.equal('100000');
-      expect(owner).to.equal(testSolBase58Address);
+      expect(owner).to.equal(testSolNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to a SOL wallet if tx is stubbed to succeed but wont exist on chain', async () => {
@@ -983,11 +1002,6 @@ describe('Node environment', () => {
         token: 'kyve',
         tokenTools,
       });
-    });
-
-    it('getNativeAddress() should return the native address for the provided wallet', async () => {
-      const nativeAddress = await turbo.getNativeAddress();
-      expect(nativeAddress).to.equal(testKyveNativeAddress);
     });
 
     it('should properly upload a Readable to turbo', async () => {

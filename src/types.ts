@@ -334,6 +334,7 @@ export type TurboUnauthenticatedClientConfiguration = {
 export type TurboAuthenticatedClientConfiguration = {
   paymentService: TurboAuthenticatedPaymentServiceInterface;
   uploadService: TurboAuthenticatedUploadServiceInterface;
+  signer: TurboDataItemSigner;
 };
 
 export type FileStreamFactory =
@@ -405,7 +406,7 @@ export type SendTxWithSignerParams = {
 };
 
 export type TurboDataItemSignerParams = {
-  logger: TurboLogger;
+  logger?: TurboLogger;
   signer: TurboSigner;
   token: TokenType;
 };
@@ -418,8 +419,9 @@ export interface TurboDataItemSigner {
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
-  getPublicKey(): Promise<Buffer>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
+  getPublicKey(): Promise<Buffer>;
+  getNativeAddress(): Promise<string>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -473,8 +475,6 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
-
-  getNativeAddress(): Promise<string>;
 }
 
 export interface TurboUnauthenticatedClientInterface

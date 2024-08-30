@@ -27,6 +27,7 @@ import {
   TurboCountriesResponse,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
+  TurboDataItemSigner,
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboFundWithTokensParams,
@@ -44,7 +45,6 @@ import {
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
-import { NativeAddress } from '../utils/common.js';
 import {
   TurboUnauthenticatedPaymentService,
   defaultPaymentServiceURL,
@@ -191,12 +191,15 @@ export class TurboAuthenticatedClient
   // override the parent classes for authenticated types
   protected paymentService: TurboAuthenticatedPaymentServiceInterface;
   protected uploadService: TurboAuthenticatedUploadServiceInterface;
+  public signer: TurboDataItemSigner;
 
   constructor({
     paymentService,
     uploadService,
+    signer,
   }: TurboAuthenticatedClientConfiguration) {
     super({ paymentService, uploadService });
+    this.signer = signer;
   }
 
   /**
@@ -236,9 +239,5 @@ export class TurboAuthenticatedClient
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
-  }
-
-  getNativeAddress(): Promise<NativeAddress> {
-    return this.uploadService.getNativeAddress();
   }
 }

@@ -37,14 +37,14 @@ import {
   sendFundTransaction,
   solanaUrlString,
   testArweave,
+  testArweaveNativeB64Address,
   testEthAddressBase64,
   testEthNativeAddress,
   testEthWallet,
   testJwk,
   testSolAddressBase64,
-  testSolBase58Address,
+  testSolNativeAddress,
   testSolWallet,
-  testWalletAddress,
   turboDevelopmentConfigurations,
 } from './helpers.js';
 
@@ -265,7 +265,7 @@ describe('Browser environment', () => {
           expect(response).to.have.property('fastFinalityIndexes');
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(testWalletAddress);
+          expect(response['owner']).to.equal(testArweaveNativeB64Address);
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -347,7 +347,7 @@ describe('Browser environment', () => {
 
     describe('submitFundTransaction()', () => {
       before(async () => {
-        await fundArLocalWalletAddress(testWalletAddress);
+        await fundArLocalWalletAddress(testArweaveNativeB64Address);
 
         await mineArLocalBlock();
       });
@@ -369,7 +369,7 @@ describe('Browser environment', () => {
             txId,
           });
         expect(id).to.equal(txId);
-        expect(owner).to.equal(testWalletAddress);
+        expect(owner).to.equal(testArweaveNativeB64Address);
         expect(winc).to.equal('766');
         expect(token).to.equal('arweave');
         expect(status).to.equal('pending');
@@ -377,7 +377,7 @@ describe('Browser environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
-        const balanceBefore = await getRawBalance(testWalletAddress);
+        const balanceBefore = await getRawBalance(testArweaveNativeB64Address);
 
         const txId = await sendFundTransaction(1000);
         await mineArLocalBlock(minConfirmations);
@@ -387,12 +387,12 @@ describe('Browser environment', () => {
             txId,
           });
         expect(id).to.equal(txId);
-        expect(owner).to.equal(testWalletAddress);
+        expect(owner).to.equal(testArweaveNativeB64Address);
         expect(winc).to.equal('766');
         expect(token).to.equal('arweave');
         expect(status).to.equal('confirmed');
 
-        const balanceAfter = await getRawBalance(testWalletAddress);
+        const balanceAfter = await getRawBalance(testArweaveNativeB64Address);
 
         expect(+balanceAfter - +balanceBefore).to.equal(766);
       });
@@ -420,7 +420,7 @@ describe('Browser environment', () => {
 
     describe('getBalance()', async () => {
       it('returns correct balance for test wallet', async () => {
-        const rawBalance = await getRawBalance(testWalletAddress);
+        const rawBalance = await getRawBalance(testArweaveNativeB64Address);
         const balance = await turbo.getBalance();
         expect(balance.winc).to.equal(rawBalance);
       });
@@ -455,7 +455,7 @@ describe('Browser environment', () => {
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(testWalletAddress);
+        expect(response['owner']).to.equal(testArweaveNativeB64Address);
       });
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -551,7 +551,7 @@ describe('Browser environment', () => {
         const error = await turbo
           .createCheckoutSession({
             amount: USD(10),
-            owner: testWalletAddress,
+            owner: testArweaveNativeB64Address,
             promoCodes: ['BAD_PROMO_CODE'],
           })
           .catch((error) => error);
@@ -783,7 +783,7 @@ describe('Browser environment', () => {
       expect(target).to.be.a('string');
       expect(winc).be.a('string');
       expect(quantity).to.equal('100000');
-      expect(owner).to.equal(testSolBase58Address);
+      expect(owner).to.equal(testSolNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to a SOL wallet if tx is stubbed to succeed but wont exist on chain', async () => {

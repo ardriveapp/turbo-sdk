@@ -33,6 +33,8 @@ import {
   TurboSigner,
 } from '../types.js';
 import { toB64Url } from '../utils/base64.js';
+import { NativeAddress, ownerToNativeAddress } from '../utils/common.js';
+import { TurboWinstonLogger } from './logger.js';
 
 /**
  * Abstract class for signing TurboDataItems.
@@ -50,7 +52,11 @@ export abstract class TurboDataItemAbstractSigner
   protected signer: TurboSigner;
   protected token: TokenType;
 
-  constructor({ signer, logger, token }: TurboDataItemSignerParams) {
+  constructor({
+    signer,
+    logger = TurboWinstonLogger.default,
+    token,
+  }: TurboDataItemSignerParams) {
     this.logger = logger;
     this.signer = signer;
     this.token = token;
@@ -70,6 +76,13 @@ export abstract class TurboDataItemAbstractSigner
 
   public async getPublicKey(): Promise<Buffer> {
     return this.signer.publicKey;
+  }
+
+  public async getNativeAddress(): Promise<NativeAddress> {
+    return ownerToNativeAddress(
+      toB64Url(await this.getPublicKey()),
+      this.token,
+    );
   }
 
   /** Let the signer handle sending tx for better compat with cross chain libraries/web wallets */
