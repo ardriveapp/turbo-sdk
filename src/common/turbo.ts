@@ -27,6 +27,7 @@ import {
   TurboCountriesResponse,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
+  TurboDataItemSigner,
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboFundWithTokensParams,
@@ -190,12 +191,15 @@ export class TurboAuthenticatedClient
   // override the parent classes for authenticated types
   protected paymentService: TurboAuthenticatedPaymentServiceInterface;
   protected uploadService: TurboAuthenticatedUploadServiceInterface;
+  public signer: TurboDataItemSigner;
 
   constructor({
     paymentService,
     uploadService,
+    signer,
   }: TurboAuthenticatedClientConfiguration) {
     super({ paymentService, uploadService });
+    this.signer = signer;
   }
 
   /**
@@ -236,6 +240,4 @@ export class TurboAuthenticatedClient
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
   }
-
-  // TODO:  walletNativeAddress() {
 }
