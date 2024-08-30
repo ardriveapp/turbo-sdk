@@ -45,8 +45,6 @@ import {
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
 } from '../types.js';
-import { toB64Url } from '../utils/base64.js';
-import { ownerToNativeAddress } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -245,10 +243,7 @@ export class TurboAuthenticatedPaymentService
   }
 
   public async getBalance(address?: string): Promise<TurboBalanceResponse> {
-    address ??= ownerToNativeAddress(
-      toB64Url(await this.signer.getPublicKey()),
-      this.token,
-    );
+    address ??= await this.signer.getNativeAddress();
 
     return super.getBalance(address);
   }
