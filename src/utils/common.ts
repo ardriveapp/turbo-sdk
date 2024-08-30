@@ -14,17 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  Secp256k1HdWallet,
-  makeCosmoshubPath,
-  pubkeyToAddress,
-} from '@cosmjs/amino';
-import { Secp256k1, Slip10, Slip10Curve } from '@cosmjs/crypto';
-import { toBase64, toHex } from '@cosmjs/encoding';
-import { computePublicKey } from '@ethersproject/signing-key';
+import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
+import { Slip10, Slip10Curve } from '@cosmjs/crypto';
+import { toHex } from '@cosmjs/encoding';
 import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
-import bs58 from 'bs58';
-import { computeAddress } from 'ethers';
 
 import {
   TokenType,
@@ -34,7 +27,6 @@ import {
   isJWK,
   isKyvePrivateKey,
 } from '../types.js';
-import { fromB64Url, ownerToAddress } from './base64.js';
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -107,31 +99,4 @@ export async function signerFromKyveMnemonic(
   );
 
   return signerFromKyvePrivateKey(privateKey);
-}
-
-export type NativeAddress = string;
-export function ownerToNativeAddress(
-  owner: string,
-  token: TokenType,
-): NativeAddress {
-  switch (token) {
-    case 'solana':
-      return bs58.encode(fromB64Url(owner));
-
-    case 'ethereum':
-      return computeAddress(computePublicKey(fromB64Url(owner)));
-
-    case 'kyve':
-      return pubkeyToAddress(
-        {
-          type: 'tendermint/PubKeySecp256k1',
-          value: toBase64(Secp256k1.compressPubkey(fromB64Url(owner))),
-        },
-        'kyve',
-      );
-
-    case 'arweave':
-    default:
-      return ownerToAddress(owner);
-  }
 }
