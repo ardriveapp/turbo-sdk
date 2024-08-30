@@ -64,7 +64,7 @@ describe('Node environment', () => {
     restore();
   });
 
-  describe.only('TurboDataItemSigner', () => {
+  describe('TurboDataItemSigner', () => {
     const signers: Record<TokenType, [TurboSigner, NativeAddress]> = {
       arweave: [new ArweaveSigner(testJwk), testArweaveNativeB64Address],
       ethereum: [new EthereumSigner(testEthWallet), testEthNativeAddress],
