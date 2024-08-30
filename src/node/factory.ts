@@ -102,6 +102,7 @@ export class TurboFactory extends TurboBaseFactory {
     return new TurboAuthenticatedClient({
       uploadService,
       paymentService,
+      signer: turboSigner,
     });
   }
 }

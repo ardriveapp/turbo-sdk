@@ -49,7 +49,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
     - [`getBalance()`](#getbalance)
-    - [`getNativeAddress()`](#getnativeaddress)
+    - [`signer.getNativeAddress()`](#signergetnativeaddress)
     - [`getWincForFiat({ amount, promoCodes })`](#getwincforfiat-amount-promocodes-)
     - [`createCheckoutSession({ amount, owner, promoCodes })`](#createcheckoutsession-amount-owner-promocodes-)
     - [`uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`](#uploadfile-filestreamfactory-filesizefactory-signal-dataitemopts-)
@@ -453,12 +453,12 @@ Issues a signed request to get the credit balance of a wallet measured in AR (me
 const { winc: balance } = await turbo.getBalance();
 ```
 
-#### `getNativeAddress()`
+#### `signer.getNativeAddress()`
 
-Returns the native address of the connected wallet.
+Returns the native address of the connected signer.
 
 ```typescript
-const address = await turbo.getNativeAddress();
+const address = await turbo.signer.getNativeAddress();
 ```
 
 #### `getWincForFiat({ amount, promoCodes })`
