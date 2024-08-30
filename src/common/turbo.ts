@@ -16,6 +16,7 @@
  */
 import {
   Currency,
+  NativeAddress,
   TurboAbortSignal,
   TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
@@ -122,6 +123,10 @@ export class TurboUnauthenticatedClient
     return this.paymentService.getSupportedCountries();
   }
 
+  getBalance(address: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(address);
+  }
+
   /**
    * Returns a list of all supported fiat currencies.
    */
@@ -205,8 +210,8 @@ export class TurboAuthenticatedClient
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  getBalance(): Promise<TurboBalanceResponse> {
-    return this.paymentService.getBalance();
+  getBalance(address?: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(address);
   }
 
   /**
