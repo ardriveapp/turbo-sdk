@@ -14,15 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { pubkeyToAddress } from '@cosmjs/amino';
+import { Secp256k1 } from '@cosmjs/crypto';
+import { toBase64 } from '@cosmjs/encoding';
+import { computePublicKey } from '@ethersproject/signing-key';
 import { KyveSDK } from '@kyvejs/sdk/dist/sdk.js';
 import { EthereumSigner, HexSolanaSigner } from 'arbundles';
+import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
+import { computeAddress } from 'ethers';
 import { Buffer } from 'node:buffer';
 import nacl from 'tweetnacl';
 
 import {
   FileStreamFactory,
+  NativeAddress,
   SendTxWithSignerParams,
   TokenType,
   TurboDataItemSigner,
@@ -32,8 +39,11 @@ import {
   TurboSignedDataItemFactory,
   TurboSigner,
 } from '../types.js';
-import { toB64Url } from '../utils/base64.js';
-import { NativeAddress, ownerToNativeAddress } from '../utils/common.js';
+import {
+  fromB64Url,
+  ownerToAddress as ownerToB64Address,
+  toB64Url,
+} from '../utils/base64.js';
 import { TurboWinstonLogger } from './logger.js';
 
 /**
@@ -62,6 +72,29 @@ export abstract class TurboDataItemAbstractSigner
     this.token = token;
   }
 
+  private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {
+    switch (token) {
+      case 'solana':
+        return bs58.encode(fromB64Url(owner));
+
+      case 'ethereum':
+        return computeAddress(computePublicKey(fromB64Url(owner)));
+
+      case 'kyve':
+        return pubkeyToAddress(
+          {
+            type: 'tendermint/PubKeySecp256k1',
+            value: toBase64(Secp256k1.compressPubkey(fromB64Url(owner))),
+          },
+          'kyve',
+        );
+
+      case 'arweave':
+      default:
+        return ownerToB64Address(owner);
+    }
+  }
+
   public async generateSignedRequestHeaders() {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
@@ -79,7 +112,7 @@ export abstract class TurboDataItemAbstractSigner
   }
 
   public async getNativeAddress(): Promise<NativeAddress> {
-    return ownerToNativeAddress(
+    return this.ownerToNativeAddress(
       toB64Url(await this.getPublicKey()),
       this.token,
     );
