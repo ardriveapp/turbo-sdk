@@ -427,6 +427,7 @@ export interface TurboDataItemSigner {
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
+  getBalance: (address: string) => Promise<TurboBalanceResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getFiatToAR({
@@ -455,7 +456,7 @@ export type TurboFundWithTokensParams = {
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
-  getBalance: () => Promise<TurboBalanceResponse>;
+  getBalance: (address?: string) => Promise<TurboBalanceResponse>;
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
