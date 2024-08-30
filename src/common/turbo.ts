@@ -16,6 +16,7 @@
  */
 import {
   Currency,
+  NativeAddress,
   TurboAbortSignal,
   TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
@@ -27,6 +28,7 @@ import {
   TurboCountriesResponse,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
+  TurboDataItemSigner,
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboFundWithTokensParams,
@@ -121,6 +123,10 @@ export class TurboUnauthenticatedClient
     return this.paymentService.getSupportedCountries();
   }
 
+  getBalance(address: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(address);
+  }
+
   /**
    * Returns a list of all supported fiat currencies.
    */
@@ -190,19 +196,22 @@ export class TurboAuthenticatedClient
   // override the parent classes for authenticated types
   protected paymentService: TurboAuthenticatedPaymentServiceInterface;
   protected uploadService: TurboAuthenticatedUploadServiceInterface;
+  public signer: TurboDataItemSigner;
 
   constructor({
     paymentService,
     uploadService,
+    signer,
   }: TurboAuthenticatedClientConfiguration) {
     super({ paymentService, uploadService });
+    this.signer = signer;
   }
 
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  getBalance(): Promise<TurboBalanceResponse> {
-    return this.paymentService.getBalance();
+  getBalance(address?: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(address);
   }
 
   /**
@@ -236,6 +245,4 @@ export class TurboAuthenticatedClient
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
   }
-
-  // TODO:  walletNativeAddress() {
 }

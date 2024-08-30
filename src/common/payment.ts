@@ -73,6 +73,15 @@ export class TurboUnauthenticatedPaymentService
     this.token = token;
   }
 
+  public async getBalance(address: string): Promise<TurboBalanceResponse> {
+    const balance = await this.httpService.get<TurboBalanceResponse>({
+      endpoint: `/account/balance/${this.token}?address=${address}`,
+      allowedStatuses: [200, 404],
+    });
+
+    return balance.winc ? balance : { winc: '0' };
+  }
+
   public getFiatRates(): Promise<TurboRatesResponse> {
     return this.httpService.get<TurboRatesResponse>({
       endpoint: '/rates',
@@ -233,16 +242,10 @@ export class TurboAuthenticatedPaymentService
     this.tokenTools = tokenTools;
   }
 
-  public async getBalance(): Promise<TurboBalanceResponse> {
-    const headers = await this.signer.generateSignedRequestHeaders();
-    const balance = await this.httpService.get<TurboBalanceResponse>({
-      endpoint: '/balance',
-      headers,
-      allowedStatuses: [200, 404],
-    });
+  public async getBalance(address?: string): Promise<TurboBalanceResponse> {
+    address ??= await this.signer.getNativeAddress();
 
-    // 404's don't return a balance, so default to 0
-    return balance.winc ? balance : { winc: '0' };
+    return super.getBalance(address);
   }
 
   public async getWincForFiat({
@@ -260,10 +263,7 @@ export class TurboAuthenticatedPaymentService
   public async createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
-    return this.getCheckout(
-      params,
-      await this.signer.generateSignedRequestHeaders(),
-    );
+    return this.getCheckout(params);
   }
 
   private async getTargetWalletForFund(): Promise<string> {

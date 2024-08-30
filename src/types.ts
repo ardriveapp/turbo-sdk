@@ -30,6 +30,8 @@ import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
 
 export type Base64String = string;
+export type NativeAddress = string;
+
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
@@ -334,6 +336,7 @@ export type TurboUnauthenticatedClientConfiguration = {
 export type TurboAuthenticatedClientConfiguration = {
   paymentService: TurboAuthenticatedPaymentServiceInterface;
   uploadService: TurboAuthenticatedUploadServiceInterface;
+  signer: TurboDataItemSigner;
 };
 
 export type FileStreamFactory =
@@ -405,7 +408,7 @@ export type SendTxWithSignerParams = {
 };
 
 export type TurboDataItemSignerParams = {
-  logger: TurboLogger;
+  logger?: TurboLogger;
   signer: TurboSigner;
   token: TokenType;
 };
@@ -418,11 +421,13 @@ export interface TurboDataItemSigner {
   }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
-  getPublicKey(): Promise<Buffer>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
+  getPublicKey(): Promise<Buffer>;
+  getNativeAddress(): Promise<string>;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
+  getBalance: (address: string) => Promise<TurboBalanceResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getFiatToAR({
@@ -451,7 +456,7 @@ export type TurboFundWithTokensParams = {
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
-  getBalance: () => Promise<TurboBalanceResponse>;
+  getBalance: (address?: string) => Promise<TurboBalanceResponse>;
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
