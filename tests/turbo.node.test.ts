@@ -29,8 +29,8 @@ import {
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
 import { TurboNodeSigner } from '../src/node/signer.js';
-import { TokenType, TurboSigner } from '../src/types.js';
-import { NativeAddress, signerFromKyveMnemonic } from '../src/utils/common.js';
+import { NativeAddress, TokenType, TurboSigner } from '../src/types.js';
+import { signerFromKyveMnemonic } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   base64KyveAddress,
