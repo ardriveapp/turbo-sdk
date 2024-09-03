@@ -14,21 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export class BaseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
+import { TokenType } from '../types.js';
 
-export class UnauthenticatedRequestError extends BaseError {
-  constructor() {
-    super('Failed authentication. JWK is required.');
-  }
-}
+export type GlobalOptions = {
+  dev: boolean;
+  gateway: string | undefined;
+  debug: boolean;
+  quiet: boolean;
+  token: TokenType;
+};
 
-export class FailedRequestError extends BaseError {
-  constructor(status: number, message: string) {
-    super(`Failed request: ${status}: ${message}`);
-  }
-}
+export type WalletOptions = GlobalOptions & {
+  walletFile: string | undefined;
+  mnemonic: string | undefined;
+  privateKey: string | undefined;
+};
+
+export type AddressOptions = WalletOptions & {
+  address: string | undefined;
+};
