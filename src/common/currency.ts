@@ -52,3 +52,16 @@ export const BRL = (brl: number) => new TwoDecimalCurrency(brl, 'brl');
 
 // Zero decimal currencies that are supported by the Turbo API
 export const JPY = (jpy: number) => new ZeroDecimalCurrency(jpy, 'jpy');
+
+export const currencyMap: Record<Currency, (amount: number) => CurrencyMap> = {
+  usd: USD,
+  eur: EUR,
+  gbp: GBP,
+  cad: CAD,
+  aud: AUD,
+  inr: INR,
+  sgd: SGD,
+  hkd: HKD,
+  brl: BRL,
+  jpy: JPY,
+};

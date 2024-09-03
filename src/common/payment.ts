@@ -21,10 +21,10 @@ import {
   Currency,
   TokenTools,
   TokenType,
-  TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
   TurboBalanceResponse,
+  TurboCheckoutRawResponse,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
@@ -157,7 +157,7 @@ export class TurboUnauthenticatedPaymentService
     }&token=${this.token}`;
 
     const { adjustments, paymentSession, topUpQuote } =
-      await this.httpService.get<TopUpRawResponse>({
+      await this.httpService.get<TurboCheckoutRawResponse>({
         endpoint,
         headers,
       });
@@ -165,9 +165,8 @@ export class TurboUnauthenticatedPaymentService
     return {
       winc: topUpQuote.winstonCreditAmount,
       adjustments,
-      url: paymentSession.url ?? undefined,
+      url: paymentSession.url,
       id: paymentSession.id,
-      client_secret: paymentSession.client_secret ?? undefined,
       paymentAmount: topUpQuote.paymentAmount,
       quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
     };

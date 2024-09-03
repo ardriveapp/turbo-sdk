@@ -20,7 +20,7 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
-import { cryptoFund, getBalance } from './commands.js';
+import { cryptoFund, getBalance, topUp } from './commands.js';
 import {
   applyOptions,
   configFromOptions,
@@ -53,14 +53,12 @@ applyOptions(
 
 applyOptions(
   program.command('top-up').description('Top up a Turbo address with Fiat'),
-  [optionMap.address, optionMap.value, optionMap.token],
-).action((options) => {
-  console.log(
-    'TODO: fiat top-up',
-    options.address,
-    options.token,
-    options.value,
-  );
+  [...walletOptions, optionMap.address, optionMap.value, optionMap.currency],
+).action(async (_commandOptions, command: Command) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const options: any = command.optsWithGlobals();
+
+  return topUp(options);
 });
 
 applyOptions(

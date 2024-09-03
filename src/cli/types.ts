@@ -33,3 +33,8 @@ export type WalletOptions = GlobalOptions & {
 export type AddressOptions = WalletOptions & {
   address: string | undefined;
 };
+
+export type TopUpOptions = AddressOptions & {
+  value: string | undefined;
+  currency: string | undefined;
+};
