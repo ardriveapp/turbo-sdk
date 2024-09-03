@@ -19,24 +19,45 @@ import {
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   TurboWallet,
-  isTokenType,
   tokenToBaseMap,
 } from '../node/index.js';
+import { AddressOptions } from './types.js';
+import { configFromOptions, optionalPrivateKeyFromOptions } from './utils.js';
 
-export async function getBalance(address: string, token: string) {
-  if (!isTokenType(token)) {
-    throw new Error('Invalid token type!');
+export async function getBalance(options: AddressOptions) {
+  const config = configFromOptions(options);
+
+  if (options.address !== undefined) {
+    const turbo = TurboFactory.unauthenticated(config);
+    const { winc } = await turbo.getBalance(options.address);
+
+    console.log(
+      `Turbo Balance for Native Address "${options.address}"\nCredits: ${
+        +winc / 1_000_000_000_000
+      }`,
+    );
+    return;
   }
 
-  const unauthenticatedTurbo = TurboFactory.unauthenticated({
-    paymentServiceConfig: { token },
+  const privateKey = await optionalPrivateKeyFromOptions(options);
+
+  if (privateKey === undefined) {
+    throw new Error(
+      'Must provide an address (--address) or use a valid wallet',
+    );
+  }
+
+  const turbo = TurboFactory.authenticated({
+    ...config,
+    privateKey,
   });
-  console.log('unauthenticatedTurbo', unauthenticatedTurbo);
-  // const balance = await unauthenticatedTurbo.getBalance({
-  //   owner: address,
-  // });
-  // TODO: Implement unauthenticated getBalance
-  console.log('TODO: Get balance for', address);
+
+  const { winc } = await turbo.getBalance();
+  console.log(
+    `Turbo Balance for Wallet Address "${await turbo.signer.getNativeAddress()}"\nCredits: ${
+      +winc / 1_000_000_000_000
+    }`,
+  );
 }
 
 export interface CryptoFundParams {

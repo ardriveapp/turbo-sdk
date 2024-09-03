@@ -67,6 +67,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [Options](#options)
     - [Commands](#commands)
       - [`crypto-fund`](#crypto-fund)
+      - [`balance`](#balance)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -698,6 +699,24 @@ e.g:
 
 ```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
+```
+
+##### `balance`
+
+Get the balance of a wallet or native address in Turbo Credits.
+
+Command Options:
+
+- `-a, --address <address>` - Address to get the balance of
+
+e.g:
+
+```shell
+turbo balance --address 'crypto-wallet-public-native-address'
+```
+
+```shell
+turbo balance --wallet-file '../path/to/my/wallet.json'
 ```
 
 ## Developers

@@ -42,10 +42,13 @@ applyOptions(
 );
 
 applyOptions(
-  program.command('get-balance').description('Get balance of a Turbo address'),
-  [optionMap.address, optionMap.token],
-).action((address, options) => {
-  getBalance(address, options.token);
+  program.command('balance').description('Get balance of a Turbo address'),
+  [optionMap.address, optionMap.token, ...walletOptions],
+).action(async (_commandOptions, command: Command) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const options: any = command.optsWithGlobals();
+
+  return getBalance(options);
 });
 
 applyOptions(
@@ -70,7 +73,7 @@ applyOptions(
   const token = tokenFromOptions(options);
   const value = valueFromOptions(options);
 
-  const privateKey = await privateKeyFromOptions(options, token);
+  const privateKey = await privateKeyFromOptions(options);
 
   const config = configFromOptions(options);
 

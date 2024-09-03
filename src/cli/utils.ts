@@ -26,6 +26,8 @@ import {
   isTokenType,
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
+import { NoWalletProvidedError } from './errors.js';
+import { GlobalOptions, WalletOptions } from './types.js';
 
 interface CommanderOption {
   alias: string;
@@ -134,18 +136,24 @@ export function valueFromOptions(options: unknown): string {
   return value;
 }
 
-export async function privateKeyFromOptions(
-  {
-    mnemonic,
-    privateKey,
-    walletFile,
-  }: {
-    walletFile: string | undefined;
-    mnemonic: string | undefined;
-    privateKey: string | undefined;
-  },
-  token: TokenType,
-): Promise<string> {
+export async function optionalPrivateKeyFromOptions(options: WalletOptions) {
+  try {
+    const key = await privateKeyFromOptions(options);
+    return key;
+  } catch (error) {
+    if (error instanceof NoWalletProvidedError) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+export async function privateKeyFromOptions({
+  mnemonic,
+  privateKey,
+  walletFile,
+  token,
+}: WalletOptions): Promise<string> {
   if (mnemonic !== undefined) {
     if (token === 'kyve') {
       return privateKeyFromKyveMnemonic(mnemonic);
@@ -165,7 +173,7 @@ export async function privateKeyFromOptions(
   // TODO: Get TURBO_WALLET_FILE, TURBO_MNEMONIC, TURBO_PRIVATE_KEY or similar from ENV variables
   // TODO: Add prompts for selecting wallet type and secure input
 
-  throw new Error('mnemonic or wallet file or private key is required');
+  throw new NoWalletProvidedError();
 }
 
 const tokenToDevGatewayMap: Record<TokenType, string> = {
@@ -179,11 +187,7 @@ export function configFromOptions({
   gateway,
   dev,
   token,
-}: {
-  gateway: string | undefined;
-  dev: boolean | undefined;
-  token: TokenType;
-}): TurboUnauthenticatedConfiguration {
+}: GlobalOptions): TurboUnauthenticatedConfiguration {
   let config: TurboUnauthenticatedConfiguration = {};
 
   if (dev) {
@@ -197,6 +201,8 @@ export function configFromOptions({
   if (gateway !== undefined) {
     config.gatewayUrl = gateway;
   }
+
+  config.token = token;
 
   return config;
 }
