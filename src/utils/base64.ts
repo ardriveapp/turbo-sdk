@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { bufferTob64Url } from 'arweave/node/lib/utils.js';
 import { createHash } from 'crypto';
 import { Buffer } from 'node:buffer';
 
@@ -45,7 +44,7 @@ export function fromB64Url(input: Base64String): Buffer {
 }
 
 export function toB64Url(buffer: Buffer): Base64String {
-  return bufferTob64Url(buffer);
+  return buffer.toString('base64url');
 }
 
 export function sha256B64Url(input: Buffer): Base64String {

@@ -17,7 +17,12 @@
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
-import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
+import {
+  ArweaveSigner,
+  EthereumSigner,
+  HexSolanaSigner,
+  KyveSigner,
+} from 'arbundles';
 
 import {
   TokenType,
@@ -79,8 +84,7 @@ export function createTurboSigner({
 }
 
 export function signerFromKyvePrivateKey(privateKey: string): TurboSigner {
-  // TODO: Use KyveSigner when implemented for on chain native address support
-  return new EthereumSigner(privateKey);
+  return new KyveSigner(privateKey);
 }
 
 export async function signerFromKyveMnemonic(

@@ -17,7 +17,7 @@
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
-import { EthereumSigner } from 'arbundles';
+import { KyveSigner } from 'arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 
@@ -170,8 +170,7 @@ export class KyveToken implements TokenTools {
 }
 
 export function signerFromKyvePrivateKey(privateKey: string): TurboSigner {
-  // TODO: Use KyveSigner when implemented for on chain native address support
-  return new EthereumSigner(privateKey);
+  return new KyveSigner(privateKey);
 }
 
 export async function privateKeyFromKyveMnemonic(

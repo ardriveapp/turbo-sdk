@@ -81,7 +81,7 @@
     "@irys/arweave": "0.0.3",
     "@kyvejs/sdk": "^1.3.2",
     "@solana/web3.js": "^1.91.7",
-    "arbundles": "0.9.9",
+    "arbundles": "git+https://github.com/fedellen/arbundles.git#PE-6450-kyve-node-signer",
     "axios": "1.4.0",
     "axios-retry": "^3.7.0",
     "bignumber.js": "^9.1.2",
