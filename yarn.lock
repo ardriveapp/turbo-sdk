@@ -2209,7 +2209,7 @@ anymatch@~3.1.2:
 
 "arbundles@git+https://github.com/fedellen/arbundles.git#PE-6450-kyve-node-signer-build":
   version "0.11.1"
-  resolved "git+https://github.com/fedellen/arbundles.git#f64d1e45bba8463b94d8e409e8fc8e90b7ccd540"
+  resolved "git+https://github.com/fedellen/arbundles.git#a52e949c41f0d24a99ff59eca4a4dcb8a276277b"
   dependencies:
     "@ethersproject/bytes" "^5.7.0"
     "@ethersproject/hash" "^5.7.0"

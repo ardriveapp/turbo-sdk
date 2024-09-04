@@ -32,6 +32,9 @@ jobs:
           cache: 'yarn'
           node-version-file: .nvmrc
 
+      - name: Install git
+        run: sudo apt-get install git
+
       - name: Install dependencies
         run: yarn --immutable --immutable-cache
 

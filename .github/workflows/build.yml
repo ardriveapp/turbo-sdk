@@ -20,6 +20,9 @@ jobs:
           node-version: ${{ matrix.node_version }}
           cache: 'yarn'
 
+      - name: Install git
+        run: sudo apt-get install git
+
       - name: Install dependencies
         run: yarn --immutable --immutable-cache
 
@@ -37,6 +40,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: 'yarn'
+
+      - name: Install git
+        run: sudo apt-get install git
 
       - name: Install dependencies
         run: yarn --immutable --immutable-cache
