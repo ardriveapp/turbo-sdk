@@ -165,8 +165,9 @@ export class TurboUnauthenticatedPaymentService
     return {
       winc: topUpQuote.winstonCreditAmount,
       adjustments,
-      url: paymentSession.url,
+      url: paymentSession.url ?? undefined,
       id: paymentSession.id,
+      client_secret: paymentSession.client_secret ?? undefined,
       paymentAmount: topUpQuote.paymentAmount,
       quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
     };
