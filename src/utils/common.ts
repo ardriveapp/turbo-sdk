@@ -17,12 +17,7 @@
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
-import {
-  ArweaveSigner,
-  EthereumSigner,
-  HexSolanaSigner,
-  KyveSigner,
-} from 'arbundles';
+import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import {
   TokenType,
@@ -32,6 +27,8 @@ import {
   isJWK,
   isKyvePrivateKey,
 } from '../types.js';
+
+const KyveSigner = EthereumSigner;
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

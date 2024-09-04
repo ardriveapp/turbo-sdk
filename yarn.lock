@@ -2207,9 +2207,10 @@ anymatch@~3.1.2:
   resolved "https://registry.yarnpkg.com/aproba/-/aproba-2.0.0.tgz#52520b8ae5b569215b354efc0caa3fe1e45a8adc"
   integrity sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==
 
-"arbundles@git+https://github.com/fedellen/arbundles.git#PE-6450-kyve-node-signer":
-  version "0.11.1"
-  resolved "git+https://github.com/fedellen/arbundles.git#f64d1e45bba8463b94d8e409e8fc8e90b7ccd540"
+arbundles@0.11.2:
+  version "0.11.2"
+  resolved "https://registry.yarnpkg.com/arbundles/-/arbundles-0.11.2.tgz#60375c0d5bda0eeecd9ce9a2aa42da7a89efa3f9"
+  integrity sha512-vyX7vY6S8B4RFhGSoCixbnR/Z7ckpJjK+b/H7zcgRWJqqXjZqQ+3DQIJ19vKl5AvzNSsj5ja9kQDoZhMiGpBFw==
   dependencies:
     "@ethersproject/bytes" "^5.7.0"
     "@ethersproject/hash" "^5.7.0"

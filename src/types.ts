@@ -20,7 +20,6 @@ import {
   DataItemCreateOptions,
   EthereumSigner,
   HexSolanaSigner,
-  KyveSigner,
 } from 'arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
@@ -312,8 +311,7 @@ export type TurboSigner =
   | ArconnectSigner
   | ArweaveSigner
   | EthereumSigner
-  | HexSolanaSigner
-  | KyveSigner;
+  | HexSolanaSigner;
 
 export type TokenPollingOptions = {
   maxAttempts: number;

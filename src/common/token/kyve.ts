@@ -17,7 +17,7 @@
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
-import { KyveSigner } from 'arbundles';
+import { EthereumSigner as KyveSigner } from 'arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 

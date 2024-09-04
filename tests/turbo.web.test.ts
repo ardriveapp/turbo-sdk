@@ -96,7 +96,11 @@ describe('Browser environment', () => {
 
     it('should return a TurboAuthenticatedClient when running in Web environment and an ArconnectSigner', async () => {
       const turbo = TurboFactory.authenticated({
-        signer: new ArconnectSigner(global.window.arweaveWallet),
+        signer: new ArconnectSigner(
+          (global as any).window.arweaveWallet,
+          // @ts-ignore
+          testArweave,
+        ),
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
