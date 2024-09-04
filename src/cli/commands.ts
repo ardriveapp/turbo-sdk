@@ -180,6 +180,10 @@ export async function topUp(options: TopUpOptions) {
     });
   })();
 
+  if (url === undefined) {
+    throw new Error('Failed to create checkout session');
+  }
+
   console.log(
     'Got Checkout Session\n' + JSON.stringify({ url, paymentAmount, winc }),
   );

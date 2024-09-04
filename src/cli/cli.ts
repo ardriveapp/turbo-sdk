@@ -21,6 +21,7 @@ import { Command, program } from 'commander';
 
 import { version } from '../version.js';
 import { cryptoFund, getBalance, topUp } from './commands.js';
+import { TopUpOptions } from './types.js';
 import {
   applyOptions,
   configFromOptions,
@@ -41,6 +42,11 @@ applyOptions(
   globalOptions,
 );
 
+function exitWithErrorLog(error: unknown) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+
 applyOptions(
   program.command('balance').description('Get balance of a Turbo address'),
   [optionMap.address, optionMap.token, ...walletOptions],
@@ -48,17 +54,25 @@ applyOptions(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const options: any = command.optsWithGlobals();
 
-  return getBalance(options);
+  try {
+    await getBalance(options);
+    process.exit(0);
+  } catch (error) {
+    exitWithErrorLog(error);
+  }
 });
 
 applyOptions(
   program.command('top-up').description('Top up a Turbo address with Fiat'),
   [...walletOptions, optionMap.address, optionMap.value, optionMap.currency],
 ).action(async (_commandOptions, command: Command) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const options: any = command.optsWithGlobals();
-
-  return topUp(options);
+  const options = command.optsWithGlobals<TopUpOptions>();
+  try {
+    await topUp(options);
+    process.exit(0);
+  } catch (error) {
+    exitWithErrorLog(error);
+  }
 });
 
 applyOptions(
@@ -75,7 +89,12 @@ applyOptions(
 
   const config = configFromOptions(options);
 
-  cryptoFund({ privateKey, value, token, config });
+  try {
+    await cryptoFund({ privateKey, value, token, config });
+    process.exit(0);
+  } catch (error) {
+    exitWithErrorLog(error);
+  }
 });
 
 applyOptions(

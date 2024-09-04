@@ -102,25 +102,16 @@ export type TopUpRawResponse = {
   };
   paymentSession: {
     id: string;
+    url?: string;
+    client_secret?: string;
   };
   adjustments: Adjustment[];
 };
 
-export type TurboPaymentIntentRawResponse = TopUpRawResponse & {
-  paymentSession: {
-    client_secret: string;
-  };
-};
-
-export type TurboCheckoutRawResponse = TopUpRawResponse & {
-  paymentSession: {
-    url: string;
-  };
-};
-
 export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   id: string;
-  url: string;
+  url?: string;
+  client_secret?: string;
 };
 
 export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;

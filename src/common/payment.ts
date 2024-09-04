@@ -21,10 +21,10 @@ import {
   Currency,
   TokenTools,
   TokenType,
+  TopUpRawResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
   TurboBalanceResponse,
-  TurboCheckoutRawResponse,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
@@ -157,7 +157,7 @@ export class TurboUnauthenticatedPaymentService
     }&token=${this.token}`;
 
     const { adjustments, paymentSession, topUpQuote } =
-      await this.httpService.get<TurboCheckoutRawResponse>({
+      await this.httpService.get<TopUpRawResponse>({
         endpoint,
         headers,
       });
