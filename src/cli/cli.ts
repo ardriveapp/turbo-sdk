@@ -49,7 +49,7 @@ function exitWithErrorLog(error: unknown) {
 
 applyOptions(
   program.command('balance').description('Get balance of a Turbo address'),
-  [optionMap.address, optionMap.token, ...walletOptions],
+  [optionMap.address, ...walletOptions],
 ).action(async (_commandOptions, command: Command) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const options: any = command.optsWithGlobals();

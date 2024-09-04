@@ -66,8 +66,9 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [CLI Usage](#cli-usage)
     - [Options](#options)
     - [Commands](#commands)
-      - [`crypto-fund`](#crypto-fund)
       - [`balance`](#balance)
+      - [`top-up`](#top-up)
+      - [`crypto-fund`](#crypto-fund)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -687,20 +688,6 @@ npx turbo --help
 
 #### Commands
 
-##### `crypto-fund`
-
-Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
-
-Command Options:
-
-- `-v, --value <value>` - Amount of tokens in the token type's smallest unit value to fund the wallet with
-
-e.g:
-
-```shell
-turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
-```
-
 ##### `balance`
 
 Get the balance of a wallet or native address in Turbo Credits.
@@ -717,6 +704,37 @@ turbo balance --address 'crypto-wallet-public-native-address'
 
 ```shell
 turbo balance --wallet-file '../path/to/my/wallet.json'
+```
+
+##### `top-up`
+
+Top up a wallet or native address with Turbo Credits using a supported fiat currency. This command will create a Stripe checkout session for the top-up amount and open the URL in the default browser.
+
+Command Options:
+
+- `-a, --address <address>` - Address to top up
+- `-c, --currency <currency>` - Currency to top up with
+- `-v, --value <value>` - Amount to top up with in the currency's smallest unit value
+
+e.g:
+
+```shell
+# Open Stripe hosted checkout session in browser to top up for 10.00 USD worth of Turbo Credits
+turbo top-up --address 'crypto-wallet-public-native-address' --currency USD --value 10
+```
+
+##### `crypto-fund`
+
+Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
+
+Command Options:
+
+- `-v, --value <value>` - Amount of tokens in the token type's smallest unit value to fund the wallet with
+
+e.g:
+
+```shell
+turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 ```
 
 ## Developers

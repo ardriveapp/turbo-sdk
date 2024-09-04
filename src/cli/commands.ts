@@ -119,7 +119,7 @@ export async function topUp(options: TopUpOptions) {
     throw new Error('Must provide a --value to top up');
   }
 
-  const currency = options.currency ?? 'usd';
+  const currency = (options.currency ?? 'usd').toLowerCase();
 
   if (!isCurrency(currency)) {
     throw new Error(

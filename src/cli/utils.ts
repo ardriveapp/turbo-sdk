@@ -38,17 +38,17 @@ interface CommanderOption {
 export const optionMap = {
   token: {
     alias: '-t, --token <type>',
-    description: 'Token type for wallet or action',
+    description: 'Crypto token type for wallet or action',
     default: 'arweave',
   },
   currency: {
     alias: '-c, --currency <currency>',
-    description: 'Currency type to top up with',
+    description: 'Fiat currency type to use for the action',
     default: 'usd',
   },
   address: {
     alias: '-a, --address <walletAddress>',
-    description: 'Wallet address to use for action',
+    description: 'Native wallet address to use for action',
   },
   value: {
     alias: '-v, --value <value>',
