@@ -133,28 +133,6 @@ export async function topUp(options: TopUpOptions) {
 
   // TODO: Pay in CLI prompts via --cli options
 
-  // if (address !== undefined) {
-  //   const turbo = TurboFactory.unauthenticated(config);
-  //   const { url, paymentAmount, winc } = await turbo.createCheckoutSession({
-  //     amount: currencyMap[currency](+options.value),
-  //     owner: address,
-  //   });
-  // }
-
-  // if (privateKey === undefined) {
-  //   throw new Error('Must provide a wallet to top up');
-  // }
-
-  // const turbo = TurboFactory.authenticated({
-  //   ...config,
-  //   privateKey,
-  // });
-
-  // const { url, paymentAmount, winc } = await turbo.createCheckoutSession({
-  //   amount: currencyMap[currency](+options.value),
-  //   owner: await turbo.signer.getNativeAddress(),
-  // });
-
   const { url, paymentAmount, winc } = await (async () => {
     const amount = currencyMap[currency](+value);
 
