@@ -47,12 +47,13 @@ export const optionMap = {
     default: 'usd',
   },
   address: {
-    alias: '-a, --address <walletAddress>',
-    description: 'Native wallet address to use for action',
+    alias: '-a, --address <nativeAddress>',
+    description: 'Native address to use for action',
   },
   value: {
     alias: '-v, --value <value>',
-    description: 'Value of fiat currency or crypto token for action',
+    description:
+      'Value of fiat currency or crypto token for action. e.g: 10.50 for $10.50 USD or 0.0001 for 0.0001 AR',
   },
   walletFile: {
     alias: '-w, --wallet-file <filePath>',

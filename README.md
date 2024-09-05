@@ -457,7 +457,7 @@ const { winc: balance } = await turbo.getBalance();
 
 #### `signer.getNativeAddress()`
 
-Returns the native address of the connected signer.
+Returns the [native address][docs/native-address] of the connected signer.
 
 ```typescript
 const address = await turbo.signer.getNativeAddress();
@@ -690,37 +690,37 @@ npx turbo --help
 
 ##### `balance`
 
-Get the balance of a wallet or native address in Turbo Credits.
+Get the balance of a connected wallet or native address in Turbo Credits.
 
 Command Options:
 
-- `-a, --address <address>` - Address to get the balance of
+- `-a, --address <nativeAddress>` - Native address to get the balance of
 
 e.g:
 
 ```shell
-turbo balance --address 'crypto-wallet-public-native-address'
+turbo balance --address 'crypto-wallet-public-native-address' --token solana
 ```
 
 ```shell
-turbo balance --wallet-file '../path/to/my/wallet.json'
+turbo balance --wallet-file '../path/to/my/wallet.json' --token arweave
 ```
 
 ##### `top-up`
 
-Top up a wallet or native address with Turbo Credits using a supported fiat currency. This command will create a Stripe checkout session for the top-up amount and open the URL in the default browser.
+Top up a connected wallet or native address with Turbo Credits using a supported fiat currency. This command will create a Stripe checkout session for the top-up amount and open the URL in the default browser.
 
 Command Options:
 
-- `-a, --address <address>` - Address to top up
+- `-a, --address <nativeAddress>` - Native address to top up
 - `-c, --currency <currency>` - Currency to top up with
-- `-v, --value <value>` - Amount to top up with in the currency's smallest unit value
+- `-v, --value <value>` - Value of fiat currency for top up. e.g: 10.50 for $10.50 USD
 
 e.g:
 
 ```shell
 # Open Stripe hosted checkout session in browser to top up for 10.00 USD worth of Turbo Credits
-turbo top-up --address 'crypto-wallet-public-native-address' --currency USD --value 10
+turbo top-up --address 'crypto-wallet-public-native-address' --token ethereum --currency USD --value 10
 ```
 
 ##### `crypto-fund`
@@ -729,7 +729,7 @@ Fund a wallet with Turbo Credits by submitting a payment transaction for the cry
 
 Command Options:
 
-- `-v, --value <value>` - Amount of tokens in the token type's smallest unit value to fund the wallet with
+- `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
 
 e.g:
 
@@ -781,3 +781,4 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 [TurboAuthenticatedClient]: #turboauthenticatedclient
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
+[docs/native-address]: https://docs.ar.io/glossary.html#native-address
