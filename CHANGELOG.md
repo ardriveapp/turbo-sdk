@@ -1,3 +1,10 @@
+# [1.13.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.13.0-alpha.1...v1.13.0-alpha.2) (2024-09-06)
+
+
+### Features
+
+* **top-up:** init top-up with stripe checkout command PE-6635 ([c43e11b](https://github.com/ardriveapp/turbo-sdk/commit/c43e11bc82f63f9b99e061848787fd1458c71a21))
+
 # [1.13.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.12.0...v1.13.0-alpha.1) (2024-09-03)
 
 
