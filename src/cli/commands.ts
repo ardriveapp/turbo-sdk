@@ -14,37 +14,57 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { exec } from 'node:child_process';
+
 import {
   TokenType,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   TurboWallet,
+  currencyMap,
+  fiatCurrencyTypes,
+  isCurrency,
   tokenToBaseMap,
 } from '../node/index.js';
-import { AddressOptions } from './types.js';
+import { sleep } from '../utils/common.js';
+import { AddressOptions, TopUpOptions } from './types.js';
 import { configFromOptions, optionalPrivateKeyFromOptions } from './utils.js';
+
+export async function addressOrPrivateKeyFromOptions(
+  options: AddressOptions,
+): Promise<{
+  address: string | undefined;
+  privateKey: string | undefined;
+}> {
+  if (options.address !== undefined) {
+    return { address: options.address, privateKey: undefined };
+  }
+
+  return {
+    address: undefined,
+    privateKey: await optionalPrivateKeyFromOptions(options),
+  };
+}
 
 export async function getBalance(options: AddressOptions) {
   const config = configFromOptions(options);
 
-  if (options.address !== undefined) {
+  const { address, privateKey } = await addressOrPrivateKeyFromOptions(options);
+
+  if (address !== undefined) {
     const turbo = TurboFactory.unauthenticated(config);
-    const { winc } = await turbo.getBalance(options.address);
+    const { winc } = await turbo.getBalance(address);
 
     console.log(
-      `Turbo Balance for Native Address "${options.address}"\nCredits: ${
+      `Turbo Balance for Native Address "${address}"\nCredits: ${
         +winc / 1_000_000_000_000
       }`,
     );
     return;
   }
 
-  const privateKey = await optionalPrivateKeyFromOptions(options);
-
   if (privateKey === undefined) {
-    throw new Error(
-      'Must provide an address (--address) or use a valid wallet',
-    );
+    throw new Error('Must provide an (--address) or use a valid wallet');
   }
 
   const turbo = TurboFactory.authenticated({
@@ -87,4 +107,79 @@ export async function cryptoFund({
     'Sent crypto fund transaction: \n',
     JSON.stringify(result, null, 2),
   );
+}
+
+export async function topUp(options: TopUpOptions) {
+  const config = configFromOptions(options);
+
+  const { address, privateKey } = await addressOrPrivateKeyFromOptions(options);
+
+  const value = options.value;
+  if (value === undefined) {
+    throw new Error('Must provide a --value to top up');
+  }
+
+  const currency = (options.currency ?? 'usd').toLowerCase();
+
+  if (!isCurrency(currency)) {
+    throw new Error(
+      `Invalid fiat currency type ${currency}!\nPlease use one of these:\n${JSON.stringify(
+        fiatCurrencyTypes,
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  // TODO: Pay in CLI prompts via --cli options
+
+  const { url, paymentAmount, winc } = await (async () => {
+    const amount = currencyMap[currency](+value);
+
+    if (address !== undefined) {
+      const turbo = TurboFactory.unauthenticated(config);
+      return turbo.createCheckoutSession({
+        amount,
+        owner: address,
+      });
+    }
+
+    if (privateKey === undefined) {
+      throw new Error('Must provide a wallet to top up');
+    }
+
+    const turbo = TurboFactory.authenticated({
+      ...config,
+      privateKey,
+    });
+    return turbo.createCheckoutSession({
+      amount,
+      owner: await turbo.signer.getNativeAddress(),
+    });
+  })();
+
+  if (url === undefined) {
+    throw new Error('Failed to create checkout session');
+  }
+
+  console.log(
+    'Got Checkout Session\n' + JSON.stringify({ url, paymentAmount, winc }),
+  );
+  console.log('Opening checkout session in browser...');
+  await sleep(2000);
+
+  openUrl(url);
+}
+
+export function openUrl(url: string) {
+  if (process.platform === 'darwin') {
+    // macOS
+    exec(`open ${url}`);
+  } else if (process.platform === 'win32') {
+    // Windows
+    exec(`start "" "${url}"`, { windowsHide: true });
+  } else {
+    // Linux/Unix
+    open(url);
+  }
 }

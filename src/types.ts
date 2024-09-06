@@ -35,17 +35,24 @@ export type NativeAddress = string;
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
-export type Currency =
-  | 'usd'
-  | 'eur'
-  | 'gbp'
-  | 'cad'
-  | 'aud'
-  | 'jpy'
-  | 'inr'
-  | 'sgd'
-  | 'hkd'
-  | 'brl';
+
+export const fiatCurrencyTypes = [
+  'usd',
+  'eur',
+  'gbp',
+  'cad',
+  'aud',
+  'jpy',
+  'inr',
+  'sgd',
+  'hkd',
+  'brl',
+] as const;
+export type Currency = (typeof fiatCurrencyTypes)[number];
+export function isCurrency(currency: string): currency is Currency {
+  return fiatCurrencyTypes.includes(currency as Currency);
+}
+
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
 export const tokenTypes = ['arweave', 'solana', 'ethereum', 'kyve'] as const;
