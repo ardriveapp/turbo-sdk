@@ -1,3 +1,11 @@
+# [1.13.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.12.0...v1.13.0) (2024-09-06)
+
+
+### Features
+
+* **balance:** init CLI balance command PE-6635 ([18de656](https://github.com/ardriveapp/turbo-sdk/commit/18de65605d985a901b9211f94ce68fd305c0d8e6))
+* **top-up:** init top-up with stripe checkout command PE-6635 ([c43e11b](https://github.com/ardriveapp/turbo-sdk/commit/c43e11bc82f63f9b99e061848787fd1458c71a21))
+
 # [1.12.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.11.0...v1.12.0) (2024-08-30)
 
 
