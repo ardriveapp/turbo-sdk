@@ -33,7 +33,7 @@ import { AddressOptions, TopUpOptions, UploadFolderOptions } from './types.js';
 import {
   addressOrPrivateKeyFromOptions,
   configFromOptions,
-  getFolderPathFromOptions,
+  getUploadFolderOptions,
   privateKeyFromOptions,
 } from './utils.js';
 
@@ -184,8 +184,6 @@ const turboCliTags: Tag[] = [
 export async function uploadFolder(
   options: UploadFolderOptions,
 ): Promise<void> {
-  const folderPath = getFolderPathFromOptions(options);
-
   const privateKey = await privateKeyFromOptions(options);
 
   const turbo = TurboFactory.authenticated({
@@ -193,15 +191,23 @@ export async function uploadFolder(
     privateKey,
   });
 
+  const {
+    disableManifest,
+    fallbackFile,
+    folderPath,
+    indexFile,
+    maxConcurrentUploads,
+  } = getUploadFolderOptions(options);
+
   const result = await turbo.uploadFolder({
     folderPath: folderPath,
     dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
     manifestOptions: {
-      disableManifest: false, // TODO: Add CLI option
-      indexFile: undefined, // TODO: Add CLI option
-      fallbackFile: undefined, // TODO: Add CLI option
+      disableManifest,
+      indexFile,
+      fallbackFile,
     },
-    maxConcurrentUploads: undefined, // TODO: Add CLI option
+    maxConcurrentUploads,
   });
 
   console.log('Uploaded folder:', JSON.stringify(result, null, 2));

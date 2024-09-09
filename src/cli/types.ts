@@ -41,4 +41,8 @@ export type TopUpOptions = AddressOptions & {
 
 export type UploadFolderOptions = WalletOptions & {
   folderPath: string;
+  indexFile: string | undefined;
+  fallbackFile: string | undefined;
+  manifest: boolean;
+  maxConcurrency: number | undefined;
 };

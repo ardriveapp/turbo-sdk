@@ -27,7 +27,12 @@ import {
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
 import { NoWalletProvidedError } from './errors.js';
-import { AddressOptions, GlobalOptions, WalletOptions } from './types.js';
+import {
+  AddressOptions,
+  GlobalOptions,
+  UploadFolderOptions,
+  WalletOptions,
+} from './types.js';
 
 export function exitWithErrorLog(error: unknown) {
   console.error(error instanceof Error ? error.message : error);
@@ -53,82 +58,6 @@ interface CommanderOption {
   description: string;
   default?: string | boolean;
 }
-
-export const optionMap = {
-  token: {
-    alias: '-t, --token <type>',
-    description: 'Crypto token type for wallet or action',
-    default: 'arweave',
-  },
-  currency: {
-    alias: '-c, --currency <currency>',
-    description: 'Fiat currency type to use for the action',
-    default: 'usd',
-  },
-  address: {
-    alias: '-a, --address <nativeAddress>',
-    description: 'Native address to use for action',
-  },
-  value: {
-    alias: '-v, --value <value>',
-    description:
-      'Value of fiat currency or crypto token for action. e.g: 10.50 for $10.50 USD or 0.0001 for 0.0001 AR',
-  },
-  walletFile: {
-    alias: '-w, --wallet-file <filePath>',
-    description:
-      'Wallet file to use with the action. Formats accepted: JWK.json, KYVE or ETH private key as a string, or SOL Secret Key as a Uint8Array',
-  },
-  mnemonic: {
-    alias: '-m, --mnemonic <phrase>',
-    description: 'Mnemonic to use with the action',
-  },
-  privateKey: {
-    alias: '-p, --private-key <key>',
-    description: 'Private key to use with the action',
-  },
-
-  gateway: {
-    alias: '-g, --gateway <url>',
-    description: 'Set a custom crypto gateway URL',
-    default: undefined,
-  },
-  dev: {
-    alias: '--dev',
-    description: 'Enable development endpoints',
-    default: false,
-  },
-  debug: {
-    // TODO: Implement
-    alias: '--debug',
-    description: 'Enable verbose logging',
-    default: false,
-  },
-  quiet: {
-    // TODO: Implement
-    alias: '--quiet',
-    description: 'Disable logging',
-    default: false,
-  },
-  folderPath: {
-    alias: '-f, --folder-path <folderPath>',
-    description: 'Directory to upload',
-  },
-} as const;
-
-export const walletOptions = [
-  optionMap.walletFile,
-  optionMap.mnemonic,
-  optionMap.privateKey,
-];
-
-export const globalOptions = [
-  optionMap.dev,
-  optionMap.gateway,
-  optionMap.debug,
-  optionMap.quiet,
-  optionMap.token,
-];
 
 export function applyOptions(
   command: Command,
@@ -261,4 +190,20 @@ export function configFromOptions({
   config.token = token;
 
   return config;
+}
+
+export function getUploadFolderOptions(options: UploadFolderOptions): {
+  folderPath: string;
+  indexFile: string | undefined;
+  fallbackFile: string | undefined;
+  disableManifest: boolean;
+  maxConcurrentUploads: number;
+} {
+  return {
+    folderPath: options.folderPath,
+    indexFile: options.indexFile,
+    fallbackFile: options.fallbackFile,
+    disableManifest: !options.manifest,
+    maxConcurrentUploads: +(options.maxConcurrency ?? 1),
+  };
 }

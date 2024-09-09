@@ -21,18 +21,21 @@ import { Command, program } from 'commander';
 
 import { version } from '../version.js';
 import { cryptoFund, getBalance, topUp, uploadFolder } from './commands.js';
+import {
+  globalOptions,
+  optionMap,
+  uploadFolderOptions,
+  walletOptions,
+} from './options.js';
 import { TopUpOptions, UploadFolderOptions } from './types.js';
 import {
   applyOptions,
   configFromOptions,
   exitWithErrorLog,
-  globalOptions,
-  optionMap,
   privateKeyFromOptions,
   runCommand,
   tokenFromOptions,
   valueFromOptions,
-  walletOptions,
 } from './utils.js';
 
 applyOptions(
@@ -82,7 +85,7 @@ applyOptions(
 
 applyOptions(
   program.command('upload-folder').description('Upload a folder using Turbo'),
-  [...walletOptions, optionMap.folderPath],
+  uploadFolderOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand<UploadFolderOptions>(command, uploadFolder);
 });
