@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Tag } from 'arbundles/node';
 import { exec } from 'node:child_process';
 
 import {
@@ -175,7 +174,7 @@ export function openUrl(url: string) {
   }
 }
 
-const turboCliTags: Tag[] = [
+const turboCliTags: { name: string; value: string }[] = [
   { name: 'App-Name', value: 'Turbo-CLI' },
   { name: 'App-Version', value: version },
   { name: 'App-Platform', value: process.platform },
