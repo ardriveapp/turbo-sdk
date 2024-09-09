@@ -69,6 +69,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`balance`](#balance)
       - [`top-up`](#top-up)
       - [`crypto-fund`](#crypto-fund)
+      - [`upload-folder`](#upload-folder)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -735,6 +736,24 @@ e.g:
 
 ```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
+```
+
+##### `upload-folder`
+
+Upload a folder of files to the Turbo Upload Service. This command will upload all files in the folder and create a manifest file for the folder.
+
+Command Options:
+
+- `-f, --folder-path <folderPath>` - Path to the folder to upload
+- `-i, --index-file <indexFile>` - Index file to use in the manifest created for folder upload
+- `-b, --fallback-file <fallbackFile>` - Fallback file to use in the manifest created for folder upload
+- `--no-manifest` - Disable manifest creation
+- `--max-concurrency <maxConcurrency>` - Maximum number of concurrent uploads
+
+e.g:
+
+```shell
+turbo upload-folder --folder-path '../path/to/my/folder' --token solana --wallet-file ../path/to/sol/sec/key.json
 ```
 
 ## Developers
