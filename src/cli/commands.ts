@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Tag } from 'arbundles/node';
 import { exec } from 'node:child_process';
 
 import {
@@ -27,24 +28,14 @@ import {
   tokenToBaseMap,
 } from '../node/index.js';
 import { sleep } from '../utils/common.js';
-import { AddressOptions, TopUpOptions } from './types.js';
-import { configFromOptions, optionalPrivateKeyFromOptions } from './utils.js';
-
-export async function addressOrPrivateKeyFromOptions(
-  options: AddressOptions,
-): Promise<{
-  address: string | undefined;
-  privateKey: string | undefined;
-}> {
-  if (options.address !== undefined) {
-    return { address: options.address, privateKey: undefined };
-  }
-
-  return {
-    address: undefined,
-    privateKey: await optionalPrivateKeyFromOptions(options),
-  };
-}
+import { version } from '../version.js';
+import { AddressOptions, TopUpOptions, UploadFolderOptions } from './types.js';
+import {
+  addressOrPrivateKeyFromOptions,
+  configFromOptions,
+  getFolderPathFromOptions,
+  privateKeyFromOptions,
+} from './utils.js';
 
 export async function getBalance(options: AddressOptions) {
   const config = configFromOptions(options);
@@ -182,4 +173,36 @@ export function openUrl(url: string) {
     // Linux/Unix
     open(url);
   }
+}
+
+const turboCliTags: Tag[] = [
+  { name: 'App-Name', value: 'Turbo-CLI' },
+  { name: 'App-Version', value: version },
+  { name: 'App-Platform', value: process.platform },
+];
+
+export async function uploadFolder(
+  options: UploadFolderOptions,
+): Promise<void> {
+  const folderPath = getFolderPathFromOptions(options);
+
+  const privateKey = await privateKeyFromOptions(options);
+
+  const turbo = TurboFactory.authenticated({
+    ...configFromOptions(options),
+    privateKey,
+  });
+
+  const result = await turbo.uploadFolder({
+    folderPath: folderPath,
+    dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
+    manifestOptions: {
+      disableManifest: false, // TODO: Add CLI option
+      indexFile: undefined, // TODO: Add CLI option
+      fallbackFile: undefined, // TODO: Add CLI option
+    },
+    maxConcurrentUploads: undefined, // TODO: Add CLI option
+  });
+
+  console.log('Uploaded folder:', JSON.stringify(result, null, 2));
 }

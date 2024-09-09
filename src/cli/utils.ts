@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import bs58 from 'bs58';
-import { Command } from 'commander';
-import { readFileSync } from 'fs';
+import { Command, OptionValues } from 'commander';
+import { readFileSync, statSync } from 'fs';
 
 import {
   TokenType,
@@ -27,7 +27,26 @@ import {
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
 import { NoWalletProvidedError } from './errors.js';
-import { GlobalOptions, WalletOptions } from './types.js';
+import { AddressOptions, GlobalOptions, WalletOptions } from './types.js';
+
+export function exitWithErrorLog(error: unknown) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+
+export async function runCommand<O extends OptionValues>(
+  command: Command,
+  action: (options: O) => Promise<void>,
+) {
+  const options = command.optsWithGlobals<O>();
+
+  try {
+    await action(options);
+    process.exit(0);
+  } catch (error) {
+    exitWithErrorLog(error);
+  }
+}
 
 interface CommanderOption {
   alias: string;
@@ -91,6 +110,10 @@ export const optionMap = {
     description: 'Disable logging',
     default: false,
   },
+  folderPath: {
+    alias: '-f, --folder-path <folderPath>',
+    description: 'Directory to upload',
+  },
 } as const;
 
 export const walletOptions = [
@@ -135,6 +158,37 @@ export function valueFromOptions(options: unknown): string {
     throw new Error('Value is required. Use --value <value>');
   }
   return value;
+}
+
+export function getFolderPathFromOptions(options: unknown): string {
+  const folderPath = (options as { folderPath: string }).folderPath;
+  if (folderPath === undefined) {
+    throw new Error('Folder path is required. Use --folderPath <path>');
+  }
+
+  // Check if path exists and is a directory
+  const stats = statSync(folderPath);
+  if (!stats.isDirectory()) {
+    throw new Error('Folder path is not a directory');
+  }
+
+  return folderPath;
+}
+
+export async function addressOrPrivateKeyFromOptions(
+  options: AddressOptions,
+): Promise<{
+  address: string | undefined;
+  privateKey: string | undefined;
+}> {
+  if (options.address !== undefined) {
+    return { address: options.address, privateKey: undefined };
+  }
+
+  return {
+    address: undefined,
+    privateKey: await optionalPrivateKeyFromOptions(options),
+  };
 }
 
 export async function optionalPrivateKeyFromOptions(options: WalletOptions) {
@@ -182,6 +236,7 @@ const tokenToDevGatewayMap: Record<TokenType, string> = {
   solana: 'https://api.devnet.solana.com',
   ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
   kyve: 'https://api.korellia.kyve.network',
+  // matic: 'https://rpc-amoy.polygon.technology',
 };
 
 export function configFromOptions({
