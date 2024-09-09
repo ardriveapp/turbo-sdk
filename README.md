@@ -745,8 +745,8 @@ Upload a folder of files to the Turbo Upload Service. This command will upload a
 Command Options:
 
 - `-f, --folder-path <folderPath>` - Path to the folder to upload
-- `-i, --index-file <indexFile>` - Index file to use in the manifest created for folder upload
-- `-b, --fallback-file <fallbackFile>` - Fallback file to use in the manifest created for folder upload
+- `--index-file <indexFile>` - Index file to use in the manifest created for folder upload
+- `--fallback-file <fallbackFile>` - Fallback file to use in the manifest created for folder upload
 - `--no-manifest` - Disable manifest creation
 - `--max-concurrency <maxConcurrency>` - Maximum number of concurrent uploads
 
