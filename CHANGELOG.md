@@ -1,3 +1,10 @@
+# [1.14.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.0-alpha.1...v1.14.0-alpha.2) (2024-09-10)
+
+
+### Features
+
+* **upload file:** init cli upload file command PE-6636 ([f802fc5](https://github.com/ardriveapp/turbo-sdk/commit/f802fc5208ef574853f134e8ca3197fc1e6941c0))
+
 # [1.14.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.13.0...v1.14.0-alpha.1) (2024-09-10)
 
 
