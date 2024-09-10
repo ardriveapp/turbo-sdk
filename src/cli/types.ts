@@ -14,14 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { TokenType } from '../types.js';
 
 export type GlobalOptions = {
   dev: boolean;
   gateway: string | undefined;
   debug: boolean;
   quiet: boolean;
-  token: TokenType;
+  token: string;
 };
 
 export type WalletOptions = GlobalOptions & {
@@ -40,9 +39,17 @@ export type TopUpOptions = AddressOptions & {
 };
 
 export type UploadFolderOptions = WalletOptions & {
-  folderPath: string;
+  folderPath: string | undefined;
   indexFile: string | undefined;
   fallbackFile: string | undefined;
   manifest: boolean;
   maxConcurrency: number | undefined;
+};
+
+export type UploadFileOptions = WalletOptions & {
+  filePath: string | undefined;
+};
+
+export type CryptoFundOptions = WalletOptions & {
+  value: string | undefined;
 };

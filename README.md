@@ -70,6 +70,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`top-up`](#top-up)
       - [`crypto-fund`](#crypto-fund)
       - [`upload-folder`](#upload-folder)
+      - [`upload-file`](#upload-file)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -754,6 +755,20 @@ e.g:
 
 ```shell
 turbo upload-folder --folder-path '../path/to/my/folder' --token solana --wallet-file ../path/to/sol/sec/key.json
+```
+
+##### `upload-file`
+
+Upload a file to the Turbo Upload Service.
+
+Command Options:
+
+- `-f, --file-path <filePath>` - Path to the file to upload
+
+e.g:
+
+```shell
+turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt
 ```
 
 ## Developers

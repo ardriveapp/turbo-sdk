@@ -20,6 +20,8 @@ import { readFileSync, statSync } from 'fs';
 
 import {
   TokenType,
+  TurboAuthenticatedClient,
+  TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
@@ -168,14 +170,15 @@ const tokenToDevGatewayMap: Record<TokenType, string> = {
   // matic: 'https://rpc-amoy.polygon.technology',
 };
 
-export function configFromOptions({
-  gateway,
-  dev,
-  token,
-}: GlobalOptions): TurboUnauthenticatedConfiguration {
+export function configFromOptions(
+  options: GlobalOptions,
+): TurboUnauthenticatedConfiguration {
   let config: TurboUnauthenticatedConfiguration = {};
 
-  if (dev) {
+  const token = tokenFromOptions(options);
+  config.token = token;
+
+  if (options.dev) {
     config = developmentTurboConfiguration;
     config.gatewayUrl = tokenToDevGatewayMap[token];
   } else {
@@ -183,13 +186,22 @@ export function configFromOptions({
   }
 
   // If gateway is provided, override the default or dev gateway
-  if (gateway !== undefined) {
-    config.gatewayUrl = gateway;
+  if (options.gateway !== undefined) {
+    config.gatewayUrl = options.gateway;
   }
 
-  config.token = token;
-
   return config;
+}
+
+export async function turboFromOptions(
+  options: WalletOptions,
+): Promise<TurboAuthenticatedClient> {
+  const privateKey = await privateKeyFromOptions(options);
+
+  return TurboFactory.authenticated({
+    ...configFromOptions(options),
+    privateKey,
+  });
 }
 
 export function getUploadFolderOptions(options: UploadFolderOptions): {
@@ -199,6 +211,10 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   disableManifest: boolean;
   maxConcurrentUploads: number;
 } {
+  if (options.folderPath === undefined) {
+    throw new Error('--folder-path is required');
+  }
+
   return {
     folderPath: options.folderPath,
     indexFile: options.indexFile,

@@ -75,6 +75,10 @@ export const optionMap = {
     alias: '-f, --folder-path <folderPath>',
     description: 'Directory to upload',
   },
+  filePath: {
+    alias: '-f, --file-path <filePath>',
+    description: 'File to upload',
+  },
   indexFile: {
     alias: '--index-file <indexFile>',
     description: 'Index file to use in the manifest created for folder upload',
@@ -87,7 +91,7 @@ export const optionMap = {
   manifest: {
     alias: '--no-manifest',
     description: 'Disable manifest creation with --no-manifest',
-    default: false,
+    default: true,
   },
   maxConcurrency: {
     alias: '--max-concurrency <maxConcurrency>',
@@ -117,3 +121,5 @@ export const uploadFolderOptions = [
   optionMap.manifest,
   optionMap.maxConcurrency,
 ];
+
+export const uploadFileOptions = [...walletOptions, optionMap.filePath];
