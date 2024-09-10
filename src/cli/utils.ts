@@ -211,7 +211,6 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   disableManifest: boolean;
   maxConcurrentUploads: number;
 } {
-  console.log('options', options);
   if (options.folderPath === undefined) {
     throw new Error('--folder-path is required');
   }
