@@ -31,6 +31,7 @@ import { sleep } from '../utils/common.js';
 import { version } from '../version.js';
 import {
   AddressOptions,
+  CryptoFundOptions,
   TopUpOptions,
   UploadFileOptions,
   UploadFolderOptions,
@@ -39,6 +40,7 @@ import {
   addressOrPrivateKeyFromOptions,
   configFromOptions,
   getUploadFolderOptions,
+  tokenFromOptions,
   turboFromOptions,
 } from './utils.js';
 
@@ -76,26 +78,18 @@ export async function getBalance(options: AddressOptions) {
   );
 }
 
-export interface CryptoFundParams {
-  token: TokenType;
-  value: string;
-  privateKey: TurboWallet;
-  config: TurboUnauthenticatedConfiguration;
-}
 /** Fund the connected signer with crypto */
-export async function cryptoFund({
-  value,
-  privateKey,
-  token,
-  config,
-}: CryptoFundParams) {
-  const authenticatedTurbo = TurboFactory.authenticated({
-    ...config,
-    privateKey: privateKey,
-    token,
-  });
+export async function cryptoFund(options: CryptoFundOptions) {
+  const value = options.value;
+  if (value === undefined) {
+    throw new Error('Must provide a --value to top up');
+  }
 
-  const result = await authenticatedTurbo.topUpWithTokens({
+  const turbo = await turboFromOptions(options);
+
+  const token = tokenFromOptions(options);
+
+  const result = await turbo.topUpWithTokens({
     tokenAmount: tokenToBaseMap[token](value),
   });
 
