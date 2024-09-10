@@ -70,6 +70,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`top-up`](#top-up)
       - [`crypto-fund`](#crypto-fund)
       - [`upload-folder`](#upload-folder)
+      - [`upload-file`](#upload-file)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
