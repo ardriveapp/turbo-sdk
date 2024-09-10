@@ -740,13 +740,13 @@ turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 
 ##### `upload-folder`
 
-Upload a folder of files to the Turbo Upload Service. This command will upload all files in the folder and create a manifest file for the folder.
+Upload a folder of files and creates and uploads a manifest file for the folder to the Turbo Upload Service.
 
 Command Options:
 
 - `-f, --folder-path <folderPath>` - Path to the folder to upload
-- `--index-file <indexFile>` - Index file to use in the manifest created for folder upload
-- `--fallback-file <fallbackFile>` - Fallback file to use in the manifest created for folder upload
+- `--index-file <indexFile>` - File to use for the "index" path in the resulting manifest
+- `--fallback-file <fallbackFile>` - File to use for the "fallback" path in the resulting manifest
 - `--no-manifest` - Disable manifest creation
 - `--max-concurrency <maxConcurrency>` - Maximum number of concurrent uploads
 
