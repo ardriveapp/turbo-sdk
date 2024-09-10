@@ -20,17 +20,22 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
-import { cryptoFund, getBalance, topUp } from './commands.js';
-import { TopUpOptions } from './types.js';
+import { cryptoFund, getBalance, topUp, uploadFolder } from './commands.js';
+import {
+  globalOptions,
+  optionMap,
+  uploadFolderOptions,
+  walletOptions,
+} from './options.js';
+import { TopUpOptions, UploadFolderOptions } from './types.js';
 import {
   applyOptions,
   configFromOptions,
-  globalOptions,
-  optionMap,
+  exitWithErrorLog,
   privateKeyFromOptions,
+  runCommand,
   tokenFromOptions,
   valueFromOptions,
-  walletOptions,
 } from './utils.js';
 
 applyOptions(
@@ -42,37 +47,18 @@ applyOptions(
   globalOptions,
 );
 
-function exitWithErrorLog(error: unknown) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-}
-
 applyOptions(
   program.command('balance').description('Get balance of a Turbo address'),
   [optionMap.address, ...walletOptions],
 ).action(async (_commandOptions, command: Command) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const options: any = command.optsWithGlobals();
-
-  try {
-    await getBalance(options);
-    process.exit(0);
-  } catch (error) {
-    exitWithErrorLog(error);
-  }
+  await runCommand(command, getBalance);
 });
 
 applyOptions(
   program.command('top-up').description('Top up a Turbo address with Fiat'),
   [...walletOptions, optionMap.address, optionMap.value, optionMap.currency],
 ).action(async (_commandOptions, command: Command) => {
-  const options = command.optsWithGlobals<TopUpOptions>();
-  try {
-    await topUp(options);
-    process.exit(0);
-  } catch (error) {
-    exitWithErrorLog(error);
-  }
+  await runCommand<TopUpOptions>(command, topUp);
 });
 
 applyOptions(
@@ -98,13 +84,10 @@ applyOptions(
 });
 
 applyOptions(
-  program
-    .command('upload-folder')
-    .description('Upload a folder to a Turbo address')
-    .argument('<folderPath>', 'Directory to upload'),
-  [...walletOptions, optionMap.token],
-).action((directory, options) => {
-  console.log('upload-folder TODO', directory, options);
+  program.command('upload-folder').description('Upload a folder using Turbo'),
+  uploadFolderOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand<UploadFolderOptions>(command, uploadFolder);
 });
 
 if (
