@@ -1,10 +1,10 @@
-# [1.13.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.13.0-alpha.2...v1.13.0-alpha.3) (2024-09-10)
+# [1.13.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.12.0...v1.13.0) (2024-09-06)
 
 
 ### Features
 
-* **upload folder:** init CLI command PE-6636 ([17af9f3](https://github.com/ardriveapp/turbo-sdk/commit/17af9f36ff9d826ae92664691d557eb198582ccb))
-* **upload folder:** init manifest options PE-6636 ([305bd5a](https://github.com/ardriveapp/turbo-sdk/commit/305bd5a6b49ab9b326954548ab22e75807c9e080))
+* **balance:** init CLI balance command PE-6635 ([18de656](https://github.com/ardriveapp/turbo-sdk/commit/18de65605d985a901b9211f94ce68fd305c0d8e6))
+* **top-up:** init top-up with stripe checkout command PE-6635 ([c43e11b](https://github.com/ardriveapp/turbo-sdk/commit/c43e11bc82f63f9b99e061848787fd1458c71a21))
 
 # [1.12.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.11.0...v1.12.0) (2024-08-30)
 
