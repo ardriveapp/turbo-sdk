@@ -740,7 +740,7 @@ turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 
 ##### `upload-folder`
 
-Upload a folder of files and creates and uploads a manifest file for the folder to the Turbo Upload Service.
+Upload a folder of files and create and upload a manifest file for the folder upload to the Turbo Upload Service.
 
 Command Options:
 
