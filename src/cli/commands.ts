@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { exec } from 'node:child_process';
+import { createReadStream, statSync } from 'node:fs';
 
 import {
   TokenType,
@@ -28,12 +29,17 @@ import {
 } from '../node/index.js';
 import { sleep } from '../utils/common.js';
 import { version } from '../version.js';
-import { AddressOptions, TopUpOptions, UploadFolderOptions } from './types.js';
+import {
+  AddressOptions,
+  TopUpOptions,
+  UploadFileOptions,
+  UploadFolderOptions,
+} from './types.js';
 import {
   addressOrPrivateKeyFromOptions,
   configFromOptions,
   getUploadFolderOptions,
-  privateKeyFromOptions,
+  turboFromOptions,
 } from './utils.js';
 
 export async function getBalance(options: AddressOptions) {
@@ -183,12 +189,7 @@ const turboCliTags: { name: string; value: string }[] = [
 export async function uploadFolder(
   options: UploadFolderOptions,
 ): Promise<void> {
-  const privateKey = await privateKeyFromOptions(options);
-
-  const turbo = TurboFactory.authenticated({
-    ...configFromOptions(options),
-    privateKey,
-  });
+  const turbo = await turboFromOptions(options);
 
   const {
     disableManifest,
@@ -210,4 +211,23 @@ export async function uploadFolder(
   });
 
   console.log('Uploaded folder:', JSON.stringify(result, null, 2));
+}
+
+export async function uploadFile(options: UploadFileOptions): Promise<void> {
+  const { filePath } = options;
+  if (filePath === undefined) {
+    throw new Error('Must provide a --file-path to upload');
+  }
+
+  const turbo = await turboFromOptions(options);
+
+  const fileSize = statSync(filePath).size;
+
+  const result = await turbo.uploadFile({
+    fileStreamFactory: () => createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
+    dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
+  });
+
+  console.log('Uploaded file:', JSON.stringify(result, null, 2));
 }

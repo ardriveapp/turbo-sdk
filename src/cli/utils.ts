@@ -20,6 +20,8 @@ import { readFileSync, statSync } from 'fs';
 
 import {
   TokenType,
+  TurboAuthenticatedClient,
+  TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
@@ -192,6 +194,17 @@ export function configFromOptions({
   return config;
 }
 
+export async function turboFromOptions(
+  options: WalletOptions,
+): Promise<TurboAuthenticatedClient> {
+  const privateKey = await privateKeyFromOptions(options);
+
+  return TurboFactory.authenticated({
+    ...configFromOptions(options),
+    privateKey,
+  });
+}
+
 export function getUploadFolderOptions(options: UploadFolderOptions): {
   folderPath: string;
   indexFile: string | undefined;
@@ -199,6 +212,11 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   disableManifest: boolean;
   maxConcurrentUploads: number;
 } {
+  console.log('options', options);
+  if (options.folderPath === undefined) {
+    throw new Error('--folder-path is required');
+  }
+
   return {
     folderPath: options.folderPath,
     indexFile: options.indexFile,

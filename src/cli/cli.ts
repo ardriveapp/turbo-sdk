@@ -20,10 +20,17 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
-import { cryptoFund, getBalance, topUp, uploadFolder } from './commands.js';
+import {
+  cryptoFund,
+  getBalance,
+  topUp,
+  uploadFile,
+  uploadFolder,
+} from './commands.js';
 import {
   globalOptions,
   optionMap,
+  uploadFileOptions,
   uploadFolderOptions,
   walletOptions,
 } from './options.js';
@@ -65,6 +72,7 @@ applyOptions(
   program.command('crypto-fund').description('Top up a wallet with crypto'),
   [...walletOptions, optionMap.value],
 ).action(async (_commandOptions, command: Command) => {
+  // TODO: refactor to use runCommand
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const options: any = command.optsWithGlobals();
 
@@ -88,6 +96,13 @@ applyOptions(
   uploadFolderOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand<UploadFolderOptions>(command, uploadFolder);
+});
+
+applyOptions(
+  program.command('upload-file').description('Upload a file using Turbo'),
+  uploadFileOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, uploadFile);
 });
 
 if (
