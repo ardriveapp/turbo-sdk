@@ -320,7 +320,7 @@ describe('Node environment', () => {
         });
       expect(winc).to.not.be.undefined;
       expect(+winc).to.be.greaterThan(0);
-      expect(actualPaymentAmount).to.equal(1000);
+      expect(actualPaymentAmount).to.equal('100000');
       expect(adjustments).to.have.length(0);
       expect(fees).to.have.length(1);
     });
