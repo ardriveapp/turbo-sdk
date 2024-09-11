@@ -14,12 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { EthereumSigner, HexSolanaSigner } from '@ar.io/arbundles';
 import { pubkeyToAddress } from '@cosmjs/amino';
 import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
 import { computePublicKey } from '@ethersproject/signing-key';
 import { KyveSDK } from '@kyvejs/sdk/dist/sdk.js';
-import { EthereumSigner, HexSolanaSigner } from 'arbundles';
 import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';

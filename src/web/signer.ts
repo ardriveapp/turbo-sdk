@@ -20,7 +20,7 @@ import {
   EthereumSigner,
   HexSolanaSigner,
   createData,
-} from 'arbundles';
+} from '@ar.io/arbundles';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
