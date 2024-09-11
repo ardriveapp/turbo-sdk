@@ -14,10 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import {
+  ArweaveSigner,
+  EthereumSigner,
+  HexSolanaSigner,
+} from '@ar.io/arbundles';
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
-import { ArweaveSigner, EthereumSigner, HexSolanaSigner } from 'arbundles';
 
 import {
   TokenType,

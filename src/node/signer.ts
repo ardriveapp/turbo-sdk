@@ -21,7 +21,7 @@ import {
   HexSolanaSigner,
   serializeTags,
   streamSigner,
-} from 'arbundles';
+} from '@ar.io/arbundles';
 import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
 
