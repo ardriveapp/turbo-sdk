@@ -313,6 +313,18 @@ describe('Node environment', () => {
       expect(fees).to.have.length(1);
     });
 
+    it('getWincForToken()', async () => {
+      const { winc, actualPaymentAmount, adjustments, fees } =
+        await turbo.getWincForToken({
+          amount: 100000, // 100,000 winston
+        });
+      expect(winc).to.not.be.undefined;
+      expect(+winc).to.be.greaterThan(0);
+      expect(actualPaymentAmount).to.equal(1000);
+      expect(adjustments).to.have.length(0);
+      expect(fees).to.have.length(1);
+    });
+
     describe('uploadSignedDataItem()', () => {
       const signer = new ArweaveSigner(testJwk);
       it('should properly upload a signed Buffer to turbo', async () => {

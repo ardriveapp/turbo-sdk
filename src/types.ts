@@ -84,10 +84,20 @@ export type TurboWincForFiatResponse = TurboPriceResponse & {
   quotedPaymentAmount: number;
 };
 
+export type TurboWincForTokenResponse = TurboPriceResponse & {
+  actualPaymentAmount: string;
+};
+
 export type TurboWincForFiatParams = {
   amount: CurrencyMap;
   nativeAddress?: NativeAddress;
   promoCodes?: string[];
+};
+
+export type TurboWincForTokenParams = {
+  amount: BigNumber.Value;
+  // nativeAddress?: NativeAddress; TODO: Crypto promo code support on payment service
+  // promoCodes?: string[]; TODO: Crypto promo code support on payment service
 };
 
 export type UiMode = 'embedded' | 'hosted';
@@ -461,6 +471,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getWincForFiat(
     params: TurboWincForFiatParams,
   ): Promise<TurboWincForFiatResponse>;
+  getWincForToken(
+    params: TurboWincForTokenParams,
+  ): Promise<TurboWincForTokenResponse>;
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
   createCheckoutSession(
     params: TurboCheckoutSessionParams,

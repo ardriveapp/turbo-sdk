@@ -49,6 +49,7 @@ export function createTurboSigner({
   privateKey?: TurboWallet;
   token: TokenType;
 }): TurboSigner {
+  console.log('token', token);
   if (clientProvidedSigner !== undefined) {
     return clientProvidedSigner;
   }

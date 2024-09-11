@@ -44,6 +44,8 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
+  TurboWincForTokenParams,
+  TurboWincForTokenResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -136,6 +138,14 @@ export class TurboUnauthenticatedPaymentService
       }?destinationAddress=${nativeAddress}&${this.appendPromoCodesToQuery(
         promoCodes,
       )}`,
+    });
+  }
+
+  public getWincForToken({
+    amount,
+  }: TurboWincForTokenParams): Promise<TurboWincForTokenResponse> {
+    return this.httpService.get<TurboWincForTokenResponse>({
+      endpoint: `/price/${this.token}/${amount}`,
     });
   }
 
