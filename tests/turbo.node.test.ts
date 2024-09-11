@@ -296,11 +296,15 @@ describe('Node environment', () => {
     });
 
     it('getWincForFiat()', async () => {
-      const { winc } = await turbo.getWincForFiat({
-        amount: USD(10), // $10.00 USD
-      });
+      const { winc, actualPaymentAmount, adjustments, quotedPaymentAmount } =
+        await turbo.getWincForFiat({
+          amount: USD(10), // $10.00 USD
+        });
       expect(winc).to.not.be.undefined;
       expect(+winc).to.be.greaterThan(0);
+      expect(actualPaymentAmount).to.equal(1000);
+      expect(quotedPaymentAmount).to.equal(1000);
+      expect(adjustments).to.have.length(1);
     });
 
     describe('uploadSignedDataItem()', () => {
