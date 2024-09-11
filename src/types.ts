@@ -85,6 +85,7 @@ export type TurboWincForFiatResponse = TurboPriceResponse & {
 
 export type TurboWincForFiatParams = {
   amount: CurrencyMap;
+  nativeAddress?: NativeAddress;
   promoCodes?: string[];
 };
 
