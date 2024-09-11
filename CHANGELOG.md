@@ -1,10 +1,3 @@
-# [1.14.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.0-alpha.2...v1.14.0-alpha.3) (2024-09-11)
-
-
-### Bug Fixes
-
-* repair dependency errors; upgrade arweave; upgrade to [@ar](https://github.com/ar).io/arbundles PE-6664 ([a2e421f](https://github.com/ardriveapp/turbo-sdk/commit/a2e421f593abe9e37fa52a93e212445ea96bd17e))
-
 # [1.13.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.12.0...v1.13.0) (2024-09-06)
 
 
