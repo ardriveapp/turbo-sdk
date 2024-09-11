@@ -168,7 +168,9 @@ export class TurboUnauthenticatedPaymentService
       url: paymentSession.url ?? undefined,
       id: paymentSession.id,
       client_secret: paymentSession.client_secret ?? undefined,
+      /** @deprecated -- backfilled for backwards compatibility, use actualPaymentAmount */
       paymentAmount: topUpQuote.paymentAmount,
+      actualPaymentAmount: topUpQuote.paymentAmount,
       quotedPaymentAmount: topUpQuote.quotedPaymentAmount,
     };
   }

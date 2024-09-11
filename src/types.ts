@@ -79,7 +79,7 @@ export type TurboPriceResponse = {
 };
 
 export type TurboWincForFiatResponse = TurboPriceResponse & {
-  paymentAmount: number;
+  actualPaymentAmount: number;
   quotedPaymentAmount: number;
 };
 
@@ -96,9 +96,16 @@ export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
 
 export type TopUpRawResponse = {
   topUpQuote: {
+    topUpQuoteId: string;
+    destinationAddressType: string;
     paymentAmount: number;
     quotedPaymentAmount: number;
     winstonCreditAmount: string;
+    destinationAddress: string;
+    currencyType: Currency;
+    quoteExpirationDate: string;
+    paymentProvider: string;
+    adjustments: Adjustment[];
   };
   paymentSession: {
     url: string | null;
@@ -112,6 +119,8 @@ export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   id: string;
   client_secret?: string;
   url?: string;
+  /** @deprecated use duplicate actualPaymentAmount */
+  paymentAmount: number;
 };
 
 export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
