@@ -12,10 +12,10 @@
   resolved "https://registry.yarnpkg.com/@adraffy/ens-normalize/-/ens-normalize-1.10.1.tgz#63430d04bd8c5e74f8d7d049338f1cd9d4f02069"
   integrity sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw==
 
-"@ar.io/arbundles@1.0.1-alpha.3":
-  version "1.0.1-alpha.3"
-  resolved "https://registry.yarnpkg.com/@ar.io/arbundles/-/arbundles-1.0.1-alpha.3.tgz#a1d9f0070a17dfdce079366b6c2aa14982761b72"
-  integrity sha512-SLh/eRFysmte742xyS9nteJUr3fldYI353FDvL7TMIctE+jOZgwkdyvF6K0bOJgvrc/eteL9Tpgjl4MA9F49MQ==
+"@ar.io/arbundles@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@ar.io/arbundles/-/arbundles-1.0.1.tgz#f080b5caa51f221afc3b890cddd92c193b1be8fc"
+  integrity sha512-JqnRJYprFXaZ7z+JV0FXCJj9214vON+FeLOtKtSWP1nUaBNgtA2eaJ6/Yi5n3sn9E89UHvknZFUTG7VswLXzJA==
   dependencies:
     "@ethersproject/bytes" "^5.7.0"
     "@ethersproject/hash" "^5.7.0"

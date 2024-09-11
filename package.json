@@ -74,7 +74,7 @@
     "docs": "markdown-toc-gen insert README.md"
   },
   "dependencies": {
-    "@ar.io/arbundles": "1.0.1-alpha.3",
+    "@ar.io/arbundles": "^1.0.1",
     "@cosmjs/amino": "^0.32.4",
     "@cosmjs/crypto": "^0.32.4",
     "@cosmjs/encoding": "^0.32.4",
