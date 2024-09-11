@@ -76,6 +76,7 @@ export type CurrencyLimit = {
 export type TurboPriceResponse = {
   winc: string; // TODO: the service returns BigNumbers as strings
   adjustments: Adjustment[];
+  fees: Adjustment[];
 };
 
 export type TurboWincForFiatResponse = TurboPriceResponse & {
