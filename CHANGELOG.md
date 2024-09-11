@@ -1,3 +1,17 @@
+# [1.14.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.13.0...v1.14.0) (2024-09-11)
+
+
+### Bug Fixes
+
+* repair dependency errors; upgrade arweave; upgrade to [@ar](https://github.com/ar).io/arbundles PE-6664 ([a2e421f](https://github.com/ardriveapp/turbo-sdk/commit/a2e421f593abe9e37fa52a93e212445ea96bd17e))
+
+
+### Features
+
+* **upload file:** init cli upload file command PE-6636 ([f802fc5](https://github.com/ardriveapp/turbo-sdk/commit/f802fc5208ef574853f134e8ca3197fc1e6941c0))
+* **upload folder:** init CLI command PE-6636 ([17af9f3](https://github.com/ardriveapp/turbo-sdk/commit/17af9f36ff9d826ae92664691d557eb198582ccb))
+* **upload folder:** init manifest options PE-6636 ([305bd5a](https://github.com/ardriveapp/turbo-sdk/commit/305bd5a6b49ab9b326954548ab22e75807c9e080))
+
 # [1.13.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.12.0...v1.13.0) (2024-09-06)
 
 
