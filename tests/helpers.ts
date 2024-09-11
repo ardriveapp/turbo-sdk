@@ -1,4 +1,4 @@
-import Arweave from '@irys/arweave';
+import Arweave from 'arweave';
 import axios from 'axios';
 import bs58 from 'bs58';
 import { expect } from 'chai';
@@ -118,7 +118,9 @@ export const base64KyveAddress = 'Rdhf8cqIdoeb7scy9l0d1iVmhu6nmRJIGR-V7YQPKy8'; 
 const arweaveUrlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
 const arweaveUrl = new URL(arweaveUrlString);
 export const testArweave = Arweave.init({
-  url: arweaveUrl,
+  host: arweaveUrl.hostname,
+  port: arweaveUrl.port,
+  protocol: arweaveUrl.protocol.replace(':', ''),
 });
 
 export const solanaUrlString = // TODO: Local SOL net in integration test

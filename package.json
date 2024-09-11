@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.13.0",
+  "version": "1.14.0-alpha.3",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -74,14 +74,15 @@
     "docs": "markdown-toc-gen insert README.md"
   },
   "dependencies": {
+    "@ar.io/arbundles": "^1.0.1",
     "@cosmjs/amino": "^0.32.4",
     "@cosmjs/crypto": "^0.32.4",
     "@cosmjs/encoding": "^0.32.4",
     "@cosmjs/proto-signing": "^0.32.4",
-    "@irys/arweave": "0.0.3",
+    "@ethersproject/signing-key": "^5.7.0",
     "@kyvejs/sdk": "^1.3.2",
     "@solana/web3.js": "^1.91.7",
-    "arbundles": "0.9.9",
+    "arweave": "^1.15.1",
     "axios": "1.4.0",
     "axios-retry": "^3.7.0",
     "bignumber.js": "^9.1.2",

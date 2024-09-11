@@ -4,7 +4,7 @@ import {
   EthereumSigner,
   HexSolanaSigner,
   createData,
-} from 'arbundles';
+} from '@ar.io/arbundles';
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';

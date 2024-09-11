@@ -15,11 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import bs58 from 'bs58';
-import { Command } from 'commander';
-import { readFileSync } from 'fs';
+import { Command, OptionValues } from 'commander';
+import { readFileSync, statSync } from 'fs';
 
 import {
   TokenType,
+  TurboAuthenticatedClient,
+  TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
@@ -27,85 +29,37 @@ import {
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
 import { NoWalletProvidedError } from './errors.js';
-import { GlobalOptions, WalletOptions } from './types.js';
+import {
+  AddressOptions,
+  GlobalOptions,
+  UploadFolderOptions,
+  WalletOptions,
+} from './types.js';
+
+export function exitWithErrorLog(error: unknown) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+
+export async function runCommand<O extends OptionValues>(
+  command: Command,
+  action: (options: O) => Promise<void>,
+) {
+  const options = command.optsWithGlobals<O>();
+
+  try {
+    await action(options);
+    process.exit(0);
+  } catch (error) {
+    exitWithErrorLog(error);
+  }
+}
 
 interface CommanderOption {
   alias: string;
   description: string;
   default?: string | boolean;
 }
-
-export const optionMap = {
-  token: {
-    alias: '-t, --token <type>',
-    description: 'Crypto token type for wallet or action',
-    default: 'arweave',
-  },
-  currency: {
-    alias: '-c, --currency <currency>',
-    description: 'Fiat currency type to use for the action',
-    default: 'usd',
-  },
-  address: {
-    alias: '-a, --address <nativeAddress>',
-    description: 'Native address to use for action',
-  },
-  value: {
-    alias: '-v, --value <value>',
-    description:
-      'Value of fiat currency or crypto token for action. e.g: 10.50 for $10.50 USD or 0.0001 for 0.0001 AR',
-  },
-  walletFile: {
-    alias: '-w, --wallet-file <filePath>',
-    description:
-      'Wallet file to use with the action. Formats accepted: JWK.json, KYVE or ETH private key as a string, or SOL Secret Key as a Uint8Array',
-  },
-  mnemonic: {
-    alias: '-m, --mnemonic <phrase>',
-    description: 'Mnemonic to use with the action',
-  },
-  privateKey: {
-    alias: '-p, --private-key <key>',
-    description: 'Private key to use with the action',
-  },
-
-  gateway: {
-    alias: '-g, --gateway <url>',
-    description: 'Set a custom crypto gateway URL',
-    default: undefined,
-  },
-  dev: {
-    alias: '--dev',
-    description: 'Enable development endpoints',
-    default: false,
-  },
-  debug: {
-    // TODO: Implement
-    alias: '--debug',
-    description: 'Enable verbose logging',
-    default: false,
-  },
-  quiet: {
-    // TODO: Implement
-    alias: '--quiet',
-    description: 'Disable logging',
-    default: false,
-  },
-} as const;
-
-export const walletOptions = [
-  optionMap.walletFile,
-  optionMap.mnemonic,
-  optionMap.privateKey,
-];
-
-export const globalOptions = [
-  optionMap.dev,
-  optionMap.gateway,
-  optionMap.debug,
-  optionMap.quiet,
-  optionMap.token,
-];
 
 export function applyOptions(
   command: Command,
@@ -135,6 +89,37 @@ export function valueFromOptions(options: unknown): string {
     throw new Error('Value is required. Use --value <value>');
   }
   return value;
+}
+
+export function getFolderPathFromOptions(options: unknown): string {
+  const folderPath = (options as { folderPath: string }).folderPath;
+  if (folderPath === undefined) {
+    throw new Error('Folder path is required. Use --folderPath <path>');
+  }
+
+  // Check if path exists and is a directory
+  const stats = statSync(folderPath);
+  if (!stats.isDirectory()) {
+    throw new Error('Folder path is not a directory');
+  }
+
+  return folderPath;
+}
+
+export async function addressOrPrivateKeyFromOptions(
+  options: AddressOptions,
+): Promise<{
+  address: string | undefined;
+  privateKey: string | undefined;
+}> {
+  if (options.address !== undefined) {
+    return { address: options.address, privateKey: undefined };
+  }
+
+  return {
+    address: undefined,
+    privateKey: await optionalPrivateKeyFromOptions(options),
+  };
 }
 
 export async function optionalPrivateKeyFromOptions(options: WalletOptions) {
@@ -182,16 +167,18 @@ const tokenToDevGatewayMap: Record<TokenType, string> = {
   solana: 'https://api.devnet.solana.com',
   ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
   kyve: 'https://api.korellia.kyve.network',
+  // matic: 'https://rpc-amoy.polygon.technology',
 };
 
-export function configFromOptions({
-  gateway,
-  dev,
-  token,
-}: GlobalOptions): TurboUnauthenticatedConfiguration {
+export function configFromOptions(
+  options: GlobalOptions,
+): TurboUnauthenticatedConfiguration {
   let config: TurboUnauthenticatedConfiguration = {};
 
-  if (dev) {
+  const token = tokenFromOptions(options);
+  config.token = token;
+
+  if (options.dev) {
     config = developmentTurboConfiguration;
     config.gatewayUrl = tokenToDevGatewayMap[token];
   } else {
@@ -199,11 +186,40 @@ export function configFromOptions({
   }
 
   // If gateway is provided, override the default or dev gateway
-  if (gateway !== undefined) {
-    config.gatewayUrl = gateway;
+  if (options.gateway !== undefined) {
+    config.gatewayUrl = options.gateway;
   }
 
-  config.token = token;
-
   return config;
+}
+
+export async function turboFromOptions(
+  options: WalletOptions,
+): Promise<TurboAuthenticatedClient> {
+  const privateKey = await privateKeyFromOptions(options);
+
+  return TurboFactory.authenticated({
+    ...configFromOptions(options),
+    privateKey,
+  });
+}
+
+export function getUploadFolderOptions(options: UploadFolderOptions): {
+  folderPath: string;
+  indexFile: string | undefined;
+  fallbackFile: string | undefined;
+  disableManifest: boolean;
+  maxConcurrentUploads: number;
+} {
+  if (options.folderPath === undefined) {
+    throw new Error('--folder-path is required');
+  }
+
+  return {
+    folderPath: options.folderPath,
+    indexFile: options.indexFile,
+    fallbackFile: options.fallbackFile,
+    disableManifest: !options.manifest,
+    maxConcurrentUploads: +(options.maxConcurrency ?? 1),
+  };
 }

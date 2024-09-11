@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import Arweave from '@irys/arweave';
+import Arweave from 'arweave';
 import { BigNumber } from 'bignumber.js';
 import { Buffer } from 'node:buffer';
 
@@ -36,9 +36,7 @@ export class ArweaveToken implements TokenTools {
 
   constructor({
     gatewayUrl = 'https://arweave.net',
-    arweave = Arweave.init({
-      url: gatewayUrl,
-    }),
+    arweave,
     logger = TurboWinstonLogger.default,
     mintU = true,
     pollingOptions = {
@@ -53,7 +51,15 @@ export class ArweaveToken implements TokenTools {
     mintU?: boolean;
     pollingOptions?: TokenPollingOptions;
   } = {}) {
-    this.arweave = arweave;
+    const url = new URL(gatewayUrl);
+
+    this.arweave =
+      arweave ??
+      Arweave.init({
+        host: url.hostname,
+        port: url.port,
+        protocol: url.protocol.replace(':', ''),
+      });
     this.logger = logger;
     this.mintU = mintU;
     this.pollingOptions = pollingOptions;

@@ -69,6 +69,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`balance`](#balance)
       - [`top-up`](#top-up)
       - [`crypto-fund`](#crypto-fund)
+      - [`upload-folder`](#upload-folder)
+      - [`upload-file`](#upload-file)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -735,6 +737,38 @@ e.g:
 
 ```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
+```
+
+##### `upload-folder`
+
+Upload a folder of files and create and upload a manifest file for the folder upload to the Turbo Upload Service.
+
+Command Options:
+
+- `-f, --folder-path <folderPath>` - Path to the folder to upload
+- `--index-file <indexFile>` - File to use for the "index" path in the resulting manifest
+- `--fallback-file <fallbackFile>` - File to use for the "fallback" path in the resulting manifest
+- `--no-manifest` - Disable manifest creation
+- `--max-concurrency <maxConcurrency>` - Maximum number of concurrent uploads
+
+e.g:
+
+```shell
+turbo upload-folder --folder-path '../path/to/my/folder' --token solana --wallet-file ../path/to/sol/sec/key.json
+```
+
+##### `upload-file`
+
+Upload a file to the Turbo Upload Service.
+
+Command Options:
+
+- `-f, --file-path <filePath>` - Path to the file to upload
+
+e.g:
+
+```shell
+turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt
 ```
 
 ## Developers

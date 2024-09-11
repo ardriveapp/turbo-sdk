@@ -15,36 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { exec } from 'node:child_process';
+import { createReadStream, statSync } from 'node:fs';
 
 import {
-  TokenType,
   TurboFactory,
-  TurboUnauthenticatedConfiguration,
-  TurboWallet,
   currencyMap,
   fiatCurrencyTypes,
   isCurrency,
   tokenToBaseMap,
 } from '../node/index.js';
 import { sleep } from '../utils/common.js';
-import { AddressOptions, TopUpOptions } from './types.js';
-import { configFromOptions, optionalPrivateKeyFromOptions } from './utils.js';
-
-export async function addressOrPrivateKeyFromOptions(
-  options: AddressOptions,
-): Promise<{
-  address: string | undefined;
-  privateKey: string | undefined;
-}> {
-  if (options.address !== undefined) {
-    return { address: options.address, privateKey: undefined };
-  }
-
-  return {
-    address: undefined,
-    privateKey: await optionalPrivateKeyFromOptions(options),
-  };
-}
+import { version } from '../version.js';
+import {
+  AddressOptions,
+  CryptoFundOptions,
+  TopUpOptions,
+  UploadFileOptions,
+  UploadFolderOptions,
+} from './types.js';
+import {
+  addressOrPrivateKeyFromOptions,
+  configFromOptions,
+  getUploadFolderOptions,
+  tokenFromOptions,
+  turboFromOptions,
+} from './utils.js';
 
 export async function getBalance(options: AddressOptions) {
   const config = configFromOptions(options);
@@ -80,26 +75,18 @@ export async function getBalance(options: AddressOptions) {
   );
 }
 
-export interface CryptoFundParams {
-  token: TokenType;
-  value: string;
-  privateKey: TurboWallet;
-  config: TurboUnauthenticatedConfiguration;
-}
 /** Fund the connected signer with crypto */
-export async function cryptoFund({
-  value,
-  privateKey,
-  token,
-  config,
-}: CryptoFundParams) {
-  const authenticatedTurbo = TurboFactory.authenticated({
-    ...config,
-    privateKey: privateKey,
-    token,
-  });
+export async function cryptoFund(options: CryptoFundOptions) {
+  const value = options.value;
+  if (value === undefined) {
+    throw new Error('Must provide a --value to top up');
+  }
 
-  const result = await authenticatedTurbo.topUpWithTokens({
+  const turbo = await turboFromOptions(options);
+
+  const token = tokenFromOptions(options);
+
+  const result = await turbo.topUpWithTokens({
     tokenAmount: tokenToBaseMap[token](value),
   });
 
@@ -182,4 +169,56 @@ export function openUrl(url: string) {
     // Linux/Unix
     open(url);
   }
+}
+
+const turboCliTags: { name: string; value: string }[] = [
+  { name: 'App-Name', value: 'Turbo-CLI' },
+  { name: 'App-Version', value: version },
+  { name: 'App-Platform', value: process.platform },
+];
+
+export async function uploadFolder(
+  options: UploadFolderOptions,
+): Promise<void> {
+  const turbo = await turboFromOptions(options);
+
+  const {
+    disableManifest,
+    fallbackFile,
+    folderPath,
+    indexFile,
+    maxConcurrentUploads,
+  } = getUploadFolderOptions(options);
+
+  const result = await turbo.uploadFolder({
+    folderPath: folderPath,
+    dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
+    manifestOptions: {
+      disableManifest,
+      indexFile,
+      fallbackFile,
+    },
+    maxConcurrentUploads,
+  });
+
+  console.log('Uploaded folder:', JSON.stringify(result, null, 2));
+}
+
+export async function uploadFile(options: UploadFileOptions): Promise<void> {
+  const { filePath } = options;
+  if (filePath === undefined) {
+    throw new Error('Must provide a --file-path to upload');
+  }
+
+  const turbo = await turboFromOptions(options);
+
+  const fileSize = statSync(filePath).size;
+
+  const result = await turbo.uploadFile({
+    fileStreamFactory: () => createReadStream(filePath),
+    fileSizeFactory: () => fileSize,
+    dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
+  });
+
+  console.log('Uploaded file:', JSON.stringify(result, null, 2));
 }

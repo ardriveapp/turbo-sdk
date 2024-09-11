@@ -20,7 +20,7 @@ import {
   DataItemCreateOptions,
   EthereumSigner,
   HexSolanaSigner,
-} from 'arbundles';
+} from '@ar.io/arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';

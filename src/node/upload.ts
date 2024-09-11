@@ -49,8 +49,12 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     // Walk the directory and add all file paths to the array
     const files = await promises.readdir(folderPath);
     for (const file of files) {
+      if (file === '.DS_Store') {
+        continue;
+      }
       const absoluteFilePath = join(folderPath, file);
       const stat = await promises.stat(absoluteFilePath);
+
       if (stat.isDirectory()) {
         absoluteFilePaths.push(
           ...(await this.getAbsoluteFilePathsFromFolder(absoluteFilePath)),

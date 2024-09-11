@@ -20,18 +20,22 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
-import { cryptoFund, getBalance, topUp } from './commands.js';
-import { TopUpOptions } from './types.js';
 import {
-  applyOptions,
-  configFromOptions,
+  cryptoFund,
+  getBalance,
+  topUp,
+  uploadFile,
+  uploadFolder,
+} from './commands.js';
+import {
   globalOptions,
   optionMap,
-  privateKeyFromOptions,
-  tokenFromOptions,
-  valueFromOptions,
+  uploadFileOptions,
+  uploadFolderOptions,
   walletOptions,
-} from './utils.js';
+} from './options.js';
+import { TopUpOptions, UploadFolderOptions } from './types.js';
+import { applyOptions, runCommand } from './utils.js';
 
 applyOptions(
   program
@@ -42,69 +46,39 @@ applyOptions(
   globalOptions,
 );
 
-function exitWithErrorLog(error: unknown) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-}
-
 applyOptions(
   program.command('balance').description('Get balance of a Turbo address'),
   [optionMap.address, ...walletOptions],
 ).action(async (_commandOptions, command: Command) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const options: any = command.optsWithGlobals();
-
-  try {
-    await getBalance(options);
-    process.exit(0);
-  } catch (error) {
-    exitWithErrorLog(error);
-  }
+  await runCommand(command, getBalance);
 });
 
 applyOptions(
   program.command('top-up').description('Top up a Turbo address with Fiat'),
   [...walletOptions, optionMap.address, optionMap.value, optionMap.currency],
 ).action(async (_commandOptions, command: Command) => {
-  const options = command.optsWithGlobals<TopUpOptions>();
-  try {
-    await topUp(options);
-    process.exit(0);
-  } catch (error) {
-    exitWithErrorLog(error);
-  }
+  await runCommand<TopUpOptions>(command, topUp);
 });
 
 applyOptions(
   program.command('crypto-fund').description('Top up a wallet with crypto'),
   [...walletOptions, optionMap.value],
 ).action(async (_commandOptions, command: Command) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const options: any = command.optsWithGlobals();
-
-  const token = tokenFromOptions(options);
-  const value = valueFromOptions(options);
-
-  const privateKey = await privateKeyFromOptions(options);
-
-  const config = configFromOptions(options);
-
-  try {
-    await cryptoFund({ privateKey, value, token, config });
-    process.exit(0);
-  } catch (error) {
-    exitWithErrorLog(error);
-  }
+  await runCommand(command, cryptoFund);
 });
 
 applyOptions(
-  program
-    .command('upload-folder')
-    .description('Upload a folder to a Turbo address')
-    .argument('<folderPath>', 'Directory to upload'),
-  [...walletOptions, optionMap.token],
-).action((directory, options) => {
-  console.log('upload-folder TODO', directory, options);
+  program.command('upload-folder').description('Upload a folder using Turbo'),
+  uploadFolderOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand<UploadFolderOptions>(command, uploadFolder);
+});
+
+applyOptions(
+  program.command('upload-file').description('Upload a file using Turbo'),
+  uploadFileOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, uploadFile);
 });
 
 if (
