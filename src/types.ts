@@ -115,6 +115,7 @@ export type TopUpRawResponse = {
     client_secret: string | null;
   };
   adjustments: Adjustment[];
+  fees: Adjustment[];
 };
 
 export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
@@ -125,7 +126,10 @@ export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   paymentAmount: number;
 };
 
-export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
+export type TurboBalanceResponse = Omit<
+  TurboPriceResponse,
+  'adjustments' | 'fees'
+>;
 
 export type TurboFiatToArResponse = {
   currency: Currency;

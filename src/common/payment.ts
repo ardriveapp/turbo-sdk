@@ -161,7 +161,7 @@ export class TurboUnauthenticatedPaymentService
         : ''
     }&token=${this.token}`;
 
-    const { adjustments, paymentSession, topUpQuote } =
+    const { adjustments, paymentSession, topUpQuote, fees } =
       await this.httpService.get<TopUpRawResponse>({
         endpoint,
         headers,
@@ -170,6 +170,7 @@ export class TurboUnauthenticatedPaymentService
     return {
       winc: topUpQuote.winstonCreditAmount,
       adjustments,
+      fees,
       url: paymentSession.url ?? undefined,
       id: paymentSession.id,
       client_secret: paymentSession.client_secret ?? undefined,
