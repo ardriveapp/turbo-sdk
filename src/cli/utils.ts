@@ -176,7 +176,6 @@ export function configFromOptions(
   let config: TurboUnauthenticatedConfiguration = {};
 
   const token = tokenFromOptions(options);
-  config.token = token;
 
   if (options.dev) {
     config = developmentTurboConfiguration;
@@ -189,6 +188,7 @@ export function configFromOptions(
   if (options.gateway !== undefined) {
     config.gatewayUrl = options.gateway;
   }
+  config.token = token;
 
   return config;
 }
