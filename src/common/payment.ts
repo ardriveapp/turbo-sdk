@@ -127,10 +127,15 @@ export class TurboUnauthenticatedPaymentService
 
   public getWincForFiat({
     amount,
+    promoCodes = [],
+    nativeAddress = 'placeholder', // For price checks we only check promo code eligibility, a placeholder can be used
   }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
-    const { amount: paymentAmount, type: currencyType } = amount;
     return this.httpService.get<TurboWincForFiatResponse>({
-      endpoint: `/price/${currencyType}/${paymentAmount}`,
+      endpoint: `/price/${amount.type}/${
+        amount.amount
+      }?destinationAddress=${nativeAddress}&${this.appendPromoCodesToQuery(
+        promoCodes,
+      )}`,
     });
   }
 
@@ -255,11 +260,10 @@ export class TurboAuthenticatedPaymentService
     amount,
     promoCodes = [],
   }: TurboWincForFiatParams): Promise<TurboWincForFiatResponse> {
-    return this.httpService.get<TurboWincForFiatResponse>({
-      endpoint: `/price/${amount.type}/${
-        amount.amount
-      }?${this.appendPromoCodesToQuery(promoCodes)}`,
-      headers: await this.signer.generateSignedRequestHeaders(),
+    return super.getWincForFiat({
+      amount,
+      promoCodes,
+      nativeAddress: await this.signer.getNativeAddress(),
     });
   }
 
