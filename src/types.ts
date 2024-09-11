@@ -76,10 +76,11 @@ export type CurrencyLimit = {
 export type TurboPriceResponse = {
   winc: string; // TODO: the service returns BigNumbers as strings
   adjustments: Adjustment[];
+  fees: Adjustment[];
 };
 
 export type TurboWincForFiatResponse = TurboPriceResponse & {
-  paymentAmount: number;
+  actualPaymentAmount: number;
   quotedPaymentAmount: number;
 };
 
@@ -96,9 +97,16 @@ export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
 
 export type TopUpRawResponse = {
   topUpQuote: {
+    topUpQuoteId: string;
+    destinationAddressType: string;
     paymentAmount: number;
     quotedPaymentAmount: number;
     winstonCreditAmount: string;
+    destinationAddress: string;
+    currencyType: Currency;
+    quoteExpirationDate: string;
+    paymentProvider: string;
+    adjustments: Adjustment[];
   };
   paymentSession: {
     url: string | null;
@@ -106,15 +114,21 @@ export type TopUpRawResponse = {
     client_secret: string | null;
   };
   adjustments: Adjustment[];
+  fees: Adjustment[];
 };
 
 export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   id: string;
   client_secret?: string;
   url?: string;
+  /** @deprecated use duplicate actualPaymentAmount */
+  paymentAmount: number;
 };
 
-export type TurboBalanceResponse = Omit<TurboPriceResponse, 'adjustments'>;
+export type TurboBalanceResponse = Omit<
+  TurboPriceResponse,
+  'adjustments' | 'fees'
+>;
 
 export type TurboFiatToArResponse = {
   currency: Currency;
