@@ -91,6 +91,7 @@
     "ethers": "^6.12.0",
     "mime-types": "^2.1.35",
     "plimit-lit": "^3.0.1",
+    "prompts": "^2.4.2",
     "tweetnacl": "^1.0.3",
     "winston": "^3.14.1"
   },
@@ -106,6 +107,7 @@
     "@types/mime-types": "^2.1.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.4.8",
+    "@types/prompts": "^2.4.9",
     "@types/sinon": "^10.0.15",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^6.4.0",

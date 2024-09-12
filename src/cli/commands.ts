@@ -16,6 +16,7 @@
  */
 import { exec } from 'node:child_process';
 import { createReadStream, statSync } from 'node:fs';
+import prompts from 'prompts';
 
 import {
   TurboFactory,
@@ -78,16 +79,52 @@ export async function getBalance(options: AddressOptions) {
 /** Fund the connected signer with crypto */
 export async function cryptoFund(options: CryptoFundOptions) {
   const value = options.value;
+  const txId = options.txId;
+
+  if (txId !== undefined) {
+    const turbo = TurboFactory.unauthenticated(configFromOptions(options));
+    const result = await turbo.submitFundTransaction({ txId: txId });
+
+    console.log(
+      'Submitted existing crypto fund transaction to payment service: \n',
+      JSON.stringify(result, null, 2),
+    );
+    return;
+  }
+
   if (value === undefined) {
-    throw new Error('Must provide a --value to top up');
+    throw new Error(
+      'Must provide a --value or --transaction-id for crypto-fund command',
+    );
   }
 
   const turbo = await turboFromOptions(options);
 
   const token = tokenFromOptions(options);
+  const tokenAmount = tokenToBaseMap[token](value);
+
+  const { winc } = await turbo.getWincForToken({ tokenAmount });
+
+  if (!options.skipConfirmation) {
+    const { confirm } = await prompts({
+      type: 'confirm',
+      name: 'confirm',
+      message: `This command will send a payment transaction for ${value} ${token} to the connected bundler's wallet in exchange for ~${(
+        +winc / 1_000_000_000_000
+      ).toFixed(
+        12,
+      )} Credits. This is in addition to any typical gas fees on the given network. Would you like to proceed with this funding?`,
+      initial: true,
+    });
+
+    if (!confirm) {
+      console.log('Aborted crypto fund transaction');
+      return;
+    }
+  }
 
   const result = await turbo.topUpWithTokens({
-    tokenAmount: tokenToBaseMap[token](value),
+    tokenAmount,
   });
 
   console.log(
