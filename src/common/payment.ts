@@ -163,6 +163,14 @@ export class TurboUnauthenticatedPaymentService
     return promoCodesQuery ? `promoCode=${promoCodesQuery}` : '';
   }
 
+  public async getTurboCryptoWallets(): Promise<Record<TokenType, string>> {
+    const { addresses } = await this.httpService.get<TurboInfoResponse>({
+      endpoint: '/info',
+    });
+
+    return addresses;
+  }
+
   protected async getCheckout(
     {
       amount,

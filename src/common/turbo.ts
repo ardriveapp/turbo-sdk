@@ -17,6 +17,7 @@
 import {
   Currency,
   NativeAddress,
+  TokenType,
   TurboAbortSignal,
   TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
@@ -197,6 +198,13 @@ export class TurboUnauthenticatedClient
     txId: string;
   }): Promise<TurboSubmitFundTxResponse> {
     return this.paymentService.submitFundTransaction(p);
+  }
+
+  /**
+   * Returns the connected target Turbo wallet addresses for all supported tokens.
+   */
+  getTurboCryptoWallets(): Promise<Record<TokenType, string>> {
+    return this.paymentService.getTurboCryptoWallets();
   }
 }
 

@@ -471,6 +471,7 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
+  getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
   getFiatToAR({
     currency,
   }: {
