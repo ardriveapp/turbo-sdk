@@ -1,3 +1,10 @@
+# [1.16.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.0-alpha.2...v1.16.0-alpha.3) (2024-09-12)
+
+
+### Features
+
+* **crypto fund:** show target wallet in confirmation prompt PE-6732 ([06f1c9a](https://github.com/ardriveapp/turbo-sdk/commit/06f1c9a2a153ec8d5e8103f87617617e3854157d))
+
 # [1.15.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.1...v1.15.0) (2024-09-12)
 
 
