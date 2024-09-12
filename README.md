@@ -39,6 +39,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getFiatToAR({ currency })`](#getfiattoar-currency-)
     - [`getFiatRates()`](#getfiatrates)
     - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
+    - [`getWincForToken({ tokenAmount })`](#getwincfortoken-tokenamount-)
     - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
     - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
     - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
@@ -340,13 +341,23 @@ const rates = await turbo.getFiatRates();
 
 #### `getWincForFiat({ amount })`
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount. To leverage promo codes, see [TurboAuthenticatedClient].
+Returns the current amount of Winston Credits including all adjustments for the provided fiat currency.
 
 ```typescript
-const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
+const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
   await turbo.getWincForFiat({
     amount: USD(100),
-    // promo codes require an authenticated client
+  });
+```
+
+#### `getWincForToken({ tokenAmount })`
+
+Returns the current amount of Winston Credits including all adjustments for the provided token amount.
+
+```typescript
+const { winc, actualTokenAmount, equivalentWincTokenAmount } =
+  await turbo.getWincForToken({
+    tokenAmount: WinstonToTokenAmount(100_000_000),
   });
 ```
 
@@ -727,16 +738,21 @@ turbo top-up --address 'crypto-wallet-public-native-address' --token ethereum --
 
 ##### `crypto-fund`
 
-Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
+Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing. Alternatively, submit a transaction ID of an existing funding transaction to Turbo Payment Service for top up processing.
 
 Command Options:
 
 - `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
+- `-i, --tx-id <txId>` - Transaction ID of an existing funding transaction
 
 e.g:
 
 ```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
+```
+
+```shell
+turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
 ```
 
 ##### `upload-folder`

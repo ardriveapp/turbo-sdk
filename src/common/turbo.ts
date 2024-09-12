@@ -17,6 +17,7 @@
 import {
   Currency,
   NativeAddress,
+  TokenType,
   TurboAbortSignal,
   TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
@@ -45,6 +46,8 @@ import {
   TurboUploadFolderResponse,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
+  TurboWincForTokenParams,
+  TurboWincForTokenResponse,
 } from '../types.js';
 import {
   TurboUnauthenticatedPaymentService,
@@ -155,6 +158,15 @@ export class TurboUnauthenticatedClient
   }
 
   /**
+   * Determines the amount of 'winc' that would be returned for a given token and amount, including all Turbo cost adjustments and fees.
+   */
+  getWincForToken(
+    params: TurboWincForTokenParams,
+  ): Promise<TurboWincForTokenResponse> {
+    return this.paymentService.getWincForToken(params);
+  }
+
+  /**
    * Uploads a signed data item to the Turbo Upload Service.
    */
   uploadSignedDataItem({
@@ -186,6 +198,13 @@ export class TurboUnauthenticatedClient
     txId: string;
   }): Promise<TurboSubmitFundTxResponse> {
     return this.paymentService.submitFundTransaction(p);
+  }
+
+  /**
+   * Returns the connected target Turbo wallet addresses for all supported tokens.
+   */
+  getTurboCryptoWallets(): Promise<Record<TokenType, string>> {
+    return this.paymentService.getTurboCryptoWallets();
   }
 }
 

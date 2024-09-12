@@ -16,6 +16,7 @@
  */
 import { exec } from 'node:child_process';
 import { createReadStream, statSync } from 'node:fs';
+import prompts from 'prompts';
 
 import {
   TurboFactory,
@@ -78,16 +79,51 @@ export async function getBalance(options: AddressOptions) {
 /** Fund the connected signer with crypto */
 export async function cryptoFund(options: CryptoFundOptions) {
   const value = options.value;
+  const txId = options.txId;
+
+  if (txId !== undefined) {
+    const turbo = TurboFactory.unauthenticated(configFromOptions(options));
+    const result = await turbo.submitFundTransaction({ txId: txId });
+
+    console.log(
+      'Submitted existing crypto fund transaction to payment service: \n',
+      JSON.stringify(result, null, 2),
+    );
+    return;
+  }
+
   if (value === undefined) {
-    throw new Error('Must provide a --value to top up');
+    throw new Error(
+      'Must provide a --value or --transaction-id for crypto-fund command',
+    );
   }
 
   const turbo = await turboFromOptions(options);
 
   const token = tokenFromOptions(options);
+  const tokenAmount = tokenToBaseMap[token](value);
+
+  if (!options.skipConfirmation) {
+    const { winc } = await turbo.getWincForToken({ tokenAmount });
+    const targetWallet = (await turbo.getTurboCryptoWallets())[token];
+
+    const credits = (+winc / 1_000_000_000_000).toFixed(12);
+
+    const { confirm } = await prompts({
+      type: 'confirm',
+      name: 'confirm',
+      message: `\nTransaction details:\n\n  Amount: ${value} ${token}\n  Target: ${targetWallet}\n  Credits received: ${credits}\n  Credit recipient: ${await turbo.signer.getNativeAddress()}\n  Network fees: (Gas fees apply)\n\nThis payment is non-refundable.  Proceed with transaction?`,
+      initial: true,
+    });
+
+    if (!confirm) {
+      console.log('Aborted crypto fund transaction');
+      return;
+    }
+  }
 
   const result = await turbo.topUpWithTokens({
-    tokenAmount: tokenToBaseMap[token](value),
+    tokenAmount,
   });
 
   console.log(

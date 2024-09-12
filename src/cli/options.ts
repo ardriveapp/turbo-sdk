@@ -26,6 +26,10 @@ export const optionMap = {
     description: 'Fiat currency type to use for the action',
     default: 'usd',
   },
+  txId: {
+    alias: '-i, --tx-id <txId>',
+    description: 'Transaction ID or hash to use for action',
+  },
   address: {
     alias: '-a, --address <nativeAddress>',
     description: 'Native address to use for action',
@@ -71,6 +75,11 @@ export const optionMap = {
     description: 'Disable logging',
     default: false,
   },
+  skipConfirmation: {
+    alias: '--skip-confirmation',
+    description: 'Skip all confirmation prompts',
+    default: false,
+  },
   folderPath: {
     alias: '-f, --folder-path <folderPath>',
     description: 'Directory to upload',
@@ -111,6 +120,7 @@ export const globalOptions = [
   optionMap.debug,
   optionMap.quiet,
   optionMap.token,
+  optionMap.skipConfirmation,
 ];
 
 export const uploadFolderOptions = [

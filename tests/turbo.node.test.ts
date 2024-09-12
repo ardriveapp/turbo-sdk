@@ -269,6 +269,16 @@ describe('Node environment', () => {
       expect(countries).to.include('United States');
     });
 
+    it('getTurboCryptoWallets', async () => {
+      const wallets = await turbo.getTurboCryptoWallets();
+
+      expect(wallets).to.not.be.undefined;
+      expect(wallets).to.have.property('arweave');
+      expect(wallets).to.have.property('ethereum');
+      expect(wallets).to.have.property('solana');
+      expect(wallets).to.have.property('kyve');
+    });
+
     it('getSupportedCurrencies()', async () => {
       const { supportedCurrencies, limits } =
         await turbo.getSupportedCurrencies();
@@ -310,6 +320,18 @@ describe('Node environment', () => {
       expect(actualPaymentAmount).to.equal(1000);
       expect(quotedPaymentAmount).to.equal(1000);
       expect(adjustments).to.have.length(0);
+      expect(fees).to.have.length(1);
+    });
+
+    it('getWincForToken()', async () => {
+      const { winc, actualTokenAmount, equivalentWincTokenAmount, fees } =
+        await turbo.getWincForToken({
+          tokenAmount: 100000, // 100,000 winston
+        });
+      expect(winc).to.not.be.undefined;
+      expect(+winc).to.be.greaterThan(0);
+      expect(actualTokenAmount).to.equal('100000');
+      expect(equivalentWincTokenAmount).to.equal('100000');
       expect(fees).to.have.length(1);
     });
 

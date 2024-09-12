@@ -20,6 +20,7 @@ export type GlobalOptions = {
   gateway: string | undefined;
   debug: boolean;
   quiet: boolean;
+  skipConfirmation: boolean;
   token: string;
 };
 
@@ -52,4 +53,5 @@ export type UploadFileOptions = WalletOptions & {
 
 export type CryptoFundOptions = WalletOptions & {
   value: string | undefined;
+  txId: string | undefined;
 };
