@@ -1,3 +1,27 @@
+# [1.16.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.15.0...v1.16.0-alpha.1) (2024-09-12)
+
+
+### Bug Fixes
+
+* **cli:** assign token to config PE-6632 ([d6444b2](https://github.com/ardriveapp/turbo-sdk/commit/d6444b27fd3dd774e5ffefbda785cf5f86306f91))
+
+
+### Features
+
+* **winc for token:** init getWincForToken PE-6632 ([143cb39](https://github.com/ardriveapp/turbo-sdk/commit/143cb398aa9d13437a34877003a68fc4ecdf6059))
+
+# [1.15.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.1...v1.15.0) (2024-09-12)
+
+
+### Bug Fixes
+
+* repair types returned from payment service PE-6718 ([f97dfcb](https://github.com/ardriveapp/turbo-sdk/commit/f97dfcb4bc042ad4755b7e3fe2bb39ceab8c21bf))
+
+
+### Features
+
+* enable unauthenticated winc for fiat promo code PE-6716 ([b2ade37](https://github.com/ardriveapp/turbo-sdk/commit/b2ade37b67444f4b0e63041746a39e6385c27d2c))
+
 ## [1.14.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.0...v1.14.1) (2024-09-11)
 
 
