@@ -1,3 +1,11 @@
+# [1.16.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.0-alpha.1...v1.16.0-alpha.2) (2024-09-12)
+
+
+### Features
+
+* **crypto fund:** add --tx-id parameter with submitFundTransaction compatibility and docs PE-6732 ([23b6035](https://github.com/ardriveapp/turbo-sdk/commit/23b6035d3e8edbd9b16864930266880056231c9b))
+* **crypto fund:** init confirmation promot PE-6732 ([3714599](https://github.com/ardriveapp/turbo-sdk/commit/3714599bd3fc050e0d97299972de0e8343b6b4ea))
+
 # [1.16.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.15.0...v1.16.0-alpha.1) (2024-09-12)
 
 
