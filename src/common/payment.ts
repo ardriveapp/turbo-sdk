@@ -19,6 +19,7 @@ import { Buffer } from 'node:buffer';
 
 import {
   Currency,
+  RawWincForTokenResponse,
   TokenTools,
   TokenType,
   TopUpRawResponse,
@@ -141,12 +142,20 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  public getWincForToken({
-    amount,
+  public async getWincForToken({
+    tokenAmount,
   }: TurboWincForTokenParams): Promise<TurboWincForTokenResponse> {
-    return this.httpService.get<TurboWincForTokenResponse>({
-      endpoint: `/price/${this.token}/${amount}`,
-    });
+    const { actualPaymentAmount, fees, winc } =
+      await this.httpService.get<RawWincForTokenResponse>({
+        endpoint: `/price/${this.token}/${tokenAmount}`,
+      });
+
+    return {
+      winc,
+      fees,
+      actualTokenAmount: tokenAmount.toString(),
+      equivalentWincTokenAmount: actualPaymentAmount.toString(),
+    };
   }
 
   protected appendPromoCodesToQuery(promoCodes: string[]): string {

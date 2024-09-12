@@ -84,11 +84,19 @@ export type TurboWincForFiatResponse = TurboPriceResponse & {
   quotedPaymentAmount: number;
 };
 
+export type RawWincForTokenResponse = Omit<
+  TurboPriceResponse,
+  'adjustments'
+> & {
+  actualPaymentAmount: number;
+};
+
 export type TurboWincForTokenResponse = Omit<
   TurboPriceResponse,
   'adjustments'
 > & {
-  actualPaymentAmount: string;
+  actualTokenAmount: string;
+  equivalentWincTokenAmount: string;
 };
 
 export type TurboWincForFiatParams = {
@@ -98,7 +106,7 @@ export type TurboWincForFiatParams = {
 };
 
 export type TurboWincForTokenParams = {
-  amount: BigNumber.Value;
+  tokenAmount: BigNumber.Value;
   // nativeAddress?: NativeAddress; TODO: Crypto promo code support on payment service
   // promoCodes?: string[]; TODO: Crypto promo code support on payment service
 };
