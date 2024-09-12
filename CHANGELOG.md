@@ -1,10 +1,3 @@
-# [1.15.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.15.0-alpha.1...v1.15.0-alpha.2) (2024-09-11)
-
-
-### Bug Fixes
-
-* **cli:** assign token to config PE-6632 ([5a0e837](https://github.com/ardriveapp/turbo-sdk/commit/5a0e837853888cb3536ea69a45fe6245b6a8d108))
-
 ## [1.14.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.0...v1.14.1) (2024-09-11)
 
 
