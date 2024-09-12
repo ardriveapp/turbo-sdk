@@ -1,3 +1,18 @@
+# [1.16.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.15.0...v1.16.0) (2024-09-12)
+
+
+### Bug Fixes
+
+* **cli:** assign token to config PE-6632 ([d6444b2](https://github.com/ardriveapp/turbo-sdk/commit/d6444b27fd3dd774e5ffefbda785cf5f86306f91))
+
+
+### Features
+
+* **crypto fund:** add --tx-id parameter with submitFundTransaction compatibility and docs PE-6732 ([23b6035](https://github.com/ardriveapp/turbo-sdk/commit/23b6035d3e8edbd9b16864930266880056231c9b))
+* **crypto fund:** init confirmation promot PE-6732 ([3714599](https://github.com/ardriveapp/turbo-sdk/commit/3714599bd3fc050e0d97299972de0e8343b6b4ea))
+* **crypto fund:** show target wallet in confirmation prompt PE-6732 ([06f1c9a](https://github.com/ardriveapp/turbo-sdk/commit/06f1c9a2a153ec8d5e8103f87617617e3854157d))
+* **winc for token:** init getWincForToken PE-6632 ([143cb39](https://github.com/ardriveapp/turbo-sdk/commit/143cb398aa9d13437a34877003a68fc4ecdf6059))
+
 # [1.15.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.1...v1.15.0) (2024-09-12)
 
 
