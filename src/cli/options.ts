@@ -26,6 +26,10 @@ export const optionMap = {
     description: 'Fiat currency type to use for the action',
     default: 'usd',
   },
+  txId: {
+    alias: '-i, --tx-id <txId>',
+    description: 'Transaction ID or hash to use for action',
+  },
   address: {
     alias: '-a, --address <nativeAddress>',
     description: 'Native address to use for action',

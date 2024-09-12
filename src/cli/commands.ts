@@ -78,8 +78,23 @@ export async function getBalance(options: AddressOptions) {
 /** Fund the connected signer with crypto */
 export async function cryptoFund(options: CryptoFundOptions) {
   const value = options.value;
+  const txId = options.txId;
+
+  if (txId !== undefined) {
+    const turbo = TurboFactory.unauthenticated(configFromOptions(options));
+    const result = await turbo.submitFundTransaction({ txId: txId });
+
+    console.log(
+      'Submitted existing crypto fund transaction to payment service: \n',
+      JSON.stringify(result, null, 2),
+    );
+    return;
+  }
+
   if (value === undefined) {
-    throw new Error('Must provide a --value to top up');
+    throw new Error(
+      'Must provide a --value or --transaction-id for crypto-fund command',
+    );
   }
 
   const turbo = await turboFromOptions(options);

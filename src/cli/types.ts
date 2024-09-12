@@ -52,4 +52,5 @@ export type UploadFileOptions = WalletOptions & {
 
 export type CryptoFundOptions = WalletOptions & {
   value: string | undefined;
+  txId: string | undefined;
 };

@@ -727,16 +727,21 @@ turbo top-up --address 'crypto-wallet-public-native-address' --token ethereum --
 
 ##### `crypto-fund`
 
-Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
+Fund a wallet with Turbo Credits by submitting a payment transaction for the crypto amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing. Alternatively, submit a transaction ID of an existing funding transaction to Turbo Payment Service for top up processing.
 
 Command Options:
 
 - `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
+- `-i, --tx-id <txId>` - Transaction ID of an existing funding transaction
 
 e.g:
 
 ```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
+```
+
+```shell
+turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
 ```
 
 ##### `upload-folder`
