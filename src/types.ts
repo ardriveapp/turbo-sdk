@@ -107,8 +107,6 @@ export type TurboWincForFiatParams = {
 
 export type TurboWincForTokenParams = {
   tokenAmount: BigNumber.Value;
-  // nativeAddress?: NativeAddress; TODO: Crypto promo code support on payment service
-  // promoCodes?: string[]; TODO: Crypto promo code support on payment service
 };
 
 export type UiMode = 'embedded' | 'hosted';
