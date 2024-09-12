@@ -45,6 +45,8 @@ import {
   TurboUploadFolderResponse,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
+  TurboWincForTokenParams,
+  TurboWincForTokenResponse,
 } from '../types.js';
 import {
   TurboUnauthenticatedPaymentService,
@@ -152,6 +154,15 @@ export class TurboUnauthenticatedClient
     params: TurboWincForFiatParams,
   ): Promise<TurboWincForFiatResponse> {
     return this.paymentService.getWincForFiat(params);
+  }
+
+  /**
+   * Determines the amount of 'winc' that would be returned for a given token and amount, including all Turbo cost adjustments and fees.
+   */
+  getWincForToken(
+    params: TurboWincForTokenParams,
+  ): Promise<TurboWincForTokenResponse> {
+    return this.paymentService.getWincForToken(params);
   }
 
   /**

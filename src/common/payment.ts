@@ -19,6 +19,7 @@ import { Buffer } from 'node:buffer';
 
 import {
   Currency,
+  RawWincForTokenResponse,
   TokenTools,
   TokenType,
   TopUpRawResponse,
@@ -44,6 +45,8 @@ import {
   TurboUnauthenticatedPaymentServiceInterface,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
+  TurboWincForTokenParams,
+  TurboWincForTokenResponse,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -137,6 +140,22 @@ export class TurboUnauthenticatedPaymentService
         promoCodes,
       )}`,
     });
+  }
+
+  public async getWincForToken({
+    tokenAmount,
+  }: TurboWincForTokenParams): Promise<TurboWincForTokenResponse> {
+    const { actualPaymentAmount, fees, winc } =
+      await this.httpService.get<RawWincForTokenResponse>({
+        endpoint: `/price/${this.token}/${tokenAmount}`,
+      });
+
+    return {
+      winc,
+      fees,
+      actualTokenAmount: tokenAmount.toString(),
+      equivalentWincTokenAmount: actualPaymentAmount.toString(),
+    };
   }
 
   protected appendPromoCodesToQuery(promoCodes: string[]): string {
