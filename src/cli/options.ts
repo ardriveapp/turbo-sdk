@@ -26,6 +26,12 @@ export const optionMap = {
     description: 'Fiat currency type to use for the action',
     default: 'usd',
   },
+  type: {
+    alias: '--type <priceType>',
+    description:
+      'Price type for the action. Can be a fiat currency or crypto token or bytes',
+    default: 'bytes',
+  },
   txId: {
     alias: '-i, --tx-id <txId>',
     description: 'Transaction ID or hash to use for action',

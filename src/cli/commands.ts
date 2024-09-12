@@ -23,6 +23,7 @@ import {
   currencyMap,
   fiatCurrencyTypes,
   isCurrency,
+  isTokenType,
   tokenToBaseMap,
 } from '../node/index.js';
 import { sleep } from '../utils/common.js';
@@ -30,6 +31,7 @@ import { version } from '../version.js';
 import {
   AddressOptions,
   CryptoFundOptions,
+  PriceOptions,
   TopUpOptions,
   UploadFileOptions,
   UploadFolderOptions,
@@ -258,4 +260,49 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));
+}
+
+export async function getPrice(options: PriceOptions) {
+  const value = options.value;
+  console.log('value', value);
+  if (value === undefined || !Number.isInteger(+value) || +value <= 0) {
+    throw new Error('Must provide a positive number --value to get price');
+  }
+
+  const type = options.type ?? 'bytes';
+
+  const winc = await (async () => {
+    if (isTokenType(type)) {
+      const turbo = TurboFactory.unauthenticated({
+        ...configFromOptions(options),
+        token: type,
+      });
+      return (
+        await turbo.getWincForToken({
+          tokenAmount: tokenToBaseMap[type](value),
+        })
+      ).winc;
+    }
+
+    const turbo = TurboFactory.unauthenticated(configFromOptions(options));
+    if (type === 'bytes') {
+      return (await turbo.getUploadCosts({ bytes: [+value] }))[0].winc;
+    }
+
+    if (isCurrency(type)) {
+      return (
+        await turbo.getWincForFiat({
+          amount: currencyMap[type](+value),
+        })
+      ).winc;
+    }
+
+    throw new Error('Invalid price type!');
+  })();
+
+  console.log(
+    `Current price estimate for ${value} ${type} is ~${(
+      +winc / 1_000_000_000_000
+    ).toFixed(12)} Credits`,
+  );
 }
