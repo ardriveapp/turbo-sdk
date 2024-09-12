@@ -16,6 +16,7 @@
  */
 import { exec } from 'node:child_process';
 import { createReadStream, statSync } from 'node:fs';
+import prompts from 'prompts';
 
 import {
   TurboFactory,
@@ -100,9 +101,30 @@ export async function cryptoFund(options: CryptoFundOptions) {
   const turbo = await turboFromOptions(options);
 
   const token = tokenFromOptions(options);
+  const tokenAmount = tokenToBaseMap[token](value);
+
+  const { winc } = await turbo.getWincForToken({ tokenAmount });
+
+  if (!options.skipConfirmation) {
+    const { confirm } = await prompts({
+      type: 'confirm',
+      name: 'confirm',
+      message: `This command will send a payment transaction for ${value} ${token} to the connected bundler's wallet in exchange for ~${(
+        +winc / 1_000_000_000_000
+      ).toFixed(
+        12,
+      )} Credits. This is in addition to any typical gas fees on the given network. Would you like to proceed with this funding?`,
+      initial: true,
+    });
+
+    if (!confirm) {
+      console.log('Aborted crypto fund transaction');
+      return;
+    }
+  }
 
   const result = await turbo.topUpWithTokens({
-    tokenAmount: tokenToBaseMap[token](value),
+    tokenAmount,
   });
 
   console.log(

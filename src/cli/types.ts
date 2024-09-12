@@ -20,6 +20,7 @@ export type GlobalOptions = {
   gateway: string | undefined;
   debug: boolean;
   quiet: boolean;
+  skipConfirmation: boolean;
   token: string;
 };
 
