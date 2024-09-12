@@ -84,7 +84,10 @@ export type TurboWincForFiatResponse = TurboPriceResponse & {
   quotedPaymentAmount: number;
 };
 
-export type TurboWincForTokenResponse = TurboPriceResponse & {
+export type TurboWincForTokenResponse = Omit<
+  TurboPriceResponse,
+  'adjustments'
+> & {
   actualPaymentAmount: string;
 };
 
