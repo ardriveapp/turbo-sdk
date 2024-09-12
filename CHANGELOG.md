@@ -1,3 +1,15 @@
+# [1.16.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.15.0...v1.16.0-alpha.1) (2024-09-12)
+
+
+### Bug Fixes
+
+* **cli:** assign token to config PE-6632 ([d6444b2](https://github.com/ardriveapp/turbo-sdk/commit/d6444b27fd3dd774e5ffefbda785cf5f86306f91))
+
+
+### Features
+
+* **winc for token:** init getWincForToken PE-6632 ([143cb39](https://github.com/ardriveapp/turbo-sdk/commit/143cb398aa9d13437a34877003a68fc4ecdf6059))
+
 # [1.15.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.14.1...v1.15.0) (2024-09-12)
 
 
