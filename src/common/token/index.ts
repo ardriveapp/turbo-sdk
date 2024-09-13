@@ -25,6 +25,7 @@ import {
 import { ARToTokenAmount, ArweaveToken } from './arweave.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 import { KYVEToTokenAmount, KyveToken } from './kyve.js';
+import { PolygonToken } from './polygon.js';
 import { SOLToTokenAmount, SolanaToken } from './solana.js';
 
 export const defaultTokenMap: TokenFactory = {
@@ -32,6 +33,8 @@ export const defaultTokenMap: TokenFactory = {
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
   kyve: (config: TokenConfig) => new KyveToken(config),
+  matic: (config: TokenConfig) => new PolygonToken(config),
+  pol: (config: TokenConfig) => new PolygonToken(config),
 } as const;
 
 export const tokenToBaseMap: Record<
