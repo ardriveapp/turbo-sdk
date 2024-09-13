@@ -29,6 +29,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [ArconnectSigner](#arconnectsigner)
       - [EthereumSigner](#ethereumsigner)
       - [Ethereum Private Key](#ethereum-private-key)
+      - [POL (MATIC) Private Key](#pol-matic-private-key)
       - [HexSolanaSigner](#hexsolanasigner)
       - [Solana Secret Key](#solana-secret-key)
       - [KYVE Private Key](#kyve-private-key)
@@ -46,6 +47,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Arweave (AR) Fiat Top Up](#arweave-ar-fiat-top-up)
       - [Ethereum (ETH) Fiat Top Up](#ethereum-eth-fiat-top-up)
       - [Solana (SOL) Fiat Top Up](#solana-sol-fiat-top-up)
+      - [Polygon (POL / MATIC) Fiat Top Up](#polygon-pol--matic-fiat-top-up)
       - [KYVE Fiat Top Up](#kyve-fiat-top-up)
     - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
@@ -60,6 +62,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`topUpWithTokens({ tokenAmount, feeMultiplier })`](#topupwithtokens-tokenamount-feemultiplier-)
       - [Arweave (AR) Crypto Top Up](#arweave-ar-crypto-top-up)
       - [Ethereum (ETH) Crypto Top Up](#ethereum-eth-crypto-top-up)
+      - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
       - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
 - [CLI](#cli)
@@ -269,6 +272,15 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
+##### POL (MATIC) Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'pol',
+});
+```
+
 ##### HexSolanaSigner
 
 ```typescript
@@ -430,6 +442,17 @@ const turbo = TurboFactory.unauthenticated({ token: 'solana' });
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
   amount: USD(10.0), // $10.00 USD
   owner: publicSolanaAddress,
+});
+```
+
+##### Polygon (POL / MATIC) Fiat Top Up
+
+```ts
+const turbo = TurboFactory.unauthenticated({ token: 'pol' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicPolygonAddress,
 });
 ```
 
@@ -623,6 +646,16 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
+##### Polygon (POL / MATIC) Crypto Top Up
+
+```ts
+const turbo = TurboFactory.authenticated({ signer, token: 'pol' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: POLToTokenAmount(0.00001), // 0.00001 POL
+});
+```
+
 ##### Solana (SOL) Crypto Top Up
 
 ```ts
@@ -695,7 +728,7 @@ npx turbo --help
 - `-g, --gateway <url>` - Set a custom crypto gateway URL
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
-- `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE or ETH private key as a string, or SOL Secret Key as a Uint8Array
+- `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE, ETH, or POL private key as a string, or SOL Secret Key as a Uint8Array
 - `-m, --mnemonic <phrase>` - Mnemonic to use with the action (KYVE only)
 - `-p, --private-key <key>` - Private key to use with the action
 

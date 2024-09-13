@@ -61,6 +61,7 @@ export function createTurboSigner({
     case 'solana':
       return new HexSolanaSigner(clientProvidedPrivateKey);
     case 'ethereum':
+    case 'matic':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
           'A valid Ethereum private key must be provided for EthereumSigner.',

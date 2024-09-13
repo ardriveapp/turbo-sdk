@@ -38,6 +38,8 @@ export abstract class TurboBaseFactory {
     uploadServiceConfig = {},
     token,
   }: TurboUnauthenticatedConfiguration = {}) {
+    token = token === 'pol' ? 'matic' : token;
+
     const paymentService = new TurboUnauthenticatedPaymentService({
       ...paymentServiceConfig,
       logger: this.logger,
