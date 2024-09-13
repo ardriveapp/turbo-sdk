@@ -78,6 +78,7 @@ export abstract class TurboDataItemAbstractSigner
         return bs58.encode(fromB64Url(owner));
 
       case 'ethereum':
+      case 'matic':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':
@@ -112,6 +113,7 @@ export abstract class TurboDataItemAbstractSigner
   }
 
   public async getNativeAddress(): Promise<NativeAddress> {
+    console.log('this.token', this.token);
     return this.ownerToNativeAddress(
       toB64Url(await this.getPublicKey()),
       this.token,

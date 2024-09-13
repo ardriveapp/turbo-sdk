@@ -171,10 +171,15 @@ export async function topUp(options: TopUpOptions) {
       throw new Error('Must provide a wallet to top up');
     }
 
+    console.log('privateKey', privateKey);
     const turbo = TurboFactory.authenticated({
       ...config,
       privateKey,
     });
+    console.log(
+      'await turbo.signer.getNativeAddress()',
+      await turbo.signer.getNativeAddress(),
+    );
     return turbo.createCheckoutSession({
       amount,
       owner: await turbo.signer.getNativeAddress(),

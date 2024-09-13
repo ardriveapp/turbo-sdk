@@ -65,11 +65,13 @@ describe('Node environment', () => {
   });
 
   describe('TurboDataItemSigner', () => {
-    const signers: Record<TokenType, [TurboSigner, NativeAddress]> = {
+    const signers: Record<string, [TurboSigner, NativeAddress]> = {
       arweave: [new ArweaveSigner(testJwk), testArweaveNativeB64Address],
       ethereum: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       solana: [new HexSolanaSigner(testSolWallet), testSolNativeAddress],
       kyve: [new EthereumSigner(testKyvePrivatekey), testKyveNativeAddress],
+      matic: [new EthereumSigner(testEthWallet), testEthNativeAddress],
+      pol: [new EthereumSigner(testEthWallet), testEthNativeAddress],
     };
 
     for (const [token, [signer, expectedNativeAddress]] of Object.entries(

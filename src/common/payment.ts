@@ -182,6 +182,8 @@ export class TurboUnauthenticatedPaymentService
   ): Promise<TurboCheckoutSessionResponse> {
     const { amount: paymentAmount, type: currencyType } = amount;
 
+    console.log('owner', owner);
+    console.log('this.token', this.token);
     const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?uiMode=${uiMode}${
       promoCodes.length > 0
         ? `&${this.appendPromoCodesToQuery(promoCodes)}`

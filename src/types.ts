@@ -55,7 +55,14 @@ export function isCurrency(currency: string): currency is Currency {
 
 export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: add full list
 
-export const tokenTypes = ['arweave', 'solana', 'ethereum', 'kyve'] as const;
+export const tokenTypes = [
+  'arweave',
+  'solana',
+  'ethereum',
+  'kyve',
+  'matic',
+  'pol',
+] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
 export type Adjustment = {
@@ -332,7 +339,7 @@ export type TurboAuthenticatedPaymentServiceConfiguration =
 export type TurboUnauthenticatedConfiguration = {
   paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
-  token?: TokenType;
+  token?: TokenType | 'pol';
   gatewayUrl?: string;
 };
 
