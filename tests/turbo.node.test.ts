@@ -269,6 +269,16 @@ describe('Node environment', () => {
       expect(countries).to.include('United States');
     });
 
+    it('getTurboCryptoWallets', async () => {
+      const wallets = await turbo.getTurboCryptoWallets();
+
+      expect(wallets).to.not.be.undefined;
+      expect(wallets).to.have.property('arweave');
+      expect(wallets).to.have.property('ethereum');
+      expect(wallets).to.have.property('solana');
+      expect(wallets).to.have.property('kyve');
+    });
+
     it('getSupportedCurrencies()', async () => {
       const { supportedCurrencies, limits } =
         await turbo.getSupportedCurrencies();

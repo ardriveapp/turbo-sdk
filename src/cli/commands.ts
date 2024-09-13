@@ -105,17 +105,16 @@ export async function cryptoFund(options: CryptoFundOptions) {
   const token = tokenFromOptions(options);
   const tokenAmount = tokenToBaseMap[token](value);
 
-  const { winc } = await turbo.getWincForToken({ tokenAmount });
-
   if (!options.skipConfirmation) {
+    const { winc } = await turbo.getWincForToken({ tokenAmount });
+    const targetWallet = (await turbo.getTurboCryptoWallets())[token];
+
+    const credits = (+winc / 1_000_000_000_000).toFixed(12);
+
     const { confirm } = await prompts({
       type: 'confirm',
       name: 'confirm',
-      message: `This command will send a payment transaction for ${value} ${token} to the connected bundler's wallet in exchange for ~${(
-        +winc / 1_000_000_000_000
-      ).toFixed(
-        12,
-      )} Credits. This is in addition to any typical gas fees on the given network. Would you like to proceed with this funding?`,
+      message: `\nTransaction details:\n\n  Amount: ${value} ${token}\n  Target: ${targetWallet}\n  Credits received: ${credits}\n  Credit recipient: ${await turbo.signer.getNativeAddress()}\n  Network fees: (Gas fees apply)\n\nThis payment is non-refundable.  Proceed with transaction?`,
       initial: true,
     });
 
