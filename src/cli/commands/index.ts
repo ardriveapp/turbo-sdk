@@ -17,6 +17,7 @@
 
 export * from './balance.js';
 export * from './cryptoFund.js';
+export * from './price.js';
 export * from './topUp.js';
 export * from './uploadFile.js';
 export * from './uploadFolder.js';

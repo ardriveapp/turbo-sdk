@@ -23,6 +23,7 @@ import { version } from '../version.js';
 import {
   balance,
   cryptoFund,
+  price,
   topUp,
   uploadFile,
   uploadFolder,
@@ -79,6 +80,17 @@ applyOptions(
   uploadFileOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, uploadFile);
+});
+
+applyOptions(
+  program
+    .command('price')
+    .description(
+      'Get the current Credits estimate for byte, crypto, or fiat value',
+    ),
+  [optionMap.value, optionMap.type],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, price);
 });
 
 if (

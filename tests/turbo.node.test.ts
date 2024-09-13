@@ -12,7 +12,7 @@ import { describe } from 'mocha';
 import { Readable } from 'node:stream';
 import { restore, stub } from 'sinon';
 
-import { USD } from '../src/common/currency.js';
+import { JPY, USD } from '../src/common/currency.js';
 import { TurboWinstonLogger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
@@ -1114,6 +1114,46 @@ describe('Node environment', () => {
             'Failed to submit fund transaction!',
           );
         });
+    });
+  });
+
+  describe('ZeroDecimalCurrency()', () => {
+    it('should construct with a value zero decimal value', () => {
+      const zeroDecimalCurrency = JPY(1000);
+      expect(zeroDecimalCurrency.type).to.equal('jpy');
+      expect(zeroDecimalCurrency.amount).to.equal(1000);
+    });
+
+    it('should throw an error when constructing with a non-zero decimal value', () => {
+      expect(() => JPY(100.1)).to.throw(
+        'jpy currency amount must have zero decimal places',
+      );
+    });
+
+    it('should throw an error when constructing with a negative value', () => {
+      expect(() => JPY(-532)).to.throw(
+        'jpy currency amount cannot be negative',
+      );
+    });
+  });
+
+  describe('TwoDecimalCurrency()', () => {
+    it('should construct with a value two decimal value', () => {
+      const twoDecimalCurrency = USD(10.43);
+      expect(twoDecimalCurrency.type).to.equal('usd');
+      expect(twoDecimalCurrency.amount).to.equal(1043);
+    });
+
+    it('should construct with a zero decimal value', () => {
+      const twoDecimalCurrency = USD(764);
+      expect(twoDecimalCurrency.type).to.equal('usd');
+      expect(twoDecimalCurrency.amount).to.equal(76400);
+    });
+
+    it('should throw an error when constructing with a non-two decimal value', () => {
+      expect(() => USD(10.431)).to.throw(
+        'usd currency amount must have two decimal places',
+      );
     });
   });
 });

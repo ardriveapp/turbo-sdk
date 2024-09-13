@@ -51,6 +51,11 @@ export type UploadFileOptions = WalletOptions & {
   filePath: string | undefined;
 };
 
+export type PriceOptions = GlobalOptions & {
+  value: string | undefined;
+  type: string | undefined;
+};
+
 export type CryptoFundOptions = WalletOptions & {
   value: string | undefined;
   txId: string | undefined;

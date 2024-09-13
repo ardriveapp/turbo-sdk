@@ -6,4 +6,5 @@ coverage:
         threshold: 1%
   ignore:
     - 'src/cli/*'
+    - 'src/cli/commands/*'
     - 'src/common/token/*'

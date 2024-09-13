@@ -75,6 +75,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`crypto-fund`](#crypto-fund)
       - [`upload-folder`](#upload-folder)
       - [`upload-file`](#upload-file)
+      - [`price`](#price)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -818,6 +819,29 @@ e.g:
 
 ```shell
 turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt
+```
+
+##### `price`
+
+Get the current credit price estimate from Turbo Payment Service for a given value and price type.
+
+Command Options:
+
+- `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
+- `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
+
+e.g:
+
+```shell
+turbo price --value 10.50 --type usd
+```
+
+```shell
+turbo price --value 1024 --type bytes
+```
+
+```shell
+turbo price --value 1.1 --type arweave
 ```
 
 ## Developers

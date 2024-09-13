@@ -32,3 +32,9 @@ export class FailedRequestError extends BaseError {
     super(`Failed request: ${status}: ${message}`);
   }
 }
+
+export class ProvidedInputError extends BaseError {
+  constructor(message?: string) {
+    super(message ?? `User has provided an invalid input`);
+  }
+}
