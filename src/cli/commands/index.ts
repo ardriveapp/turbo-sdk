@@ -14,27 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export class BaseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
 
-export class UnauthenticatedRequestError extends BaseError {
-  constructor() {
-    super('Failed authentication. JWK is required.');
-  }
-}
-
-export class FailedRequestError extends BaseError {
-  constructor(status: number, message: string) {
-    super(`Failed request: ${status}: ${message}`);
-  }
-}
-
-export class ProvidedInputError extends BaseError {
-  constructor(message?: string) {
-    super(message ?? `User has provided an invalid input`);
-  }
-}
+export * from './balance.js';
+export * from './cryptoFund.js';
+export * from './price.js';
+export * from './topUp.js';
+export * from './uploadFile.js';
+export * from './uploadFolder.js';

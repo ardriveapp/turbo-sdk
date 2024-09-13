@@ -14,27 +14,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export class BaseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
+import { TokenConfig } from '../../types.js';
+import { TurboWinstonLogger } from '../logger.js';
+import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 
-export class UnauthenticatedRequestError extends BaseError {
-  constructor() {
-    super('Failed authentication. JWK is required.');
-  }
-}
+export const POLToTokenAmount = ETHToTokenAmount;
 
-export class FailedRequestError extends BaseError {
-  constructor(status: number, message: string) {
-    super(`Failed request: ${status}: ${message}`);
-  }
-}
-
-export class ProvidedInputError extends BaseError {
-  constructor(message?: string) {
-    super(message ?? `User has provided an invalid input`);
+export class PolygonToken extends EthereumToken {
+  constructor({
+    logger = TurboWinstonLogger.default,
+    gatewayUrl = 'https://polygon-rpc.com/',
+    pollingOptions = {
+      maxAttempts: 10,
+      pollingIntervalMs: 4_000,
+      initialBackoffMs: 5_000,
+    },
+  }: TokenConfig = {}) {
+    super({ logger, gatewayUrl, pollingOptions });
   }
 }

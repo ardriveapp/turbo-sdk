@@ -167,7 +167,8 @@ const tokenToDevGatewayMap: Record<TokenType, string> = {
   solana: 'https://api.devnet.solana.com',
   ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
   kyve: 'https://api.korellia.kyve.network',
-  // matic: 'https://rpc-amoy.polygon.technology',
+  matic: 'https://rpc-amoy.polygon.technology',
+  pol: 'https://rpc-amoy.polygon.technology',
 };
 
 export function configFromOptions(

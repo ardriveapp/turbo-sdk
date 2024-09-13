@@ -21,12 +21,13 @@ import { Command, program } from 'commander';
 
 import { version } from '../version.js';
 import {
+  balance,
   cryptoFund,
-  getBalance,
+  price,
   topUp,
   uploadFile,
   uploadFolder,
-} from './commands.js';
+} from './commands/index.js';
 import {
   globalOptions,
   optionMap,
@@ -50,7 +51,7 @@ applyOptions(
   program.command('balance').description('Get balance of a Turbo address'),
   [optionMap.address, ...walletOptions],
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, getBalance);
+  await runCommand(command, balance);
 });
 
 applyOptions(
@@ -79,6 +80,17 @@ applyOptions(
   uploadFileOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, uploadFile);
+});
+
+applyOptions(
+  program
+    .command('price')
+    .description(
+      'Get the current Credits estimate for byte, crypto, or fiat value',
+    ),
+  [optionMap.value, optionMap.type],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, price);
 });
 
 if (

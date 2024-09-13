@@ -58,6 +58,8 @@ export class TurboFactory extends TurboBaseFactory {
     gatewayUrl,
     tokenTools,
   }: TurboAuthenticatedConfiguration) {
+    token = token === 'pol' ? 'matic' : token;
+
     if (!token) {
       if (providedSigner) {
         // Derive token from signer if not provided
