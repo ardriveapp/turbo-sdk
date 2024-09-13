@@ -79,6 +79,7 @@ export abstract class TurboDataItemAbstractSigner
 
       case 'ethereum':
       case 'matic':
+      case 'pol':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':
