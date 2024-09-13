@@ -23,7 +23,7 @@ import { version } from '../version.js';
 import {
   cryptoFund,
   getBalance,
-  getPrice,
+  price,
   topUp,
   uploadFile,
   uploadFolder,
@@ -90,7 +90,7 @@ applyOptions(
     ),
   [optionMap.value, optionMap.type],
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, getPrice);
+  await runCommand(command, price);
 });
 
 if (

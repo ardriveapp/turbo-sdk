@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { Currency } from '../types.js';
+import { ProvidedInputError } from '../utils/errors.js';
 
 export interface CurrencyMap {
   amount: number;
@@ -23,16 +24,45 @@ export interface CurrencyMap {
 
 export class ZeroDecimalCurrency implements CurrencyMap {
   constructor(
-    public readonly amount: number,
+    private readonly amt: number,
     public readonly type: Currency,
-  ) {}
+  ) {
+    if (amt < 0) {
+      throw new ProvidedInputError(
+        `${type} currency amount cannot be negative`,
+      );
+    }
+    this.assertDecimalPlaces(amt);
+  }
+
+  protected assertDecimalPlaces(a: number) {
+    if (a % 1 !== 0) {
+      throw new ProvidedInputError(
+        `${this.type} currency amount must have zero decimal places`,
+      );
+    }
+  }
+
+  public get amount() {
+    return this.amt;
+  }
 }
 
-export class TwoDecimalCurrency implements CurrencyMap {
+export class TwoDecimalCurrency extends ZeroDecimalCurrency {
   constructor(
-    private a: number,
+    private readonly a: number,
     public readonly type: Currency,
-  ) {}
+  ) {
+    super(a, type);
+  }
+
+  protected assertDecimalPlaces(a: number) {
+    if ((a * 100) % 1 !== 0) {
+      throw new ProvidedInputError(
+        `${this.type} currency amount must have two decimal places`,
+      );
+    }
+  }
 
   get amount() {
     return this.a * 100;

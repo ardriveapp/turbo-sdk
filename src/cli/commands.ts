@@ -25,6 +25,7 @@ import {
   isCurrency,
   isTokenType,
   tokenToBaseMap,
+  tokenTypes,
 } from '../node/index.js';
 import { sleep } from '../utils/common.js';
 import { version } from '../version.js';
@@ -261,10 +262,9 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
   console.log('Uploaded file:', JSON.stringify(result, null, 2));
 }
 
-export async function getPrice(options: PriceOptions) {
+export async function price(options: PriceOptions) {
   const value = options.value;
-  console.log('value', value);
-  if (value === undefined || !Number.isInteger(+value) || +value <= 0) {
+  if (value === undefined || +value <= 0 || isNaN(+value)) {
     throw new Error('Must provide a positive number --value to get price');
   }
 
@@ -296,7 +296,11 @@ export async function getPrice(options: PriceOptions) {
       ).winc;
     }
 
-    throw new Error('Invalid price type!');
+    throw new Error(
+      `Invalid price type!\nMust be one of: bytes, ${
+        fiatCurrencyTypes.join(', ') + ' ' + tokenTypes.join(', ')
+      }`,
+    );
   })();
 
   console.log(
