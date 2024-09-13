@@ -1084,29 +1084,31 @@
     big-integer "^1.6.48"
     utility-types "^3.10.0"
 
-"@kyvejs/sdk@^1.3.2":
-  version "1.3.2"
-  resolved "https://registry.yarnpkg.com/@kyvejs/sdk/-/sdk-1.3.2.tgz#1955e3c2efcc8333e20c4856ee84e7723d4a0e23"
-  integrity sha512-UNfc4OgP0qIS3UELQFoW01Dmx4IDOG94PL7hjoMAJPk0pV6IxGKl5gwPQvZClHHuNnxGBiIUujybdNTIXQ20ZA==
+"@kyvejs/sdk@^1.3.3":
+  version "1.3.3"
+  resolved "https://registry.yarnpkg.com/@kyvejs/sdk/-/sdk-1.3.3.tgz#24931c3ebc964d93e78c09dfae78220ee8470d2f"
+  integrity sha512-t7o3dy9CHpJ7aHRJVbb2hix5F/QNA0FyHtVrvMLg6/p4DVhDnQXMkLhSNevCPaOL0cj3CZpZApjYUAAWrexawQ==
   dependencies:
     "@cosmjs/amino" "^0.32.3"
     "@cosmjs/crypto" "^0.32.3"
     "@cosmjs/encoding" "^0.32.3"
+    "@cosmjs/math" "^0.32.4"
     "@cosmjs/proto-signing" "^0.32.3"
     "@cosmjs/stargate" "^0.32.3"
     "@cosmostation/extension-client" "^0.1.15"
     "@keplr-wallet/cosmos" "^0.12.96"
-    "@kyvejs/types" "1.4.0"
+    "@kyvejs/types" "1.4.1"
     axios "^0.27.2"
     bech32 "2.0.0"
     bignumber.js "9.1.2"
+    cosmjs-types "^0.9.0"
     humanize-number "0.0.2"
     qs "^6.10.5"
 
-"@kyvejs/types@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@kyvejs/types/-/types-1.4.0.tgz#9c500d906086c190a9b24488ba0aa7d06f632d6b"
-  integrity sha512-Ev+WYolHj5J6bbKJQAgcvxI9BXXErfZXleFTwWKiisp37xqRp2gyFhH8OHeCF4k4oMoQq5j3D713HjqCZ2xhLw==
+"@kyvejs/types@1.4.1":
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@kyvejs/types/-/types-1.4.1.tgz#8875550dabb5687f25ba2046b45720c7d66d31f0"
+  integrity sha512-35Pv9yqcFQIdYQrDeoMfVJzMNr26fKJE5cCEF4d7lHiMJDLVaJ4M8x9cPzAfis7Rd5sfZV9Hm3giB5pBbaZljA==
 
 "@noble/curves@1.2.0":
   version "1.2.0"

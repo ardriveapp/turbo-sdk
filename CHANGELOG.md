@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.0...v1.16.1) (2024-09-13)
+
+
+### Bug Fixes
+
+* bump kyvejs to resolve downstream errors PE-6664 ([3ccc0bf](https://github.com/ardriveapp/turbo-sdk/commit/3ccc0bf06daad6e6c182f4a13d955fc24a9097d7))
+
 # [1.16.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.15.0...v1.16.0) (2024-09-12)
 
 

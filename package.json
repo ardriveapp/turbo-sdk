@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.16.0",
+  "version": "1.16.1",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -80,7 +80,7 @@
     "@cosmjs/encoding": "^0.32.4",
     "@cosmjs/proto-signing": "^0.32.4",
     "@ethersproject/signing-key": "^5.7.0",
-    "@kyvejs/sdk": "^1.3.2",
+    "@kyvejs/sdk": "^1.3.3",
     "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
     "axios": "1.4.0",
