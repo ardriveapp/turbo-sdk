@@ -203,8 +203,10 @@ export class TurboUnauthenticatedClient
   /**
    * Returns the connected target Turbo wallet addresses for all supported tokens.
    */
-  getTurboCryptoWallets(): Promise<Record<TokenType, string>> {
-    return this.paymentService.getTurboCryptoWallets();
+  async getTurboCryptoWallets(): Promise<Record<TokenType, string>> {
+    const wallets = await this.paymentService.getTurboCryptoWallets();
+    wallets.pol = wallets.matic;
+    return wallets;
   }
 }
 

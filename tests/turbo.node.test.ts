@@ -70,6 +70,8 @@ describe('Node environment', () => {
       ethereum: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       solana: [new HexSolanaSigner(testSolWallet), testSolNativeAddress],
       kyve: [new EthereumSigner(testKyvePrivatekey), testKyveNativeAddress],
+      matic: [new EthereumSigner(testEthWallet), testEthNativeAddress],
+      pol: [new EthereumSigner(testEthWallet), testEthNativeAddress],
     };
 
     for (const [token, [signer, expectedNativeAddress]] of Object.entries(

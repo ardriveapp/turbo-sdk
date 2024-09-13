@@ -78,6 +78,8 @@ export abstract class TurboDataItemAbstractSigner
         return bs58.encode(fromB64Url(owner));
 
       case 'ethereum':
+      case 'matic':
+      case 'pol':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':
