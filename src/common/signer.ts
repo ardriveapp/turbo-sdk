@@ -114,7 +114,6 @@ export abstract class TurboDataItemAbstractSigner
   }
 
   public async getNativeAddress(): Promise<NativeAddress> {
-    console.log('this.token', this.token);
     return this.ownerToNativeAddress(
       toB64Url(await this.getPublicKey()),
       this.token,

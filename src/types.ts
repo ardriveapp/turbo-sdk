@@ -339,7 +339,7 @@ export type TurboAuthenticatedPaymentServiceConfiguration =
 export type TurboUnauthenticatedConfiguration = {
   paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
-  token?: TokenType | 'pol';
+  token?: TokenType;
   gatewayUrl?: string;
 };
 
