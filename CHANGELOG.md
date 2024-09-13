@@ -1,3 +1,10 @@
+# [1.17.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.17.0-alpha.1...v1.17.0-alpha.2) (2024-09-13)
+
+
+### Features
+
+* **price commands:** init CLI price command PE-6728 ([d737b8e](https://github.com/ardriveapp/turbo-sdk/commit/d737b8e7bdfc9cd3c0eab5d505f805477db16106))
+
 # [1.17.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.1...v1.17.0-alpha.1) (2024-09-13)
 
 
