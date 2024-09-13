@@ -1,18 +1,3 @@
-# [1.17.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.17.0-alpha.1...v1.17.0-alpha.2) (2024-09-13)
-
-
-### Features
-
-* **price commands:** init CLI price command PE-6728 ([d737b8e](https://github.com/ardriveapp/turbo-sdk/commit/d737b8e7bdfc9cd3c0eab5d505f805477db16106))
-
-# [1.17.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.1...v1.17.0-alpha.1) (2024-09-13)
-
-
-### Features
-
-* **pol:** add support for matic/pol crypto fund PE-6722 ([ee523ba](https://github.com/ardriveapp/turbo-sdk/commit/ee523bacac0b0e3213e6e132af6b0195cbf64562))
-* **pol:** add support for matic/pol token uploads and top ups PE-6721 ([62ff2c8](https://github.com/ardriveapp/turbo-sdk/commit/62ff2c881f51c492b37dc87bfb47354cdc978766))
-
 ## [1.16.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.0...v1.16.1) (2024-09-13)
 
 
