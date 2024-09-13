@@ -16,7 +16,9 @@
  */
 import { TokenConfig } from '../../types.js';
 import { TurboWinstonLogger } from '../logger.js';
-import { EthereumToken } from './ethereum.js';
+import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
+
+export const POLToTokenAmount = ETHToTokenAmount;
 
 export class PolygonToken extends EthereumToken {
   constructor({
