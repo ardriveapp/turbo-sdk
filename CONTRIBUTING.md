@@ -1,7 +1,6 @@
 # Contributing Guidelines
 
-NOTE: Contribution implies licensing under the terms of [LICENSE]
-(AGPL-3).
+NOTE: Contribution implies licensing under the terms of [LICENSE].
 
 ## Pull Request Checklist
 
