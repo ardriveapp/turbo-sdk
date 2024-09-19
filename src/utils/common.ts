@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
+import { Slip10, Slip10Curve } from '@cosmjs/crypto';
+import { toHex } from '@cosmjs/encoding';
 import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
-} from '@ar.io/arbundles';
-import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
-import { Slip10, Slip10Curve } from '@cosmjs/crypto';
-import { toHex } from '@cosmjs/encoding';
+} from '@dha-team/arbundles';
 
 import {
   TokenType,
