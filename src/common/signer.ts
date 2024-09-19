@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EthereumSigner, HexSolanaSigner } from '@ar.io/arbundles';
 import { pubkeyToAddress } from '@cosmjs/amino';
 import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
+import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
 import { KyveSDK } from '@kyvejs/sdk/dist/sdk.js';
 import bs58 from 'bs58';

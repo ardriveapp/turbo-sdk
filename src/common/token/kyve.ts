@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EthereumSigner } from '@ar.io/arbundles';
 import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
 import { Slip10, Slip10Curve } from '@cosmjs/crypto';
 import { toHex } from '@cosmjs/encoding';
+import { EthereumSigner } from '@dha-team/arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 
