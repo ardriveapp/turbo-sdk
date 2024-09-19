@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EthereumSigner, HexSolanaSigner } from '@ar.io/arbundles';
+import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
 
 import { TurboBaseFactory } from '../common/factory.js';
 import {
