@@ -1,3 +1,10 @@
+# [1.18.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.17.0...v1.18.0-alpha.1) (2024-09-26)
+
+
+### Features
+
+* **cli:** add parameters to inject upload and payment urls PE-6830 ([edf2948](https://github.com/ardriveapp/turbo-sdk/commit/edf29486191bad86007e972e88897c4916784602))
+
 # [1.17.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.1...v1.17.0) (2024-09-13)
 
 
