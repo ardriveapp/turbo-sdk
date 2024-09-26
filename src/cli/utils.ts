@@ -173,22 +173,40 @@ const tokenToDevGatewayMap: Record<TokenType, string> = {
 export function configFromOptions(
   options: GlobalOptions,
 ): TurboUnauthenticatedConfiguration {
-  let config: TurboUnauthenticatedConfiguration = {};
-
   const token = tokenFromOptions(options);
 
+  let paymentUrl: string | undefined = undefined;
+  let uploadUrl: string | undefined = undefined;
+  let gatewayUrl: string | undefined = undefined;
+
   if (options.dev) {
-    config = developmentTurboConfiguration;
-    config.gatewayUrl = tokenToDevGatewayMap[token];
+    // Use development endpoints
+    paymentUrl = developmentTurboConfiguration.paymentServiceConfig.url;
+    uploadUrl = developmentTurboConfiguration.uploadServiceConfig.url;
+    gatewayUrl = tokenToDevGatewayMap[token];
   } else {
-    config = defaultTurboConfiguration;
+    // Use default endpoints
+    paymentUrl = defaultTurboConfiguration.paymentServiceConfig.url;
+    uploadUrl = defaultTurboConfiguration.uploadServiceConfig.url;
   }
 
-  // If gateway is provided, override the default or dev gateway
+  // Override gateway, payment, and upload service default endpoints if provided
   if (options.gateway !== undefined) {
-    config.gatewayUrl = options.gateway;
+    gatewayUrl = options.gateway;
   }
-  config.token = token;
+  if (options.paymentUrl !== undefined) {
+    paymentUrl = options.paymentUrl;
+  }
+  if (options.uploadUrl !== undefined) {
+    uploadUrl = options.uploadUrl;
+  }
+
+  const config = {
+    paymentServiceConfig: { url: paymentUrl },
+    uploadServiceConfig: { url: uploadUrl },
+    gatewayUrl,
+    token,
+  };
 
   return config;
 }

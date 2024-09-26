@@ -727,6 +727,8 @@ npx turbo --help
 - `-h, --help` - display help for command
 - `--dev` - Enable development endpoints (default: false)
 - `-g, --gateway <url>` - Set a custom crypto gateway URL
+- `--upload-url <url>` - Set a custom upload service URL
+- `--payment-url <url>` - Set a custom payment service URL
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
 - `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE, ETH, or POL private key as a string, or SOL Secret Key as a Uint8Array
