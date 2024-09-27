@@ -69,11 +69,16 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
   }> {
     await this.setPublicKey();
 
+    const fileStream = fileStreamFactory();
+
     // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
-    const buffer = await readableStreamToBuffer({
-      stream: fileStreamFactory(),
-      size: fileSizeFactory(),
-    });
+    const buffer =
+      fileStream instanceof Buffer
+        ? fileStream
+        : await readableStreamToBuffer({
+            stream: fileStream,
+            size: fileSizeFactory(),
+          });
 
     this.logger.debug('Signing data item...');
     const signedDataItem = createData(buffer, this.signer, dataItemOpts);

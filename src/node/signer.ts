@@ -27,8 +27,10 @@ import { Readable } from 'node:stream';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   DataItemOptions,
+  NodeFileStreamFactory,
   StreamSizeFactory,
   TurboDataItemSignerParams,
+  TurboFileFactory,
 } from '../types.js';
 import { fromB64Url } from '../utils/base64.js';
 
@@ -49,17 +51,17 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-  }: {
-    fileStreamFactory: () => Readable;
-    fileSizeFactory: StreamSizeFactory;
-    dataItemOpts?: DataItemOptions;
-  }): Promise<{
+  }: TurboFileFactory<NodeFileStreamFactory>): Promise<{
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
     // TODO: replace with our own signer implementation
     this.logger.debug('Signing data item...');
-    const [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
+    let [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
+
+    stream1 = stream1 instanceof Buffer ? Readable.from(stream1) : stream1;
+    stream2 = stream2 instanceof Buffer ? Readable.from(stream2) : stream2;
+
     const signedDataItem = await streamSigner(
       stream1,
       stream2,

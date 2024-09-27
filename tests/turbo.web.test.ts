@@ -451,7 +451,6 @@ describe('Browser environment', () => {
           fileSizeFactory: () => uint8Array.length,
         });
         expect(response).to.not.be.undefined;
-        expect(response).to.not.be.undefined;
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
@@ -654,7 +653,6 @@ describe('Browser environment', () => {
       });
 
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
@@ -670,7 +668,6 @@ describe('Browser environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
@@ -748,10 +745,22 @@ describe('Browser environment', () => {
       });
 
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(testSolAddressBase64);
+    });
+
+    it('should properly upload a Buffer to turbo with uploadFile', async () => {
+      const encoder = new TextEncoder();
+      const uint8Array = encoder.encode('test data');
+
+      const response = await turbo.uploadFile({
+        fileStreamFactory: () => Buffer.from(uint8Array),
+        fileSizeFactory: () => uint8Array.length,
+      });
+
+      expect(response).to.not.be.undefined;
       expect(response['owner']).to.equal(testSolAddressBase64);
     });
 
@@ -764,7 +773,6 @@ describe('Browser environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
