@@ -386,12 +386,11 @@ export type TurboAuthenticatedClientConfiguration = {
   signer: TurboDataItemSigner;
 };
 
-export type FileStreamFactory =
-  | (() => Readable)
-  | WebFileStreamFactory
-  | (() => Buffer);
+export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
-export type WebFileStreamFactory = () => ReadableStream;
+export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
+
+export type NodeFileStreamFactory = (() => Readable) | (() => Buffer);
 
 export type SignedDataStreamFactory = FileStreamFactory;
 export type StreamSizeFactory = () => number;
