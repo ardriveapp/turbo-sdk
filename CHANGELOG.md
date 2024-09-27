@@ -1,3 +1,10 @@
+# [1.18.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.18.0-alpha.1...v1.18.0-alpha.2) (2024-09-27)
+
+
+### Bug Fixes
+
+* **upload file:** allows buffer type in uploadFile inputs PE-6851 ([7c8d75b](https://github.com/ardriveapp/turbo-sdk/commit/7c8d75bbdc113894f43dfb319bfc17dd3b577285))
+
 # [1.17.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.1...v1.17.0) (2024-09-13)
 
 
