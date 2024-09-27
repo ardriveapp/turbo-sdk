@@ -57,10 +57,19 @@ export const optionMap = {
     alias: '-p, --private-key <key>',
     description: 'Private key to use with the action',
   },
-
   gateway: {
     alias: '-g, --gateway <url>',
     description: 'Set a custom crypto gateway URL',
+    default: undefined,
+  },
+  uploadUrl: {
+    alias: '--upload-url <url>',
+    description: 'Set a custom upload service URL',
+    default: undefined,
+  },
+  paymentUrl: {
+    alias: '--payment-url <url>',
+    description: 'Set a custom payment service URL',
     default: undefined,
   },
   dev: {
@@ -126,6 +135,8 @@ export const globalOptions = [
   optionMap.quiet,
   optionMap.token,
   optionMap.skipConfirmation,
+  optionMap.paymentUrl,
+  optionMap.uploadUrl,
 ];
 
 export const uploadFolderOptions = [

@@ -21,6 +21,8 @@ export type GlobalOptions = {
   quiet: boolean;
   skipConfirmation: boolean;
   token: string;
+  paymentUrl: string | undefined;
+  uploadUrl: string | undefined;
 };
 
 export type WalletOptions = GlobalOptions & {
