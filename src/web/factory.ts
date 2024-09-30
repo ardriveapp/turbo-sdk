@@ -13,40 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
-
 import { TurboBaseFactory } from '../common/factory.js';
-import {
-  TurboAuthenticatedClient,
-  TurboAuthenticatedPaymentService,
-  defaultTokenMap,
-} from '../common/index.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
-  TokenType,
+  GetTurboSignerParams,
   TurboAuthenticatedConfiguration,
-  TurboSigner,
-  TurboWallet,
+  TurboAuthenticatedUploadServiceConfiguration,
+  TurboAuthenticatedUploadServiceInterface,
 } from '../types.js';
 import { createTurboSigner } from '../utils/common.js';
 import { TurboWebArweaveSigner } from './signer.js';
 import { TurboAuthenticatedUploadService } from './upload.js';
 
 export class TurboFactory extends TurboBaseFactory {
-  protected static getSigner(
-    providedSigner: TurboSigner | undefined,
-    providedPrivateKey: TurboWallet | undefined,
-    token: TokenType,
-  ): TurboDataItemAbstractSigner {
+  protected getSigner({
+    providedPrivateKey,
+    logger,
+    providedSigner,
+    providedWalletAdapter,
+    token,
+  }: GetTurboSignerParams): TurboDataItemAbstractSigner {
     return new TurboWebArweaveSigner({
       signer: createTurboSigner({
         signer: providedSigner,
         privateKey: providedPrivateKey,
         token,
       }),
-      logger: this.logger,
+      logger: logger,
       token,
+      walletAdapter: providedWalletAdapter,
     });
+  }
+
+  protected getAuthenticatedUploadService(
+    config: TurboAuthenticatedUploadServiceConfiguration,
+  ): TurboAuthenticatedUploadServiceInterface {
+    // Import the TurboAuthenticatedUploadService class from the web upload module
+    return new TurboAuthenticatedUploadService(config);
   }
 
   static authenticated({
@@ -59,53 +62,16 @@ export class TurboFactory extends TurboBaseFactory {
     tokenMap,
     tokenTools,
   }: TurboAuthenticatedConfiguration) {
-    token = token === 'pol' ? 'matic' : token;
-
-    if (!token) {
-      if (providedSigner) {
-        // Derive token from signer if not provided
-        if (providedSigner instanceof EthereumSigner) {
-          token = 'ethereum';
-        } else if (providedSigner instanceof HexSolanaSigner) {
-          token = 'solana';
-        } else {
-          token = 'arweave';
-        }
-      } else {
-        token = 'arweave';
-      }
-    }
-
-    const turboSigner = this.getSigner(providedSigner, privateKey, token);
-
-    token ??= 'arweave'; // default to arweave if token is not provided
-    if (!tokenTools) {
-      if (tokenMap && token === 'arweave') {
-        tokenTools = tokenMap.arweave;
-      }
-      tokenTools = defaultTokenMap[token]?.({
-        gatewayUrl,
-        logger: this.logger,
-      });
-    }
-
-    const paymentService = new TurboAuthenticatedPaymentService({
-      ...paymentServiceConfig,
-      signer: turboSigner,
-      logger: this.logger,
+    return new TurboFactory().getAuthenticatedTurbo({
+      privateKey,
+      signer: providedSigner,
+      paymentServiceConfig,
+      uploadServiceConfig,
       token,
+      gatewayUrl,
+      tokenMap,
       tokenTools,
-    });
-    const uploadService = new TurboAuthenticatedUploadService({
-      ...uploadServiceConfig,
-      signer: turboSigner,
       logger: this.logger,
-      token,
-    });
-    return new TurboAuthenticatedClient({
-      uploadService,
-      paymentService,
-      signer: turboSigner,
     });
   }
 }
