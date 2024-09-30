@@ -186,7 +186,7 @@ export abstract class TurboBaseFactory {
     }
 
     throw new Error(
-      'Wallet adapter is currently only supported for Solana and Ethereum',
+      'Unsupported wallet adapter -- wallet adapter is currently only supported for Solana and Ethereum',
     );
   }
 }

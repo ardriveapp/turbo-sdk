@@ -141,12 +141,31 @@ describe('Browser environment', () => {
         },
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      expect(
+        await turbo.signer.sendTransaction({
+          amount: BigNumber('1'),
+          target: 'target',
+          gatewayUrl: 'http://this.location',
+        }),
+      ).to.equal('hash');
     });
 
     it('throws an error when an incompatible ethereum walletAdapter is provided', async () => {
       expect(() =>
         TurboFactory.authenticated({
           token: 'ethereum',
+          walletAdapter: {
+            signMessage: (m) => Promise.resolve(m),
+            publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+          },
+        }),
+      ).to.throw('Unsupported wallet adapter');
+    });
+
+    it('throws an error when a walletAdapter is provided with an incompatible token', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          token: 'arweave',
           walletAdapter: {
             signMessage: (m) => Promise.resolve(m),
             publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
