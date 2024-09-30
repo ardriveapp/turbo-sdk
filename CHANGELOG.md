@@ -1,9 +1,16 @@
-# [1.18.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.18.0-alpha.1...v1.18.0-alpha.2) (2024-09-27)
+## [1.18.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.18.0...v1.18.1-alpha.1) (2024-09-30)
 
 
 ### Bug Fixes
 
 * **upload file:** allows buffer type in uploadFile inputs PE-6851 ([7c8d75b](https://github.com/ardriveapp/turbo-sdk/commit/7c8d75bbdc113894f43dfb319bfc17dd3b577285))
+
+# [1.18.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.17.0...v1.18.0) (2024-09-27)
+
+
+### Features
+
+* **cli:** add parameters to inject upload and payment urls PE-6830 ([edf2948](https://github.com/ardriveapp/turbo-sdk/commit/edf29486191bad86007e972e88897c4916784602))
 
 # [1.17.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.16.1...v1.17.0) (2024-09-13)
 
