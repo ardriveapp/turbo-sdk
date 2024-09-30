@@ -21,13 +21,12 @@ import {
 } from '@dha-team/arbundles';
 
 import {
+  GetTurboSignerParams,
   TokenType,
   TurboAuthenticatedConfiguration,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
-  TurboSigner,
   TurboUnauthenticatedConfiguration,
-  TurboWallet,
   WalletAdapter,
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
@@ -89,13 +88,7 @@ export abstract class TurboBaseFactory {
     providedWalletAdapter,
     logger,
     token,
-  }: {
-    providedSigner: TurboSigner | undefined;
-    providedPrivateKey: TurboWallet | undefined;
-    providedWalletAdapter: WalletAdapter | undefined;
-    token: TokenType;
-    logger: TurboWinstonLogger;
-  }): TurboDataItemAbstractSigner;
+  }: GetTurboSignerParams): TurboDataItemAbstractSigner;
 
   protected abstract getAuthenticatedUploadService(
     config: TurboAuthenticatedUploadServiceConfiguration,
@@ -129,26 +122,10 @@ export abstract class TurboBaseFactory {
         token = 'arweave';
       }
     }
+    token ??= 'arweave'; // default to arweave if token is not provided
 
     if (walletAdapter) {
-      if (token === 'solana') {
-        if (!isSolanaWalletAdapter(walletAdapter)) {
-          throw new Error(
-            'Solana wallet adapter must implement publicKey and signMessage',
-          );
-        }
-        providedSigner = new HexInjectedSolanaSigner(walletAdapter);
-      }
-
-      if (token == 'ethereum') {
-        if (!isEthereumWalletAdapter(walletAdapter)) {
-          throw new Error('Ethereum wallet adapter must implement getSigner');
-        }
-        providedSigner = new InjectedEthereumSigner(walletAdapter);
-      }
-      throw new Error(
-        'Wallet adapter is currently only supported for Solana and Ethereum',
-      );
+      providedSigner = this.signerFromAdapter(walletAdapter, token);
     }
 
     const turboSigner = this.getSigner({
@@ -159,7 +136,6 @@ export abstract class TurboBaseFactory {
       providedWalletAdapter: walletAdapter,
     });
 
-    token ??= 'arweave'; // default to arweave if token is not provided
     if (!tokenTools) {
       if (tokenMap && token === 'arweave') {
         tokenTools = tokenMap.arweave;
@@ -188,5 +164,29 @@ export abstract class TurboBaseFactory {
       paymentService,
       signer: turboSigner,
     });
+  }
+
+  private signerFromAdapter(walletAdapter: WalletAdapter, token: TokenType) {
+    if (token === 'solana') {
+      if (!isSolanaWalletAdapter(walletAdapter)) {
+        throw new Error(
+          'Unsupported wallet adapter -- must implement publicKey and signMessage',
+        );
+      }
+      return new HexInjectedSolanaSigner(walletAdapter);
+    }
+
+    if (token === 'ethereum') {
+      if (!isEthereumWalletAdapter(walletAdapter)) {
+        throw new Error(
+          'Unsupported wallet adapter -- must implement getSigner',
+        );
+      }
+      return new InjectedEthereumSigner(walletAdapter);
+    }
+
+    throw new Error(
+      'Wallet adapter is currently only supported for Solana and Ethereum',
+    );
   }
 }
