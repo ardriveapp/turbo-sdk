@@ -61,6 +61,7 @@ export class TurboFactory extends TurboBaseFactory {
     gatewayUrl,
     tokenMap,
     tokenTools,
+    walletAdapter,
   }: TurboAuthenticatedConfiguration) {
     return new TurboFactory().getAuthenticatedTurbo({
       privateKey,
@@ -72,6 +73,7 @@ export class TurboFactory extends TurboBaseFactory {
       tokenMap,
       tokenTools,
       logger: this.logger,
+      walletAdapter,
     });
   }
 }

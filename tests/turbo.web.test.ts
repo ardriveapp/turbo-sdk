@@ -8,6 +8,7 @@ import {
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
+import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
 import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
@@ -100,6 +101,58 @@ describe('Browser environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when a compatible solana walletAdapter is provided', async () => {
+      const turbo = TurboFactory.authenticated({
+        token: 'solana',
+        walletAdapter: {
+          signMessage: (m) => Promise.resolve(m),
+          publicKey: { toBuffer: () => Buffer.from(testSolWallet, 'hex') },
+        },
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('throws an error when an incompatible solana walletAdapter is provided', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          token: 'solana',
+          walletAdapter: {
+            getSigner: () => ({
+              signMessage: (m) => Promise.resolve(m as string),
+              sendTransaction: () =>
+                Promise.resolve({ hash: 'hash' } as TransactionResponse),
+            }),
+          },
+        }),
+      ).to.throw('Unsupported wallet adapter');
+    });
+
+    it('should return a TurboAuthenticatedClient with InjectedEthereumSigner when a compatible ethereum walletAdapter is provided', async () => {
+      const turbo = TurboFactory.authenticated({
+        token: 'ethereum',
+        walletAdapter: {
+          getSigner: () => ({
+            signMessage: (m) => Promise.resolve(m as string),
+            sendTransaction: () =>
+              Promise.resolve({ hash: 'hash' } as TransactionResponse),
+          }),
+        },
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('throws an error when an incompatible ethereum walletAdapter is provided', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          token: 'ethereum',
+          walletAdapter: {
+            signMessage: (m) => Promise.resolve(m),
+            publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+          },
+        }),
+      ).to.throw('Unsupported wallet adapter');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {

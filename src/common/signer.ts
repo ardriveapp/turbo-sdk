@@ -180,7 +180,6 @@ export abstract class TurboDataItemAbstractSigner
       return tx.txHash;
     }
 
-    // TODO: ETH Web wallet tx signing/sending
     const provider = new ethers.JsonRpcProvider(gatewayUrl);
     const ethWalletAndProvider = new EthereumWallet(
       keyAsStringFromUint8Array,
