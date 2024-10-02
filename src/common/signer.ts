@@ -37,6 +37,8 @@ import {
   TurboLogger,
   TurboSignedDataItemFactory,
   TurboSigner,
+  WalletAdapter,
+  isEthereumWalletAdapter,
 } from '../types.js';
 import {
   fromB64Url,
@@ -60,15 +62,18 @@ export abstract class TurboDataItemAbstractSigner
   protected logger: TurboLogger;
   protected signer: TurboSigner;
   protected token: TokenType;
+  protected walletAdapter: WalletAdapter | undefined;
 
   constructor({
     signer,
     logger = TurboWinstonLogger.default,
     token,
+    walletAdapter,
   }: TurboDataItemSignerParams) {
     this.logger = logger;
     this.signer = signer;
     this.token = token;
+    this.walletAdapter = walletAdapter;
   }
 
   private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {
@@ -125,6 +130,26 @@ export abstract class TurboDataItemAbstractSigner
     amount,
     gatewayUrl,
   }: SendTxWithSignerParams): Promise<string> {
+    if (this.walletAdapter) {
+      if (!isEthereumWalletAdapter(this.walletAdapter)) {
+        throw new Error(
+          'Unsupported wallet adapter -- must implement getSigner',
+        );
+      }
+      const signer = this.walletAdapter.getSigner();
+      if (signer.sendTransaction === undefined) {
+        throw new Error(
+          'Unsupported wallet adapter -- getSigner must return a signer with sendTransaction API for crypto funds transfer',
+        );
+      }
+
+      const { hash } = await signer.sendTransaction({
+        to: target,
+        value: parseEther(amount.toFixed(18)),
+      });
+      return hash;
+    }
+
     if (!(this.signer instanceof EthereumSigner)) {
       throw new Error(
         'Only EthereumSigner is supported for sendTransaction API currently!',
@@ -155,7 +180,6 @@ export abstract class TurboDataItemAbstractSigner
       return tx.txHash;
     }
 
-    // TODO: ETH Web wallet tx signing/sending
     const provider = new ethers.JsonRpcProvider(gatewayUrl);
     const ethWalletAndProvider = new EthereumWallet(
       keyAsStringFromUint8Array,
