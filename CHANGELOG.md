@@ -1,17 +1,3 @@
-# [1.19.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.18.1-alpha.1...v1.19.0-alpha.1) (2024-10-02)
-
-
-### Features
-
-* **web:** implement walletAdapter for SOL and ETH web signing support PE-6052 ([2ab2486](https://github.com/ardriveapp/turbo-sdk/commit/2ab2486b98930db25cf74d9ba84f2ffeef989920))
-
-## [1.18.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.18.0...v1.18.1-alpha.1) (2024-09-30)
-
-
-### Bug Fixes
-
-* **upload file:** allows buffer type in uploadFile inputs PE-6851 ([7c8d75b](https://github.com/ardriveapp/turbo-sdk/commit/7c8d75bbdc113894f43dfb319bfc17dd3b577285))
-
 # [1.18.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.17.0...v1.18.0) (2024-09-27)
 
 
