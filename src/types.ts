@@ -18,15 +18,19 @@ import {
   ArweaveSigner,
   DataItemCreateOptions,
   EthereumSigner,
+  HexInjectedSolanaSigner,
   HexSolanaSigner,
+  InjectedEthereumSigner,
 } from '@dha-team/arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
+import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 
 import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
+import { TurboWinstonLogger } from './common/logger.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
@@ -358,7 +362,9 @@ export type TurboSigner =
   | ArconnectSigner
   | ArweaveSigner
   | EthereumSigner
-  | HexSolanaSigner;
+  | InjectedEthereumSigner
+  | HexSolanaSigner
+  | HexInjectedSolanaSigner;
 
 export type TokenPollingOptions = {
   maxAttempts: number;
@@ -370,10 +376,49 @@ export type TurboAuthenticatedConfiguration =
   TurboUnauthenticatedConfiguration & {
     privateKey?: TurboWallet;
     signer?: TurboSigner;
+    walletAdapter?: SolanaWalletAdapter | EthereumWalletAdapter;
     /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
     tokenMap?: TokenMap;
     tokenTools?: TokenTools;
   };
+
+export type SolanaWalletAdapter = {
+  publicKey: {
+    toBuffer: () => Buffer;
+  };
+  signMessage: (message: Uint8Array) => Promise<Uint8Array>;
+};
+
+export type WalletAdapter = SolanaWalletAdapter | EthereumWalletAdapter;
+
+export type EthereumWalletSigner = Pick<
+  JsonRpcSigner,
+  'signMessage' | 'sendTransaction'
+>;
+
+export type EthereumWalletAdapter = {
+  getSigner: () => EthereumWalletSigner;
+};
+
+export function isSolanaWalletAdapter(
+  walletAdapter: SolanaWalletAdapter | EthereumWalletAdapter,
+): walletAdapter is SolanaWalletAdapter {
+  return 'publicKey' in walletAdapter && 'signMessage' in walletAdapter;
+}
+
+export type GetTurboSignerParams = {
+  providedSigner: TurboSigner | undefined;
+  providedPrivateKey: TurboWallet | undefined;
+  providedWalletAdapter: WalletAdapter | undefined;
+  token: TokenType;
+  logger: TurboWinstonLogger;
+};
+
+export function isEthereumWalletAdapter(
+  walletAdapter: SolanaWalletAdapter | EthereumWalletAdapter,
+): walletAdapter is EthereumWalletAdapter {
+  return 'getSigner' in walletAdapter;
+}
 
 export type TurboUnauthenticatedClientConfiguration = {
   paymentService: TurboUnauthenticatedPaymentServiceInterface;
@@ -386,12 +431,11 @@ export type TurboAuthenticatedClientConfiguration = {
   signer: TurboDataItemSigner;
 };
 
-export type FileStreamFactory =
-  | (() => Readable)
-  | WebFileStreamFactory
-  | (() => Buffer);
+export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
-export type WebFileStreamFactory = () => ReadableStream;
+export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
+
+export type NodeFileStreamFactory = (() => Readable) | (() => Buffer);
 
 export type SignedDataStreamFactory = FileStreamFactory;
 export type StreamSizeFactory = () => number;
@@ -458,6 +502,7 @@ export type TurboDataItemSignerParams = {
   logger?: TurboLogger;
   signer: TurboSigner;
   token: TokenType;
+  walletAdapter?: WalletAdapter;
 };
 
 export interface TurboDataItemSigner {

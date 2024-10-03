@@ -8,6 +8,7 @@ import {
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
+import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
 import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
@@ -100,6 +101,77 @@ describe('Browser environment', () => {
         ...turboDevelopmentConfigurations,
       });
       expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('should return a TurboAuthenticatedClient when a compatible solana walletAdapter is provided', async () => {
+      const turbo = TurboFactory.authenticated({
+        token: 'solana',
+        walletAdapter: {
+          signMessage: (m) => Promise.resolve(m),
+          publicKey: { toBuffer: () => Buffer.from(testSolWallet, 'hex') },
+        },
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+    });
+
+    it('throws an error when an incompatible solana walletAdapter is provided', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          token: 'solana',
+          walletAdapter: {
+            getSigner: () => ({
+              signMessage: (m) => Promise.resolve(m as string),
+              sendTransaction: () =>
+                Promise.resolve({ hash: 'hash' } as TransactionResponse),
+            }),
+          },
+        }),
+      ).to.throw('Unsupported wallet adapter');
+    });
+
+    it('should return a TurboAuthenticatedClient with InjectedEthereumSigner when a compatible ethereum walletAdapter is provided', async () => {
+      const turbo = TurboFactory.authenticated({
+        token: 'ethereum',
+        walletAdapter: {
+          getSigner: () => ({
+            signMessage: (m) => Promise.resolve(m as string),
+            sendTransaction: () =>
+              Promise.resolve({ hash: 'hash' } as TransactionResponse),
+          }),
+        },
+      });
+      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      expect(
+        await turbo.signer.sendTransaction({
+          amount: BigNumber('1'),
+          target: 'target',
+          gatewayUrl: 'http://this.location',
+        }),
+      ).to.equal('hash');
+    });
+
+    it('throws an error when an incompatible ethereum walletAdapter is provided', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          token: 'ethereum',
+          walletAdapter: {
+            signMessage: (m) => Promise.resolve(m),
+            publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+          },
+        }),
+      ).to.throw('Unsupported wallet adapter');
+    });
+
+    it('throws an error when a walletAdapter is provided with an incompatible token', async () => {
+      expect(() =>
+        TurboFactory.authenticated({
+          token: 'arweave',
+          walletAdapter: {
+            signMessage: (m) => Promise.resolve(m),
+            publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+          },
+        }),
+      ).to.throw('Unsupported wallet adapter');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
@@ -451,7 +523,6 @@ describe('Browser environment', () => {
           fileSizeFactory: () => uint8Array.length,
         });
         expect(response).to.not.be.undefined;
-        expect(response).to.not.be.undefined;
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
@@ -654,7 +725,6 @@ describe('Browser environment', () => {
       });
 
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
@@ -670,7 +740,6 @@ describe('Browser environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
@@ -748,10 +817,22 @@ describe('Browser environment', () => {
       });
 
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
+      expect(response['owner']).to.equal(testSolAddressBase64);
+    });
+
+    it('should properly upload a Buffer to turbo with uploadFile', async () => {
+      const encoder = new TextEncoder();
+      const uint8Array = encoder.encode('test data');
+
+      const response = await turbo.uploadFile({
+        fileStreamFactory: () => Buffer.from(uint8Array),
+        fileSizeFactory: () => uint8Array.length,
+      });
+
+      expect(response).to.not.be.undefined;
       expect(response['owner']).to.equal(testSolAddressBase64);
     });
 
@@ -764,7 +845,6 @@ describe('Browser environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');

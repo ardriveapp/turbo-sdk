@@ -18,8 +18,10 @@ import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
+  InjectedEthereumSigner,
   createData,
 } from '@dha-team/arbundles';
+import { Buffer } from 'node:buffer';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
@@ -47,7 +49,8 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     // for arconnect, we need to make sure we have the public key before create data
     if (
       this.signer.publicKey === undefined &&
-      this.signer instanceof ArconnectSigner
+      (this.signer instanceof ArconnectSigner ||
+        this.signer instanceof InjectedEthereumSigner)
     ) {
       await this.signer.setPublicKey();
     }
@@ -69,11 +72,16 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
   }> {
     await this.setPublicKey();
 
+    const fileStream = fileStreamFactory();
+
     // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
-    const buffer = await readableStreamToBuffer({
-      stream: fileStreamFactory(),
-      size: fileSizeFactory(),
-    });
+    const buffer =
+      fileStream instanceof Buffer
+        ? fileStream
+        : await readableStreamToBuffer({
+            stream: fileStream,
+            size: fileSizeFactory(),
+          });
 
     this.logger.debug('Signing data item...');
     const signedDataItem = createData(buffer, this.signer, dataItemOpts);

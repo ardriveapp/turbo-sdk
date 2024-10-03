@@ -50,8 +50,8 @@ export class SolanaToken implements TokenTools {
     gatewayUrl = 'https://api.mainnet-beta.solana.com',
     pollingOptions = {
       maxAttempts: 10,
-      pollingIntervalMs: 5_000,
-      initialBackoffMs: 7_000,
+      pollingIntervalMs: 2_500,
+      initialBackoffMs: 500,
     },
   }: TokenConfig = {}) {
     this.logger = logger;

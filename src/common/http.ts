@@ -15,6 +15,7 @@
  */
 import { AxiosInstance } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
+import { Buffer } from 'node:buffer';
 import { Readable } from 'stream';
 import { ReadableStream } from 'stream/web';
 

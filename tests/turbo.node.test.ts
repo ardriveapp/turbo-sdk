@@ -870,14 +870,24 @@ describe('Node environment', () => {
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
     });
 
-    it('should properly upload a Buffer to turbo', async () => {
+    it('should properly upload a Buffer to turbo with uploadFile', async () => {
+      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
+      const fileSize = fs.statSync(filePath).size;
+      const response = await turbo.uploadFile({
+        fileStreamFactory: () => fs.readFileSync(filePath),
+        fileSizeFactory: () => fileSize,
+      });
+      expect(response).to.not.be.undefined;
+      expect(response['owner']).to.equal(testEthAddressBase64);
+    });
+
+    it('should properly upload a Buffer to turbo with uploadSignedDataItem', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
 
@@ -886,7 +896,6 @@ describe('Node environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
@@ -957,7 +966,6 @@ describe('Node environment', () => {
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
@@ -973,7 +981,6 @@ describe('Node environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
@@ -1046,7 +1053,6 @@ describe('Node environment', () => {
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;
-      expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
@@ -1062,7 +1068,6 @@ describe('Node environment', () => {
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
       });
 
-      expect(response).to.not.be.undefined;
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
