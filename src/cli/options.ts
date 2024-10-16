@@ -125,6 +125,10 @@ export const optionMap = {
     description: 'Address to pay for the upload',
     type: 'array',
   },
+  expiresBySeconds: {
+    alias: '--expires-by-seconds <expiresBySeconds>',
+    description: 'Expiration time in seconds',
+  },
 } as const;
 
 export const walletOptions = [
@@ -151,6 +155,18 @@ export const uploadFolderOptions = [
   optionMap.fallbackFile,
   optionMap.manifest,
   optionMap.maxConcurrency,
+  optionMap.paidBy,
 ];
 
-export const uploadFileOptions = [...walletOptions, optionMap.filePath];
+export const uploadFileOptions = [
+  ...walletOptions,
+  optionMap.filePath,
+  optionMap.paidBy,
+];
+
+export const createApprovalOptions = [
+  ...walletOptions,
+  optionMap.value,
+  optionMap.address,
+  optionMap.expiresBySeconds,
+];

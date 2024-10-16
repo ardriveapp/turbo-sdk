@@ -20,6 +20,7 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
+import { createApproval } from './commands/createApproval.js';
 import {
   balance,
   cryptoFund,
@@ -29,6 +30,7 @@ import {
   uploadFolder,
 } from './commands/index.js';
 import {
+  createApprovalOptions,
   globalOptions,
   optionMap,
   uploadFileOptions,
@@ -91,6 +93,15 @@ applyOptions(
   [optionMap.value, optionMap.type],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, price);
+});
+
+applyOptions(
+  program
+    .command('create-approval')
+    .description('Create a Turbo delegated payment approval'),
+  createApprovalOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, createApproval);
 });
 
 if (

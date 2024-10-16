@@ -24,6 +24,7 @@ import {
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
+  TurboCreateDelegatedPaymentApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
@@ -36,6 +37,11 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export const createDelegatedPaymentApprovalTagName = 'x-approve-payment';
+export const approvalAmountTagName = 'x-amount';
+export const approvalExpiresBySecondsTagName = 'x-expires-seconds';
+export const revokeDelegatePaymentApprovalTagName = 'x-delete-payment-approval';
 
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
@@ -115,17 +121,23 @@ export abstract class TurboAuthenticatedBaseUploadService
         dataItemOpts,
       });
     const signedDataItem = dataItemStreamFactory();
-    const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
+    console.log('dataItemOpts.paidBy', dataItemOpts?.paidBy);
+
+    const headers = {
+      'content-type': 'application/octet-stream',
+      'content-length': `${dataItemSizeFactory()}`,
+    };
+    if (dataItemOpts && dataItemOpts.paidBy && dataItemOpts.paidBy.length > 0) {
+      headers['x-paid-by'] = dataItemOpts.paidBy;
+    }
+
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: signedDataItem,
-      headers: {
-        'content-type': 'application/octet-stream',
-        'content-length': `${fileSize}`,
-      },
+      headers,
     });
   }
 
@@ -295,5 +307,33 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifest,
       manifestResponse,
     };
+  }
+
+  public async createDelegatedPaymentApproval({
+    approvedAddress,
+    approvedWincAmount,
+    expiresBySeconds,
+  }: TurboCreateDelegatedPaymentApprovalParams): Promise<TurboUploadDataItemResponse> {
+    const dataItemOpts = {
+      tags: [
+        { name: createDelegatedPaymentApprovalTagName, value: approvedAddress },
+        { name: approvalAmountTagName, value: approvedWincAmount.toString() },
+      ],
+    };
+    if (expiresBySeconds !== undefined) {
+      dataItemOpts.tags.push({
+        name: approvalExpiresBySecondsTagName,
+        value: expiresBySeconds.toString(),
+      });
+    }
+
+    const nonceData = Buffer.from(
+      approvedAddress + approvedWincAmount + Date.now(),
+    );
+    return this.uploadFile({
+      fileStreamFactory: () => Readable.from(nonceData),
+      fileSizeFactory: () => nonceData.byteLength,
+      dataItemOpts,
+    });
   }
 }

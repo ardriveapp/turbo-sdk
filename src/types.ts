@@ -207,6 +207,12 @@ export const isWebUploadFolderParams = (
 ): p is WebUploadFolderParams =>
   (p as WebUploadFolderParams).files !== undefined;
 
+export type TurboCreateDelegatedPaymentApprovalParams = {
+  approvedAddress: string;
+  approvedWincAmount: BigNumber.Value;
+  expiresBySeconds?: number;
+};
+
 export type TurboUploadFolderResponse = {
   fileResponses: TurboUploadDataItemResponse[];
   manifestResponse?: TurboUploadDataItemResponse;
@@ -355,7 +361,9 @@ export interface TurboLogger {
   debug: (message: string, ...args: unknown[]) => void;
 }
 
-export type DataItemOptions = DataItemCreateOptions;
+export type DataItemOptions = DataItemCreateOptions & {
+  paidBy?: UserAddress[];
+};
 
 // Supported signers - we will continue to add more
 export type TurboSigner =
@@ -574,6 +582,10 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
+
+  createDelegatedPaymentApproval(
+    p: TurboCreateDelegatedPaymentApprovalParams,
+  ): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboUnauthenticatedClientInterface

@@ -26,6 +26,7 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCreateDelegatedPaymentApprovalParams,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
@@ -264,5 +265,16 @@ export class TurboAuthenticatedClient
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
+  }
+
+  /**
+   * Creates a data item with tags that designate it as a delegated payment approval.
+   * Signs the data item and sends it to the Turbo Upload Service, which will verify
+   * the signature and forward the admin action towards the Turbo Payment Service.
+   */
+  createDelegatedPaymentApproval(
+    p: TurboCreateDelegatedPaymentApprovalParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.createDelegatedPaymentApproval(p);
   }
 }

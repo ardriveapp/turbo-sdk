@@ -62,3 +62,9 @@ export type CryptoFundOptions = WalletOptions & {
   value: string | undefined;
   txId: string | undefined;
 };
+
+export type CreateApprovalOptions = WalletOptions & {
+  address: string | undefined;
+  value: string | undefined;
+  expiresBySeconds: number | undefined;
+};
