@@ -86,10 +86,15 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
   }
 
   getRelativePath(file: string, params: TurboUploadFolderParams): string {
-    return file.replace(
-      (params as NodeUploadFolderParams).folderPath + '/',
-      '',
-    );
+    let folderPath = (params as NodeUploadFolderParams).folderPath;
+
+    // slice leading `./` if exists
+    if (folderPath.startsWith('./')) {
+      folderPath = folderPath.slice(2);
+    }
+
+    const relativePath = file.replace(folderPath + '/', '');
+    return relativePath;
   }
 
   contentTypeFromFile(file: string): string {
