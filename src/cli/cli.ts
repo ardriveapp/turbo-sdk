@@ -29,10 +29,12 @@ import {
   uploadFile,
   uploadFolder,
 } from './commands/index.js';
+import { revokeApprovals } from './commands/revokeApprovals.js';
 import {
   createApprovalOptions,
   globalOptions,
   optionMap,
+  revokeApprovalsOptions,
   uploadFileOptions,
   uploadFolderOptions,
   walletOptions,
@@ -102,6 +104,16 @@ applyOptions(
   createApprovalOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, createApproval);
+});
+applyOptions(
+  program
+    .command('revoke-approvals')
+    .description(
+      'Revokes all Turbo delegated payment approvals for given address',
+    ),
+  revokeApprovalsOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, revokeApprovals);
 });
 
 if (

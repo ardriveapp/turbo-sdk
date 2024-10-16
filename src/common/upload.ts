@@ -28,6 +28,7 @@ import {
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
+  TurboRevokeDelegatePaymentApprovalsParams,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
@@ -330,6 +331,26 @@ export abstract class TurboAuthenticatedBaseUploadService
     const nonceData = Buffer.from(
       approvedAddress + approvedWincAmount + Date.now(),
     );
+    return this.uploadFile({
+      fileStreamFactory: () => Readable.from(nonceData),
+      fileSizeFactory: () => nonceData.byteLength,
+      dataItemOpts,
+    });
+  }
+
+  public async revokeDelegatedPaymentApprovals({
+    revokedAddress,
+  }: TurboRevokeDelegatePaymentApprovalsParams): Promise<TurboUploadDataItemResponse> {
+    const dataItemOpts = {
+      tags: [
+        {
+          name: revokeDelegatePaymentApprovalTagName,
+          value: revokedAddress,
+        },
+      ],
+    };
+
+    const nonceData = Buffer.from(revokedAddress + Date.now());
     return this.uploadFile({
       fileStreamFactory: () => Readable.from(nonceData),
       fileSizeFactory: () => nonceData.byteLength,

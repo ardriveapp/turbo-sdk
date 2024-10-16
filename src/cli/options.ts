@@ -170,3 +170,5 @@ export const createApprovalOptions = [
   optionMap.address,
   optionMap.expiresBySeconds,
 ];
+
+export const revokeApprovalsOptions = [...walletOptions, optionMap.address];

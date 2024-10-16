@@ -213,6 +213,10 @@ export type TurboCreateDelegatedPaymentApprovalParams = {
   expiresBySeconds?: number;
 };
 
+export type TurboRevokeDelegatePaymentApprovalsParams = {
+  revokedAddress: string;
+};
+
 export type TurboUploadFolderResponse = {
   fileResponses: TurboUploadDataItemResponse[];
   manifestResponse?: TurboUploadDataItemResponse;
@@ -585,6 +589,9 @@ export interface TurboAuthenticatedUploadServiceInterface
 
   createDelegatedPaymentApproval(
     p: TurboCreateDelegatedPaymentApprovalParams,
+  ): Promise<TurboUploadDataItemResponse>;
+  revokeDelegatedPaymentApprovals(
+    p: TurboRevokeDelegatePaymentApprovalsParams,
   ): Promise<TurboUploadDataItemResponse>;
 }
 

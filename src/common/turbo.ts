@@ -35,6 +35,7 @@ import {
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
+  TurboRevokeDelegatePaymentApprovalsParams,
   TurboSignedDataItemFactory,
   TurboSubmitFundTxResponse,
   TurboUnauthenticatedClientConfiguration,
@@ -276,5 +277,18 @@ export class TurboAuthenticatedClient
     p: TurboCreateDelegatedPaymentApprovalParams,
   ): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.createDelegatedPaymentApproval(p);
+  }
+
+  /**
+   * Creates a data item with tags that designate it as a revoke action for delegated
+   * payment approvals for target revokedAddress. Signs the data item and sends it to
+   * the Turbo Upload Service, which will verify the signature and forward the admin
+   * action towards the Turbo Payment Service.
+   */
+
+  revokeDelegatedPaymentApprovals(
+    p: TurboRevokeDelegatePaymentApprovalsParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.revokeDelegatedPaymentApprovals(p);
   }
 }
