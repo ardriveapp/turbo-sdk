@@ -20,7 +20,7 @@ import { UploadFileOptions } from '../types.js';
 import { turboFromOptions } from '../utils.js';
 
 export async function uploadFile(options: UploadFileOptions): Promise<void> {
-  const { filePath } = options;
+  const { filePath, paidBy } = options;
   if (filePath === undefined) {
     throw new Error('Must provide a --file-path to upload');
   }
@@ -32,7 +32,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
   const result = await turbo.uploadFile({
     fileStreamFactory: () => createReadStream(filePath),
     fileSizeFactory: () => fileSize,
-    dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
+    dataItemOpts: { tags: [...turboCliTags], paidBy }, // TODO: Inject user tags
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

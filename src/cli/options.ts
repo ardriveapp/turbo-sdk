@@ -120,6 +120,11 @@ export const optionMap = {
     alias: '--max-concurrency <maxConcurrency>',
     description: 'Maximum number of concurrent uploads',
   },
+  paidBy: {
+    alias: '--paid-by <paidBy...>',
+    description: 'Address to pay for the upload',
+    type: 'array',
+  },
 } as const;
 
 export const walletOptions = [

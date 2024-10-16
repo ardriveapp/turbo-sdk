@@ -50,6 +50,7 @@ export type UploadFolderOptions = WalletOptions & {
 
 export type UploadFileOptions = WalletOptions & {
   filePath: string | undefined;
+  paidBy: string[];
 };
 
 export type PriceOptions = GlobalOptions & {
