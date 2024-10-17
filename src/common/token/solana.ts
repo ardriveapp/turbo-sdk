@@ -69,7 +69,9 @@ export class SolanaToken implements TokenTools {
     id: string;
     target: string;
   }> {
-    const publicKey = new PublicKey(bs58.encode(await signer.getPublicKey()));
+    const publicKey = new PublicKey(
+      bs58.encode(Uint8Array.from(await signer.getPublicKey())),
+    );
     const tx = new Transaction({
       feePayer: publicKey,
       ...(await this.connection.getLatestBlockhash()),
@@ -84,7 +86,7 @@ export class SolanaToken implements TokenTools {
     );
 
     const serializedTx = tx.serializeMessage();
-    const signature = await signer.signData(serializedTx);
+    const signature = await signer.signData(Uint8Array.from(serializedTx));
 
     tx.addSignature(publicKey, Buffer.from(signature));
 

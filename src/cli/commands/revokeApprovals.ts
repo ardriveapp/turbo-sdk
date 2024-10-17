@@ -13,27 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { createReadStream, statSync } from 'fs';
-
-import { turboCliTags } from '../constants.js';
-import { UploadFileOptions } from '../types.js';
+import { RevokeApprovalsOptions } from '../types.js';
 import { turboFromOptions } from '../utils.js';
 
-export async function uploadFile(options: UploadFileOptions): Promise<void> {
-  const { filePath, paidBy } = options;
-  if (filePath === undefined) {
-    throw new Error('Must provide a --file-path to upload');
+export async function revokeApprovals(
+  options: RevokeApprovalsOptions,
+): Promise<void> {
+  const { address: revokedAddress } = options;
+  if (revokedAddress === undefined) {
+    throw new Error(
+      'Must provide an approved --address to create approval for',
+    );
   }
 
   const turbo = await turboFromOptions(options);
 
-  const fileSize = statSync(filePath).size;
-
-  const result = await turbo.uploadFile({
-    fileStreamFactory: () => createReadStream(filePath),
-    fileSizeFactory: () => fileSize,
-    dataItemOpts: { tags: [...turboCliTags], paidBy }, // TODO: Inject user tags
+  const result = await turbo.revokeDelegatedPaymentApprovals({
+    revokedAddress,
   });
 
-  console.log('Uploaded file:', JSON.stringify(result, null, 2));
+  console.log('Created approval:', JSON.stringify(result, null, 2));
 }
