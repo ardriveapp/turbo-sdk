@@ -1,3 +1,10 @@
+## [1.19.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.0...v1.19.1) (2024-10-17)
+
+
+### Bug Fixes
+
+* **deps:** pin `@keplr-wallet/cosmos` dependency ([aa424f4](https://github.com/ardriveapp/turbo-sdk/commit/aa424f4d95ae6fd62be37e40d0311103622f3c11))
+
 # [1.19.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.18.0...v1.19.0) (2024-10-03)
 
 
