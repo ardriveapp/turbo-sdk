@@ -95,6 +95,9 @@
     "tweetnacl": "^1.0.3",
     "winston": "^3.14.1"
   },
+  "resolutions": {
+    "@keplr-wallet/cosmos": "0.12.123"
+  },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
