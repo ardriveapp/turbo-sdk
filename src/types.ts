@@ -155,10 +155,35 @@ export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   paymentAmount: number;
 };
 
-export type TurboBalanceResponse = Omit<
-  TurboPriceResponse,
-  'adjustments' | 'fees'
->;
+export interface DelegatedPaymentApproval {
+  approvalDataItemId: TransactionId;
+  approvedAddress: UserAddress;
+  payerAddress: UserAddress;
+  approvedWincAmount: string;
+  usedWincAmount: string;
+  creationDate: string;
+  expirationDate: string | undefined;
+}
+
+export type TurboBalanceResponse = {
+  /**
+   *  Amount of winc controlled by the user, that they could
+   *  spend or share if all current approvals were revoked
+   */
+  controlledWinc: string;
+  /**
+   * Amount of winc that a user can currently spend or share
+   */
+  winc: string;
+  /**
+   * Amount of winc that a user can currently spend or share
+   * plus the amount of remaining winc from received approvals
+   */
+  effectiveBalance: string;
+
+  receivedApprovals: DelegatedPaymentApproval[];
+  givenApprovals: DelegatedPaymentApproval[];
+};
 
 export type TurboFiatToArResponse = {
   currency: Currency;

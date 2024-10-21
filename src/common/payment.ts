@@ -81,7 +81,15 @@ export class TurboUnauthenticatedPaymentService
       allowedStatuses: [200, 404],
     });
 
-    return balance.winc ? balance : { winc: '0' };
+    return balance.winc
+      ? balance
+      : {
+          winc: '0',
+          controlledWinc: '0',
+          effectiveBalance: '0',
+          givenApprovals: [],
+          receivedApprovals: [],
+        };
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
