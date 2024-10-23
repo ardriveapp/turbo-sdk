@@ -15,6 +15,7 @@
  */
 import {
   Currency,
+  GetDelegatedPaymentApprovalsResponse,
   NativeAddress,
   TokenType,
   TurboAbortSignal,
@@ -209,6 +210,15 @@ export class TurboUnauthenticatedClient
     wallets.pol = wallets.matic;
     return wallets;
   }
+
+  /**
+   * Returns a list of all delegated payment approvals for the user.
+   */
+  getDelegatedPaymentApprovals(
+    userAddress: NativeAddress,
+  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+    return this.paymentService.getDelegatedPaymentApprovals(userAddress);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -232,8 +242,17 @@ export class TurboAuthenticatedClient
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  getBalance(address?: NativeAddress): Promise<TurboBalanceResponse> {
-    return this.paymentService.getBalance(address);
+  getBalance(userAddress?: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(userAddress);
+  }
+
+  /**
+   * Returns a list of all delegated payment approvals for the user.
+   */
+  getDelegatedPaymentApprovals(
+    userAddress?: NativeAddress,
+  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+    return this.paymentService.getDelegatedPaymentApprovals(userAddress);
   }
 
   /**

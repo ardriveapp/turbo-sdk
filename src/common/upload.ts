@@ -124,14 +124,19 @@ export abstract class TurboAuthenticatedBaseUploadService
     const signedDataItem = dataItemStreamFactory();
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
-    console.log('dataItemOpts.paidBy', dataItemOpts?.paidBy);
 
     const headers = {
       'content-type': 'application/octet-stream',
       'content-length': `${dataItemSizeFactory()}`,
     };
-    if (dataItemOpts && dataItemOpts.paidBy && dataItemOpts.paidBy.length > 0) {
-      headers['x-paid-by'] = dataItemOpts.paidBy;
+    if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+      const paidBy = Array.isArray(dataItemOpts.paidBy)
+        ? dataItemOpts.paidBy
+        : [dataItemOpts.paidBy];
+
+      if (dataItemOpts.paidBy.length > 0) {
+        headers['x-paid-by'] = paidBy;
+      }
     }
 
     return this.httpService.post<TurboUploadDataItemResponse>({

@@ -18,6 +18,7 @@ import { Buffer } from 'node:buffer';
 
 import {
   Currency,
+  GetDelegatedPaymentApprovalsResponse,
   RawWincForTokenResponse,
   TokenTools,
   TokenType,
@@ -46,6 +47,7 @@ import {
   TurboWincForFiatResponse,
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
+  UserAddress,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -262,6 +264,14 @@ export class TurboUnauthenticatedPaymentService
     }
     throw new Error('Unknown response from payment service: ' + response);
   }
+
+  public async getDelegatedPaymentApprovals(
+    userAddress: UserAddress,
+  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+    return this.httpService.get<GetDelegatedPaymentApprovalsResponse>({
+      endpoint: `/account/approvals/get?userAddress=${userAddress}`,
+    });
+  }
 }
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
 export class TurboAuthenticatedPaymentService
@@ -284,10 +294,16 @@ export class TurboAuthenticatedPaymentService
     this.tokenTools = tokenTools;
   }
 
-  public async getBalance(address?: string): Promise<TurboBalanceResponse> {
-    address ??= await this.signer.getNativeAddress();
+  public async getBalance(userAddress?: string): Promise<TurboBalanceResponse> {
+    userAddress ??= await this.signer.getNativeAddress();
+    return super.getBalance(userAddress);
+  }
 
-    return super.getBalance(address);
+  public async getDelegatedPaymentApprovals(
+    userAddress?: string,
+  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+    userAddress ??= await this.signer.getNativeAddress();
+    return super.getDelegatedPaymentApprovals(userAddress);
   }
 
   public async getWincForFiat({

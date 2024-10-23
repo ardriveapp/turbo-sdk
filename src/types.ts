@@ -158,11 +158,16 @@ export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
 export interface DelegatedPaymentApproval {
   approvalDataItemId: TransactionId;
   approvedAddress: UserAddress;
-  payerAddress: UserAddress;
+  payingAddress: UserAddress;
   approvedWincAmount: string;
   usedWincAmount: string;
   creationDate: string;
   expirationDate: string | undefined;
+}
+
+export interface GetDelegatedPaymentApprovalsResponse {
+  givenApprovals: DelegatedPaymentApproval[];
+  receivedApprovals: DelegatedPaymentApproval[];
 }
 
 export type TurboBalanceResponse = {
@@ -201,6 +206,7 @@ export type TurboUploadDataItemResponse = {
   fastFinalityIndexes: string[];
   id: TransactionId;
   owner: PublicArweaveAddress;
+  winc: string;
 };
 
 type UploadFolderParams = {
@@ -391,7 +397,7 @@ export interface TurboLogger {
 }
 
 export type DataItemOptions = DataItemCreateOptions & {
-  paidBy?: UserAddress[];
+  paidBy?: UserAddress | UserAddress[];
 };
 
 // Supported signers - we will continue to add more
@@ -579,6 +585,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   submitFundTransaction(p: {
     txId: string;
   }): Promise<TurboSubmitFundTxResponse>;
+  getDelegatedPaymentApprovals(
+    userAddress: UserAddress,
+  ): Promise<GetDelegatedPaymentApprovalsResponse>;
 }
 
 export type TurboFundWithTokensParams = {
@@ -589,7 +598,10 @@ export type TurboFundWithTokensParams = {
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
-  getBalance: (address?: string) => Promise<TurboBalanceResponse>;
+  getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+  getDelegatedPaymentApprovals(
+    userAddress?: UserAddress,
+  ): Promise<GetDelegatedPaymentApprovalsResponse>;
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
