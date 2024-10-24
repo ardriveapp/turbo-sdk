@@ -76,6 +76,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`upload-folder`](#upload-folder)
       - [`upload-file`](#upload-file)
       - [`price`](#price)
+      - [`create-approval`](#create-approval)
+      - [`revoke-approvals`](#revoke-approvals)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -854,6 +856,36 @@ turbo price --value 1024 --type bytes
 
 ```shell
 turbo price --value 1.1 --type arweave
+```
+
+##### `create-approval`
+
+Create a delegated payment approval from the connected wallet to the provided native address and approved winc amount.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to that will receive the delegated payment approval
+- `-v, --value <value>` - Value of winc to create delegated payment approval for
+- `-e, --expires-by-seconds <seconds>` - Expiry time in seconds for the delegated payment approval
+
+e.g:
+
+```shell
+turbo create-approval --address 2cor...VUa --value 0.083155650320 --wallet-file ../path/to/my/wallet --expires-by-seconds 3600
+```
+
+##### `revoke-approvals`
+
+Revoke all delegated payment approvals from the connected wallet to the provided native address.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to revoke delegated payment approvals for
+
+e.g:
+
+```shell
+turbo revoke-approvals --wallet-file ../path/to/my/wallet
 ```
 
 ## Developers
