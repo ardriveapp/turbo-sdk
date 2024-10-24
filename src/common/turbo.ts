@@ -304,7 +304,6 @@ export class TurboAuthenticatedClient
    * the Turbo Upload Service, which will verify the signature and forward the admin
    * action towards the Turbo Payment Service.
    */
-
   revokeDelegatedPaymentApprovals(
     p: TurboRevokeDelegatePaymentApprovalsParams,
   ): Promise<TurboUploadDataItemResponse> {
