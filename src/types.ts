@@ -207,6 +207,8 @@ export type TurboUploadDataItemResponse = {
   id: TransactionId;
   owner: PublicArweaveAddress;
   winc: string;
+  createdApproval?: DelegatedPaymentApproval;
+  revokedApprovals?: DelegatedPaymentApproval[];
 };
 
 type UploadFolderParams = {
@@ -599,9 +601,11 @@ export type TurboFundWithTokensParams = {
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+
   getDelegatedPaymentApprovals(
     userAddress?: UserAddress,
   ): Promise<GetDelegatedPaymentApprovalsResponse>;
+
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
@@ -626,10 +630,11 @@ export interface TurboAuthenticatedUploadServiceInterface
 
   createDelegatedPaymentApproval(
     p: TurboCreateDelegatedPaymentApprovalParams,
-  ): Promise<TurboUploadDataItemResponse>;
+  ): Promise<DelegatedPaymentApproval>;
+
   revokeDelegatedPaymentApprovals(
     p: TurboRevokeDelegatePaymentApprovalsParams,
-  ): Promise<TurboUploadDataItemResponse>;
+  ): Promise<DelegatedPaymentApproval[]>;
 }
 
 export interface TurboUnauthenticatedClientInterface
@@ -652,6 +657,7 @@ export interface TokenTools {
     target: string;
     reward?: string;
   }>;
+
   pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
 }
 

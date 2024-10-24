@@ -15,6 +15,7 @@
  */
 import {
   Currency,
+  DelegatedPaymentApproval,
   GetDelegatedPaymentApprovalsResponse,
   NativeAddress,
   TokenType,
@@ -294,7 +295,7 @@ export class TurboAuthenticatedClient
    */
   createDelegatedPaymentApproval(
     p: TurboCreateDelegatedPaymentApprovalParams,
-  ): Promise<TurboUploadDataItemResponse> {
+  ): Promise<DelegatedPaymentApproval> {
     return this.uploadService.createDelegatedPaymentApproval(p);
   }
 
@@ -306,7 +307,7 @@ export class TurboAuthenticatedClient
    */
   revokeDelegatedPaymentApprovals(
     p: TurboRevokeDelegatePaymentApprovalsParams,
-  ): Promise<TurboUploadDataItemResponse> {
+  ): Promise<DelegatedPaymentApproval[]> {
     return this.uploadService.revokeDelegatedPaymentApprovals(p);
   }
 }

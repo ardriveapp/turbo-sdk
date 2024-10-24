@@ -20,6 +20,7 @@ import { pLimit } from 'plimit-lit';
 import {
   ArweaveManifest,
   DataItemOptions,
+  DelegatedPaymentApproval,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
@@ -319,7 +320,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     approvedAddress,
     approvedWincAmount,
     expiresBySeconds,
-  }: TurboCreateDelegatedPaymentApprovalParams): Promise<TurboUploadDataItemResponse> {
+  }: TurboCreateDelegatedPaymentApprovalParams): Promise<DelegatedPaymentApproval> {
     const dataItemOpts = {
       tags: [
         { name: createDelegatedPaymentApprovalTagName, value: approvedAddress },
@@ -336,16 +337,25 @@ export abstract class TurboAuthenticatedBaseUploadService
     const nonceData = Buffer.from(
       approvedAddress + approvedWincAmount + Date.now(),
     );
-    return this.uploadFile({
+    const { createdApproval, ...uploadResponse } = await this.uploadFile({
       fileStreamFactory: () => Readable.from(nonceData),
       fileSizeFactory: () => nonceData.byteLength,
       dataItemOpts,
     });
+    if (!createdApproval) {
+      throw new Error(
+        'Failed to create delegated payment approval but upload has succeeded\n' +
+          JSON.stringify(uploadResponse),
+      );
+    }
+    return createdApproval;
   }
 
   public async revokeDelegatedPaymentApprovals({
     revokedAddress,
-  }: TurboRevokeDelegatePaymentApprovalsParams): Promise<TurboUploadDataItemResponse> {
+  }: TurboRevokeDelegatePaymentApprovalsParams): Promise<
+    DelegatedPaymentApproval[]
+  > {
     const dataItemOpts = {
       tags: [
         {
@@ -356,10 +366,17 @@ export abstract class TurboAuthenticatedBaseUploadService
     };
 
     const nonceData = Buffer.from(revokedAddress + Date.now());
-    return this.uploadFile({
+    const { revokedApprovals, ...uploadResponse } = await this.uploadFile({
       fileStreamFactory: () => Readable.from(nonceData),
       fileSizeFactory: () => nonceData.byteLength,
       dataItemOpts,
     });
+    if (!revokedApprovals) {
+      throw new Error(
+        'Failed to revoke delegated payment approvals but upload has succeeded\n' +
+          JSON.stringify(uploadResponse),
+      );
+    }
+    return revokedApprovals;
   }
 }
