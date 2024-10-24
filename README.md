@@ -65,6 +65,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
       - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
+    - [`createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#createdelegatedpaymentapproval-approvedaddress-approvedwincamount-expiresbyseconds-)
+    - [`revokeDelegatedPaymentApprovals({ approvedAddress })`](#revokedelegatedpaymentapprovals-approvedaddress-)
 - [CLI](#cli)
   - [Install CLI](#install-cli)
   - [CLI Usage](#cli-usage)
@@ -677,6 +679,40 @@ const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: KYVEToTokenAmount(0.00001), // 0.00001 KYVE
 });
+```
+
+#### `createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`
+
+Creates a delegated payment approval from the connected wallet to the provided native address and approved winc amount. This action will create a data item for the approval
+
+```typescript
+const { approvalDataItemId, approvedWincAmount } =
+  await turbo.createDelegatedPaymentApproval({
+    approvedAddress: '2cor...VUa',
+    approvedWincAmount: 0.08315565032,
+    expiresBySeconds: 3600,
+  });
+```
+
+#### `revokeDelegatedPaymentApprovals({ approvedAddress })`
+
+Revokes all delegated payment approvals from the connected wallet to the provided native address.
+
+```typescript
+const revokedApprovals = await turbo.revokeDelegatePaymentApprovals({
+  approvedAddress: '2cor...VUa',
+});
+```
+
+#### `getDelegatedPaymentApprovals({ userAddress })`
+
+Returns all delegated payment approvals from the connected wallet or the provided native address.
+
+```typescript
+const { givenApprovals, receivedApprovals } =
+  await turbo.getDelegatedPaymentApprovals({
+    userAddress: '2cor...VUa',
+  });
 ```
 
 ## CLI

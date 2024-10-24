@@ -215,10 +215,10 @@ export class TurboUnauthenticatedClient
   /**
    * Returns a list of all delegated payment approvals for the user.
    */
-  getDelegatedPaymentApprovals(
-    userAddress: NativeAddress,
-  ): Promise<GetDelegatedPaymentApprovalsResponse> {
-    return this.paymentService.getDelegatedPaymentApprovals(userAddress);
+  getDelegatedPaymentApprovals(p: {
+    userAddress: NativeAddress;
+  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+    return this.paymentService.getDelegatedPaymentApprovals(p);
   }
 }
 
@@ -251,9 +251,11 @@ export class TurboAuthenticatedClient
    * Returns a list of all delegated payment approvals for the user.
    */
   getDelegatedPaymentApprovals(
-    userAddress?: NativeAddress,
+    p: {
+      userAddress?: NativeAddress;
+    } = {},
   ): Promise<GetDelegatedPaymentApprovalsResponse> {
-    return this.paymentService.getDelegatedPaymentApprovals(userAddress);
+    return this.paymentService.getDelegatedPaymentApprovals(p);
   }
 
   /**

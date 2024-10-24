@@ -587,9 +587,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   submitFundTransaction(p: {
     txId: string;
   }): Promise<TurboSubmitFundTxResponse>;
-  getDelegatedPaymentApprovals(
-    userAddress: UserAddress,
-  ): Promise<GetDelegatedPaymentApprovalsResponse>;
+  getDelegatedPaymentApprovals(p: {
+    userAddress: UserAddress;
+  }): Promise<GetDelegatedPaymentApprovalsResponse>;
 }
 
 export type TurboFundWithTokensParams = {
@@ -602,9 +602,9 @@ export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
 
-  getDelegatedPaymentApprovals(
-    userAddress?: UserAddress,
-  ): Promise<GetDelegatedPaymentApprovalsResponse>;
+  getDelegatedPaymentApprovals(p: {
+    userAddress?: UserAddress;
+  }): Promise<GetDelegatedPaymentApprovalsResponse>;
 
   topUpWithTokens(
     p: TurboFundWithTokensParams,

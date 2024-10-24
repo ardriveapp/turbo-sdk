@@ -265,9 +265,11 @@ export class TurboUnauthenticatedPaymentService
     throw new Error('Unknown response from payment service: ' + response);
   }
 
-  public async getDelegatedPaymentApprovals(
-    userAddress: UserAddress,
-  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+  public async getDelegatedPaymentApprovals({
+    userAddress,
+  }: {
+    userAddress: UserAddress;
+  }): Promise<GetDelegatedPaymentApprovalsResponse> {
     return this.httpService.get<GetDelegatedPaymentApprovalsResponse>({
       endpoint: `/account/approvals/get?userAddress=${userAddress}`,
     });
@@ -299,11 +301,13 @@ export class TurboAuthenticatedPaymentService
     return super.getBalance(userAddress);
   }
 
-  public async getDelegatedPaymentApprovals(
-    userAddress?: string,
-  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+  public async getDelegatedPaymentApprovals({
+    userAddress,
+  }: {
+    userAddress?: string;
+  }): Promise<GetDelegatedPaymentApprovalsResponse> {
     userAddress ??= await this.signer.getNativeAddress();
-    return super.getDelegatedPaymentApprovals(userAddress);
+    return super.getDelegatedPaymentApprovals({ userAddress });
   }
 
   public async getWincForFiat({

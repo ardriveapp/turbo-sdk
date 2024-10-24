@@ -59,13 +59,14 @@ describe('Delegated Payments', () => {
 
   describe('createDelegatedPaymentApproval', () => {
     it('should properly create a delegated payment approval', async () => {
-      const { id, owner } = await turbo.createDelegatedPaymentApproval({
-        approvedWincAmount: '100',
-        approvedAddress: unfundedSignerAddress1,
-      });
-      oldestApprovalId = id;
-      expect(id).to.be.a('string');
-      expect(owner).to.equal(arweavePayerAddress);
+      const { approvalDataItemId, payingAddress } =
+        await turbo.createDelegatedPaymentApproval({
+          approvedWincAmount: '100',
+          approvedAddress: unfundedSignerAddress1,
+        });
+      oldestApprovalId = approvalDataItemId;
+      expect(approvalDataItemId).to.be.a('string');
+      expect(payingAddress).to.equal(arweavePayerAddress);
 
       const balance = await turbo.getBalance();
       const {
@@ -84,13 +85,14 @@ describe('Delegated Payments', () => {
     });
 
     it('should properly create a delegated payment approval with expiration, and the approval should expire as expected', async () => {
-      const { id, owner } = await turbo.createDelegatedPaymentApproval({
-        approvedWincAmount: '100',
-        approvedAddress: unfundedSignerAddress1,
-        expiresBySeconds: 1,
-      });
-      expect(id).to.be.a('string');
-      expect(owner).to.equal(arweavePayerAddress);
+      const { approvalDataItemId, payingAddress } =
+        await turbo.createDelegatedPaymentApproval({
+          approvedWincAmount: '100',
+          approvedAddress: unfundedSignerAddress1,
+          expiresBySeconds: 1,
+        });
+      expect(approvalDataItemId).to.be.a('string');
+      expect(payingAddress).to.equal(arweavePayerAddress);
 
       const balance = await turbo.getBalance();
       const {
@@ -155,21 +157,21 @@ describe('Delegated Payments', () => {
           approvedWincAmount: '100',
           approvedAddress: unfundedSignerAddress1,
         })
-      ).id;
+      ).approvalDataItemId;
       const approvalWithFarExpirationId = (
         await turbo.createDelegatedPaymentApproval({
           approvedWincAmount: '100',
           approvedAddress: unfundedSignerAddress1,
           expiresBySeconds: 10000,
         })
-      ).id;
+      ).approvalDataItemId;
       const approvalWithNearExpirationId = (
         await turbo.createDelegatedPaymentApproval({
           approvedWincAmount: '100',
           approvedAddress: unfundedSignerAddress1,
           expiresBySeconds: 10,
         })
-      ).id;
+      ).approvalDataItemId;
 
       const { givenApprovals } = await turbo.getDelegatedPaymentApprovals();
       expect(givenApprovals).to.have.length(4);
