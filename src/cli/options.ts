@@ -129,6 +129,18 @@ export const optionMap = {
     alias: '--expires-by-seconds <expiresBySeconds>',
     description: 'Expiration time in seconds',
   },
+  ignoreApprovals: {
+    alias: '--ignore-approvals',
+    description:
+      "Ignore all delegated payment approvals, only use signing wallet's balance",
+    default: false,
+  },
+  useSignerBalanceFirst: {
+    alias: '--use-signer-balance-first',
+    description:
+      'Use the signer balance first before using delegated payment approvals',
+    default: false,
+  },
 } as const;
 
 export const walletOptions = [
@@ -148,21 +160,23 @@ export const globalOptions = [
   optionMap.uploadUrl,
 ];
 
-export const uploadFolderOptions = [
+export const uploadOptions = [
   ...walletOptions,
+  optionMap.paidBy,
+  optionMap.ignoreApprovals,
+  optionMap.useSignerBalanceFirst,
+];
+
+export const uploadFolderOptions = [
+  ...uploadOptions,
   optionMap.folderPath,
   optionMap.indexFile,
   optionMap.fallbackFile,
   optionMap.manifest,
   optionMap.maxConcurrency,
-  optionMap.paidBy,
 ];
 
-export const uploadFileOptions = [
-  ...walletOptions,
-  optionMap.filePath,
-  optionMap.paidBy,
-];
+export const uploadFileOptions = [...uploadOptions, optionMap.filePath];
 
 export const createApprovalOptions = [
   ...walletOptions,

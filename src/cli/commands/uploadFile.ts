@@ -17,15 +17,17 @@ import { createReadStream, statSync } from 'fs';
 
 import { turboCliTags } from '../constants.js';
 import { UploadFileOptions } from '../types.js';
-import { turboFromOptions } from '../utils.js';
+import { paidByFromOptions, turboFromOptions } from '../utils.js';
 
 export async function uploadFile(options: UploadFileOptions): Promise<void> {
-  const { filePath, paidBy } = options;
+  const { filePath } = options;
   if (filePath === undefined) {
     throw new Error('Must provide a --file-path to upload');
   }
 
   const turbo = await turboFromOptions(options);
+  const paidBy = await paidByFromOptions(options, turbo);
+  console.log('paidBy', paidBy);
 
   const fileSize = statSync(filePath).size;
 

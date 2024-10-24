@@ -32,6 +32,7 @@ import {
   AddressOptions,
   GlobalOptions,
   UploadFolderOptions,
+  UploadOptions,
   WalletOptions,
 } from './types.js';
 
@@ -220,6 +221,36 @@ export async function turboFromOptions(
     ...configFromOptions(options),
     privateKey,
   });
+}
+
+export async function paidByFromOptions(
+  {
+    paidBy: paidByCliInput,
+    ignoreApprovals,
+    useSignerBalanceFirst,
+  }: UploadOptions,
+  turbo: TurboAuthenticatedClient,
+): Promise<string[] | undefined> {
+  const paidBy = await (async () => {
+    if (paidByCliInput !== undefined && paidByCliInput.length > 0) {
+      return paidByCliInput;
+    }
+    if (ignoreApprovals) {
+      return undefined;
+    }
+    const { receivedApprovals } = await turbo.getBalance();
+    if (receivedApprovals.length !== 0) {
+      return receivedApprovals.map((approval) => approval.payingAddress);
+    }
+    return undefined;
+  })();
+
+  if (paidBy !== undefined && useSignerBalanceFirst) {
+    // Add the signer's address to the front of the paidBy array
+    paidBy.unshift(await turbo.signer.getNativeAddress());
+  }
+
+  return paidBy;
 }
 
 export function getUploadFolderOptions(options: UploadFolderOptions): {
