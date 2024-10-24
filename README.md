@@ -723,6 +723,8 @@ npx turbo --help
 
 #### Options
 
+Global options:
+
 - `-V, --version` - output the version number
 - `-h, --help` - display help for command
 - `--dev` - Enable development endpoints (default: false)
@@ -731,9 +733,17 @@ npx turbo --help
 - `--payment-url <url>` - Set a custom payment service URL
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
+Wallet options:
+
 - `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE, ETH, or POL private key as a string, or SOL Secret Key as a Uint8Array
 - `-m, --mnemonic <phrase>` - Mnemonic to use with the action (KYVE only)
 - `-p, --private-key <key>` - Private key to use with the action
+
+Upload options:
+
+- `--paid-by <paidBy...>` - An array of native addresses to pay for the upload
+- `--ignore-approvals` - The CLI will normally use any delegated payment approvals for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
+- `--use-signer-balance-first` - Use the connected wallet's balance before using any delegated payment approvals for the upload. Default: false
 
 #### Commands
 
@@ -820,7 +830,7 @@ Command Options:
 e.g:
 
 ```shell
-turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt
+turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt --paid-by '0x...address' '0x...another-address'
 ```
 
 ##### `price`
