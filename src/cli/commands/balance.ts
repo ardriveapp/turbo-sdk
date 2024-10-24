@@ -19,34 +19,32 @@ import { addressOrPrivateKeyFromOptions, configFromOptions } from '../utils.js';
 
 export async function balance(options: AddressOptions) {
   const config = configFromOptions(options);
-
   const { address, privateKey } = await addressOrPrivateKeyFromOptions(options);
 
-  if (address !== undefined) {
-    const turbo = TurboFactory.unauthenticated(config);
-    const { winc } = await turbo.getBalance(address);
+  const { winc, givenApprovals, receivedApprovals } = await (async () => {
+    if (address !== undefined) {
+      return TurboFactory.unauthenticated(config).getBalance(address);
+    }
+    if (privateKey !== undefined) {
+      throw new Error('Must provide an (--address) or use a valid wallet');
+    }
+    return TurboFactory.authenticated({
+      ...config,
+      privateKey,
+    }).getBalance();
+  })();
 
-    console.log(
-      `Turbo Balance for Native Address "${address}"\nCredits: ${
-        +winc / 1_000_000_000_000
-      }`,
-    );
-    return;
-  }
-
-  if (privateKey === undefined) {
-    throw new Error('Must provide an (--address) or use a valid wallet');
-  }
-
-  const turbo = TurboFactory.authenticated({
-    ...config,
-    privateKey,
-  });
-
-  const { winc } = await turbo.getBalance();
   console.log(
-    `Turbo Balance for Wallet Address "${await turbo.signer.getNativeAddress()}"\nCredits: ${
+    `Turbo Balance for Native Address "${address}"\nCredits: ${
       +winc / 1_000_000_000_000
+    }${
+      givenApprovals.length > 0
+        ? `\nGiven Approvals:\n${JSON.stringify(givenApprovals, null, 2)}`
+        : ''
+    }${
+      receivedApprovals.length > 0
+        ? `\nReceived Approvals:\n${JSON.stringify(receivedApprovals, null, 2)}`
+        : ''
     }`,
   );
 }

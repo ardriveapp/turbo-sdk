@@ -15,12 +15,17 @@
  */
 import { turboCliTags } from '../constants.js';
 import { UploadFolderOptions } from '../types.js';
-import { getUploadFolderOptions, turboFromOptions } from '../utils.js';
+import {
+  getUploadFolderOptions,
+  paidByFromOptions,
+  turboFromOptions,
+} from '../utils.js';
 
 export async function uploadFolder(
   options: UploadFolderOptions,
 ): Promise<void> {
   const turbo = await turboFromOptions(options);
+  const paidBy = await paidByFromOptions(options, turbo);
 
   const {
     disableManifest,
@@ -32,7 +37,7 @@ export async function uploadFolder(
 
   const result = await turbo.uploadFolder({
     folderPath: folderPath,
-    dataItemOpts: { tags: [...turboCliTags] }, // TODO: Inject user tags
+    dataItemOpts: { tags: [...turboCliTags], paidBy }, // TODO: Inject user tags
     manifestOptions: {
       disableManifest,
       indexFile,

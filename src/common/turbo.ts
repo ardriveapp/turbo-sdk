@@ -15,6 +15,8 @@
  */
 import {
   Currency,
+  DelegatedPaymentApproval,
+  GetDelegatedPaymentApprovalsResponse,
   NativeAddress,
   TokenType,
   TurboAbortSignal,
@@ -26,6 +28,7 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCreateDelegatedPaymentApprovalParams,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
@@ -34,6 +37,7 @@ import {
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
+  TurboRevokeDelegatePaymentApprovalsParams,
   TurboSignedDataItemFactory,
   TurboSubmitFundTxResponse,
   TurboUnauthenticatedClientConfiguration,
@@ -207,6 +211,15 @@ export class TurboUnauthenticatedClient
     wallets.pol = wallets.matic;
     return wallets;
   }
+
+  /**
+   * Returns a list of all delegated payment approvals for the user.
+   */
+  getDelegatedPaymentApprovals(p: {
+    userAddress: NativeAddress;
+  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+    return this.paymentService.getDelegatedPaymentApprovals(p);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -230,8 +243,19 @@ export class TurboAuthenticatedClient
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  getBalance(address?: NativeAddress): Promise<TurboBalanceResponse> {
-    return this.paymentService.getBalance(address);
+  getBalance(userAddress?: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(userAddress);
+  }
+
+  /**
+   * Returns a list of all delegated payment approvals for the user.
+   */
+  getDelegatedPaymentApprovals(
+    p: {
+      userAddress?: NativeAddress;
+    } = {},
+  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+    return this.paymentService.getDelegatedPaymentApprovals(p);
   }
 
   /**
@@ -264,5 +288,28 @@ export class TurboAuthenticatedClient
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
+  }
+
+  /**
+   * Creates a data item with tags that designate it as a delegated payment approval.
+   * Signs the data item and sends it to the Turbo Upload Service, which will verify
+   * the signature and forward the admin action towards the Turbo Payment Service.
+   */
+  createDelegatedPaymentApproval(
+    p: TurboCreateDelegatedPaymentApprovalParams,
+  ): Promise<DelegatedPaymentApproval> {
+    return this.uploadService.createDelegatedPaymentApproval(p);
+  }
+
+  /**
+   * Creates a data item with tags that designate it as a revoke action for delegated
+   * payment approvals for target revokedAddress. Signs the data item and sends it to
+   * the Turbo Upload Service, which will verify the signature and forward the admin
+   * action towards the Turbo Payment Service.
+   */
+  revokeDelegatedPaymentApprovals(
+    p: TurboRevokeDelegatePaymentApprovalsParams,
+  ): Promise<DelegatedPaymentApproval[]> {
+    return this.uploadService.revokeDelegatedPaymentApprovals(p);
   }
 }
