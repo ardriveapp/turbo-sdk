@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.19.0",
+  "version": "1.19.2",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -94,6 +94,9 @@
     "prompts": "^2.4.2",
     "tweetnacl": "^1.0.3",
     "winston": "^3.14.1"
+  },
+  "resolutions": {
+    "@keplr-wallet/cosmos": "0.12.123"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",
