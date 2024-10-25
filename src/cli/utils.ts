@@ -240,7 +240,10 @@ export async function paidByFromOptions(
     }
     const { receivedApprovals } = await turbo.getBalance();
     if (receivedApprovals !== undefined && receivedApprovals.length !== 0) {
-      return receivedApprovals.map((approval) => approval.payingAddress);
+      // get unique paying addresses from any received approvals
+      return Array.from(
+        new Set(receivedApprovals.map((approval) => approval.payingAddress)),
+      );
     }
     return undefined;
   })();
