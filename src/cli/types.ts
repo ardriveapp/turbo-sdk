@@ -16,6 +16,7 @@
 
 export type GlobalOptions = {
   dev: boolean;
+  local: boolean;
   gateway: string | undefined;
   debug: boolean;
   quiet: boolean;

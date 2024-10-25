@@ -74,7 +74,12 @@ export const optionMap = {
   },
   dev: {
     alias: '--dev',
-    description: 'Enable development endpoints',
+    description: 'Enable Turbo development endpoints',
+    default: false,
+  },
+  local: {
+    alias: '--local',
+    description: 'Enable local development endpoints',
     default: false,
   },
   debug: {
@@ -151,6 +156,7 @@ export const walletOptions = [
 
 export const globalOptions = [
   optionMap.dev,
+  optionMap.local,
   optionMap.gateway,
   optionMap.debug,
   optionMap.quiet,

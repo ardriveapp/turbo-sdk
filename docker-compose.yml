@@ -113,7 +113,7 @@ services:
 
   payment-service:
     # build:
-    # context: ../payment-service
+    #   context: ../payment-service
     image: ghcr.io/ardriveapp/payment-service:latest
     ports:
       - '4000:4000'

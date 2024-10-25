@@ -180,11 +180,20 @@ export function configFromOptions(
   let uploadUrl: string | undefined = undefined;
   let gatewayUrl: string | undefined = undefined;
 
+  if (options.local && options.dev) {
+    throw new Error('Cannot use both --local and --dev flags');
+  }
+
   if (options.dev) {
     // Use development endpoints
     paymentUrl = developmentTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = developmentTurboConfiguration.uploadServiceConfig.url;
     gatewayUrl = tokenToDevGatewayMap[token];
+  } else if (options.local) {
+    // Use local endpoints
+    paymentUrl = 'http://localhost:4000';
+    uploadUrl = 'http://localhost:3000';
+    gatewayUrl = 'http://localhost:1984';
   } else {
     // Use default endpoints
     paymentUrl = defaultTurboConfiguration.paymentServiceConfig.url;
