@@ -67,6 +67,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
     - [`createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#createdelegatedpaymentapproval-approvedaddress-approvedwincamount-expiresbyseconds-)
     - [`revokeDelegatedPaymentApprovals({ approvedAddress })`](#revokedelegatedpaymentapprovals-approvedaddress-)
+    - [`getDelegatedPaymentApprovals({ userAddress })`](#getdelegatedpaymentapprovals-useraddress-)
 - [CLI](#cli)
   - [Install CLI](#install-cli)
   - [CLI Usage](#cli-usage)
