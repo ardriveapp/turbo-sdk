@@ -192,3 +192,5 @@ export const createApprovalOptions = [
 ];
 
 export const revokeApprovalsOptions = [...walletOptions, optionMap.address];
+
+export const listApprovalsOptions = revokeApprovalsOptions;

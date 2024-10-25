@@ -78,3 +78,5 @@ export type CreateApprovalOptions = WalletOptions & {
 export type RevokeApprovalsOptions = WalletOptions & {
   address: string | undefined;
 };
+
+export type ListApprovalsOptions = RevokeApprovalsOptions;

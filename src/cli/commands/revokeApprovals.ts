@@ -22,7 +22,7 @@ export async function revokeApprovals(
   const { address: revokedAddress } = options;
   if (revokedAddress === undefined) {
     throw new Error(
-      'Must provide an approved --address to create approval for',
+      'Must provide an approved --address to revoke approvals for',
     );
   }
 
@@ -32,5 +32,7 @@ export async function revokeApprovals(
     revokedAddress,
   });
 
-  console.log('Created approval:', JSON.stringify(result, null, 2));
+  console.log(
+    JSON.stringify({ message: 'Revoked approvals', ...result }, null, 2),
+  );
 }

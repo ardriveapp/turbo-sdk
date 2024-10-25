@@ -46,5 +46,7 @@ export async function createApproval(
     expiresBySeconds,
   });
 
-  console.log('Created approval:', JSON.stringify(result, null, 2));
+  console.log(
+    JSON.stringify({ message: 'Created approval:', ...result }, null, 2),
+  );
 }

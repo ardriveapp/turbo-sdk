@@ -20,3 +20,5 @@ export const turboCliTags: { name: string; value: string }[] = [
   { name: 'App-Version', value: version },
   { name: 'App-Platform', value: process.platform },
 ];
+
+export const wincPerCredit = 1_000_000_000_000;

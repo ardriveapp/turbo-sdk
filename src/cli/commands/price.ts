@@ -17,6 +17,7 @@ import { currencyMap } from '../../common/currency.js';
 import { isTokenType, tokenToBaseMap } from '../../common/index.js';
 import { TurboFactory } from '../../node/factory.js';
 import { fiatCurrencyTypes, isCurrency, tokenTypes } from '../../types.js';
+import { wincPerCredit } from '../constants.js';
 import { PriceOptions } from '../types.js';
 import { configFromOptions } from '../utils.js';
 
@@ -63,7 +64,7 @@ export async function price(options: PriceOptions) {
 
   console.log(
     `Current price estimate for ${value} ${type} is ~${(
-      +winc / 1_000_000_000_000
+      +winc / wincPerCredit
     ).toFixed(12)} Credits`,
   );
 }
