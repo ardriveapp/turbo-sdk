@@ -27,7 +27,6 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
 
   const turbo = await turboFromOptions(options);
   const paidBy = await paidByFromOptions(options, turbo);
-  console.log('paidBy', paidBy);
 
   const fileSize = statSync(filePath).size;
 
