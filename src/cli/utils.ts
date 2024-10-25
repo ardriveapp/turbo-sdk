@@ -232,14 +232,17 @@ export async function paidByFromOptions(
   turbo: TurboAuthenticatedClient,
 ): Promise<string[] | undefined> {
   const paidBy = await (async () => {
+    console.log('paidByCliInput', paidByCliInput);
     if (paidByCliInput !== undefined && paidByCliInput.length > 0) {
       return paidByCliInput;
     }
     if (ignoreApprovals) {
+      console.log('ignoreApprovals', ignoreApprovals);
       return undefined;
     }
     const { receivedApprovals } = await turbo.getBalance();
-    if (receivedApprovals.length !== 0) {
+    console.log('receivedApprovals', receivedApprovals);
+    if (receivedApprovals !== undefined && receivedApprovals.length !== 0) {
       return receivedApprovals.map((approval) => approval.payingAddress);
     }
     return undefined;
