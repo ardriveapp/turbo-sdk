@@ -1,6 +1,7 @@
 import Arweave from 'arweave';
 import { expect } from 'chai';
 import { createReadStream, statSync } from 'node:fs';
+import { restore, stub } from 'sinon';
 
 import { JWKInterface } from '../src/common/jwk.js';
 import { TurboAuthenticatedClient } from '../src/common/turbo.js';
@@ -18,6 +19,11 @@ import {
 } from './helpers.js';
 
 describe('Delegated Payments', () => {
+  afterEach(() => {
+    // Restore all stubs
+    restore();
+  });
+
   let fundedPayerArweaveJwk: JWKInterface;
 
   let arweavePayerAddress: UserAddress;
@@ -148,6 +154,24 @@ describe('Delegated Payments', () => {
         errorType: 'FailedRequestError',
       });
     });
+
+    it('should throw an error when create approval uploadFile succeeds but does not return the created approval', async () => {
+      stub(turbo['uploadService'], 'uploadFile').resolves({
+        winc: '100',
+        dataCaches: [],
+        fastFinalityIndexes: [],
+        id: 'id',
+        owner: 'owner',
+      });
+      await expectAsyncErrorThrow({
+        promiseToError: turbo.createDelegatedPaymentApproval({
+          approvedAddress: 'stub-43-char-address-stub-43-char-address-0',
+          approvedWincAmount: '100',
+        }),
+        errorMessage: `Failed to create delegated payment approval but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}`,
+        errorType: 'Error',
+      });
+    });
   });
 
   describe('getDelegatedPaymentApprovals', () => {
@@ -211,6 +235,24 @@ describe('Delegated Payments', () => {
         errorType: 'FailedRequestError',
       });
     });
+
+    it('should throw an error when revoke uploadFile succeeds but does not return the revoked approvals', async () => {
+      stub(turbo['uploadService'], 'uploadFile').resolves({
+        winc: '100',
+        dataCaches: [],
+        fastFinalityIndexes: [],
+        id: 'id',
+        owner: 'owner',
+      });
+      await expectAsyncErrorThrow({
+        promiseToError: turbo.revokeDelegatedPaymentApprovals({
+          revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
+        }),
+        errorMessage:
+          'Failed to revoke delegated payment approvals but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}',
+        errorType: 'Error',
+      });
+    });
   });
 
   describe('using delegated payment approvals', () => {
@@ -259,10 +301,9 @@ describe('Delegated Payments', () => {
       expect(+signerBalance.effectiveBalance).to.equal(766_000_000_000);
     });
 
+    const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+    const fileSize = statSync(filePath).size;
     it('should properly use a delegated payment approvals to upload data when paid-by is provided', async () => {
-      const filePath = new URL('files/1MB_file', import.meta.url).pathname;
-      const fileSize = statSync(filePath).size;
-
       const { winc } = await signerTurbo.uploadFile({
         dataItemOpts: { paidBy: payingAddress },
         fileStreamFactory: () => createReadStream(filePath),
@@ -278,6 +319,22 @@ describe('Delegated Payments', () => {
       const signerBalance = await signerTurbo.getBalance();
       expect(signerBalance.winc).to.equal('0');
       expect(+signerBalance.effectiveBalance).to.equal(766_000_000_000 - +winc);
+    });
+
+    it('should properly use a delegated payment approvals to upload data when multiple paid-bys are provided', async () => {
+      const payerBalance = await payingTurbo.getBalance();
+
+      const { winc } = await signerTurbo.uploadFile({
+        dataItemOpts: { paidBy: [signerAddress, payingAddress] },
+        fileStreamFactory: () => createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+      });
+
+      expect(winc).to.not.equal('0');
+      const payerBalanceLater = await payingTurbo.getBalance();
+      expect(+payerBalanceLater.controlledWinc).to.equal(
+        +payerBalance.controlledWinc - +winc,
+      );
     });
   });
 });
