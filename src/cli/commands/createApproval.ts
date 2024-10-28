@@ -39,7 +39,7 @@ export async function createApproval(
 
   const approvedWincAmount = new BigNumber(creditAmount)
     .shiftedBy(12)
-    .toString();
+    .toFixed(0);
   const result = await turbo.createDelegatedPaymentApproval({
     approvedAddress,
     approvedWincAmount,
