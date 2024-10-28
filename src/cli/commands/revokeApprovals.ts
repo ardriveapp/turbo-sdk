@@ -28,11 +28,11 @@ export async function revokeApprovals(
 
   const turbo = await turboFromOptions(options);
 
-  const result = await turbo.revokeDelegatedPaymentApprovals({
+  const revokedApprovals = await turbo.revokeDelegatedPaymentApprovals({
     revokedAddress,
   });
 
   console.log(
-    JSON.stringify({ message: 'Revoked approvals', ...result }, null, 2),
+    JSON.stringify({ message: 'Revoked approvals', revokedApprovals }, null, 2),
   );
 }
