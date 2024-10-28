@@ -207,7 +207,7 @@ describe('Delegated Payments', () => {
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
         errorMessage:
-          'Failed request: 400: Unable to revoke delegated payment approvals!',
+          'Failed request: 400: Unable to revoke delegated payment approval !',
         errorType: 'FailedRequestError',
       });
     });
