@@ -107,6 +107,7 @@ applyOptions(
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, createApproval);
 });
+
 applyOptions(
   program
     .command('revoke-approvals')
