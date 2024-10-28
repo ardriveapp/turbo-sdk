@@ -51,7 +51,7 @@ export async function listApprovals(
     givenApprovals?.length === 0 && receivedApprovals?.length === 0;
   const body = {
     message:
-      `${hasApprovals ? 'No approvals found ' : 'Approvals found'}` +
+      `${hasApprovals ? 'No approvals found' : 'Approvals found'}` +
       ` for native address '${nativeAddress}'`,
     givenApprovals,
     receivedApprovals,
