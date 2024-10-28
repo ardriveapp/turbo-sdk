@@ -210,6 +210,15 @@ describe('Delegated Payments', () => {
         newApprovalWithNoExpirationId,
       );
     });
+
+    it('should properly get delegated payment approvals when no approvals are present', async () => {
+      const { givenApprovals } = await TurboFactory.unauthenticated(
+        {},
+      ).getDelegatedPaymentApprovals({
+        userAddress: 'stub-43-char-address-stub-43-char-address-0',
+      });
+      expect(givenApprovals).to.have.length(0);
+    });
   });
 
   describe('revokeDelegatedPaymentApprovals', () => {

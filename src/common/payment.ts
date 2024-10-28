@@ -270,9 +270,22 @@ export class TurboUnauthenticatedPaymentService
   }: {
     userAddress: UserAddress;
   }): Promise<GetDelegatedPaymentApprovalsResponse> {
-    return this.httpService.get<GetDelegatedPaymentApprovalsResponse>({
+    const response = await this.httpService.get<
+      GetDelegatedPaymentApprovalsResponse | undefined
+    >({
       endpoint: `/account/approvals/get?userAddress=${userAddress}`,
+      allowedStatuses: [200, 404],
     });
+    if (
+      response?.givenApprovals === undefined &&
+      response?.receivedApprovals === undefined
+    ) {
+      return {
+        givenApprovals: [],
+        receivedApprovals: [],
+      };
+    }
+    return response;
   }
 }
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
