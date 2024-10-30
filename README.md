@@ -81,6 +81,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`price`](#price)
       - [`create-approval`](#create-approval)
       - [`revoke-approvals`](#revoke-approvals)
+      - [`list-approvals`](#list-approvals)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -923,6 +924,20 @@ e.g:
 
 ```shell
 turbo revoke-approvals --wallet-file ../path/to/my/wallet
+```
+
+##### `list-approvals`
+
+List all given and received delegated payment approvals from the connected wallet or the provided native address.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to list delegated payment approvals for
+
+e.g:
+
+```shell
+turbo list-approvals --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
 
 ## Developers
