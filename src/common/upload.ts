@@ -40,10 +40,12 @@ import {
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
-export const createDelegatedPaymentApprovalTagName = 'x-approve-payment';
-export const approvalAmountTagName = 'x-amount';
-export const approvalExpiresBySecondsTagName = 'x-expires-seconds';
-export const revokeDelegatePaymentApprovalTagName = 'x-delete-payment-approval';
+export const delegatedPaymentTagNames = {
+  createDelegatedPaymentApproval: 'x-approve-payment',
+  approvalAmount: 'x-amount',
+  approvalExpiresBySeconds: 'x-expires-seconds',
+  revokeDelegatePaymentApproval: 'x-delete-payment-approval',
+};
 
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
@@ -323,13 +325,19 @@ export abstract class TurboAuthenticatedBaseUploadService
   }: TurboCreateDelegatedPaymentApprovalParams): Promise<DelegatedPaymentApproval> {
     const dataItemOpts = {
       tags: [
-        { name: createDelegatedPaymentApprovalTagName, value: approvedAddress },
-        { name: approvalAmountTagName, value: approvedWincAmount.toString() },
+        {
+          name: delegatedPaymentTagNames.createDelegatedPaymentApproval,
+          value: approvedAddress,
+        },
+        {
+          name: delegatedPaymentTagNames.approvalAmount,
+          value: approvedWincAmount.toString(),
+        },
       ],
     };
     if (expiresBySeconds !== undefined) {
       dataItemOpts.tags.push({
-        name: approvalExpiresBySecondsTagName,
+        name: delegatedPaymentTagNames.approvalExpiresBySeconds,
         value: expiresBySeconds.toString(),
       });
     }
@@ -359,7 +367,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const dataItemOpts = {
       tags: [
         {
-          name: revokeDelegatePaymentApprovalTagName,
+          name: delegatedPaymentTagNames.revokeDelegatePaymentApproval,
           value: revokedAddress,
         },
       ],

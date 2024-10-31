@@ -33,6 +33,10 @@ export async function revokeApprovals(
   });
 
   console.log(
-    JSON.stringify({ message: 'Revoked approvals', revokedApprovals }, null, 2),
+    JSON.stringify(
+      { message: 'Revoked delegated payment approvals!', revokedApprovals },
+      null,
+      2,
+    ),
   );
 }
