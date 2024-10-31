@@ -20,13 +20,16 @@ import { pLimit } from 'plimit-lit';
 import {
   ArweaveManifest,
   DataItemOptions,
+  DelegatedPaymentApproval,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
+  TurboCreateDelegatedPaymentApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
+  TurboRevokeDelegatePaymentApprovalsParams,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
@@ -36,6 +39,11 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export const createDelegatedPaymentApprovalTagName = 'x-approve-payment';
+export const approvalAmountTagName = 'x-amount';
+export const approvalExpiresBySecondsTagName = 'x-expires-seconds';
+export const revokeDelegatePaymentApprovalTagName = 'x-delete-payment-approval';
 
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
@@ -115,17 +123,28 @@ export abstract class TurboAuthenticatedBaseUploadService
         dataItemOpts,
       });
     const signedDataItem = dataItemStreamFactory();
-    const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
+
+    const headers = {
+      'content-type': 'application/octet-stream',
+      'content-length': `${dataItemSizeFactory()}`,
+    };
+    if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+      const paidBy = Array.isArray(dataItemOpts.paidBy)
+        ? dataItemOpts.paidBy
+        : [dataItemOpts.paidBy];
+
+      if (dataItemOpts.paidBy.length > 0) {
+        headers['x-paid-by'] = paidBy;
+      }
+    }
+
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: signedDataItem,
-      headers: {
-        'content-type': 'application/octet-stream',
-        'content-length': `${fileSize}`,
-      },
+      headers,
     });
   }
 
@@ -295,5 +314,69 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifest,
       manifestResponse,
     };
+  }
+
+  public async createDelegatedPaymentApproval({
+    approvedAddress,
+    approvedWincAmount,
+    expiresBySeconds,
+  }: TurboCreateDelegatedPaymentApprovalParams): Promise<DelegatedPaymentApproval> {
+    const dataItemOpts = {
+      tags: [
+        { name: createDelegatedPaymentApprovalTagName, value: approvedAddress },
+        { name: approvalAmountTagName, value: approvedWincAmount.toString() },
+      ],
+    };
+    if (expiresBySeconds !== undefined) {
+      dataItemOpts.tags.push({
+        name: approvalExpiresBySecondsTagName,
+        value: expiresBySeconds.toString(),
+      });
+    }
+
+    const nonceData = Buffer.from(
+      approvedAddress + approvedWincAmount + Date.now(),
+    );
+    const { createdApproval, ...uploadResponse } = await this.uploadFile({
+      fileStreamFactory: () => Readable.from(nonceData),
+      fileSizeFactory: () => nonceData.byteLength,
+      dataItemOpts,
+    });
+    if (!createdApproval) {
+      throw new Error(
+        'Failed to create delegated payment approval but upload has succeeded\n' +
+          JSON.stringify(uploadResponse),
+      );
+    }
+    return createdApproval;
+  }
+
+  public async revokeDelegatedPaymentApprovals({
+    revokedAddress,
+  }: TurboRevokeDelegatePaymentApprovalsParams): Promise<
+    DelegatedPaymentApproval[]
+  > {
+    const dataItemOpts = {
+      tags: [
+        {
+          name: revokeDelegatePaymentApprovalTagName,
+          value: revokedAddress,
+        },
+      ],
+    };
+
+    const nonceData = Buffer.from(revokedAddress + Date.now());
+    const { revokedApprovals, ...uploadResponse } = await this.uploadFile({
+      fileStreamFactory: () => Readable.from(nonceData),
+      fileSizeFactory: () => nonceData.byteLength,
+      dataItemOpts,
+    });
+    if (!revokedApprovals) {
+      throw new Error(
+        'Failed to revoke delegated payment approvals but upload has succeeded\n' +
+          JSON.stringify(uploadResponse),
+      );
+    }
+    return revokedApprovals;
   }
 }

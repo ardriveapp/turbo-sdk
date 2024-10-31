@@ -20,6 +20,7 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
+import { createApproval } from './commands/createApproval.js';
 import {
   balance,
   cryptoFund,
@@ -28,9 +29,14 @@ import {
   uploadFile,
   uploadFolder,
 } from './commands/index.js';
+import { listApprovals } from './commands/listApprovals.js';
+import { revokeApprovals } from './commands/revokeApprovals.js';
 import {
+  createApprovalOptions,
   globalOptions,
+  listApprovalsOptions,
   optionMap,
+  revokeApprovalsOptions,
   uploadFileOptions,
   uploadFolderOptions,
   walletOptions,
@@ -91,6 +97,37 @@ applyOptions(
   [optionMap.value, optionMap.type],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, price);
+});
+
+applyOptions(
+  program
+    .command('create-approval')
+    .description('Create a Turbo delegated payment approval'),
+  createApprovalOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, createApproval);
+});
+
+applyOptions(
+  program
+    .command('revoke-approvals')
+    .description(
+      'Revokes all Turbo delegated payment approvals for given address',
+    ),
+  revokeApprovalsOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, revokeApprovals);
+});
+
+applyOptions(
+  program
+    .command('list-approvals')
+    .description(
+      'Lists all Turbo delegated payment approvals for given address or wallet',
+    ),
+  listApprovalsOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, listApprovals);
 });
 
 if (

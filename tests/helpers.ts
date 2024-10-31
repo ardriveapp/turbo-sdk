@@ -115,7 +115,8 @@ export const testKyveNativeAddress =
   'kyve1xddfun7awnee70xdq5fnt5ja3vxh93v3dj4k8v';
 export const base64KyveAddress = 'Rdhf8cqIdoeb7scy9l0d1iVmhu6nmRJIGR-V7YQPKy8'; // cspell:enable
 
-const arweaveUrlString = process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
+export const arweaveUrlString =
+  process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
 const arweaveUrl = new URL(arweaveUrlString);
 export const testArweave = Arweave.init({
   host: arweaveUrl.hostname,
@@ -140,7 +141,10 @@ export async function mineArLocalBlock(numBlocks = 1): Promise<void> {
   await testArweave.api.get(`mine/${numBlocks}`);
 }
 
-export async function sendFundTransaction(quantity = 1000): Promise<string> {
+export async function sendFundTransaction(
+  quantity = 1000,
+  jwk = testJwk,
+): Promise<string> {
   const paymentUrl = new URL(
     turboDevelopmentConfigurations.paymentServiceConfig.url,
   );
@@ -150,7 +154,7 @@ export async function sendFundTransaction(quantity = 1000): Promise<string> {
     target,
   });
 
-  await testArweave.transactions.sign(tx, testJwk);
+  await testArweave.transactions.sign(tx, jwk);
 
   await testArweave.transactions.post(tx);
   return tx.id;

@@ -74,7 +74,12 @@ export const optionMap = {
   },
   dev: {
     alias: '--dev',
-    description: 'Enable development endpoints',
+    description: 'Enable Turbo development endpoints',
+    default: false,
+  },
+  local: {
+    alias: '--local',
+    description: 'Enable local development endpoints',
     default: false,
   },
   debug: {
@@ -120,6 +125,27 @@ export const optionMap = {
     alias: '--max-concurrency <maxConcurrency>',
     description: 'Maximum number of concurrent uploads',
   },
+  paidBy: {
+    alias: '--paid-by <paidBy...>',
+    description: 'Address to pay for the upload',
+    type: 'array',
+  },
+  expiresBySeconds: {
+    alias: '--expires-by-seconds <expiresBySeconds>',
+    description: 'Expiration time in seconds',
+  },
+  ignoreApprovals: {
+    alias: '--ignore-approvals',
+    description:
+      "Ignore all delegated payment approvals, only use signing wallet's balance",
+    default: false,
+  },
+  useSignerBalanceFirst: {
+    alias: '--use-signer-balance-first',
+    description:
+      'Use the signer balance first before using delegated payment approvals',
+    default: false,
+  },
 } as const;
 
 export const walletOptions = [
@@ -130,6 +156,7 @@ export const walletOptions = [
 
 export const globalOptions = [
   optionMap.dev,
+  optionMap.local,
   optionMap.gateway,
   optionMap.debug,
   optionMap.quiet,
@@ -139,8 +166,15 @@ export const globalOptions = [
   optionMap.uploadUrl,
 ];
 
-export const uploadFolderOptions = [
+export const uploadOptions = [
   ...walletOptions,
+  optionMap.paidBy,
+  optionMap.ignoreApprovals,
+  optionMap.useSignerBalanceFirst,
+];
+
+export const uploadFolderOptions = [
+  ...uploadOptions,
   optionMap.folderPath,
   optionMap.indexFile,
   optionMap.fallbackFile,
@@ -148,4 +182,15 @@ export const uploadFolderOptions = [
   optionMap.maxConcurrency,
 ];
 
-export const uploadFileOptions = [...walletOptions, optionMap.filePath];
+export const uploadFileOptions = [...uploadOptions, optionMap.filePath];
+
+export const createApprovalOptions = [
+  ...walletOptions,
+  optionMap.value,
+  optionMap.address,
+  optionMap.expiresBySeconds,
+];
+
+export const revokeApprovalsOptions = [...walletOptions, optionMap.address];
+
+export const listApprovalsOptions = revokeApprovalsOptions;

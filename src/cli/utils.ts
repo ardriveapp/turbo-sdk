@@ -32,6 +32,7 @@ import {
   AddressOptions,
   GlobalOptions,
   UploadFolderOptions,
+  UploadOptions,
   WalletOptions,
 } from './types.js';
 
@@ -179,11 +180,20 @@ export function configFromOptions(
   let uploadUrl: string | undefined = undefined;
   let gatewayUrl: string | undefined = undefined;
 
+  if (options.local && options.dev) {
+    throw new Error('Cannot use both --local and --dev flags');
+  }
+
   if (options.dev) {
     // Use development endpoints
     paymentUrl = developmentTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = developmentTurboConfiguration.uploadServiceConfig.url;
     gatewayUrl = tokenToDevGatewayMap[token];
+  } else if (options.local) {
+    // Use local endpoints
+    paymentUrl = 'http://localhost:4000';
+    uploadUrl = 'http://localhost:3000';
+    gatewayUrl = 'http://localhost:1984';
   } else {
     // Use default endpoints
     paymentUrl = defaultTurboConfiguration.paymentServiceConfig.url;
@@ -220,6 +230,39 @@ export async function turboFromOptions(
     ...configFromOptions(options),
     privateKey,
   });
+}
+
+export async function paidByFromOptions(
+  {
+    paidBy: paidByCliInput,
+    ignoreApprovals,
+    useSignerBalanceFirst,
+  }: UploadOptions,
+  turbo: TurboAuthenticatedClient,
+): Promise<string[] | undefined> {
+  const paidBy = await (async () => {
+    if (paidByCliInput !== undefined && paidByCliInput.length > 0) {
+      return paidByCliInput;
+    }
+    if (ignoreApprovals) {
+      return undefined;
+    }
+    const { receivedApprovals } = await turbo.getBalance();
+    if (receivedApprovals !== undefined && receivedApprovals.length !== 0) {
+      // get unique paying addresses from any received approvals
+      return Array.from(
+        new Set(receivedApprovals.map((approval) => approval.payingAddress)),
+      );
+    }
+    return undefined;
+  })();
+
+  if (paidBy !== undefined && useSignerBalanceFirst) {
+    // Add the signer's address to the front of the paidBy array
+    paidBy.unshift(await turbo.signer.getNativeAddress());
+  }
+
+  return paidBy;
 }
 
 export function getUploadFolderOptions(options: UploadFolderOptions): {

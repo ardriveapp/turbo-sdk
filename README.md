@@ -65,6 +65,9 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
       - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
+    - [`createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#createdelegatedpaymentapproval-approvedaddress-approvedwincamount-expiresbyseconds-)
+    - [`revokeDelegatedPaymentApprovals({ approvedAddress })`](#revokedelegatedpaymentapprovals-approvedaddress-)
+    - [`getDelegatedPaymentApprovals({ userAddress })`](#getdelegatedpaymentapprovals-useraddress-)
 - [CLI](#cli)
   - [Install CLI](#install-cli)
   - [CLI Usage](#cli-usage)
@@ -76,6 +79,9 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`upload-folder`](#upload-folder)
       - [`upload-file`](#upload-file)
       - [`price`](#price)
+      - [`create-approval`](#create-approval)
+      - [`revoke-approvals`](#revoke-approvals)
+      - [`list-approvals`](#list-approvals)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -677,6 +683,40 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
+#### `createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`
+
+Creates a delegated payment approval from the connected wallet to the provided native address and approved winc amount. This action will create a data item for the approval
+
+```typescript
+const { approvalDataItemId, approvedWincAmount } =
+  await turbo.createDelegatedPaymentApproval({
+    approvedAddress: '2cor...VUa',
+    approvedWincAmount: 0.08315565032,
+    expiresBySeconds: 3600,
+  });
+```
+
+#### `revokeDelegatedPaymentApprovals({ approvedAddress })`
+
+Revokes all delegated payment approvals from the connected wallet to the provided native address.
+
+```typescript
+const revokedApprovals = await turbo.revokeDelegatePaymentApprovals({
+  approvedAddress: '2cor...VUa',
+});
+```
+
+#### `getDelegatedPaymentApprovals({ userAddress })`
+
+Returns all delegated payment approvals from the connected wallet or the provided native address.
+
+```typescript
+const { givenApprovals, receivedApprovals } =
+  await turbo.getDelegatedPaymentApprovals({
+    userAddress: '2cor...VUa',
+  });
+```
+
 ## CLI
 
 ### Install CLI
@@ -723,6 +763,8 @@ npx turbo --help
 
 #### Options
 
+Global options:
+
 - `-V, --version` - output the version number
 - `-h, --help` - display help for command
 - `--dev` - Enable development endpoints (default: false)
@@ -731,9 +773,17 @@ npx turbo --help
 - `--payment-url <url>` - Set a custom payment service URL
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
+Wallet options:
+
 - `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE, ETH, or POL private key as a string, or SOL Secret Key as a Uint8Array
 - `-m, --mnemonic <phrase>` - Mnemonic to use with the action (KYVE only)
 - `-p, --private-key <key>` - Private key to use with the action
+
+Upload options:
+
+- `--paid-by <paidBy...>` - An array of native addresses to pay for the upload
+- `--ignore-approvals` - The CLI will normally use any delegated payment approvals for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
+- `--use-signer-balance-first` - Use the connected wallet's balance before using any delegated payment approvals for the upload. Default: false
 
 #### Commands
 
@@ -820,7 +870,7 @@ Command Options:
 e.g:
 
 ```shell
-turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt
+turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt --paid-by '0x...address' '0x...another-address'
 ```
 
 ##### `price`
@@ -844,6 +894,50 @@ turbo price --value 1024 --type bytes
 
 ```shell
 turbo price --value 1.1 --type arweave
+```
+
+##### `create-approval`
+
+Create a delegated payment approval from the connected wallet to the provided native address and approved winc amount.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to that will receive the delegated payment approval
+- `-v, --value <value>` - Value of winc to create delegated payment approval for
+- `-e, --expires-by-seconds <seconds>` - Expiry time in seconds for the delegated payment approval
+
+e.g:
+
+```shell
+turbo create-approval --address 2cor...VUa --value 0.083155650320 --wallet-file ../path/to/my/wallet --expires-by-seconds 3600
+```
+
+##### `revoke-approvals`
+
+Revoke all delegated payment approvals from the connected wallet to the provided native address.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to revoke delegated payment approvals for
+
+e.g:
+
+```shell
+turbo revoke-approvals --wallet-file ../path/to/my/wallet
+```
+
+##### `list-approvals`
+
+List all given and received delegated payment approvals from the connected wallet or the provided native address.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to list delegated payment approvals for
+
+e.g:
+
+```shell
+turbo list-approvals --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
 
 ## Developers
