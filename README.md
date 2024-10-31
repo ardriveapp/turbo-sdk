@@ -781,7 +781,7 @@ Wallet options:
 
 Upload options:
 
-- `--paid-by <paidBy...>` - An list of native addresses to pay for the upload.
+- `--paid-by <paidBy...>` - A list of native addresses to pay for the upload.
 - `--ignore-approvals` - When no paid by is provided, the CLI will look for and use any received delegated payment approvals to pay for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
 - `--use-signer-balance-first` - Use the connected wallet's balance before using any delegated payment approvals for the upload. Default: false
 
