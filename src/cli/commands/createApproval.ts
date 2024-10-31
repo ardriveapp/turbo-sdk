@@ -47,6 +47,10 @@ export async function createApproval(
   });
 
   console.log(
-    JSON.stringify({ message: 'Created approval:', ...result }, null, 2),
+    JSON.stringify(
+      { message: 'Created delegated payment approval!', ...result },
+      null,
+      2,
+    ),
   );
 }

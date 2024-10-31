@@ -781,8 +781,8 @@ Wallet options:
 
 Upload options:
 
-- `--paid-by <paidBy...>` - An array of native addresses to pay for the upload
-- `--ignore-approvals` - The CLI will normally use any delegated payment approvals for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
+- `--paid-by <paidBy...>` - An list of native addresses to pay for the upload.
+- `--ignore-approvals` - When no paid by is provided, the CLI will look for and use any received delegated payment approvals to pay for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
 - `--use-signer-balance-first` - Use the connected wallet's balance before using any delegated payment approvals for the upload. Default: false
 
 #### Commands
@@ -870,7 +870,7 @@ Command Options:
 e.g:
 
 ```shell
-turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt --paid-by '0x...address' '0x...another-address'
+turbo upload-file --file-path '../path/to/my/file.txt' --token ethereum --wallet-file ../path/to/eth/private/key.txt --paid-by '0x...first-payer-address' '0x...second-payer-address' '0x...third-payer-address' 'etc...'
 ```
 
 ##### `price`
