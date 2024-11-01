@@ -18,7 +18,7 @@ import { Buffer } from 'node:buffer';
 
 import {
   Currency,
-  GetDelegatedPaymentApprovalsResponse,
+  GetCreditShareApprovalsResponse,
   RawWincForTokenResponse,
   TokenTools,
   TokenType,
@@ -265,13 +265,13 @@ export class TurboUnauthenticatedPaymentService
     throw new Error('Unknown response from payment service: ' + response);
   }
 
-  public async getDelegatedPaymentApprovals({
+  public async getCreditShareApprovals({
     userAddress,
   }: {
     userAddress: UserAddress;
-  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+  }): Promise<GetCreditShareApprovalsResponse> {
     const response = await this.httpService.get<
-      GetDelegatedPaymentApprovalsResponse | undefined
+      GetCreditShareApprovalsResponse | undefined
     >({
       endpoint: `/account/approvals/get?userAddress=${userAddress}`,
       allowedStatuses: [200, 404],
@@ -314,13 +314,13 @@ export class TurboAuthenticatedPaymentService
     return super.getBalance(userAddress);
   }
 
-  public async getDelegatedPaymentApprovals({
+  public async getCreditShareApprovals({
     userAddress,
   }: {
     userAddress?: string;
-  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+  }): Promise<GetCreditShareApprovalsResponse> {
     userAddress ??= await this.signer.getNativeAddress();
-    return super.getDelegatedPaymentApprovals({ userAddress });
+    return super.getCreditShareApprovals({ userAddress });
   }
 
   public async getWincForFiat({

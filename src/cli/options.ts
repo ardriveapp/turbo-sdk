@@ -137,13 +137,13 @@ export const optionMap = {
   ignoreApprovals: {
     alias: '--ignore-approvals',
     description:
-      "Ignore all delegated payment approvals, only use signing wallet's balance",
+      "Ignore all credit share approvals, only use signing wallet's balance",
     default: false,
   },
   useSignerBalanceFirst: {
     alias: '--use-signer-balance-first',
     description:
-      'Use the signer balance first before using delegated payment approvals',
+      'Use the signer balance first before using credit share approvals',
     default: false,
   },
 } as const;
@@ -184,13 +184,13 @@ export const uploadFolderOptions = [
 
 export const uploadFileOptions = [...uploadOptions, optionMap.filePath];
 
-export const createApprovalOptions = [
+export const shareCreditsOptions = [
   ...walletOptions,
   optionMap.value,
   optionMap.address,
   optionMap.expiresBySeconds,
 ];
 
-export const revokeApprovalsOptions = [...walletOptions, optionMap.address];
+export const revokeCreditsOptions = [...walletOptions, optionMap.address];
 
-export const listApprovalsOptions = revokeApprovalsOptions;
+export const listSharesOptions = revokeCreditsOptions;

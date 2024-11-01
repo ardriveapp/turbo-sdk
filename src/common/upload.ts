@@ -19,17 +19,17 @@ import { pLimit } from 'plimit-lit';
 
 import {
   ArweaveManifest,
+  CreditShareApproval,
   DataItemOptions,
-  DelegatedPaymentApproval,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
-  TurboCreateDelegatedPaymentApprovalParams,
+  TurboCreateCreditShareApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
-  TurboRevokeDelegatePaymentApprovalsParams,
+  TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
@@ -40,11 +40,11 @@ import {
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
-export const delegatedPaymentTagNames = {
-  createDelegatedPaymentApproval: 'x-approve-payment',
-  approvalAmount: 'x-amount',
+export const creditSharingTagNames = {
+  shareCredits: 'x-approve-payment',
+  sharedWincAmount: 'x-amount',
   approvalExpiresBySeconds: 'x-expires-seconds',
-  revokeDelegatePaymentApproval: 'x-delete-payment-approval',
+  revokeCredits: 'x-delete-payment-approval',
 };
 
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
@@ -318,26 +318,26 @@ export abstract class TurboAuthenticatedBaseUploadService
     };
   }
 
-  public async createDelegatedPaymentApproval({
+  public async shareCredits({
     approvedAddress,
     approvedWincAmount,
     expiresBySeconds,
-  }: TurboCreateDelegatedPaymentApprovalParams): Promise<DelegatedPaymentApproval> {
+  }: TurboCreateCreditShareApprovalParams): Promise<CreditShareApproval> {
     const dataItemOpts = {
       tags: [
         {
-          name: delegatedPaymentTagNames.createDelegatedPaymentApproval,
+          name: creditSharingTagNames.shareCredits,
           value: approvedAddress,
         },
         {
-          name: delegatedPaymentTagNames.approvalAmount,
+          name: creditSharingTagNames.sharedWincAmount,
           value: approvedWincAmount.toString(),
         },
       ],
     };
     if (expiresBySeconds !== undefined) {
       dataItemOpts.tags.push({
-        name: delegatedPaymentTagNames.approvalExpiresBySeconds,
+        name: creditSharingTagNames.approvalExpiresBySeconds,
         value: expiresBySeconds.toString(),
       });
     }
@@ -352,22 +352,20 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
     if (!createdApproval) {
       throw new Error(
-        'Failed to create delegated payment approval but upload has succeeded\n' +
+        'Failed to create credit share approval but upload has succeeded\n' +
           JSON.stringify(uploadResponse),
       );
     }
     return createdApproval;
   }
 
-  public async revokeDelegatedPaymentApprovals({
+  public async revokeCredits({
     revokedAddress,
-  }: TurboRevokeDelegatePaymentApprovalsParams): Promise<
-    DelegatedPaymentApproval[]
-  > {
+  }: TurboRevokeCreditsParams): Promise<CreditShareApproval[]> {
     const dataItemOpts = {
       tags: [
         {
-          name: delegatedPaymentTagNames.revokeDelegatePaymentApproval,
+          name: creditSharingTagNames.revokeCredits,
           value: revokedAddress,
         },
       ],
@@ -381,7 +379,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
     if (!revokedApprovals) {
       throw new Error(
-        'Failed to revoke delegated payment approvals but upload has succeeded\n' +
+        'Failed to revoke credit share approvals but upload has succeeded\n' +
           JSON.stringify(uploadResponse),
       );
     }

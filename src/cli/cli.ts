@@ -20,7 +20,6 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
-import { createApproval } from './commands/createApproval.js';
 import {
   balance,
   cryptoFund,
@@ -29,14 +28,15 @@ import {
   uploadFile,
   uploadFolder,
 } from './commands/index.js';
-import { listApprovals } from './commands/listApprovals.js';
-import { revokeApprovals } from './commands/revokeApprovals.js';
+import { listShares } from './commands/listShares.js';
+import { revokeCredits } from './commands/revokeCredits.js';
+import { shareCredits } from './commands/shareCredits.js';
 import {
-  createApprovalOptions,
   globalOptions,
-  listApprovalsOptions,
+  listSharesOptions,
   optionMap,
-  revokeApprovalsOptions,
+  revokeCreditsOptions,
+  shareCreditsOptions,
   uploadFileOptions,
   uploadFolderOptions,
   walletOptions,
@@ -101,33 +101,31 @@ applyOptions(
 
 applyOptions(
   program
-    .command('create-approval')
-    .description('Create a Turbo delegated payment approval'),
-  createApprovalOptions,
+    .command('share-credits')
+    .description('Create a Turbo credit share approval'),
+  shareCreditsOptions,
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, createApproval);
+  await runCommand(command, shareCredits);
 });
 
 applyOptions(
   program
-    .command('revoke-approvals')
-    .description(
-      'Revokes all Turbo delegated payment approvals for given address',
-    ),
-  revokeApprovalsOptions,
+    .command('revoke-credits')
+    .description('Revokes all Turbo credit share approvals for given address'),
+  revokeCreditsOptions,
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, revokeApprovals);
+  await runCommand(command, revokeCredits);
 });
 
 applyOptions(
   program
-    .command('list-approvals')
+    .command('list-shares')
     .description(
-      'Lists all Turbo delegated payment approvals for given address or wallet',
+      'Lists all given or received Turbo credit share approvals for specified address or connected wallet',
     ),
-  listApprovalsOptions,
+  listSharesOptions,
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, listApprovals);
+  await runCommand(command, listShares);
 });
 
 if (

@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 import { TurboFactory } from '../../node/factory.js';
-import { ListApprovalsOptions } from '../types.js';
+import { ListSharesOptions } from '../types.js';
 import { addressOrPrivateKeyFromOptions, configFromOptions } from '../utils.js';
 
-export async function listApprovals(
-  options: ListApprovalsOptions,
-): Promise<void> {
+export async function listShares(options: ListSharesOptions): Promise<void> {
   const config = configFromOptions(options);
   const { address, privateKey } = await addressOrPrivateKeyFromOptions(options);
 
@@ -28,7 +26,7 @@ export async function listApprovals(
       if (address !== undefined) {
         const approvals = await TurboFactory.unauthenticated(
           config,
-        ).getDelegatedPaymentApprovals({
+        ).getCreditShareApprovals({
           userAddress: address,
         });
         return { ...approvals, nativeAddress: address };
@@ -40,7 +38,7 @@ export async function listApprovals(
         ...config,
         privateKey,
       });
-      const approvals = await turbo.getDelegatedPaymentApprovals();
+      const approvals = await turbo.getCreditShareApprovals();
       return {
         ...approvals,
         nativeAddress: await turbo.signer.getNativeAddress(),
@@ -51,8 +49,8 @@ export async function listApprovals(
     givenApprovals?.length === 0 && receivedApprovals?.length === 0;
   const body = {
     message:
-      `${hasApprovals ? 'No d' : 'D'}` +
-      `elegated payment approvals found for native address '${nativeAddress}'`,
+      `${hasApprovals ? 'No ' : ''}` +
+      `Credit Share Approvals found for native address '${nativeAddress}'`,
     givenApprovals,
     receivedApprovals,
   };

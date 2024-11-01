@@ -65,9 +65,9 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
       - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
-    - [`createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#createdelegatedpaymentapproval-approvedaddress-approvedwincamount-expiresbyseconds-)
-    - [`revokeDelegatedPaymentApprovals({ approvedAddress })`](#revokedelegatedpaymentapprovals-approvedaddress-)
-    - [`getDelegatedPaymentApprovals({ userAddress })`](#getdelegatedpaymentapprovals-useraddress-)
+    - [`shareCredits({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#sharecredits-approvedaddress-approvedwincamount-expiresbyseconds-)
+    - [`revokeCredits({ approvedAddress })`](#revokecredits-approvedaddress-)
+    - [`getCreditShareApprovals({ userAddress })`](#getcreditshareapprovals-useraddress-)
 - [CLI](#cli)
   - [Install CLI](#install-cli)
   - [CLI Usage](#cli-usage)
@@ -79,9 +79,10 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`upload-folder`](#upload-folder)
       - [`upload-file`](#upload-file)
       - [`price`](#price)
-      - [`create-approval`](#create-approval)
-      - [`revoke-approvals`](#revoke-approvals)
-      - [`list-approvals`](#list-approvals)
+      - [`share-credits`](#share-credits)
+      - [`revoke-credits`](#revoke-credits)
+      - [`list-shares`](#list-shares)
+- [Turbo Credit Sharing](#turbo-credit-sharing)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -683,36 +684,35 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
-#### `createDelegatedPaymentApproval({ approvedAddress, approvedWincAmount, expiresBySeconds })`
+#### `shareCredits({ approvedAddress, approvedWincAmount, expiresBySeconds })`
 
-Creates a delegated payment approval from the connected wallet to the provided native address and approved winc amount. This action will create a data item for the approval
+Shares credits from the connected wallet to the provided native address and approved winc amount. This action will create a signed data item for the approval
 
 ```typescript
-const { approvalDataItemId, approvedWincAmount } =
-  await turbo.createDelegatedPaymentApproval({
-    approvedAddress: '2cor...VUa',
-    approvedWincAmount: 0.08315565032,
-    expiresBySeconds: 3600,
-  });
+const { approvalDataItemId, approvedWincAmount } = await turbo.shareCredits({
+  approvedAddress: '2cor...VUa',
+  approvedWincAmount: 0.08315565032,
+  expiresBySeconds: 3600,
+});
 ```
 
-#### `revokeDelegatedPaymentApprovals({ approvedAddress })`
+#### `revokeCredits({ approvedAddress })`
 
-Revokes all delegated payment approvals from the connected wallet to the provided native address.
+Revokes all credits shared from the connected wallet to the provided native address.
 
 ```typescript
-const revokedApprovals = await turbo.revokeDelegatePaymentApprovals({
+const revokedApprovals = await turbo.revokeCredits({
   approvedAddress: '2cor...VUa',
 });
 ```
 
-#### `getDelegatedPaymentApprovals({ userAddress })`
+#### `getCreditShareApprovals({ userAddress })`
 
-Returns all delegated payment approvals from the connected wallet or the provided native address.
+Returns all given or received credit share approvals for the connected wallet or the provided native address.
 
 ```typescript
 const { givenApprovals, receivedApprovals } =
-  await turbo.getDelegatedPaymentApprovals({
+  await turbo.getCreditShareApprovals({
     userAddress: '2cor...VUa',
   });
 ```
@@ -782,8 +782,8 @@ Wallet options:
 Upload options:
 
 - `--paid-by <paidBy...>` - A list of native addresses to pay for the upload.
-- `--ignore-approvals` - When no paid by is provided, the CLI will look for and use any received delegated payment approvals to pay for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
-- `--use-signer-balance-first` - Use the connected wallet's balance before using any delegated payment approvals for the upload. Default: false
+- `--ignore-approvals` - When no paid by is provided, the CLI will look for and use any received credit share approvals to pay for the upload. This flag will ignore any approvals and only use the connected wallet's balance for upload payment. Default: false
+- `--use-signer-balance-first` - Use the connected wallet's balance before using any credit share approvals for the upload. Default: false
 
 #### Commands
 
@@ -896,49 +896,77 @@ turbo price --value 1024 --type bytes
 turbo price --value 1.1 --type arweave
 ```
 
-##### `create-approval`
+##### `share-credits`
 
-Create a delegated payment approval from the connected wallet to the provided native address and approved winc amount.
+Shares credits from the connected wallet to the provided native address and approved winc amount.
 
 Command Options:
 
-- `-a, --address <nativeAddress>` - Native address to that will receive the delegated payment approval
-- `-v, --value <value>` - Value of winc to create delegated payment approval for
-- `-e, --expires-by-seconds <seconds>` - Expiry time in seconds for the delegated payment approval
+- `-a, --address <nativeAddress>` - Native address to that will receive the Credits
+- `-v, --value <value>` - Value of winc to share to the target address
+- `-e, --expires-by-seconds <seconds>` - Expiry time in seconds for the credit share approval
 
 e.g:
 
 ```shell
-turbo create-approval --address 2cor...VUa --value 0.083155650320 --wallet-file ../path/to/my/wallet --expires-by-seconds 3600
+turbo share-credits --address 2cor...VUa --value 0.083155650320 --wallet-file ../path/to/my/wallet --expires-by-seconds 3600
 ```
 
-##### `revoke-approvals`
+##### `revoke-credits`
 
-Revoke all delegated payment approvals from the connected wallet to the provided native address.
+Revoke all credits shared from the connected wallet to the provided native address.
 
 Command Options:
 
-- `-a, --address <nativeAddress>` - Native address to revoke delegated payment approvals for
+- `-a, --address <nativeAddress>` - Native address to revoke credit share approvals for
 
 e.g:
 
 ```shell
-turbo revoke-approvals --wallet-file ../path/to/my/wallet
+turbo revoke-credits --wallet-file ../path/to/my/wallet
 ```
 
-##### `list-approvals`
+##### `list-shares`
 
-List all given and received delegated payment approvals from the connected wallet or the provided native address.
+List all given and received credit share approvals from the connected wallet or the provided native address.
 
 Command Options:
 
-- `-a, --address <nativeAddress>` - Native address to list delegated payment approvals for
+- `-a, --address <nativeAddress>` - Native address to list credit share approvals for
 
 e.g:
 
 ```shell
-turbo list-approvals --address 2cor...VUa --wallet-file ../path/to/my/wallet
+turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
+
+## Turbo Credit Sharing
+
+Users can share their purchased Credits with other user's wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with tags indicating the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
+
+Shared Credits cannot be re-shared by the recipient to other recipients. Only the owner of the Credits can share or revoke Credit Share Approvals. Credits that are shared to other wallets may not be used by the original owner of the Credits for sharing or uploading unless the Credit Share Approval is revoked or expired.
+
+Approvals can be revoked at any time by similarly uploading a signed data item with tags indicating the recipient's wallet address. This will remove all approvals and prevent the recipient from using the shared Credits. All unused Credits from expired or revoked approvals are returned to the original owner of the Credits.
+
+To use the shared Credits, recipient users must provide the wallet address of the user who shared the Credits with them in the `x-paid-by` HTTP header when uploading data. This tells Turbo services to look for and use Credit Share Approvals to pay for the upload before using the signer's balance.
+
+For user convenience, during upload the Turbo CLI will use any available Credit Share Approvals found for the connected wallet before using the signing wallet's balance. To instead ignore all Credit shares and only use the signer's balance, use the `--ignore-approvals` flag. To use the signer's balance first before using Credit shares, use the `--use-signer-balance-first` flag. The Turbo SDK layer does not provide this functionality and will always use the signer's balance unless `paidBy` is provided.
+
+The Turbo SDK provides the following methods to manage Credit Share Approvals:
+
+- `shareCredits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
+- `revokeCredits`: Revokes all Credit Share Approvals for the specified wallet address.
+- `listShares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `dataItemOpts: { ...opts, paidBy: string[] }`: Upload methods now accept an array of wallet addresses to pay for the upload.
+
+The Turbo CLI provides the following commands to manage Credit Share Approvals:
+
+- `share-credits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
+- `revoke-credits`: Revokes all Credit Share Approvals for the specified wallet address.
+- `list-shares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `paidBy: --paid-by <paidBy...>`: Upload commands now accept an array of wallet addresses to pay for the upload.
+- `--ignore-approvals`: Ignore all Credit Share Approvals and only use the signer's balance.
+- `--use-signer-balance-first`: Use the signer's balance first before using Credit Share Approvals.
 
 ## Developers
 
