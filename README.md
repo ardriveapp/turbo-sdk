@@ -82,6 +82,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`share-credits`](#share-credits)
       - [`revoke-credits`](#revoke-credits)
       - [`list-shares`](#list-shares)
+- [Credit Sharing](#credit-sharing)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -700,7 +701,7 @@ const { approvalDataItemId, approvedWincAmount } = await turbo.shareCredits({
 Revokes all credits shared from the connected wallet to the provided native address.
 
 ```typescript
-const revokedApprovals = await turbo.revokeDelegatePaymentApprovals({
+const revokedApprovals = await turbo.revokeCredits({
   approvedAddress: '2cor...VUa',
 });
 ```
@@ -938,6 +939,32 @@ e.g:
 ```shell
 turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
+
+## Turbo Credit Sharing
+
+Users can share their purchased Credits with other user's wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
+
+Approvals can be revoked at any time by similarly uploading a signed data item with the recipient's wallet address. This will remove all approvals and prevent the recipient from using the shared Credits. All unused Credits from expired or revoked approvals are returned to the original owner of the Credits.
+
+To use the shared Credits, recipient users must provide the wallet address of the user who shared the Credits with them in the `x-paid-by` HTTP header when uploading data. This tells Turbo services to look for and use Credit Share Approvals to pay for the upload before using the signer's balance.
+
+For user convenience, during upload the Turbo CLI will use any available Credit Share Approvals found for the connected wallet before using the signing wallet's balance. To instead ignore all Credit shares and only use the signer's balance, use the `--ignore-approvals` flag. To use the signer's balance first before using Credit shares, use the `--use-signer-balance-first` flag. The Turbo SDK layer does not provide this functionality and will always use the signer's balance unless `paidBy` is provided.
+
+The Turbo SDK provides the following methods to manage Credit Share Approvals:
+
+- `shareCredits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
+- `revokeCredits`: Revokes all Credit Share Approvals for the specified wallet address.
+- `listShares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `dataItemOpts: { ...opts, paidBy: string[] }`: Upload methods now accept an array of wallet addresses to pay for the upload.
+
+The Turbo CLI provides the following commands to manage Credit Share Approvals:
+
+- `share-credits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
+- `revoke-credits`: Revokes all Credit Share Approvals for the specified wallet address.
+- `list-shares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `paidBy: --paid-by <paidBy...>`: Upload commands now accept an array of wallet addresses to pay for the upload.
+- `--ignore-approvals`: Ignore all Credit Share Approvals and only use the signer's balance.
+- `--use-signer-balance-first`: Use the signer's balance first before using Credit Share Approvals.
 
 ## Developers
 
