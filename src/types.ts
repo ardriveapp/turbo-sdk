@@ -155,7 +155,7 @@ export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   paymentAmount: number;
 };
 
-export interface DelegatedPaymentApproval {
+export interface CreditShareApproval {
   approvalDataItemId: TransactionId;
   approvedAddress: UserAddress;
   payingAddress: UserAddress;
@@ -165,9 +165,9 @@ export interface DelegatedPaymentApproval {
   expirationDate: string | undefined;
 }
 
-export interface GetDelegatedPaymentApprovalsResponse {
-  givenApprovals: DelegatedPaymentApproval[];
-  receivedApprovals: DelegatedPaymentApproval[];
+export interface GetCreditShareApprovalsResponse {
+  givenApprovals: CreditShareApproval[];
+  receivedApprovals: CreditShareApproval[];
 }
 
 export type TurboBalanceResponse = {
@@ -186,8 +186,8 @@ export type TurboBalanceResponse = {
    */
   effectiveBalance: string;
 
-  receivedApprovals: DelegatedPaymentApproval[];
-  givenApprovals: DelegatedPaymentApproval[];
+  receivedApprovals: CreditShareApproval[];
+  givenApprovals: CreditShareApproval[];
 };
 
 export type TurboFiatToArResponse = {
@@ -207,8 +207,8 @@ export type TurboUploadDataItemResponse = {
   id: TransactionId;
   owner: PublicArweaveAddress;
   winc: string;
-  createdApproval?: DelegatedPaymentApproval;
-  revokedApprovals?: DelegatedPaymentApproval[];
+  createdApproval?: CreditShareApproval;
+  revokedApprovals?: CreditShareApproval[];
 };
 
 type UploadFolderParams = {
@@ -240,13 +240,13 @@ export const isWebUploadFolderParams = (
 ): p is WebUploadFolderParams =>
   (p as WebUploadFolderParams).files !== undefined;
 
-export type TurboCreateDelegatedPaymentApprovalParams = {
+export type TurboCreateCreditShareApprovalParams = {
   approvedAddress: string;
   approvedWincAmount: BigNumber.Value;
   expiresBySeconds?: number;
 };
 
-export type TurboRevokeDelegatePaymentApprovalsParams = {
+export type TurboRevokeCreditsParams = {
   revokedAddress: string;
 };
 
@@ -589,7 +589,7 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   }): Promise<TurboSubmitFundTxResponse>;
   getCreditShareApprovals(p: {
     userAddress: UserAddress;
-  }): Promise<GetDelegatedPaymentApprovalsResponse>;
+  }): Promise<GetCreditShareApprovalsResponse>;
 }
 
 export type TurboFundWithTokensParams = {
@@ -604,7 +604,7 @@ export interface TurboAuthenticatedPaymentServiceInterface
 
   getCreditShareApprovals(p: {
     userAddress?: UserAddress;
-  }): Promise<GetDelegatedPaymentApprovalsResponse>;
+  }): Promise<GetCreditShareApprovalsResponse>;
 
   topUpWithTokens(
     p: TurboFundWithTokensParams,
@@ -629,12 +629,10 @@ export interface TurboAuthenticatedUploadServiceInterface
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 
   shareCredits(
-    p: TurboCreateDelegatedPaymentApprovalParams,
-  ): Promise<DelegatedPaymentApproval>;
+    p: TurboCreateCreditShareApprovalParams,
+  ): Promise<CreditShareApproval>;
 
-  revokeCredits(
-    p: TurboRevokeDelegatePaymentApprovalsParams,
-  ): Promise<DelegatedPaymentApproval[]>;
+  revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]>;
 }
 
 export interface TurboUnauthenticatedClientInterface

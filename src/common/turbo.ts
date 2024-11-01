@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import {
+  CreditShareApproval,
   Currency,
-  DelegatedPaymentApproval,
-  GetDelegatedPaymentApprovalsResponse,
+  GetCreditShareApprovalsResponse,
   NativeAddress,
   TokenType,
   TurboAbortSignal,
@@ -28,7 +28,7 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
-  TurboCreateDelegatedPaymentApprovalParams,
+  TurboCreateCreditShareApprovalParams,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
@@ -37,7 +37,7 @@ import {
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
-  TurboRevokeDelegatePaymentApprovalsParams,
+  TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
   TurboSubmitFundTxResponse,
   TurboUnauthenticatedClientConfiguration,
@@ -217,7 +217,7 @@ export class TurboUnauthenticatedClient
    */
   getCreditShareApprovals(p: {
     userAddress: NativeAddress;
-  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+  }): Promise<GetCreditShareApprovalsResponse> {
     return this.paymentService.getCreditShareApprovals(p);
   }
 }
@@ -254,7 +254,7 @@ export class TurboAuthenticatedClient
     p: {
       userAddress?: NativeAddress;
     } = {},
-  ): Promise<GetDelegatedPaymentApprovalsResponse> {
+  ): Promise<GetCreditShareApprovalsResponse> {
     return this.paymentService.getCreditShareApprovals(p);
   }
 
@@ -296,8 +296,8 @@ export class TurboAuthenticatedClient
    * the signature and forward the admin action towards the Turbo Payment Service.
    */
   shareCredits(
-    p: TurboCreateDelegatedPaymentApprovalParams,
-  ): Promise<DelegatedPaymentApproval> {
+    p: TurboCreateCreditShareApprovalParams,
+  ): Promise<CreditShareApproval> {
     return this.uploadService.shareCredits(p);
   }
 
@@ -307,9 +307,7 @@ export class TurboAuthenticatedClient
    * the Turbo Upload Service, which will verify the signature and forward the admin
    * action towards the Turbo Payment Service.
    */
-  revokeCredits(
-    p: TurboRevokeDelegatePaymentApprovalsParams,
-  ): Promise<DelegatedPaymentApproval[]> {
+  revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]> {
     return this.uploadService.revokeCredits(p);
   }
 }

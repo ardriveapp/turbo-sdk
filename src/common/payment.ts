@@ -18,7 +18,7 @@ import { Buffer } from 'node:buffer';
 
 import {
   Currency,
-  GetDelegatedPaymentApprovalsResponse,
+  GetCreditShareApprovalsResponse,
   RawWincForTokenResponse,
   TokenTools,
   TokenType,
@@ -269,9 +269,9 @@ export class TurboUnauthenticatedPaymentService
     userAddress,
   }: {
     userAddress: UserAddress;
-  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+  }): Promise<GetCreditShareApprovalsResponse> {
     const response = await this.httpService.get<
-      GetDelegatedPaymentApprovalsResponse | undefined
+      GetCreditShareApprovalsResponse | undefined
     >({
       endpoint: `/account/approvals/get?userAddress=${userAddress}`,
       allowedStatuses: [200, 404],
@@ -318,7 +318,7 @@ export class TurboAuthenticatedPaymentService
     userAddress,
   }: {
     userAddress?: string;
-  }): Promise<GetDelegatedPaymentApprovalsResponse> {
+  }): Promise<GetCreditShareApprovalsResponse> {
     userAddress ??= await this.signer.getNativeAddress();
     return super.getCreditShareApprovals({ userAddress });
   }

@@ -19,17 +19,17 @@ import { pLimit } from 'plimit-lit';
 
 import {
   ArweaveManifest,
+  CreditShareApproval,
   DataItemOptions,
-  DelegatedPaymentApproval,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
-  TurboCreateDelegatedPaymentApprovalParams,
+  TurboCreateCreditShareApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
-  TurboRevokeDelegatePaymentApprovalsParams,
+  TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
@@ -322,7 +322,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     approvedAddress,
     approvedWincAmount,
     expiresBySeconds,
-  }: TurboCreateDelegatedPaymentApprovalParams): Promise<DelegatedPaymentApproval> {
+  }: TurboCreateCreditShareApprovalParams): Promise<CreditShareApproval> {
     const dataItemOpts = {
       tags: [
         {
@@ -361,9 +361,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
   public async revokeCredits({
     revokedAddress,
-  }: TurboRevokeDelegatePaymentApprovalsParams): Promise<
-    DelegatedPaymentApproval[]
-  > {
+  }: TurboRevokeCreditsParams): Promise<CreditShareApproval[]> {
     const dataItemOpts = {
       tags: [
         {

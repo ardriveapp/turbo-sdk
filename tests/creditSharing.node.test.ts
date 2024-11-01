@@ -18,7 +18,7 @@ import {
   turboDevelopmentConfigurations,
 } from './helpers.js';
 
-describe('Delegated Payments', () => {
+describe('Credit Sharing', () => {
   afterEach(() => {
     // Restore all stubs
     restore();
