@@ -20,7 +20,6 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
-import { createApproval } from './commands/createApproval.js';
 import {
   balance,
   cryptoFund,
@@ -30,7 +29,8 @@ import {
   uploadFolder,
 } from './commands/index.js';
 import { listApprovals } from './commands/listApprovals.js';
-import { revokeApprovals } from './commands/revokeApprovals.js';
+import { revokeCredits } from './commands/revokeCredits.js';
+import { shareCredits } from './commands/shareCredits.js';
 import {
   createApprovalOptions,
   globalOptions,
@@ -101,29 +101,27 @@ applyOptions(
 
 applyOptions(
   program
-    .command('create-approval')
-    .description('Create a Turbo delegated payment approval'),
+    .command('share-credits')
+    .description('Create a Turbo credit share approval'),
   createApprovalOptions,
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, createApproval);
+  await runCommand(command, shareCredits);
 });
 
 applyOptions(
   program
-    .command('revoke-approvals')
-    .description(
-      'Revokes all Turbo delegated payment approvals for given address',
-    ),
+    .command('revoke-credits')
+    .description('Revokes all Turbo credit share approvals for given address'),
   revokeApprovalsOptions,
 ).action(async (_commandOptions, command: Command) => {
-  await runCommand(command, revokeApprovals);
+  await runCommand(command, revokeCredits);
 });
 
 applyOptions(
   program
     .command('list-approvals')
     .description(
-      'Lists all Turbo delegated payment approvals for given address or wallet',
+      'Lists all given or received Turbo credit share approvals for specified address or connected wallet',
     ),
   listApprovalsOptions,
 ).action(async (_commandOptions, command: Command) => {

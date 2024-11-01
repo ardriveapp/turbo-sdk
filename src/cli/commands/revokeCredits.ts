@@ -13,42 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { BigNumber } from 'bignumber.js';
-
-import { CreateApprovalOptions } from '../types.js';
+import { RevokeCreditsOptions } from '../types.js';
 import { turboFromOptions } from '../utils.js';
 
-export async function createApproval(
-  options: CreateApprovalOptions,
+export async function revokeCredits(
+  options: RevokeCreditsOptions,
 ): Promise<void> {
-  const {
-    address: approvedAddress,
-    value: creditAmount,
-    expiresBySeconds,
-  } = options;
-  if (approvedAddress === undefined) {
+  const { address: revokedAddress } = options;
+  if (revokedAddress === undefined) {
     throw new Error(
-      'Must provide an approved --address to create approval for',
+      'Must provide an approved --address to revoke approvals for',
     );
-  }
-  if (creditAmount === undefined) {
-    throw new Error('Must provide a credit --value to create approval for');
   }
 
   const turbo = await turboFromOptions(options);
 
-  const approvedWincAmount = new BigNumber(creditAmount)
-    .shiftedBy(12)
-    .toFixed(0);
-  const result = await turbo.createDelegatedPaymentApproval({
-    approvedAddress,
-    approvedWincAmount,
-    expiresBySeconds,
+  const revokedApprovals = await turbo.revokeCredits({
+    revokedAddress,
   });
 
   console.log(
     JSON.stringify(
-      { message: 'Created delegated payment approval!', ...result },
+      { message: 'Revoked credit share approvals!', revokedApprovals },
       null,
       2,
     ),

@@ -137,13 +137,13 @@ export const optionMap = {
   ignoreApprovals: {
     alias: '--ignore-approvals',
     description:
-      "Ignore all delegated payment approvals, only use signing wallet's balance",
+      "Ignore all credit share approvals, only use signing wallet's balance",
     default: false,
   },
   useSignerBalanceFirst: {
     alias: '--use-signer-balance-first',
     description:
-      'Use the signer balance first before using delegated payment approvals',
+      'Use the signer balance first before using credit share approvals',
     default: false,
   },
 } as const;

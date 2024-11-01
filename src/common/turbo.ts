@@ -213,12 +213,12 @@ export class TurboUnauthenticatedClient
   }
 
   /**
-   * Returns a list of all delegated payment approvals for the user.
+   * Returns a list of all credit share approvals for the user.
    */
-  getDelegatedPaymentApprovals(p: {
+  getCreditShareApprovals(p: {
     userAddress: NativeAddress;
   }): Promise<GetDelegatedPaymentApprovalsResponse> {
-    return this.paymentService.getDelegatedPaymentApprovals(p);
+    return this.paymentService.getCreditShareApprovals(p);
   }
 }
 
@@ -248,14 +248,14 @@ export class TurboAuthenticatedClient
   }
 
   /**
-   * Returns a list of all delegated payment approvals for the user.
+   * Returns a list of all credit share approvals for the user.
    */
-  getDelegatedPaymentApprovals(
+  getCreditShareApprovals(
     p: {
       userAddress?: NativeAddress;
     } = {},
   ): Promise<GetDelegatedPaymentApprovalsResponse> {
-    return this.paymentService.getDelegatedPaymentApprovals(p);
+    return this.paymentService.getCreditShareApprovals(p);
   }
 
   /**
@@ -291,25 +291,25 @@ export class TurboAuthenticatedClient
   }
 
   /**
-   * Creates a data item with tags that designate it as a delegated payment approval.
+   * Creates a data item with tags that designate it as a credit share approval.
    * Signs the data item and sends it to the Turbo Upload Service, which will verify
    * the signature and forward the admin action towards the Turbo Payment Service.
    */
-  createDelegatedPaymentApproval(
+  shareCredits(
     p: TurboCreateDelegatedPaymentApprovalParams,
   ): Promise<DelegatedPaymentApproval> {
-    return this.uploadService.createDelegatedPaymentApproval(p);
+    return this.uploadService.shareCredits(p);
   }
 
   /**
-   * Creates a data item with tags that designate it as a revoke action for delegated
-   * payment approvals for target revokedAddress. Signs the data item and sends it to
+   * Creates a data item with tags that designate it as a revoke action for credit
+   * share approvals for target revokedAddress. Signs the data item and sends it to
    * the Turbo Upload Service, which will verify the signature and forward the admin
    * action towards the Turbo Payment Service.
    */
-  revokeDelegatedPaymentApprovals(
+  revokeCredits(
     p: TurboRevokeDelegatePaymentApprovalsParams,
   ): Promise<DelegatedPaymentApproval[]> {
-    return this.uploadService.revokeDelegatedPaymentApprovals(p);
+    return this.uploadService.revokeCredits(p);
   }
 }

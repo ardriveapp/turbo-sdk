@@ -69,14 +69,14 @@ export type CryptoFundOptions = WalletOptions & {
   txId: string | undefined;
 };
 
-export type CreateApprovalOptions = WalletOptions & {
+export type ShareCreditsOptions = WalletOptions & {
   address: string | undefined;
   value: string | undefined;
   expiresBySeconds: number | undefined;
 };
 
-export type RevokeApprovalsOptions = WalletOptions & {
+export type RevokeCreditsOptions = WalletOptions & {
   address: string | undefined;
 };
 
-export type ListApprovalsOptions = RevokeApprovalsOptions;
+export type ListApprovalsOptions = RevokeCreditsOptions;

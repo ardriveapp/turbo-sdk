@@ -587,7 +587,7 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   submitFundTransaction(p: {
     txId: string;
   }): Promise<TurboSubmitFundTxResponse>;
-  getDelegatedPaymentApprovals(p: {
+  getCreditShareApprovals(p: {
     userAddress: UserAddress;
   }): Promise<GetDelegatedPaymentApprovalsResponse>;
 }
@@ -602,7 +602,7 @@ export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
 
-  getDelegatedPaymentApprovals(p: {
+  getCreditShareApprovals(p: {
     userAddress?: UserAddress;
   }): Promise<GetDelegatedPaymentApprovalsResponse>;
 
@@ -628,11 +628,11 @@ export interface TurboAuthenticatedUploadServiceInterface
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 
-  createDelegatedPaymentApproval(
+  shareCredits(
     p: TurboCreateDelegatedPaymentApprovalParams,
   ): Promise<DelegatedPaymentApproval>;
 
-  revokeDelegatedPaymentApprovals(
+  revokeCredits(
     p: TurboRevokeDelegatePaymentApprovalsParams,
   ): Promise<DelegatedPaymentApproval[]>;
 }

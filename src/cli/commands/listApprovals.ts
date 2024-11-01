@@ -28,7 +28,7 @@ export async function listApprovals(
       if (address !== undefined) {
         const approvals = await TurboFactory.unauthenticated(
           config,
-        ).getDelegatedPaymentApprovals({
+        ).getCreditShareApprovals({
           userAddress: address,
         });
         return { ...approvals, nativeAddress: address };
@@ -40,7 +40,7 @@ export async function listApprovals(
         ...config,
         privateKey,
       });
-      const approvals = await turbo.getDelegatedPaymentApprovals();
+      const approvals = await turbo.getCreditShareApprovals();
       return {
         ...approvals,
         nativeAddress: await turbo.signer.getNativeAddress(),

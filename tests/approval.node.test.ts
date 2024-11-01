@@ -63,13 +63,12 @@ describe('Delegated Payments', () => {
 
   let oldestApprovalId: string;
 
-  describe('createDelegatedPaymentApproval', () => {
-    it('should properly create a delegated payment approval', async () => {
-      const { approvalDataItemId, payingAddress } =
-        await turbo.createDelegatedPaymentApproval({
-          approvedWincAmount: '100',
-          approvedAddress: unfundedSignerAddress1,
-        });
+  describe('shareCredits', () => {
+    it('should properly create a credit share approval', async () => {
+      const { approvalDataItemId, payingAddress } = await turbo.shareCredits({
+        approvedWincAmount: '100',
+        approvedAddress: unfundedSignerAddress1,
+      });
       oldestApprovalId = approvalDataItemId;
       expect(approvalDataItemId).to.be.a('string');
       expect(payingAddress).to.equal(arweavePayerAddress);
@@ -90,13 +89,12 @@ describe('Delegated Payments', () => {
       expect(receivedApprovals).to.have.length(0);
     });
 
-    it('should properly create a delegated payment approval with expiration, and the approval should expire as expected', async () => {
-      const { approvalDataItemId, payingAddress } =
-        await turbo.createDelegatedPaymentApproval({
-          approvedWincAmount: '100',
-          approvedAddress: unfundedSignerAddress1,
-          expiresBySeconds: 1,
-        });
+    it('should properly create a credit share approval with expiration, and the approval should expire as expected', async () => {
+      const { approvalDataItemId, payingAddress } = await turbo.shareCredits({
+        approvedWincAmount: '100',
+        approvedAddress: unfundedSignerAddress1,
+        expiresBySeconds: 1,
+      });
       expect(approvalDataItemId).to.be.a('string');
       expect(payingAddress).to.equal(arweavePayerAddress);
 
@@ -134,23 +132,23 @@ describe('Delegated Payments', () => {
 
     it('should fail to create payment approvals to invalid addresses', async () => {
       await expectAsyncErrorThrow({
-        promiseToError: turbo.createDelegatedPaymentApproval({
+        promiseToError: turbo.shareCredits({
           approvedWincAmount: '100',
           approvedAddress: 'invalidAddress',
         }),
         errorMessage:
-          'Failed request: 400: Unable to create delegated payment approval : Invalid approved address',
+          'Failed request: 400: Unable to create credit share approval : Invalid approved address',
         errorType: 'FailedRequestError',
       });
     });
 
     it('should fail to create payment approvals when payer has insufficient balance for approval', async () => {
       await expectAsyncErrorThrow({
-        promiseToError: turbo.createDelegatedPaymentApproval({
+        promiseToError: turbo.shareCredits({
           approvedWincAmount: '10000',
           approvedAddress: unfundedSignerAddress1,
         }),
-        errorMessage: `Failed request: 400: Unable to create delegated payment approval : Insufficient balance for '${arweavePayerAddress}'`,
+        errorMessage: `Failed request: 400: Unable to create credit share approval : Insufficient balance for '${arweavePayerAddress}'`,
         errorType: 'FailedRequestError',
       });
     });
@@ -164,40 +162,40 @@ describe('Delegated Payments', () => {
         owner: 'owner',
       });
       await expectAsyncErrorThrow({
-        promiseToError: turbo.createDelegatedPaymentApproval({
+        promiseToError: turbo.shareCredits({
           approvedAddress: 'stub-43-char-address-stub-43-char-address-0',
           approvedWincAmount: '100',
         }),
-        errorMessage: `Failed to create delegated payment approval but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}`,
+        errorMessage: `Failed to create credit share approval but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}`,
         errorType: 'Error',
       });
     });
   });
 
-  describe('getDelegatedPaymentApprovals', () => {
-    it('should properly get all delegated payment approvals for given signer -- sorted by expiration date first, then by creation date', async () => {
+  describe('getCreditShareApprovals', () => {
+    it('should properly get all credit share approvals for given signer -- sorted by expiration date first, then by creation date', async () => {
       const newApprovalWithNoExpirationId = (
-        await turbo.createDelegatedPaymentApproval({
+        await turbo.shareCredits({
           approvedWincAmount: '100',
           approvedAddress: unfundedSignerAddress1,
         })
       ).approvalDataItemId;
       const approvalWithFarExpirationId = (
-        await turbo.createDelegatedPaymentApproval({
+        await turbo.shareCredits({
           approvedWincAmount: '100',
           approvedAddress: unfundedSignerAddress1,
           expiresBySeconds: 10000,
         })
       ).approvalDataItemId;
       const approvalWithNearExpirationId = (
-        await turbo.createDelegatedPaymentApproval({
+        await turbo.shareCredits({
           approvedWincAmount: '100',
           approvedAddress: unfundedSignerAddress1,
           expiresBySeconds: 10,
         })
       ).approvalDataItemId;
 
-      const { givenApprovals } = await turbo.getDelegatedPaymentApprovals();
+      const { givenApprovals } = await turbo.getCreditShareApprovals();
       expect(givenApprovals).to.have.length(4);
       expect(givenApprovals[0].approvalDataItemId).to.equal(
         approvalWithNearExpirationId,
@@ -211,22 +209,22 @@ describe('Delegated Payments', () => {
       );
     });
 
-    it('should properly get delegated payment approvals when no approvals are present', async () => {
+    it('should properly get credit share approvals when no approvals are present', async () => {
       const { givenApprovals } = await TurboFactory.unauthenticated(
         {},
-      ).getDelegatedPaymentApprovals({
+      ).getCreditShareApprovals({
         userAddress: 'stub-43-char-address-stub-43-char-address-0',
       });
       expect(givenApprovals).to.have.length(0);
     });
   });
 
-  describe('revokeDelegatedPaymentApprovals', () => {
-    it('should properly revoke all delegated payment approvals for given address', async () => {
+  describe('revokeCredits', () => {
+    it('should properly revoke all credit share approvals for given address', async () => {
       const { givenApprovals } = await turbo.getBalance();
       expect(givenApprovals).to.have.length(4);
 
-      await turbo.revokeDelegatedPaymentApprovals({
+      await turbo.revokeCredits({
         revokedAddress: unfundedSignerAddress1,
       });
 
@@ -234,13 +232,13 @@ describe('Delegated Payments', () => {
       expect(givenApprovalsLater).to.have.length(0);
     });
 
-    it('should fail to revoke if there are no delegated payment approvals for given address', async () => {
+    it('should fail to revoke if there are no credit share approvals for given address', async () => {
       await expectAsyncErrorThrow({
-        promiseToError: turbo.revokeDelegatedPaymentApprovals({
+        promiseToError: turbo.revokeCredits({
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
         errorMessage:
-          'Failed request: 400: Unable to revoke delegated payment approval !',
+          'Failed request: 400: Unable to revoke credit share approval !',
         errorType: 'FailedRequestError',
       });
     });
@@ -254,17 +252,17 @@ describe('Delegated Payments', () => {
         owner: 'owner',
       });
       await expectAsyncErrorThrow({
-        promiseToError: turbo.revokeDelegatedPaymentApprovals({
+        promiseToError: turbo.revokeCredits({
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
         errorMessage:
-          'Failed to revoke delegated payment approvals but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}',
+          'Failed to revoke credit share approvals but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}',
         errorType: 'Error',
       });
     });
   });
 
-  describe('using delegated payment approvals', () => {
+  describe('using credit share approvals', () => {
     let signerJwk: JWKInterface;
     let payingJwk: JWKInterface;
 
@@ -296,7 +294,7 @@ describe('Delegated Payments', () => {
         txId: id,
       });
 
-      await payingTurbo.createDelegatedPaymentApproval({
+      await payingTurbo.shareCredits({
         approvedWincAmount: 766_000_000_000,
         approvedAddress: signerAddress,
       });
@@ -312,7 +310,7 @@ describe('Delegated Payments', () => {
 
     const filePath = new URL('files/1MB_file', import.meta.url).pathname;
     const fileSize = statSync(filePath).size;
-    it('should properly use a delegated payment approvals to upload data when paid-by is provided', async () => {
+    it('should properly use a credit share approvals to upload data when paid-by is provided', async () => {
       const { winc } = await signerTurbo.uploadFile({
         dataItemOpts: { paidBy: payingAddress },
         fileStreamFactory: () => createReadStream(filePath),
@@ -330,7 +328,7 @@ describe('Delegated Payments', () => {
       expect(+signerBalance.effectiveBalance).to.equal(766_000_000_000 - +winc);
     });
 
-    it('should properly use a delegated payment approvals to upload data when multiple paid-bys are provided', async () => {
+    it('should properly use a credit share approvals to upload data when multiple paid-bys are provided', async () => {
       const payerBalance = await payingTurbo.getBalance();
 
       const { winc } = await signerTurbo.uploadFile({
