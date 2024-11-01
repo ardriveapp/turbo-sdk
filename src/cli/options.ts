@@ -184,13 +184,13 @@ export const uploadFolderOptions = [
 
 export const uploadFileOptions = [...uploadOptions, optionMap.filePath];
 
-export const createApprovalOptions = [
+export const shareCreditsOptions = [
   ...walletOptions,
   optionMap.value,
   optionMap.address,
   optionMap.expiresBySeconds,
 ];
 
-export const revokeApprovalsOptions = [...walletOptions, optionMap.address];
+export const revokeCreditsOptions = [...walletOptions, optionMap.address];
 
-export const listApprovalsOptions = revokeApprovalsOptions;
+export const listSharesOptions = revokeCreditsOptions;

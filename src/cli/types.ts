@@ -79,4 +79,4 @@ export type RevokeCreditsOptions = WalletOptions & {
   address: string | undefined;
 };
 
-export type ListApprovalsOptions = RevokeCreditsOptions;
+export type ListSharesOptions = RevokeCreditsOptions;

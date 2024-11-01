@@ -81,7 +81,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`price`](#price)
       - [`share-credits`](#share-credits)
       - [`revoke-credits`](#revoke-credits)
-      - [`list-approvals`](#list-approvals)
+      - [`list-shares`](#list-shares)
 - [Developers](#developers)
   - [Requirements](#requirements)
   - [Setup & Build](#setup--build)
@@ -925,7 +925,7 @@ e.g:
 turbo revoke-credits --wallet-file ../path/to/my/wallet
 ```
 
-##### `list-approvals`
+##### `list-shares`
 
 List all given and received credit share approvals from the connected wallet or the provided native address.
 
@@ -936,7 +936,7 @@ Command Options:
 e.g:
 
 ```shell
-turbo list-approvals --address 2cor...VUa --wallet-file ../path/to/my/wallet
+turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
 
 ## Developers

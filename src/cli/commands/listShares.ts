@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 import { TurboFactory } from '../../node/factory.js';
-import { ListApprovalsOptions } from '../types.js';
+import { ListSharesOptions } from '../types.js';
 import { addressOrPrivateKeyFromOptions, configFromOptions } from '../utils.js';
 
-export async function listApprovals(
-  options: ListApprovalsOptions,
-): Promise<void> {
+export async function listShares(options: ListSharesOptions): Promise<void> {
   const config = configFromOptions(options);
   const { address, privateKey } = await addressOrPrivateKeyFromOptions(options);
 
