@@ -137,7 +137,7 @@ describe('Delegated Payments', () => {
           approvedAddress: 'invalidAddress',
         }),
         errorMessage:
-          'Failed request: 400: Unable to create credit share approval : Invalid approved address',
+          'Failed request: 400: Unable to create delegated payment approval : Invalid approved address',
         errorType: 'FailedRequestError',
       });
     });
@@ -148,7 +148,7 @@ describe('Delegated Payments', () => {
           approvedWincAmount: '10000',
           approvedAddress: unfundedSignerAddress1,
         }),
-        errorMessage: `Failed request: 400: Unable to create credit share approval : Insufficient balance for '${arweavePayerAddress}'`,
+        errorMessage: `Failed request: 400: Unable to create delegated payment approval : Insufficient balance for '${arweavePayerAddress}'`,
         errorType: 'FailedRequestError',
       });
     });
@@ -238,7 +238,7 @@ describe('Delegated Payments', () => {
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
         errorMessage:
-          'Failed request: 400: Unable to revoke credit share approval !',
+          'Failed request: 400: Unable to revoke delegated payment approval !',
         errorType: 'FailedRequestError',
       });
     });
