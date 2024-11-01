@@ -49,8 +49,8 @@ export async function listShares(options: ListSharesOptions): Promise<void> {
     givenApprovals?.length === 0 && receivedApprovals?.length === 0;
   const body = {
     message:
-      `${hasApprovals ? 'No d' : 'D'}` +
-      `elegated payment approvals found for native address '${nativeAddress}'`,
+      `${hasApprovals ? 'No ' : ''}` +
+      `Credit Share Approvals found for native address '${nativeAddress}'`,
     givenApprovals,
     receivedApprovals,
   };
