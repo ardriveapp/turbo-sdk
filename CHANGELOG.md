@@ -1,3 +1,10 @@
+# [1.20.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0-alpha.1...v1.20.0-alpha.2) (2024-11-01)
+
+
+### Features
+
+* update credit sharing command and method names ([c3e9bd9](https://github.com/ardriveapp/turbo-sdk/commit/c3e9bd95dc1585e80cdce1b237cab02889976d41))
+
 # [1.20.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.2...v1.20.0-alpha.1) (2024-10-31)
 
 
