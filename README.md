@@ -942,11 +942,11 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 ## Turbo Credit Sharing
 
-Users can share their purchased Credits with other user's wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
+Users can share their purchased Credits with other user's wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with tags indicating the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
 
 Shared Credits cannot be re-shared by the recipient to other recipients. Only the owner of the Credits can share or revoke Credit Share Approvals. Credits that are shared to other wallets may not be used by the original owner of the Credits for sharing or uploading unless the Credit Share Approval is revoked or expired.
 
-Approvals can be revoked at any time by similarly uploading a signed data item with the recipient's wallet address. This will remove all approvals and prevent the recipient from using the shared Credits. All unused Credits from expired or revoked approvals are returned to the original owner of the Credits.
+Approvals can be revoked at any time by similarly uploading a signed data item with tags indicating the recipient's wallet address. This will remove all approvals and prevent the recipient from using the shared Credits. All unused Credits from expired or revoked approvals are returned to the original owner of the Credits.
 
 To use the shared Credits, recipient users must provide the wallet address of the user who shared the Credits with them in the `x-paid-by` HTTP header when uploading data. This tells Turbo services to look for and use Credit Share Approvals to pay for the upload before using the signer's balance.
 
