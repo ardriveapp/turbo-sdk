@@ -10,23 +10,14 @@ import { ReadableStream } from 'web-streams-polyfill';
 
 import './App.css';
 
+// enable debug logs
+TurboFactory.setLogLevel('debug');
+
 const arweave = new Arweave({
   host: 'arweave.net',
   port: 443,
   protocol: 'https',
 });
-
-const fileToReadableStream = (file: File): ReadableStream => {
-  const fileReader = new FileReader();
-  const stream = new ReadableStream({
-    start(controller) {
-      fileReader.addEventListener('load', () =>
-        controller.enqueue(fileReader.result as ArrayBuffer),
-      );
-    },
-  });
-  return stream;
-};
 
 function App() {
   const [wallet, setWallet] = useState<JWKInterface | null>(null);
@@ -53,6 +44,8 @@ function App() {
       return;
     }
 
+    console.log('Uploading selected file...');
+
     if (!wallet) {
       setUploadStatus('Please generate a wallet first');
       return;
@@ -65,8 +58,15 @@ function App() {
 
     try {
       setUploadStatus('Uploading...');
+      const buffer = await selectedFile.arrayBuffer();
       const upload = await turbo.uploadFile({
-        fileStreamFactory: () => fileToReadableStream(selectedFile),
+        fileStreamFactory: () =>
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(buffer);
+              controller.close();
+            },
+          }),
         fileSizeFactory: () => selectedFile.size,
       });
       setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
@@ -88,7 +88,11 @@ function App() {
       setAddress(address);
       setShowJwkInput(false);
     } catch (error) {
-      console.error('Error generating JWK:', error);
+      setUploadStatus(
+        `Error generating JWK: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
     }
   };
 
@@ -101,7 +105,6 @@ function App() {
       setWallet(JSON.parse(jwk));
       setTurbo(
         TurboFactory.authenticated({
-          ...developmentTurboConfiguration,
           privateKey: JSON.parse(jwk),
         }),
       );
@@ -147,7 +150,14 @@ function App() {
             </button>
           </div>
         ) : (
-          <div style={{ marginBottom: '10px', display: 'flex' }}>
+          <div
+            style={{
+              marginBottom: '10px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
             <p>Using generated JWK - {address}</p>
             <button onClick={() => setShowJwkInput(true)}>
               Use Different JWK
@@ -176,7 +186,18 @@ function App() {
           <button type="submit">Upload File</button>
         </form>
 
-        {uploadStatus && <p style={{ marginTop: '10px' }}>{uploadStatus}</p>}
+        {uploadStatus && (
+          <p
+            style={{
+              width: '500px',
+              wordWrap: 'break-word',
+              textAlign: 'center',
+              margin: 'auto',
+            }}
+          >
+            {uploadStatus}
+          </p>
+        )}
       </div>
     </div>
   );
