@@ -37,7 +37,7 @@
       import {
         TurboFactory,
         developmentTurboConfiguration,
-      } from 'https://unpkg.com/@ardrive/turbo-sdk';
+      } from 'https://unpkg.com/@ardrive/turbo-sdk@1.13.0';
 
       /**
        * Set up our authenticated client factory
@@ -47,6 +47,7 @@
         port: 443,
         protocol: 'https',
       });
+
       const jwk = await arweave.crypto.generateJWK();
       const address = await arweave.wallets.jwkToAddress(jwk);
       const turbo = TurboFactory.authenticated({
