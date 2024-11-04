@@ -20,10 +20,10 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@ardrive/turbo-sdk@^1.19.2":
-  version "1.19.2"
-  resolved "https://registry.yarnpkg.com/@ardrive/turbo-sdk/-/turbo-sdk-1.19.2.tgz#6e1cb8f956fd1c5100d344378b556557ff94e582"
-  integrity sha512-6ZncZhBPbP72oFqRMhXpREQ9djvQyqUVfEndcbGNdeRTm0vexZv/T8sTXQqxzQPRtjRnA05SvEAjYchZHkqm/g==
+"@ardrive/turbo-sdk@^1.20.0":
+  version "1.20.0"
+  resolved "https://registry.yarnpkg.com/@ardrive/turbo-sdk/-/turbo-sdk-1.20.0.tgz#059a414a45335b9714819f21b9a3d55af6cb3fea"
+  integrity sha512-Mc7T+1PCBxVOPOMBLzCGj7vNicvcEo043oJyfSOQHk9Tt/cBd9uJ3kcaYwAsisgIv1psbFozCqi6KjsAlcpmEw==
   dependencies:
     "@cosmjs/amino" "^0.32.4"
     "@cosmjs/crypto" "^0.32.4"
@@ -43,6 +43,7 @@
     mime-types "^2.1.35"
     plimit-lit "^3.0.1"
     prompts "^2.4.2"
+    starknet "^6.11.0"
     tweetnacl "^1.0.3"
     winston "^3.14.1"
 
@@ -2757,14 +2758,6 @@ filelist@^1.0.4:
   dependencies:
     minimatch "^5.0.1"
 
-filereader-stream@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/filereader-stream/-/filereader-stream-2.0.0.tgz#b30d5a5bf6d14c638d7eb55e193abb986f8048a1"
-  integrity sha512-U1OzPNA5quv2/ejRikN/G8llfdtHpblOuKNgxooVjbr/i9uEJ/QIQ7eslx/RqHRJVuTqwr6v5/XG87935t/daA==
-  dependencies:
-    from2 "^2.1.0"
-    typedarray-to-buffer "^3.0.4"
-
 fill-range@^7.1.1:
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/fill-range/-/fill-range-7.1.1.tgz#44265d3cac07e3ea7dc247516380643754a05292"
@@ -2810,14 +2803,6 @@ form-data@^4.0.0:
     asynckit "^0.4.0"
     combined-stream "^1.0.8"
     mime-types "^2.1.12"
-
-from2@^2.1.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/from2/-/from2-2.3.0.tgz#8bfb5502bde4a4d36cfdeea007fcca21d7e382af"
-  integrity sha512-OMcX/4IC/uqEPVgGeyfN22LJk6AZrMkRZHxcHBMBvHScDGgwTm2GT2Wkgtocyd3JfZffjj2kYUDXXII0Fk9W0g==
-  dependencies:
-    inherits "^2.0.1"
-    readable-stream "^2.0.0"
 
 fs-extra@^10.0.0, fs-extra@^10.0.1:
   version "10.1.0"
@@ -3201,11 +3186,6 @@ is-typed-array@^1.1.3:
   integrity sha512-uZ25/bUAlUY5fR4OKT4rZQEBrzQWYV9ZJYGGsUmEJ6thodVJ1HX64ePQ6Z0qPWP+m+Uq6e9UugrE38jeYsDSMw==
   dependencies:
     which-typed-array "^1.1.14"
-
-is-typedarray@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/is-typedarray/-/is-typedarray-1.0.0.tgz#e479c80858df0c1b11ddda6940f96011fcda4a9a"
-  integrity sha512-cyA56iCMHAh5CdzjJIa4aohJyeO1YbwLi3Jc35MmRU6poroFjIGZzUzupGiRPOjgHg9TLu43xbpwXk523fMxKA==
 
 is-weakmap@^2.0.2:
   version "2.0.2"
@@ -4023,7 +4003,7 @@ react@^18.3.1:
   dependencies:
     loose-envify "^1.1.0"
 
-readable-stream@^2.0.0, readable-stream@^2.3.8:
+readable-stream@^2.3.8:
   version "2.3.8"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.8.tgz#91125e8042bba1b9887f49345f6277027ce8be9b"
   integrity sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==
@@ -4545,13 +4525,6 @@ tweetnacl@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-1.0.3.tgz#ac0af71680458d8a6378d0d0d050ab1407d35596"
   integrity sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==
-
-typedarray-to-buffer@^3.0.4:
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/typedarray-to-buffer/-/typedarray-to-buffer-3.1.5.tgz#a97ee7a9ff42691b9f783ff1bc5112fe3fca9080"
-  integrity sha512-zdu8XMNEDepKKR+XYOXAVPtWui0ly0NtohUscw+UmaHiAWT8hrV1rr//H6V+0DvJ3OQ19S979M0laLfX8rm82Q==
-  dependencies:
-    is-typedarray "^1.0.0"
 
 typeforce@^1.11.5:
   version "1.18.0"

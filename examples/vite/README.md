@@ -22,7 +22,7 @@ yarn start
 
 ## Polyfills
 
-The `@ar.io/sdk` uses some modern browser features that may not be available in all browsers. To ensure compatibility, you may need to include some polyfills. This example uses the [vite-plugin-node-polyfills] plugin to include the necessary polyfills.
+The `@ardrive/turbo-sdk` uses some modern browser features that may not be available in all browsers. To ensure compatibility, you may need to include some polyfills. This example uses the [vite-plugin-node-polyfills] plugin to include the necessary polyfills.
 
 The [tsconfig.json](./tsconfig.json) includes the following compiler options:
 

@@ -20,6 +20,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [ESM](#esm)
   - [Typescript](#typescript)
   - [Examples](#examples)
+- [Logging](#logging)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
     - [`unauthenticated()`](#unauthenticated)
@@ -226,6 +227,14 @@ Examples are available in the [examples] directory. To run examples:
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
 - `yarn example:esm` - runs example ESM node script
+
+## Logging
+
+The SDK uses winston for logging. You can set the log level using the `setLogLevel` method.
+
+```typescript
+TurboFactory.setLogLevel('debug');
+```
 
 ## APIs
 
