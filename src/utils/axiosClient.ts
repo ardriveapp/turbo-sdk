@@ -61,5 +61,6 @@ export const createAxiosInstance = ({
   if (retryConfig.retries && retryConfig.retries > 0) {
     axiosRetry(axiosInstance, retryConfig);
   }
+
   return axiosInstance;
 };

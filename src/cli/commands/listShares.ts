@@ -13,24 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { BigNumber } from 'bignumber.js';
-
 import { TurboFactory } from '../../node/factory.js';
-import { wincPerCredit } from '../constants.js';
-import { AddressOptions } from '../types.js';
+import { ListSharesOptions } from '../types.js';
 import { addressOrPrivateKeyFromOptions, configFromOptions } from '../utils.js';
 
-export async function balance(options: AddressOptions) {
+export async function listShares(options: ListSharesOptions): Promise<void> {
   const config = configFromOptions(options);
   const { address, privateKey } = await addressOrPrivateKeyFromOptions(options);
 
-  const { effectiveBalance, nativeAddress, winc, controlledWinc } =
+  const { givenApprovals, receivedApprovals, nativeAddress } =
     await (async () => {
       if (address !== undefined) {
-        return {
-          ...(await TurboFactory.unauthenticated(config).getBalance(address)),
-          nativeAddress: address,
-        };
+        const approvals = await TurboFactory.unauthenticated(
+          config,
+        ).getCreditShareApprovals({
+          userAddress: address,
+        });
+        return { ...approvals, nativeAddress: address };
       }
       if (privateKey === undefined) {
         throw new Error('Must provide an (--address) or use a valid wallet');
@@ -39,21 +38,28 @@ export async function balance(options: AddressOptions) {
         ...config,
         privateKey,
       });
+      const approvals = await turbo.getCreditShareApprovals();
       return {
-        ...(await turbo.getBalance()),
+        ...approvals,
         nativeAddress: await turbo.signer.getNativeAddress(),
       };
     })();
 
-  console.log(
-    `Turbo Balance for Native Address "${nativeAddress}"\nEffective Credits: ${
-      +effectiveBalance / wincPerCredit
-    }${
-      winc === controlledWinc
-        ? ''
-        : `\nCredits Shared to Other Wallets: ${BigNumber(controlledWinc)
-            .minus(winc)
-            .div(wincPerCredit)}`
-    }`,
-  );
+  const hasApprovals =
+    givenApprovals?.length === 0 && receivedApprovals?.length === 0;
+  const body = {
+    message:
+      `${hasApprovals ? 'No ' : ''}` +
+      `Credit Share Approvals found for native address '${nativeAddress}'`,
+    givenApprovals,
+    receivedApprovals,
+  };
+
+  if (givenApprovals?.length > 0) {
+    body['givenApprovals'] = givenApprovals;
+  }
+  if (receivedApprovals?.length > 0) {
+    body['receivedApprovals'] = receivedApprovals;
+  }
+  console.log(JSON.stringify(body, null, 2));
 }

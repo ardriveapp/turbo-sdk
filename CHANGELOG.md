@@ -5,13 +5,6 @@
 
 * still use relative path for manifest when folderPath inputs with `./` PE-6975 ([23007f7](https://github.com/ardriveapp/turbo-sdk/commit/23007f7115b7699b91110da41581b8023ed6a232))
 
-## [1.19.2-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.1...v1.19.2-alpha.1) (2024-10-17)
-
-
-### Bug Fixes
-
-* still use relative path for manifest when folderPath inputs with `./` PE-6975 ([23007f7](https://github.com/ardriveapp/turbo-sdk/commit/23007f7115b7699b91110da41581b8023ed6a232))
-
 ## [1.19.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.0...v1.19.1) (2024-10-17)
 
 

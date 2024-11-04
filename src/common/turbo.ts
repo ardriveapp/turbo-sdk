@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 import {
+  CreditShareApproval,
   Currency,
+  GetCreditShareApprovalsResponse,
   NativeAddress,
   TokenType,
   TurboAbortSignal,
@@ -26,6 +28,7 @@ import {
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
+  TurboCreateCreditShareApprovalParams,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
@@ -34,6 +37,7 @@ import {
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
+  TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
   TurboSubmitFundTxResponse,
   TurboUnauthenticatedClientConfiguration,
@@ -207,6 +211,15 @@ export class TurboUnauthenticatedClient
     wallets.pol = wallets.matic;
     return wallets;
   }
+
+  /**
+   * Returns a list of all credit share approvals for the user.
+   */
+  getCreditShareApprovals(p: {
+    userAddress: NativeAddress;
+  }): Promise<GetCreditShareApprovalsResponse> {
+    return this.paymentService.getCreditShareApprovals(p);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -230,8 +243,19 @@ export class TurboAuthenticatedClient
   /**
    * Returns the current balance of the user's wallet in 'winc'.
    */
-  getBalance(address?: NativeAddress): Promise<TurboBalanceResponse> {
-    return this.paymentService.getBalance(address);
+  getBalance(userAddress?: NativeAddress): Promise<TurboBalanceResponse> {
+    return this.paymentService.getBalance(userAddress);
+  }
+
+  /**
+   * Returns a list of all credit share approvals for the user.
+   */
+  getCreditShareApprovals(
+    p: {
+      userAddress?: NativeAddress;
+    } = {},
+  ): Promise<GetCreditShareApprovalsResponse> {
+    return this.paymentService.getCreditShareApprovals(p);
   }
 
   /**
@@ -264,5 +288,26 @@ export class TurboAuthenticatedClient
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse> {
     return this.paymentService.topUpWithTokens(p);
+  }
+
+  /**
+   * Creates a data item with tags that designate it as a credit share approval.
+   * Signs the data item and sends it to the Turbo Upload Service, which will verify
+   * the signature and forward the admin action towards the Turbo Payment Service.
+   */
+  shareCredits(
+    p: TurboCreateCreditShareApprovalParams,
+  ): Promise<CreditShareApproval> {
+    return this.uploadService.shareCredits(p);
+  }
+
+  /**
+   * Creates a data item with tags that designate it as a revoke action for credit
+   * share approvals for target revokedAddress. Signs the data item and sends it to
+   * the Turbo Upload Service, which will verify the signature and forward the admin
+   * action towards the Turbo Payment Service.
+   */
+  revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]> {
+    return this.uploadService.revokeCredits(p);
   }
 }

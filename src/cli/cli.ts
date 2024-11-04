@@ -28,9 +28,15 @@ import {
   uploadFile,
   uploadFolder,
 } from './commands/index.js';
+import { listShares } from './commands/listShares.js';
+import { revokeCredits } from './commands/revokeCredits.js';
+import { shareCredits } from './commands/shareCredits.js';
 import {
   globalOptions,
+  listSharesOptions,
   optionMap,
+  revokeCreditsOptions,
+  shareCreditsOptions,
   uploadFileOptions,
   uploadFolderOptions,
   walletOptions,
@@ -91,6 +97,35 @@ applyOptions(
   [optionMap.value, optionMap.type],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, price);
+});
+
+applyOptions(
+  program
+    .command('share-credits')
+    .description('Create a Turbo credit share approval'),
+  shareCreditsOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, shareCredits);
+});
+
+applyOptions(
+  program
+    .command('revoke-credits')
+    .description('Revokes all Turbo credit share approvals for given address'),
+  revokeCreditsOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, revokeCredits);
+});
+
+applyOptions(
+  program
+    .command('list-shares')
+    .description(
+      'Lists all given or received Turbo credit share approvals for specified address or connected wallet',
+    ),
+  listSharesOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, listShares);
 });
 
 if (

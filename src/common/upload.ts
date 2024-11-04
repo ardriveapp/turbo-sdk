@@ -19,14 +19,17 @@ import { pLimit } from 'plimit-lit';
 
 import {
   ArweaveManifest,
+  CreditShareApproval,
   DataItemOptions,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
+  TurboCreateCreditShareApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
+  TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
@@ -36,6 +39,13 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export const creditSharingTagNames = {
+  shareCredits: 'x-approve-payment',
+  sharedWincAmount: 'x-amount',
+  approvalExpiresBySeconds: 'x-expires-seconds',
+  revokeCredits: 'x-delete-payment-approval',
+};
 
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
@@ -115,17 +125,28 @@ export abstract class TurboAuthenticatedBaseUploadService
         dataItemOpts,
       });
     const signedDataItem = dataItemStreamFactory();
-    const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
+
+    const headers = {
+      'content-type': 'application/octet-stream',
+      'content-length': `${dataItemSizeFactory()}`,
+    };
+    if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+      const paidBy = Array.isArray(dataItemOpts.paidBy)
+        ? dataItemOpts.paidBy
+        : [dataItemOpts.paidBy];
+
+      if (dataItemOpts.paidBy.length > 0) {
+        headers['x-paid-by'] = paidBy;
+      }
+    }
+
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: signedDataItem,
-      headers: {
-        'content-type': 'application/octet-stream',
-        'content-length': `${fileSize}`,
-      },
+      headers,
     });
   }
 
@@ -295,5 +316,73 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifest,
       manifestResponse,
     };
+  }
+
+  public async shareCredits({
+    approvedAddress,
+    approvedWincAmount,
+    expiresBySeconds,
+  }: TurboCreateCreditShareApprovalParams): Promise<CreditShareApproval> {
+    const dataItemOpts = {
+      tags: [
+        {
+          name: creditSharingTagNames.shareCredits,
+          value: approvedAddress,
+        },
+        {
+          name: creditSharingTagNames.sharedWincAmount,
+          value: approvedWincAmount.toString(),
+        },
+      ],
+    };
+    if (expiresBySeconds !== undefined) {
+      dataItemOpts.tags.push({
+        name: creditSharingTagNames.approvalExpiresBySeconds,
+        value: expiresBySeconds.toString(),
+      });
+    }
+
+    const nonceData = Buffer.from(
+      approvedAddress + approvedWincAmount + Date.now(),
+    );
+    const { createdApproval, ...uploadResponse } = await this.uploadFile({
+      fileStreamFactory: () => Readable.from(nonceData),
+      fileSizeFactory: () => nonceData.byteLength,
+      dataItemOpts,
+    });
+    if (!createdApproval) {
+      throw new Error(
+        'Failed to create credit share approval but upload has succeeded\n' +
+          JSON.stringify(uploadResponse),
+      );
+    }
+    return createdApproval;
+  }
+
+  public async revokeCredits({
+    revokedAddress,
+  }: TurboRevokeCreditsParams): Promise<CreditShareApproval[]> {
+    const dataItemOpts = {
+      tags: [
+        {
+          name: creditSharingTagNames.revokeCredits,
+          value: revokedAddress,
+        },
+      ],
+    };
+
+    const nonceData = Buffer.from(revokedAddress + Date.now());
+    const { revokedApprovals, ...uploadResponse } = await this.uploadFile({
+      fileStreamFactory: () => Readable.from(nonceData),
+      fileSizeFactory: () => nonceData.byteLength,
+      dataItemOpts,
+    });
+    if (!revokedApprovals) {
+      throw new Error(
+        'Failed to revoke credit share approvals but upload has succeeded\n' +
+          JSON.stringify(uploadResponse),
+      );
+    }
+    return revokedApprovals;
   }
 }

@@ -1,0 +1,31 @@
+{
+  "name": "react-typescript-vite",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@ardrive/turbo-sdk": "^1.19.2",
+    "arweave": "^1.15.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.96",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "starknet": "^6.11.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.2.14",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-node-polyfills": "^0.22.0"
+  },
+  "scripts": {
+    "start": "vite --config vite.config.js",
+    "build": "vite build --config vite.config.js",
+    "postinstall": "yarn link @ardrive/turbo-sdk"
+  }
+}

@@ -54,7 +54,7 @@ export class ArweaveToken implements TokenTools {
 
     this.arweave =
       arweave ??
-      Arweave.init({
+      new Arweave({
         host: url.hostname,
         port: url.port,
         protocol: url.protocol.replace(':', ''),

@@ -1,0 +1,11 @@
+.App {
+  text-align: center;
+  background-color: #f0f0f0;
+}
+
+.markdown {
+  text-align: left;
+  margin: auto;
+  padding: 50px;
+  color: white;
+}

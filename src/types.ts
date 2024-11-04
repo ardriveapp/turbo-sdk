@@ -155,10 +155,40 @@ export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
   paymentAmount: number;
 };
 
-export type TurboBalanceResponse = Omit<
-  TurboPriceResponse,
-  'adjustments' | 'fees'
->;
+export interface CreditShareApproval {
+  approvalDataItemId: TransactionId;
+  approvedAddress: UserAddress;
+  payingAddress: UserAddress;
+  approvedWincAmount: string;
+  usedWincAmount: string;
+  creationDate: string;
+  expirationDate: string | undefined;
+}
+
+export interface GetCreditShareApprovalsResponse {
+  givenApprovals: CreditShareApproval[];
+  receivedApprovals: CreditShareApproval[];
+}
+
+export type TurboBalanceResponse = {
+  /**
+   *  Amount of winc controlled by the user, that they could
+   *  spend or share if all current approvals were revoked
+   */
+  controlledWinc: string;
+  /**
+   * Amount of winc that a user can currently spend or share
+   */
+  winc: string;
+  /**
+   * Amount of winc that a user can currently spend or share
+   * plus the amount of remaining winc from received approvals
+   */
+  effectiveBalance: string;
+
+  receivedApprovals: CreditShareApproval[];
+  givenApprovals: CreditShareApproval[];
+};
 
 export type TurboFiatToArResponse = {
   currency: Currency;
@@ -176,6 +206,9 @@ export type TurboUploadDataItemResponse = {
   fastFinalityIndexes: string[];
   id: TransactionId;
   owner: PublicArweaveAddress;
+  winc: string;
+  createdApproval?: CreditShareApproval;
+  revokedApprovals?: CreditShareApproval[];
 };
 
 type UploadFolderParams = {
@@ -206,6 +239,16 @@ export const isWebUploadFolderParams = (
   p: TurboUploadFolderParams,
 ): p is WebUploadFolderParams =>
   (p as WebUploadFolderParams).files !== undefined;
+
+export type TurboCreateCreditShareApprovalParams = {
+  approvedAddress: string;
+  approvedWincAmount: BigNumber.Value;
+  expiresBySeconds?: number;
+};
+
+export type TurboRevokeCreditsParams = {
+  revokedAddress: string;
+};
 
 export type TurboUploadFolderResponse = {
   fileResponses: TurboUploadDataItemResponse[];
@@ -355,7 +398,9 @@ export interface TurboLogger {
   debug: (message: string, ...args: unknown[]) => void;
 }
 
-export type DataItemOptions = DataItemCreateOptions;
+export type DataItemOptions = DataItemCreateOptions & {
+  paidBy?: UserAddress | UserAddress[];
+};
 
 // Supported signers - we will continue to add more
 export type TurboSigner =
@@ -542,6 +587,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   submitFundTransaction(p: {
     txId: string;
   }): Promise<TurboSubmitFundTxResponse>;
+  getCreditShareApprovals(p: {
+    userAddress: UserAddress;
+  }): Promise<GetCreditShareApprovalsResponse>;
 }
 
 export type TurboFundWithTokensParams = {
@@ -552,7 +600,12 @@ export type TurboFundWithTokensParams = {
 
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
-  getBalance: (address?: string) => Promise<TurboBalanceResponse>;
+  getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+
+  getCreditShareApprovals(p: {
+    userAddress?: UserAddress;
+  }): Promise<GetCreditShareApprovalsResponse>;
+
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
@@ -574,6 +627,12 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
+
+  shareCredits(
+    p: TurboCreateCreditShareApprovalParams,
+  ): Promise<CreditShareApproval>;
+
+  revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]>;
 }
 
 export interface TurboUnauthenticatedClientInterface
@@ -596,6 +655,7 @@ export interface TokenTools {
     target: string;
     reward?: string;
   }>;
+
   pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
 }
 

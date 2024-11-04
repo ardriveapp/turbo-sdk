@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { BigNumber } from 'bignumber.js';
 import prompts from 'prompts';
 
 import { tokenToBaseMap } from '../../common/index.js';
 import { TurboFactory } from '../../node/factory.js';
+import { wincPerCredit } from '../constants.js';
 import { CryptoFundOptions } from '../types.js';
 import {
   configFromOptions,
@@ -54,7 +56,7 @@ export async function cryptoFund(options: CryptoFundOptions) {
     const { winc } = await turbo.getWincForToken({ tokenAmount });
     const targetWallet = (await turbo.getTurboCryptoWallets())[token];
 
-    const credits = (+winc / 1_000_000_000_000).toFixed(12);
+    const credits = BigNumber(winc).dividedBy(wincPerCredit).toFixed(12);
 
     const { confirm } = await prompts({
       type: 'confirm',

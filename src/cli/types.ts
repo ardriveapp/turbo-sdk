@@ -16,6 +16,7 @@
 
 export type GlobalOptions = {
   dev: boolean;
+  local: boolean;
   gateway: string | undefined;
   debug: boolean;
   quiet: boolean;
@@ -40,7 +41,13 @@ export type TopUpOptions = AddressOptions & {
   currency: string | undefined;
 };
 
-export type UploadFolderOptions = WalletOptions & {
+export type UploadOptions = WalletOptions & {
+  paidBy: string[];
+  ignoreApprovals: boolean;
+  useSignerBalanceFirst: boolean;
+};
+
+export type UploadFolderOptions = UploadOptions & {
   folderPath: string | undefined;
   indexFile: string | undefined;
   fallbackFile: string | undefined;
@@ -48,7 +55,7 @@ export type UploadFolderOptions = WalletOptions & {
   maxConcurrency: number | undefined;
 };
 
-export type UploadFileOptions = WalletOptions & {
+export type UploadFileOptions = UploadOptions & {
   filePath: string | undefined;
 };
 
@@ -61,3 +68,15 @@ export type CryptoFundOptions = WalletOptions & {
   value: string | undefined;
   txId: string | undefined;
 };
+
+export type ShareCreditsOptions = WalletOptions & {
+  address: string | undefined;
+  value: string | undefined;
+  expiresBySeconds: number | undefined;
+};
+
+export type RevokeCreditsOptions = WalletOptions & {
+  address: string | undefined;
+};
+
+export type ListSharesOptions = RevokeCreditsOptions;
