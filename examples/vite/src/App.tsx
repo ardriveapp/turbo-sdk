@@ -65,12 +65,10 @@ function App() {
 
     try {
       setUploadStatus('Uploading...');
-      console.log(selectedFile);
       const upload = await turbo.uploadFile({
         fileStreamFactory: () => fileToReadableStream(selectedFile),
         fileSizeFactory: () => selectedFile.size,
       });
-      console.log(upload);
       setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
     } catch (error) {
       setUploadStatus(
@@ -112,11 +110,11 @@ function App() {
 
   return (
     <div
-      className="App flex flex-col items-center"
+      className="App flex flex-col items-center justify-center"
       style={{ padding: '50px', height: '100vh' }}
     >
       <div
-        className="flex flex-col items-center"
+        className="flex flex-col items-center justify-center"
         style={{
           marginBottom: '20px',
           height: '100%',
@@ -124,30 +122,56 @@ function App() {
       >
         <h2>File Upload with Turbo SDK</h2>
 
+        <h3>Provide a JWK</h3>
+
         {showJwkInput ? (
-          <div style={{ marginBottom: '20px' }}>
+          <div
+            style={{
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
             <textarea
               placeholder="Paste your JWK here..."
               value={jwk}
               onChange={handleJwkChange}
               style={{ width: '300px', height: '100px', marginRight: '10px' }}
             />
-            <button onClick={generateRandomJwk}>Generate Random JWK</button>
+            or
+            <button
+              onClick={generateRandomJwk}
+              style={{ marginLeft: '10px', height: '20px' }}
+            >
+              Generate Random JWK
+            </button>
           </div>
         ) : (
-          <div style={{ marginBottom: '10px' }}>
+          <div style={{ marginBottom: '10px', display: 'flex' }}>
             <p>Using generated JWK - {address}</p>
             <button onClick={() => setShowJwkInput(true)}>
               Use Different JWK
             </button>
           </div>
         )}
+        <h3>Select a file to upload</h3>
 
-        <form onSubmit={handleUpload}>
+        <form
+          onSubmit={handleUpload}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexDirection: 'column',
+            width: '300px',
+            margin: 'auto',
+            gap: '20px',
+          }}
+        >
           <input
             type="file"
             onChange={handleFileSelect}
-            style={{ marginRight: '10px' }}
+            style={{ display: 'block', marginTop: '10px' }}
           />
           <button type="submit">Upload File</button>
         </form>
