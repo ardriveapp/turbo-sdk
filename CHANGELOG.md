@@ -1,3 +1,10 @@
+# [1.20.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0-alpha.2...v1.20.0-alpha.3) (2024-11-04)
+
+
+### Bug Fixes
+
+* **arweave:** modify import of Arweave in `ArweaveToken` ([b934677](https://github.com/ardriveapp/turbo-sdk/commit/b934677e00b95283d30bca0bf719d919312aabe2))
+
 # [1.20.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0-alpha.1...v1.20.0-alpha.2) (2024-11-01)
 
 
