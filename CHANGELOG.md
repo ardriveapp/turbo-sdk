@@ -1,3 +1,10 @@
+# [1.20.0-alpha.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0-alpha.3...v1.20.0-alpha.4) (2024-11-04)
+
+
+### Bug Fixes
+
+* supply starknet dependency for resolving kyve-js -> keplr-wallet import error ([cf5ab39](https://github.com/ardriveapp/turbo-sdk/commit/cf5ab39a3a08afebbb9d4f7b535ddd40fd57798c))
+
 # [1.20.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0-alpha.2...v1.20.0-alpha.3) (2024-11-04)
 
 
