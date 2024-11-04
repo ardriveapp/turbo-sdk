@@ -1,3 +1,25 @@
+# [1.20.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.2...v1.20.0) (2024-11-04)
+
+
+### Bug Fixes
+
+* **arweave:** modify import of Arweave in `ArweaveToken` ([b934677](https://github.com/ardriveapp/turbo-sdk/commit/b934677e00b95283d30bca0bf719d919312aabe2))
+* supply starknet dependency for resolving kyve-js -> keplr-wallet import error ([cf5ab39](https://github.com/ardriveapp/turbo-sdk/commit/cf5ab39a3a08afebbb9d4f7b535ddd40fd57798c))
+
+
+### Features
+
+* add cli helper for --local development endpoints PE-6754 ([79fe7a0](https://github.com/ardriveapp/turbo-sdk/commit/79fe7a0b81daeec18a9ca4aa68fe300d71bee009))
+* **delegated payments:** add list-approvals command rather than overloaded balance command  PE-6754 ([ee44ef6](https://github.com/ardriveapp/turbo-sdk/commit/ee44ef6c1176734a72e5e4b310dcd9468028c779))
+* **delegated payments:** add paid-by headers for uploads when applicable PE-6754 ([953648e](https://github.com/ardriveapp/turbo-sdk/commit/953648e67719cc3c663ac75a702fd653e33b7c8f))
+* **delegated payments:** add revoke approvals to SDK and CLI PE-6754 ([f2d26da](https://github.com/ardriveapp/turbo-sdk/commit/f2d26daa5ee12008dc8173a0ee44bfc2828028ba))
+* **delegated payments:** display approvals if they exist on `balance` command PE-6754 ([669dfca](https://github.com/ardriveapp/turbo-sdk/commit/669dfca76332756e93accf1b0a01cfa8538f9e84))
+* **delegated payments:** extend turbo.getBalance method to include approval details PE-6754 ([baec107](https://github.com/ardriveapp/turbo-sdk/commit/baec1072b7750cc08bb1588dc5ff2a870f47b3e5))
+* **delegated payments:** init logic for create-approval PE-6754 ([1047762](https://github.com/ardriveapp/turbo-sdk/commit/10477621bad131ec85203814ce3846040cba15ea))
+* **delegated payments:** push created/revoked approvals into upload response if they exist PE-6754 ([33da73d](https://github.com/ardriveapp/turbo-sdk/commit/33da73d29b6db6f706f1debd1e83aa5acb5f9ee5))
+* **delegated payments:** use any approvals first by default on CLI PE-6754 ([96d4a32](https://github.com/ardriveapp/turbo-sdk/commit/96d4a32fe3d2e84a6dd3742a2d1c981acc786596))
+* update credit sharing command and method names ([c3e9bd9](https://github.com/ardriveapp/turbo-sdk/commit/c3e9bd95dc1585e80cdce1b237cab02889976d41))
+
 ## [1.19.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.1...v1.19.2) (2024-10-21)
 
 
