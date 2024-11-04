@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@ardrive/turbo-sdk": "^1.19.2",
+    "@ardrive/turbo-sdk": "^1.20.0",
     "arweave": "^1.15.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
