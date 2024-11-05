@@ -37,7 +37,7 @@
       import {
         TurboFactory,
         developmentTurboConfiguration,
-      } from 'https://unpkg.com/@ardrive/turbo-sdk@1.13.0';
+      } from 'https://unpkg.com/@ardrive/turbo-sdk';
 
       /**
        * Set up our authenticated client factory
@@ -58,7 +58,9 @@
       /**
        * Fetch fiat rates.
        */
-      const rates = await turbo.getFiatRates();
+      const rates = await turbo.getFiatRates().catch((err) => {
+        console.log('Error fetching rates!', err);
+      });
 
       console.log(
         'Successfully fetched rates!',
@@ -80,7 +82,7 @@
         balance,
         null,
         2,
-      );
+      ).catch((err) => console.log('Error fetching balance!', err));
 
       /**
        * Handle file upload
