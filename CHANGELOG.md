@@ -1,3 +1,10 @@
+## [1.20.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0...v1.20.1-alpha.1) (2024-11-05)
+
+
+### Bug Fixes
+
+* access arweave at different levels of default for esm bundle compat PE-7069 ([4c75290](https://github.com/ardriveapp/turbo-sdk/commit/4c752909aae24eed985102511654c6361ede38a5))
+
 # [1.20.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.19.2...v1.20.0) (2024-11-04)
 
 
