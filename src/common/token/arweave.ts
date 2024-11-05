@@ -56,8 +56,6 @@ export class ArweaveToken implements TokenTools {
     pollingOptions?: TokenPollingOptions;
   } = {}) {
     const url = new URL(gatewayUrl);
-    logger.info('ArweaveModule', ArweaveModule);
-    logger.info('ArweaveClass', ArweaveClass);
 
     this.arweave =
       arweave ??
