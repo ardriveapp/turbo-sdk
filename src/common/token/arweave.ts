@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Arweave from 'arweave';
+import ArweaveModule from 'arweave';
 import { BigNumber } from 'bignumber.js';
 import { Buffer } from 'node:buffer';
 
@@ -27,9 +27,14 @@ import { sha256B64Url, toB64Url } from '../../utils/base64.js';
 import { sleep } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
 
+const ArweaveClass =
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore -- Access the correct class constructor for Arweave
+  ArweaveModule.default?.default || ArweaveModule.default || ArweaveModule;
+
 export class ArweaveToken implements TokenTools {
   protected logger: TurboLogger;
-  protected arweave: Arweave;
+  protected arweave: ArweaveModule;
   protected mintU: boolean;
   protected pollingOptions: TokenPollingOptions;
 
@@ -45,16 +50,18 @@ export class ArweaveToken implements TokenTools {
     },
   }: {
     gatewayUrl?: string;
-    arweave?: Arweave;
+    arweave?: ArweaveModule;
     logger?: TurboLogger;
     mintU?: boolean;
     pollingOptions?: TokenPollingOptions;
   } = {}) {
     const url = new URL(gatewayUrl);
+    logger.info('ArweaveModule', ArweaveModule);
+    logger.info('ArweaveClass', ArweaveClass);
 
     this.arweave =
       arweave ??
-      new Arweave({
+      new ArweaveClass({
         host: url.hostname,
         port: url.port,
         protocol: url.protocol.replace(':', ''),
