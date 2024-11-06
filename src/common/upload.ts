@@ -373,7 +373,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     const nonceData = Buffer.from(revokedAddress + Date.now());
     const { revokedApprovals, ...uploadResponse } = await this.uploadFile({
-      fileStreamFactory: () => Buffer.from(nonceData),
+      fileStreamFactory: () => nonceData,
       fileSizeFactory: () => nonceData.byteLength,
       dataItemOpts,
     });
