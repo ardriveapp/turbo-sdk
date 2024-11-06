@@ -346,7 +346,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       approvedAddress + approvedWincAmount + Date.now(),
     );
     const { createdApproval, ...uploadResponse } = await this.uploadFile({
-      fileStreamFactory: () => Buffer.from(nonceData),
+      fileStreamFactory: () => nonceData,
       fileSizeFactory: () => nonceData.byteLength,
       dataItemOpts,
     });
