@@ -346,7 +346,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       approvedAddress + approvedWincAmount + Date.now(),
     );
     const { createdApproval, ...uploadResponse } = await this.uploadFile({
-      fileStreamFactory: () => Readable.from(nonceData),
+      fileStreamFactory: () => Buffer.from(nonceData),
       fileSizeFactory: () => nonceData.byteLength,
       dataItemOpts,
     });
@@ -373,7 +373,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     const nonceData = Buffer.from(revokedAddress + Date.now());
     const { revokedApprovals, ...uploadResponse } = await this.uploadFile({
-      fileStreamFactory: () => Readable.from(nonceData),
+      fileStreamFactory: () => Buffer.from(nonceData),
       fileSizeFactory: () => nonceData.byteLength,
       dataItemOpts,
     });
