@@ -430,7 +430,9 @@ describe('Browser environment', () => {
           .submitFundTransaction({ txId: nonExistentPaymentTxId })
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain('Failed request: 404: Not Found');
+        expect(error.message).to.contain(
+          'Failed request: 404: Transaction not found',
+        );
       });
 
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a pending tx', async () => {
