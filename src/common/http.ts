@@ -113,7 +113,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       throw new FailedRequestError(
         status,
         // Return error message from server if available
-        typeof data === 'string' ? data : statusText,
+        typeof response === 'string' ? response : statusText,
       );
     }
 
