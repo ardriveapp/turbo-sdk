@@ -1,3 +1,10 @@
+## [1.20.2-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.1...v1.20.2-alpha.1) (2024-11-07)
+
+
+### Bug Fixes
+
+* **share credits:** use web polyfilled safe Buffer.from over Readable.from ([473a469](https://github.com/ardriveapp/turbo-sdk/commit/473a4696d21c03540aec7c18d36e6f4152683b65))
+
 ## [1.20.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0...v1.20.1) (2024-11-05)
 
 
