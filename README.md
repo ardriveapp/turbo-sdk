@@ -42,7 +42,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getFiatRates()`](#getfiatrates)
     - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
     - [`getWincForToken({ tokenAmount })`](#getwincfortoken-tokenamount-)
-    - [`getTokenPriceForBytes({ bytes })`](#gettokenpriceforbytes-bytes-)
+    - [`getTokenPriceForBytes({ byteCount })`](#gettokenpriceforbytes-bytecount-)
     - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
     - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
     - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
@@ -392,14 +392,14 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   });
 ```
 
-#### `getTokenPriceForBytes({ bytes })`
+#### `getTokenPriceForBytes({ byteCount })`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
 ```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'solana' });
 const { tokenPrice } = await turbo.getTokenPriceForBytes({
-  bytes: 1024 * 1024 * 100,
+  byteCount: 1024 * 1024 * 100,
 });
 
 console.log(tokenPrice); // Estimated SOL Price for 100 MiB
