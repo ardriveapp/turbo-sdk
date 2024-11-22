@@ -394,7 +394,7 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
 
 #### `getTokenPriceForBytes({ bytes })`
 
-Returns the estimated cost in instantiated token type for the provided byte amount.
+Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
 ```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'solana' });
@@ -922,11 +922,11 @@ turbo price --value 1.1 --type arweave
 
 ##### `token-price`
 
-Get the current token price estimate from Turbo Payment Service for a given value and token type.
+Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
 Command Options:
 
-- `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
+- `--value <value>` - Byte value to get the token price for
 
 e.g:
 
