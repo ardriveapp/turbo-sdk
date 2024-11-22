@@ -1,3 +1,16 @@
+# [1.21.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.2-alpha.1...v1.21.0-alpha.1) (2024-11-22)
+
+
+### Bug Fixes
+
+* include `pol` on exported create signer function PE-7171 ([3586f57](https://github.com/ardriveapp/turbo-sdk/commit/3586f5788e0f18f05b3dc62165db066c4a96b3e8))
+
+
+### Features
+
+* **token-price:** init new price method PE-7171 ([c4df2f2](https://github.com/ardriveapp/turbo-sdk/commit/c4df2f214dffc6b4cb0c883ab2e0a5ea2ec26e6b))
+* **token-price:** init token-price CLI command PE-7171 ([5325173](https://github.com/ardriveapp/turbo-sdk/commit/5325173b97988b849d728d8bbba9df13abf7c879))
+
 ## [1.20.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.0...v1.20.1) (2024-11-05)
 
 
