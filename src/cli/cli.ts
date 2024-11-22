@@ -31,6 +31,7 @@ import {
 import { listShares } from './commands/listShares.js';
 import { revokeCredits } from './commands/revokeCredits.js';
 import { shareCredits } from './commands/shareCredits.js';
+import { tokenPrice } from './commands/tokenPrice.js';
 import {
   globalOptions,
   listSharesOptions,
@@ -97,6 +98,15 @@ applyOptions(
   [optionMap.value, optionMap.type],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, price);
+});
+
+applyOptions(
+  program
+    .command('token-price')
+    .description('Get the current token price for provided byte value'),
+  [optionMap.byteCount],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, tokenPrice);
 });
 
 applyOptions(

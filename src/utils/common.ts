@@ -60,6 +60,7 @@ export function createTurboSigner({
     case 'solana':
       return new HexSolanaSigner(clientProvidedPrivateKey);
     case 'ethereum':
+    case 'pol':
     case 'matic':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(

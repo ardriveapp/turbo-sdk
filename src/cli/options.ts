@@ -146,6 +146,10 @@ export const optionMap = {
       'Use the signer balance first before using credit share approvals',
     default: false,
   },
+  byteCount: {
+    alias: '--byte-count <byteCount>',
+    description: 'Number of bytes to use for the action',
+  },
 } as const;
 
 export const walletOptions = [

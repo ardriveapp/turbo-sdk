@@ -42,6 +42,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getFiatRates()`](#getfiatrates)
     - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
     - [`getWincForToken({ tokenAmount })`](#getwincfortoken-tokenamount-)
+    - [`getTokenPriceForBytes({ byteCount })`](#gettokenpriceforbytes-bytecount-)
     - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
     - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
     - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
@@ -80,6 +81,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`upload-folder`](#upload-folder)
       - [`upload-file`](#upload-file)
       - [`price`](#price)
+      - [`token-price`](#token-price)
       - [`share-credits`](#share-credits)
       - [`revoke-credits`](#revoke-credits)
       - [`list-shares`](#list-shares)
@@ -388,6 +390,19 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   await turbo.getWincForToken({
     tokenAmount: WinstonToTokenAmount(100_000_000),
   });
+```
+
+#### `getTokenPriceForBytes({ byteCount })`
+
+Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'solana' });
+const { tokenPrice } = await turbo.getTokenPriceForBytes({
+  byteCount: 1024 * 1024 * 100,
+});
+
+console.log(tokenPrice); // Estimated SOL Price for 100 MiB
 ```
 
 #### `getUploadCosts({ bytes })`
@@ -903,6 +918,20 @@ turbo price --value 1024 --type bytes
 
 ```shell
 turbo price --value 1.1 --type arweave
+```
+
+##### `token-price`
+
+Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
+
+Command Options:
+
+- `--byte-count <byteCount>` - Byte value to get the token price for
+
+e.g:
+
+```shell
+turbo token-price --byte-count 102400 --token solana
 ```
 
 ##### `share-credits`
