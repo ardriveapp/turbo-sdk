@@ -29,7 +29,12 @@ import {
 } from '../src/common/turbo.js';
 import { TurboFactory } from '../src/node/factory.js';
 import { TurboNodeSigner } from '../src/node/signer.js';
-import { NativeAddress, TokenType, TurboSigner } from '../src/types.js';
+import {
+  NativeAddress,
+  TokenType,
+  TurboSigner,
+  tokenTypes,
+} from '../src/types.js';
 import { signerFromKyveMnemonic } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
@@ -335,6 +340,23 @@ describe('Node environment', () => {
       expect(actualTokenAmount).to.equal('100000');
       expect(equivalentWincTokenAmount).to.equal('100000');
       expect(fees).to.have.length(1);
+    });
+
+    describe.only('getTokenPriceForBytes()', async () => {
+      const bytes = 1024 * 1024 * 100; // 100 MiB
+      for (const token of tokenTypes) {
+        it(`should return the correct token price for the given bytes for ${token}`, async () => {
+          const { tokenPrice, bytes: bytesResult } =
+            await TurboFactory.unauthenticated({
+              token,
+            }).getTokenPriceForBytes({
+              bytes,
+            });
+          expect(tokenPrice).to.not.be.undefined;
+          expect(bytesResult).to.equal(bytes);
+          expect(+tokenPrice).to.be.a('number');
+        });
+      }
     });
 
     describe('uploadSignedDataItem()', () => {
