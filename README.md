@@ -42,6 +42,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
     - [`getFiatRates()`](#getfiatrates)
     - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
     - [`getWincForToken({ tokenAmount })`](#getwincfortoken-tokenamount-)
+    - [`getTokenPriceForBytes({ bytes })`](#gettokenpriceforbytes-bytes-)
     - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
     - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
     - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
@@ -80,6 +81,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [`upload-folder`](#upload-folder)
       - [`upload-file`](#upload-file)
       - [`price`](#price)
+      - [`token-price`](#token-price)
       - [`share-credits`](#share-credits)
       - [`revoke-credits`](#revoke-credits)
       - [`list-shares`](#list-shares)
@@ -388,6 +390,19 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   await turbo.getWincForToken({
     tokenAmount: WinstonToTokenAmount(100_000_000),
   });
+```
+
+#### `getTokenPriceForBytes({ bytes })`
+
+Returns the estimated cost in instantiated token type for the provided byte amount.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'solana' });
+const { tokenPrice } = await turbo.getTokenPriceForBytes({
+  bytes: 1024 * 1024 * 100,
+});
+
+console.log(tokenPrice); // Estimated SOL Price for 100 MiB
 ```
 
 #### `getUploadCosts({ bytes })`
@@ -903,6 +918,20 @@ turbo price --value 1024 --type bytes
 
 ```shell
 turbo price --value 1.1 --type arweave
+```
+
+##### `token-price`
+
+Get the current token price estimate from Turbo Payment Service for a given value and token type.
+
+Command Options:
+
+- `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
+
+e.g:
+
+```shell
+turbo token-price --value 102400 --token solana
 ```
 
 ##### `share-credits`
