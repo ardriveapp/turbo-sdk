@@ -41,6 +41,7 @@ import {
   TurboRatesResponse,
   TurboSignedRequestHeaders,
   TurboSubmitFundTxResponse,
+  TurboTokenPriceForBytesResponse,
   TurboUnauthenticatedPaymentServiceConfiguration,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboWincForFiatParams,
@@ -293,7 +294,7 @@ export class TurboUnauthenticatedPaymentService
     bytes,
   }: {
     bytes: number;
-  }): Promise<{ tokenPrice: string; bytes: number; token: TokenType }> {
+  }): Promise<TurboTokenPriceForBytesResponse> {
     const wincPriceForOneToken = (
       await this.getWincForToken({
         tokenAmount: tokenToBaseMap[this.token](1),
