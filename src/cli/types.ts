@@ -59,8 +59,11 @@ export type UploadFileOptions = UploadOptions & {
   filePath: string | undefined;
 };
 
-export type PriceOptions = GlobalOptions & {
+export type TokenPriceOptions = GlobalOptions & {
   value: string | undefined;
+};
+
+export type PriceOptions = TokenPriceOptions & {
   type: string | undefined;
 };
 
