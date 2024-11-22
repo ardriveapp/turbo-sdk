@@ -109,6 +109,12 @@ export type TurboWincForTokenResponse = Omit<
   equivalentWincTokenAmount: string;
 };
 
+export type TurboTokenPriceForBytesResponse = {
+  tokenPrice: string;
+  bytes: number;
+  token: TokenType;
+};
+
 export type TurboWincForFiatParams = {
   amount: CurrencyMap;
   nativeAddress?: NativeAddress;
@@ -580,6 +586,11 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getWincForToken(
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse>;
+  getTokenPriceForBytes({
+    bytes,
+  }: {
+    bytes: number;
+  }): Promise<TurboTokenPriceForBytesResponse>;
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
   createCheckoutSession(
     params: TurboCheckoutSessionParams,

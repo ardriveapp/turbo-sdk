@@ -51,6 +51,7 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+import { exponentMap, tokenToBaseMap } from './token/index.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
@@ -286,6 +287,33 @@ export class TurboUnauthenticatedPaymentService
       };
     }
     return response;
+  }
+
+  public async getTokenPriceForBytes({
+    bytes,
+  }: {
+    bytes: number;
+  }): Promise<{ tokenPrice: string; bytes: number; token: TokenType }> {
+    const wincPriceForOneToken = (
+      await this.getWincForToken({
+        tokenAmount: tokenToBaseMap[this.token](1),
+      })
+    ).winc;
+    const wincPriceForOneGiB = (
+      await this.getUploadCosts({
+        bytes: [2 ** 30],
+      })
+    )[0].winc;
+
+    const tokenPriceForOneGiB = new BigNumber(wincPriceForOneGiB).dividedBy(
+      wincPriceForOneToken,
+    );
+    const tokenPriceForBytes = tokenPriceForOneGiB
+      .dividedBy(2 ** 30)
+      .times(bytes)
+      .toFixed(exponentMap[this.token]);
+
+    return { bytes, tokenPrice: tokenPriceForBytes, token: this.token };
   }
 }
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance

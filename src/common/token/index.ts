@@ -36,6 +36,15 @@ export const defaultTokenMap: TokenFactory = {
   pol: (config: TokenConfig) => new PolygonToken(config),
 } as const;
 
+export const exponentMap: Record<TokenType, number> = {
+  arweave: 12,
+  solana: 9,
+  ethereum: 18,
+  kyve: 6,
+  matic: 18,
+  pol: 18,
+} as const;
+
 export const tokenToBaseMap: Record<
   TokenType,
   (a: BigNumber.Value) => BigNumber.Value
