@@ -43,7 +43,8 @@ export async function shareCredits(
   const result = await turbo.shareCredits({
     approvedAddress,
     approvedWincAmount,
-    expiresBySeconds,
+    expiresBySeconds:
+      expiresBySeconds !== undefined ? +expiresBySeconds : undefined,
   });
 
   console.log(

@@ -174,11 +174,11 @@ export class TurboUnauthenticatedClient
    * Determines the price in the instantiated token to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
    */
   getTokenPriceForBytes({
-    bytes,
+    byteCount,
   }: {
-    bytes: number;
+    byteCount: number;
   }): Promise<TurboTokenPriceForBytesResponse> {
-    return this.paymentService.getTokenPriceForBytes({ bytes });
+    return this.paymentService.getTokenPriceForBytes({ byteCount });
   }
 
   /**

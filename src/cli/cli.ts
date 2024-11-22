@@ -104,7 +104,7 @@ applyOptions(
   program
     .command('token-price')
     .description('Get the current token price for provided byte value'),
-  [optionMap.value],
+  [optionMap.byteCount],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, tokenPrice);
 });

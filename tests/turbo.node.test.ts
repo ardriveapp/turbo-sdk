@@ -346,11 +346,11 @@ describe('Node environment', () => {
       const bytes = 1024 * 1024 * 100; // 100 MiB
       for (const token of tokenTypes) {
         it(`should return the correct token price for the given bytes for ${token}`, async () => {
-          const { tokenPrice, bytes: bytesResult } =
+          const { tokenPrice, byteCount: bytesResult } =
             await TurboFactory.unauthenticated({
               token,
             }).getTokenPriceForBytes({
-              bytes,
+              byteCount: bytes,
             });
           expect(tokenPrice).to.not.be.undefined;
           expect(bytesResult).to.equal(bytes);

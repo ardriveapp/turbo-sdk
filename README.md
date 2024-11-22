@@ -926,12 +926,12 @@ Get the current price from the Turbo Payment Service, denominated in the specifi
 
 Command Options:
 
-- `--value <value>` - Byte value to get the token price for
+- `--byte-count <byteCount>` - Byte value to get the token price for
 
 e.g:
 
 ```shell
-turbo token-price --value 102400 --token solana
+turbo token-price --byte-count 102400 --token solana
 ```
 
 ##### `share-credits`

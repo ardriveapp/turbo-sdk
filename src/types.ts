@@ -111,7 +111,7 @@ export type TurboWincForTokenResponse = Omit<
 
 export type TurboTokenPriceForBytesResponse = {
   tokenPrice: string;
-  bytes: number;
+  byteCount: number;
   token: TokenType;
 };
 
@@ -587,9 +587,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse>;
   getTokenPriceForBytes({
-    bytes,
+    byteCount,
   }: {
-    bytes: number;
+    byteCount: number;
   }): Promise<TurboTokenPriceForBytesResponse>;
   getUploadCosts({ bytes }: { bytes: number[] }): Promise<TurboPriceResponse[]>;
   createCheckoutSession(

@@ -20,15 +20,16 @@ import { TokenPriceOptions } from '../types.js';
 import { configFromOptions } from '../utils.js';
 
 export async function tokenPrice(options: TokenPriceOptions) {
-  const value = options.value !== undefined ? +options.value : undefined;
+  const byteCount =
+    options.byteCount !== undefined ? +options.byteCount : undefined;
   if (
-    value === undefined ||
-    value <= 0 ||
-    isNaN(value) ||
-    !Number.isInteger(value)
+    byteCount === undefined ||
+    byteCount <= 0 ||
+    isNaN(byteCount) ||
+    !Number.isInteger(byteCount)
   ) {
     throw new Error(
-      'Must provide a positive number for byte to get price.\nFor example, to get the SOL price for 100 MiB use the following:\nturbo token-price --token solana --value 1048576000',
+      'Must provide a positive number for byte to get price.\nFor example, to get the SOL price for 100 MiB use the following:\nturbo token-price --token solana --byte-count 1048576000',
     );
   }
   const token = options.token;
@@ -40,12 +41,14 @@ export async function tokenPrice(options: TokenPriceOptions) {
   }
 
   const turbo = TurboFactory.unauthenticated(configFromOptions(options));
-  const { tokenPrice } = await turbo.getTokenPriceForBytes({ bytes: +value });
+  const { tokenPrice } = await turbo.getTokenPriceForBytes({
+    byteCount: +byteCount,
+  });
 
   const output = {
     tokenPrice,
-    bytes: value,
-    message: `The current price estimate for ${value} bytes is ${tokenPrice} ${token}`,
+    byteCount,
+    message: `The current price estimate for ${byteCount} bytes is ${tokenPrice} ${token}`,
   };
   console.log(JSON.stringify(output, null, 2));
 }

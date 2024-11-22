@@ -52,7 +52,7 @@ export type UploadFolderOptions = UploadOptions & {
   indexFile: string | undefined;
   fallbackFile: string | undefined;
   manifest: boolean;
-  maxConcurrency: number | undefined;
+  maxConcurrency: string | undefined;
 };
 
 export type UploadFileOptions = UploadOptions & {
@@ -60,10 +60,11 @@ export type UploadFileOptions = UploadOptions & {
 };
 
 export type TokenPriceOptions = GlobalOptions & {
-  value: string | undefined;
+  byteCount: string | undefined;
 };
 
 export type PriceOptions = TokenPriceOptions & {
+  value: string | undefined;
   type: string | undefined;
 };
 
@@ -75,7 +76,7 @@ export type CryptoFundOptions = WalletOptions & {
 export type ShareCreditsOptions = WalletOptions & {
   address: string | undefined;
   value: string | undefined;
-  expiresBySeconds: number | undefined;
+  expiresBySeconds: string | undefined;
 };
 
 export type RevokeCreditsOptions = WalletOptions & {

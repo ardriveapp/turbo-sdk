@@ -291,9 +291,9 @@ export class TurboUnauthenticatedPaymentService
   }
 
   public async getTokenPriceForBytes({
-    bytes,
+    byteCount,
   }: {
-    bytes: number;
+    byteCount: number;
   }): Promise<TurboTokenPriceForBytesResponse> {
     const wincPriceForOneToken = (
       await this.getWincForToken({
@@ -311,10 +311,10 @@ export class TurboUnauthenticatedPaymentService
     );
     const tokenPriceForBytes = tokenPriceForOneGiB
       .dividedBy(2 ** 30)
-      .times(bytes)
+      .times(byteCount)
       .toFixed(exponentMap[this.token]);
 
-    return { bytes, tokenPrice: tokenPriceForBytes, token: this.token };
+    return { byteCount, tokenPrice: tokenPriceForBytes, token: this.token };
   }
 }
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
