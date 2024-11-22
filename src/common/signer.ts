@@ -79,7 +79,7 @@ export abstract class TurboDataItemAbstractSigner
   private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {
     switch (token) {
       case 'solana':
-        return bs58.encode(fromB64Url(owner));
+        return bs58.encode(Uint8Array.from(fromB64Url(owner)));
 
       case 'ethereum':
       case 'matic':
@@ -90,7 +90,9 @@ export abstract class TurboDataItemAbstractSigner
         return pubkeyToAddress(
           {
             type: 'tendermint/PubKeySecp256k1',
-            value: toBase64(Secp256k1.compressPubkey(fromB64Url(owner))),
+            value: toBase64(
+              Secp256k1.compressPubkey(Uint8Array.from(fromB64Url(owner))),
+            ),
           },
           'kyve',
         );
@@ -104,7 +106,7 @@ export abstract class TurboDataItemAbstractSigner
   public async generateSignedRequestHeaders() {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
-    const signature = await this.signer.sign(buffer);
+    const signature = await this.signer.sign(Uint8Array.from(buffer));
     const publicKey = toB64Url(this.signer.publicKey);
     return {
       'x-public-key': publicKey,

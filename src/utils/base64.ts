@@ -44,9 +44,9 @@ export function fromB64Url(input: Base64String): Buffer {
 }
 
 export function toB64Url(buffer: Buffer): Base64String {
-  return bufferTob64Url(buffer);
+  return bufferTob64Url(Uint8Array.from(buffer));
 }
 
 export function sha256B64Url(input: Buffer): Base64String {
-  return toB64Url(createHash('sha256').update(input).digest());
+  return toB64Url(createHash('sha256').update(Uint8Array.from(input)).digest());
 }
