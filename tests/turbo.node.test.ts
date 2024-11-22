@@ -342,7 +342,7 @@ describe('Node environment', () => {
       expect(fees).to.have.length(1);
     });
 
-    describe.only('getTokenPriceForBytes()', async () => {
+    describe('getTokenPriceForBytes()', async () => {
       const bytes = 1024 * 1024 * 100; // 100 MiB
       for (const token of tokenTypes) {
         it(`should return the correct token price for the given bytes for ${token}`, async () => {
