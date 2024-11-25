@@ -40,6 +40,7 @@ import {
   TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
   TurboSubmitFundTxResponse,
+  TurboTokenPriceForBytesResponse,
   TurboUnauthenticatedClientConfiguration,
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
@@ -167,6 +168,17 @@ export class TurboUnauthenticatedClient
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse> {
     return this.paymentService.getWincForToken(params);
+  }
+
+  /**
+   * Determines the price in the instantiated token to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
+   */
+  getTokenPriceForBytes({
+    byteCount,
+  }: {
+    byteCount: number;
+  }): Promise<TurboTokenPriceForBytesResponse> {
+    return this.paymentService.getTokenPriceForBytes({ byteCount });
   }
 
   /**
