@@ -37,7 +37,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
   const result = await turbo.uploadFile({
     fileStreamFactory: () => createReadStream(filePath),
     fileSizeFactory: () => fileSize,
-    dataItemOpts: { tags: [...turboCliTags, ...fileTags], paidBy }, // TODO: Inject user tags
+    dataItemOpts: { tags: [...turboCliTags, ...fileTags], paidBy },
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));
