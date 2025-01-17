@@ -39,6 +39,12 @@ export const optionMap = {
     alias: '-a, --address <nativeAddress>',
     description: 'Native address to use for action',
   },
+  tags: {
+    description:
+      'An array of additional tags for the write action, in "--tags name1 value1 name2 value2" format',
+    alias: '--tags <tags...>',
+    type: 'array',
+  },
   value: {
     alias: '-v, --value <value>',
     description:
@@ -186,7 +192,11 @@ export const uploadFolderOptions = [
   optionMap.maxConcurrency,
 ];
 
-export const uploadFileOptions = [...uploadOptions, optionMap.filePath];
+export const uploadFileOptions = [
+  ...uploadOptions,
+  optionMap.filePath,
+  optionMap.tags,
+];
 
 export const shareCreditsOptions = [
   ...walletOptions,
