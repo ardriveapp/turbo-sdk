@@ -1,10 +1,3 @@
-## [1.21.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.21.0...v1.21.1-alpha.1) (2025-01-17)
-
-
-### Bug Fixes
-
-* **arconnect:** use signDataItem method, signature is deprecated PE-7455 ([0cd3ca7](https://github.com/ardriveapp/turbo-sdk/commit/0cd3ca7f59f72766f7cbc8cafb3e1fa8e5a71f24))
-
 # [1.21.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.2...v1.21.0) (2024-11-25)
 
 
