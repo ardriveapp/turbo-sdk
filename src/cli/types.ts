@@ -45,6 +45,7 @@ export type UploadOptions = WalletOptions & {
   paidBy: string[];
   ignoreApprovals: boolean;
   useSignerBalanceFirst: boolean;
+  tags: string[] | undefined;
 };
 
 export type UploadFolderOptions = UploadOptions & {

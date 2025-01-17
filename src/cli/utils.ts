@@ -31,7 +31,6 @@ import { NoWalletProvidedError } from './errors.js';
 import {
   AddressOptions,
   GlobalOptions,
-  UploadFileOptions,
   UploadFolderOptions,
   UploadOptions,
   WalletOptions,
@@ -306,17 +305,16 @@ export function parseTags(
   }
 
   const tags: { name: string; value: string }[] = [];
+  const arr = [...tagsArr];
 
-  for (let i = 0; i < tagsArr.length; i += 2) {
-    const name = tagsArr[i];
-    const value = tagsArr[i + 1];
-
-    if (!name || !value) {
+  while (arr.length) {
+    const name = arr.shift();
+    const value = arr.shift();
+    if (name === undefined || value === undefined) {
       throw new Error(
         'Invalid tag format. Each tag must have both a name and value.',
       );
     }
-
     tags.push({ name, value });
   }
 
@@ -324,7 +322,7 @@ export function parseTags(
 }
 
 export function getTagsFromOptions(
-  options: UploadFileOptions,
+  options: UploadOptions,
 ): { name: string; value: string }[] {
   return parseTags(options.tags);
 }

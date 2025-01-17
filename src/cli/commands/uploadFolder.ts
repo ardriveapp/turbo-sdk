@@ -16,6 +16,7 @@
 import { turboCliTags } from '../constants.js';
 import { UploadFolderOptions } from '../types.js';
 import {
+  getTagsFromOptions,
   getUploadFolderOptions,
   paidByFromOptions,
   turboFromOptions,
@@ -35,9 +36,11 @@ export async function uploadFolder(
     maxConcurrentUploads,
   } = getUploadFolderOptions(options);
 
+  const customTags = getTagsFromOptions(options);
+
   const result = await turbo.uploadFolder({
     folderPath: folderPath,
-    dataItemOpts: { tags: [...turboCliTags], paidBy }, // TODO: Inject user tags
+    dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
     manifestOptions: {
       disableManifest,
       indexFile,

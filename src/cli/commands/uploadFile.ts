@@ -31,13 +31,13 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
 
   const turbo = await turboFromOptions(options);
   const paidBy = await paidByFromOptions(options, turbo);
-  const fileTags = getTagsFromOptions(options);
+  const customTags = getTagsFromOptions(options);
   const fileSize = statSync(filePath).size;
 
   const result = await turbo.uploadFile({
     fileStreamFactory: () => createReadStream(filePath),
     fileSizeFactory: () => fileSize,
-    dataItemOpts: { tags: [...turboCliTags, ...fileTags], paidBy }, // TODO: Inject user tags
+    dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

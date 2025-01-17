@@ -181,6 +181,7 @@ export const uploadOptions = [
   optionMap.paidBy,
   optionMap.ignoreApprovals,
   optionMap.useSignerBalanceFirst,
+  optionMap.tags,
 ];
 
 export const uploadFolderOptions = [
@@ -192,11 +193,7 @@ export const uploadFolderOptions = [
   optionMap.maxConcurrency,
 ];
 
-export const uploadFileOptions = [
-  ...uploadOptions,
-  optionMap.filePath,
-  optionMap.tags,
-];
+export const uploadFileOptions = [...uploadOptions, optionMap.filePath];
 
 export const shareCreditsOptions = [
   ...walletOptions,
