@@ -16,6 +16,7 @@
 import {
   ArconnectSigner,
   ArweaveSigner,
+  DataItem,
   EthereumSigner,
   HexSolanaSigner,
   InjectedEthereumSigner,
@@ -83,9 +84,29 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
             size: fileSizeFactory(),
           });
 
+    let signedDataItem: DataItem;
     this.logger.debug('Signing data item...');
-    const signedDataItem = createData(buffer, this.signer, dataItemOpts);
-    await signedDataItem.sign(this.signer);
+    if (this.signer instanceof ArconnectSigner) {
+      this.logger.debug(
+        'Arconnect signer detected, signing with Arconnect signData Item API...',
+      );
+      const sign = Buffer.from(
+        await this.signer['signer'].signDataItem({
+          data: Uint8Array.from(buffer),
+          tags: dataItemOpts?.tags,
+          target: dataItemOpts?.target,
+          anchor: dataItemOpts?.anchor,
+        }),
+      );
+      signedDataItem = new DataItem(sign);
+    } else {
+      signedDataItem = createData(
+        Uint8Array.from(buffer),
+        this.signer,
+        dataItemOpts,
+      );
+      await signedDataItem.sign(this.signer);
+    }
     this.logger.debug('Successfully signed data item...');
     return {
       // while this returns a Buffer - it needs to match our return type for uploading
