@@ -17,7 +17,11 @@ import { createReadStream, statSync } from 'fs';
 
 import { turboCliTags } from '../constants.js';
 import { UploadFileOptions } from '../types.js';
-import { paidByFromOptions, turboFromOptions } from '../utils.js';
+import {
+  getTagsFromOptions,
+  paidByFromOptions,
+  turboFromOptions,
+} from '../utils.js';
 
 export async function uploadFile(options: UploadFileOptions): Promise<void> {
   const { filePath } = options;
@@ -27,13 +31,13 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
 
   const turbo = await turboFromOptions(options);
   const paidBy = await paidByFromOptions(options, turbo);
-
+  const customTags = getTagsFromOptions(options);
   const fileSize = statSync(filePath).size;
 
   const result = await turbo.uploadFile({
     fileStreamFactory: () => createReadStream(filePath),
     fileSizeFactory: () => fileSize,
-    dataItemOpts: { tags: [...turboCliTags], paidBy }, // TODO: Inject user tags
+    dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

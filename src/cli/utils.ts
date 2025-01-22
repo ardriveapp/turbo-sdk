@@ -284,3 +284,45 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
     maxConcurrentUploads: +(options.maxConcurrency ?? 1),
   };
 }
+
+/**
+ * Parse tags array from CLI input into Tag array
+ * Accepts format: ["name1", "value1", "name2", "value2"]
+ * @param tagsArr Array of alternating tag names and values
+ * @returns Array of {name: string, value: string} objects
+ */
+export function parseTags(
+  tagsArr?: string[],
+): { name: string; value: string }[] {
+  if (!tagsArr || tagsArr.length === 0) {
+    return [];
+  }
+
+  if (tagsArr.length % 2 !== 0) {
+    throw new Error(
+      'Invalid tags format. Tags must be provided in pairs of name and value.',
+    );
+  }
+
+  const tags: { name: string; value: string }[] = [];
+  const arr = [...tagsArr];
+
+  while (arr.length) {
+    const name = arr.shift();
+    const value = arr.shift();
+    if (name === undefined || value === undefined) {
+      throw new Error(
+        'Invalid tag format. Each tag must have both a name and value.',
+      );
+    }
+    tags.push({ name, value });
+  }
+
+  return tags;
+}
+
+export function getTagsFromOptions(
+  options: UploadOptions,
+): { name: string; value: string }[] {
+  return parseTags(options.tags);
+}

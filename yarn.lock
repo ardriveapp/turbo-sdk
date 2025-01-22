@@ -1024,7 +1024,7 @@
     buffer "^6.0.3"
     delay "^4.4.0"
 
-"@keplr-wallet/cosmos@0.12.123", "@keplr-wallet/cosmos@^0.12.96":
+"@keplr-wallet/cosmos@^0.12.96":
   version "0.12.123"
   resolved "https://registry.yarnpkg.com/@keplr-wallet/cosmos/-/cosmos-0.12.123.tgz#0a0eef06ff2bc2771f52a79720afa6735dc49e5c"
   integrity sha512-Wwfya+b6XQ304I+8TkyhTrPD0YX6+37qzJ1Zy+jPOJY46Y/kztn42G1ysMu/l7DxYDmHrpzdFT6mXcJ25foigQ==

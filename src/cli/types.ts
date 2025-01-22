@@ -45,6 +45,7 @@ export type UploadOptions = WalletOptions & {
   paidBy: string[];
   ignoreApprovals: boolean;
   useSignerBalanceFirst: boolean;
+  tags: string[] | undefined;
 };
 
 export type UploadFolderOptions = UploadOptions & {
@@ -57,6 +58,7 @@ export type UploadFolderOptions = UploadOptions & {
 
 export type UploadFileOptions = UploadOptions & {
   filePath: string | undefined;
+  tags: string[] | undefined;
 };
 
 export type TokenPriceOptions = GlobalOptions & {
