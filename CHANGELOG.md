@@ -1,11 +1,3 @@
-# [1.22.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.21.1-alpha.1...v1.22.0-alpha.1) (2025-01-22)
-
-
-### Features
-
-* **cli:** add custom Arweave tags support ([4b367e2](https://github.com/ardriveapp/turbo-sdk/commit/4b367e28ab54df4dfa53ac477b963c49af12fb21))
-* **cli:** add tag support for file and folder uploads ([5580085](https://github.com/ardriveapp/turbo-sdk/commit/55800857bee7e8be9fdad1599c1a096ec98ee903))
-
 # [1.21.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.2...v1.21.0) (2024-11-25)
 
 
