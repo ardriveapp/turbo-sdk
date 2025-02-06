@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AxiosError } from 'axios';
+import { AxiosError, CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
@@ -41,6 +41,7 @@ import {
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { sleep } from '../utils/common.js';
+import { FailedRequestError } from '../utils/errors.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -130,15 +131,21 @@ export abstract class TurboAuthenticatedBaseUploadService
       this.retryConfig.retryDelay ??
       ((retryNumber: number) => retryNumber * 1000);
     let lastError = 'Unknown Error'; // Store the last error for throwing
+    let lastStatusCode: number | undefined; // Store the last status code for throwing
 
     while (retries < maxRetries) {
+      if (signal?.aborted) {
+        throw new CanceledError();
+      }
+
+      const { dataItemStreamFactory, dataItemSizeFactory } =
+        await this.signer.signDataItem({
+          fileStreamFactory,
+          fileSizeFactory,
+          dataItemOpts,
+        });
+
       try {
-        const { dataItemStreamFactory, dataItemSizeFactory } =
-          await this.signer.signDataItem({
-            fileStreamFactory,
-            fileSizeFactory,
-            dataItemOpts,
-          });
         this.logger.debug('Uploading signed data item...');
         // TODO: add p-limit constraint or replace with separate upload class
 
@@ -163,12 +170,20 @@ export abstract class TurboAuthenticatedBaseUploadService
         });
         return data;
       } catch (error) {
-        lastError =
-          error instanceof AxiosError && error.code !== undefined
-            ? error.code
-            : error instanceof Error && error.message !== undefined
-            ? error.message
-            : `${error}`; // Store the last encountered error
+        if (error instanceof FailedRequestError) {
+          throw error; // Rethrow if it's already a failed request error from HTTP service
+        }
+
+        // Store the last encountered error and status for re-throwing after retries
+        if (error instanceof AxiosError) {
+          lastStatusCode = error.response?.status;
+          lastError = error.code ?? error.message;
+        } else {
+          lastError =
+            error instanceof Error && error.message !== undefined
+              ? error.message
+              : `${error}`; // Stringify the whole error if it's not a known Error instance
+        }
         this.logger.debug(
           `Upload failed, attempt ${retries + 1}/${maxRetries}`,
           { message: lastError },
@@ -180,7 +195,8 @@ export abstract class TurboAuthenticatedBaseUploadService
     }
 
     // After all retries, throw the last error for catching
-    throw new Error(
+    throw new FailedRequestError(
+      lastStatusCode ?? 500,
       `Failed to upload file after ${maxRetries} attempts: ${lastError}`,
     );
   }
