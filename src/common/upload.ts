@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { AxiosError } from 'axios';
+import { IAxiosRetryConfig } from 'axios-retry';
 import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
@@ -37,6 +39,8 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
 } from '../types.js';
+import { defaultRetryConfig } from '../utils/axiosClient.js';
+import { sleep } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -56,11 +60,12 @@ export class TurboUnauthenticatedUploadService
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected token: TokenType;
+  protected retryConfig: IAxiosRetryConfig;
 
   constructor({
     url = defaultUploadServiceURL,
-    retryConfig,
     logger = TurboWinstonLogger.default,
+    retryConfig = defaultRetryConfig(logger),
     token = 'arweave',
   }: TurboUnauthenticatedUploadServiceConfiguration) {
     this.token = token;
@@ -70,6 +75,7 @@ export class TurboUnauthenticatedUploadService
       retryConfig,
       logger: this.logger,
     });
+    this.retryConfig = retryConfig;
   }
 
   async uploadSignedDataItem({
@@ -118,36 +124,65 @@ export abstract class TurboAuthenticatedBaseUploadService
     dataItemOpts,
   }: TurboFileFactory &
     TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    const { dataItemStreamFactory, dataItemSizeFactory } =
-      await this.signer.signDataItem({
-        fileStreamFactory,
-        fileSizeFactory,
-        dataItemOpts,
-      });
-    const signedDataItem = dataItemStreamFactory();
-    this.logger.debug('Uploading signed data item...');
-    // TODO: add p-limit constraint or replace with separate upload class
+    let retries = 0;
+    const maxRetries = this.retryConfig.retries ?? 3;
+    const retryDelay =
+      this.retryConfig.retryDelay ??
+      ((retryNumber: number) => retryNumber * 1000);
+    let lastError = 'Unknown Error'; // Store the last error for throwing
 
-    const headers = {
-      'content-type': 'application/octet-stream',
-      'content-length': `${dataItemSizeFactory()}`,
-    };
-    if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
-      const paidBy = Array.isArray(dataItemOpts.paidBy)
-        ? dataItemOpts.paidBy
-        : [dataItemOpts.paidBy];
+    while (retries < maxRetries) {
+      try {
+        const { dataItemStreamFactory, dataItemSizeFactory } =
+          await this.signer.signDataItem({
+            fileStreamFactory,
+            fileSizeFactory,
+            dataItemOpts,
+          });
+        this.logger.debug('Uploading signed data item...');
+        // TODO: add p-limit constraint or replace with separate upload class
 
-      if (dataItemOpts.paidBy.length > 0) {
-        headers['x-paid-by'] = paidBy;
+        const headers = {
+          'content-type': 'application/octet-stream',
+          'content-length': `${dataItemSizeFactory()}`,
+        };
+        if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+          const paidBy = Array.isArray(dataItemOpts.paidBy)
+            ? dataItemOpts.paidBy
+            : [dataItemOpts.paidBy];
+
+          if (dataItemOpts.paidBy.length > 0) {
+            headers['x-paid-by'] = paidBy;
+          }
+        }
+        const data = await this.httpService.post<TurboUploadDataItemResponse>({
+          endpoint: `/tx/${this.token}`,
+          signal,
+          data: dataItemStreamFactory(),
+          headers,
+        });
+        return data;
+      } catch (error) {
+        lastError =
+          error instanceof AxiosError && error.code !== undefined
+            ? error.code
+            : error instanceof Error && error.message !== undefined
+            ? error.message
+            : `${error}`; // Store the last encountered error
+        this.logger.debug(
+          `Upload failed, attempt ${retries + 1}/${maxRetries}`,
+          { message: lastError },
+          error,
+        );
+        retries++;
+        await sleep(retryDelay(retries, error));
       }
     }
 
-    return this.httpService.post<TurboUploadDataItemResponse>({
-      endpoint: `/tx/${this.token}`,
-      signal,
-      data: signedDataItem,
-      headers,
-    });
+    // After all retries, throw the last error for catching
+    throw new Error(
+      `Failed to upload file after ${maxRetries} attempts: ${lastError}`,
+    );
   }
 
   protected async generateManifest({

@@ -31,22 +31,27 @@ export interface AxiosInstanceParameters {
   logger?: TurboLogger;
 }
 
+export const defaultRetryConfig: (logger?: TurboLogger) => IAxiosRetryConfig = (
+  logger = TurboWinstonLogger.default,
+) => ({
+  retryDelay: axiosRetry.exponentialDelay,
+  retries: 5,
+  retryCondition: (error) => {
+    return (
+      !(error instanceof CanceledError) &&
+      axiosRetry.isIdempotentRequestError(error) &&
+      axiosRetry.isNetworkError(error)
+    );
+  },
+  onRetry: (retryCount, error) => {
+    logger.debug(`Request failed, ${error}. Retry attempt #${retryCount}...`);
+  },
+});
+
 export const createAxiosInstance = ({
   logger = TurboWinstonLogger.default,
   axiosConfig = {},
-  retryConfig = {
-    retryDelay: axiosRetry.exponentialDelay,
-    retries: 3,
-    retryCondition: (error) => {
-      return (
-        !(error instanceof CanceledError) &&
-        axiosRetry.isNetworkOrIdempotentRequestError(error)
-      );
-    },
-    onRetry: (retryCount, error) => {
-      logger.debug(`Request failed, ${error}. Retry attempt #${retryCount}...`);
-    },
-  },
+  retryConfig = defaultRetryConfig(logger),
 }: AxiosInstanceParameters = {}): AxiosInstance => {
   const axiosInstance = axios.create({
     ...axiosConfig,
