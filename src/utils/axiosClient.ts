@@ -62,8 +62,7 @@ export const createAxiosInstance = ({
     validateStatus: () => true, // don't throw on non-200 status codes
   });
 
-  // eslint-disable-next-line
-  if (retryConfig.retries && retryConfig.retries > 0) {
+  if (retryConfig.retries !== undefined && retryConfig.retries > 0) {
     axiosRetry(axiosInstance, retryConfig);
   }
 

@@ -130,8 +130,8 @@ export abstract class TurboAuthenticatedBaseUploadService
     const retryDelay =
       this.retryConfig.retryDelay ??
       ((retryNumber: number) => retryNumber * 1000);
-    let lastError = 'Unknown Error'; // Store the last error for throwing
-    let lastStatusCode: number | undefined; // Store the last status code for throwing
+    let lastError: string | undefined = undefined; // Store the last error for throwing
+    let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
 
     while (retries < maxRetries) {
       if (signal?.aborted) {
@@ -196,8 +196,10 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     // After all retries, throw the last error for catching
     throw new FailedRequestError(
-      lastStatusCode ?? 500,
-      `Failed to upload file after ${maxRetries} attempts: ${lastError}`,
+      `Failed to upload file after ${maxRetries} attempts${
+        lastError !== undefined && lastError.length > 0 ? `: ${lastError}` : ''
+      }`,
+      lastStatusCode,
     );
   }
 
