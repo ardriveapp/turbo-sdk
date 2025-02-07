@@ -1,10 +1,15 @@
-# [1.22.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.22.0-alpha.1...v1.22.0-alpha.2) (2025-02-07)
+# [1.22.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.21.0...v1.22.0) (2025-01-22)
 
 
 ### Bug Fixes
 
-* **data post:** add retry capability on upload file as intended PE-7598 ([cfe312b](https://github.com/ardriveapp/turbo-sdk/commit/cfe312b435096b697e70d5f6db2f76714a29f630))
-* **http:** catch uncaught `get` errors, return best effort error message PE-7598 ([c884edc](https://github.com/ardriveapp/turbo-sdk/commit/c884edc64b71ab9a37f46fa614aa30a9318754b9))
+* **arconnect:** use signDataItem method, signature is deprecated PE-7455 ([0cd3ca7](https://github.com/ardriveapp/turbo-sdk/commit/0cd3ca7f59f72766f7cbc8cafb3e1fa8e5a71f24))
+
+
+### Features
+
+* **cli:** add custom Arweave tags support ([4b367e2](https://github.com/ardriveapp/turbo-sdk/commit/4b367e28ab54df4dfa53ac477b963c49af12fb21))
+* **cli:** add tag support for file and folder uploads ([5580085](https://github.com/ardriveapp/turbo-sdk/commit/55800857bee7e8be9fdad1599c1a096ec98ee903))
 
 # [1.21.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.20.2...v1.21.0) (2024-11-25)
 

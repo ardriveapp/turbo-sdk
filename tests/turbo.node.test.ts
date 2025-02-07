@@ -481,7 +481,7 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain(
-          'Failed request: 404: Transaction not found',
+          'Failed request (Status 404): Transaction not found',
         );
       });
 
@@ -611,7 +611,8 @@ describe('Node environment', () => {
         {
           testName: 'tag name too long',
           errorType: 'FailedRequestError',
-          errorMessage: 'Failed request: 400: Data item parsing error!',
+          errorMessage:
+            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
           dataItemOpts: {
             tags: [
               {
@@ -624,7 +625,8 @@ describe('Node environment', () => {
         {
           testName: 'tag value too long',
           errorType: 'FailedRequestError',
-          errorMessage: 'Failed request: 400: Data item parsing error!',
+          errorMessage:
+            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
           dataItemOpts: {
             tags: [
               {
@@ -669,7 +671,7 @@ describe('Node environment', () => {
         errorMessage,
         errorType,
       } of invalidDataItemOpts) {
-        it(`should fail to upload a Buffer to turbo with invalid  when ${testName}`, async () => {
+        it(`should fail to upload a Buffer to turbo with invalid when ${testName}`, async () => {
           const fileSize = fs.statSync(oneKiBFilePath).size;
 
           await expectAsyncErrorThrow({
@@ -724,7 +726,7 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.equal(
-          'Failed request: Failed to upload file after 5 attempts',
+          'Failed request: Failed to upload file after 6 attempts\n',
         );
       });
     });
@@ -798,7 +800,7 @@ describe('Node environment', () => {
       expect(error).to.be.instanceOf(FailedRequestError);
       // TODO: Could provide better error message to client. We have error messages on response.data
       expect(error.message).to.equal(
-        "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+        "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
       );
     });
 
@@ -821,7 +823,7 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.equal(
-          "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+          "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
         );
       });
     });

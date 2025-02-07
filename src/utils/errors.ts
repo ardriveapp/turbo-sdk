@@ -27,10 +27,14 @@ export class UnauthenticatedRequestError extends BaseError {
 }
 
 export class FailedRequestError extends BaseError {
+  public status?: number;
   constructor(message: string, status?: number) {
     super(
-      `Failed request:${status !== undefined ? ` ${status}:` : ''} ${message}`,
+      `Failed request${
+        status !== undefined ? ` (Status ${status})` : ''
+      }: ${message}`,
     );
+    this.status = status;
   }
 }
 

@@ -130,7 +130,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const retryDelay =
       this.retryConfig.retryDelay ??
       ((retryNumber: number) => retryNumber * 1000);
-    let lastError: string | undefined = undefined; // Store the last error for throwing
+    let lastError: Error | undefined = undefined; // Store the last error for throwing
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
 
     while (retries < maxRetries) {
@@ -170,23 +170,26 @@ export abstract class TurboAuthenticatedBaseUploadService
         });
         return data;
       } catch (error) {
-        if (error instanceof FailedRequestError) {
-          throw error; // Rethrow if it's already a failed request error from HTTP service
-        }
-
         // Store the last encountered error and status for re-throwing after retries
+        lastError = error;
         if (error instanceof AxiosError) {
           lastStatusCode = error.response?.status;
-          lastError = error.code ?? error.message;
-        } else {
-          lastError =
-            error instanceof Error && error.message !== undefined
-              ? error.message
-              : `${error}`; // Stringify the whole error if it's not a known Error instance
+        } else if (error instanceof FailedRequestError) {
+          lastStatusCode = error.status;
         }
+
+        if (
+          lastStatusCode !== undefined &&
+          lastStatusCode >= 400 &&
+          lastStatusCode < 500
+        ) {
+          // Don't retry client error codes
+          break;
+        }
+
         this.logger.debug(
           `Upload failed on attempt ${retries + 1}/${maxRetries + 1}`,
-          { message: lastError },
+          { message: error instanceof Error ? error.message : error },
           error,
         );
         retries++;
@@ -202,13 +205,15 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     }
 
+    const msg = `Failed to upload file after ${maxRetries + 1} attempts\n${
+      lastError instanceof Error ? lastError.message : lastError
+    }`;
     // After all retries, throw the last error for catching
-    throw new FailedRequestError(
-      `Failed to upload file after ${maxRetries} attempts${
-        lastError !== undefined && lastError.length > 0 ? `: ${lastError}` : ''
-      }`,
-      lastStatusCode,
-    );
+    if (lastError instanceof FailedRequestError) {
+      lastError.message = msg;
+      throw lastError;
+    }
+    throw new FailedRequestError(msg, lastStatusCode);
   }
 
   protected async generateManifest({

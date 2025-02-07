@@ -431,7 +431,7 @@ describe('Browser environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain(
-          'Failed request: 404: Transaction not found',
+          'Failed request (Status 404): Transaction not found',
         );
       });
 
@@ -607,7 +607,7 @@ describe('Browser environment', () => {
         .catch((error) => error);
       expect(error).to.be.instanceOf(FailedRequestError);
       expect(error?.message).to.equal(
-        "Failed request: 400: No promo code found with code 'BAD_CODE'",
+        "Failed request (Status 400): No promo code found with code 'BAD_CODE'",
       );
     });
 
@@ -630,7 +630,7 @@ describe('Browser environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error?.message).to.equal(
-          "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+          "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
         );
       });
     });
