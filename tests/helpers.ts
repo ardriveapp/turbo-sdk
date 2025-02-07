@@ -5,6 +5,7 @@ import { expect } from 'chai';
 import { JsonRpcProvider, parseEther } from 'ethers';
 import * as fs from 'fs';
 
+import { defaultRetryConfig } from '../src/utils/axiosClient.js';
 import { sleep } from '../src/utils/common.js';
 
 interface expectAsyncErrorThrowParams {
@@ -50,6 +51,23 @@ export const turboDevelopmentConfigurations = {
   },
   uploadServiceConfig: {
     url: process.env.UPLOAD_SERVICE_URL ?? 'https://upload.ardrive.dev',
+  },
+};
+
+const testEnvRetryConfig = () => {
+  const config = defaultRetryConfig();
+  config.retryDelay = () => 0; // no delay in tests
+  return config;
+};
+
+export const turboTestEnvConfigurations = {
+  paymentServiceConfig: {
+    ...turboDevelopmentConfigurations.paymentServiceConfig,
+    retryConfig: testEnvRetryConfig(),
+  },
+  uploadServiceConfig: {
+    ...turboDevelopmentConfigurations.uploadServiceConfig,
+    retryConfig: testEnvRetryConfig(),
   },
 };
 
