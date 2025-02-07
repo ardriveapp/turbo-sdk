@@ -185,12 +185,20 @@ export abstract class TurboAuthenticatedBaseUploadService
               : `${error}`; // Stringify the whole error if it's not a known Error instance
         }
         this.logger.debug(
-          `Upload failed, attempt ${retries + 1}/${maxRetries}`,
+          `Upload failed on attempt ${retries + 1}/${maxRetries + 1}`,
           { message: lastError },
           error,
         );
         retries++;
-        await sleep(retryDelay(retries, error));
+        const abortEventPromise = new Promise<void>((resolve) => {
+          signal?.addEventListener('abort', () => {
+            resolve();
+          });
+        });
+        await Promise.race([
+          sleep(retryDelay(retries, error)),
+          abortEventPromise,
+        ]);
       }
     }
 
