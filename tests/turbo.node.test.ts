@@ -61,6 +61,7 @@ import {
   testSolNativeAddress,
   testSolWallet,
   turboDevelopmentConfigurations,
+  turboTestEnvConfigurations,
 } from './helpers.js';
 
 describe('Node environment', () => {
@@ -68,6 +69,7 @@ describe('Node environment', () => {
     // Restore all stubs
     restore();
   });
+  const oneKiBFilePath = new URL('files/1KB_file', import.meta.url).pathname;
 
   describe('TurboDataItemSigner', () => {
     const signers: Record<TokenType, [TurboSigner, NativeAddress]> = {
@@ -479,7 +481,7 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain(
-          'Failed request: 404: Transaction not found',
+          'Failed request (Status 404): Transaction not found',
         );
       });
 
@@ -590,10 +592,9 @@ describe('Node environment', () => {
 
       for (const dataItemOpts of validDataItemOpts) {
         it('should properly upload a Readable to turbo', async () => {
-          const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-          const fileSize = fs.statSync(filePath).size;
+          const fileSize = fs.statSync(oneKiBFilePath).size;
           const response = await turbo.uploadFile({
-            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
             fileSizeFactory: () => fileSize,
             dataItemOpts,
           });
@@ -610,7 +611,8 @@ describe('Node environment', () => {
         {
           testName: 'tag name too long',
           errorType: 'FailedRequestError',
-          errorMessage: 'Failed request: 400: Data item parsing error!',
+          errorMessage:
+            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
           dataItemOpts: {
             tags: [
               {
@@ -623,7 +625,8 @@ describe('Node environment', () => {
         {
           testName: 'tag value too long',
           errorType: 'FailedRequestError',
-          errorMessage: 'Failed request: 400: Data item parsing error!',
+          errorMessage:
+            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
           dataItemOpts: {
             tags: [
               {
@@ -668,13 +671,12 @@ describe('Node environment', () => {
         errorMessage,
         errorType,
       } of invalidDataItemOpts) {
-        it(`should fail to upload a Buffer to turbo with invalid  when ${testName}`, async () => {
-          const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-          const fileSize = fs.statSync(filePath).size;
+        it(`should fail to upload a Buffer to turbo with invalid when ${testName}`, async () => {
+          const fileSize = fs.statSync(oneKiBFilePath).size;
 
           await expectAsyncErrorThrow({
             promiseToError: turbo.uploadFile({
-              fileStreamFactory: () => fs.createReadStream(filePath),
+              fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
               fileSizeFactory: () => fileSize,
               dataItemOpts,
             }),
@@ -685,11 +687,10 @@ describe('Node environment', () => {
       }
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
-        const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-        const fileSize = fs.statSync(filePath).size;
+        const fileSize = fs.statSync(oneKiBFilePath).size;
         const error = await turbo
           .uploadFile({
-            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
             fileSizeFactory: () => fileSize,
             signal: AbortSignal.timeout(0), // abort the request right away
           })
@@ -713,6 +714,20 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.contain('Insufficient balance');
+      });
+
+      it('should return proper error when http throws an unrecognized error', async () => {
+        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        const error = await turbo
+          .uploadFile({
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+            fileSizeFactory: () => fs.statSync(oneKiBFilePath).size,
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.equal(
+          'Failed request: Failed to upload file after 6 attempts\n',
+        );
       });
     });
 
@@ -785,7 +800,7 @@ describe('Node environment', () => {
       expect(error).to.be.instanceOf(FailedRequestError);
       // TODO: Could provide better error message to client. We have error messages on response.data
       expect(error.message).to.equal(
-        "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+        "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
       );
     });
 
@@ -808,7 +823,7 @@ describe('Node environment', () => {
           .catch((error) => error);
         expect(error).to.be.instanceOf(FailedRequestError);
         expect(error.message).to.equal(
-          "Failed request: 400: No promo code found with code 'BAD_PROMO_CODE'",
+          "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
         );
       });
     });
@@ -882,15 +897,14 @@ describe('Node environment', () => {
       turbo = TurboFactory.authenticated({
         signer,
         tokenTools,
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-      const fileSize = fs.statSync(filePath).size;
+      const fileSize = fs.statSync(oneKiBFilePath).size;
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;
@@ -901,10 +915,9 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
-      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-      const fileSize = fs.statSync(filePath).size;
+      const fileSize = fs.statSync(oneKiBFilePath).size;
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.readFileSync(filePath),
+        fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;
@@ -983,10 +996,9 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-      const fileSize = fs.statSync(filePath).size;
+      const fileSize = fs.statSync(oneKiBFilePath).size;
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;
@@ -1070,10 +1082,9 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const filePath = new URL('files/1KB_file', import.meta.url).pathname;
-      const fileSize = fs.statSync(filePath).size;
+      const fileSize = fs.statSync(oneKiBFilePath).size;
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
       expect(response).to.not.be.undefined;

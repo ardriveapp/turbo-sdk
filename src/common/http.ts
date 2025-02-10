@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AxiosInstance } from 'axios';
+import { AxiosError, AxiosInstance, AxiosResponse, CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Buffer } from 'node:buffer';
 import { Readable } from 'stream';
@@ -60,6 +60,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       logger: this.logger,
     });
   }
+
   async get<T>({
     endpoint,
     signal,
@@ -71,20 +72,10 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
   }): Promise<T> {
-    const { status, statusText, data } = await this.axios.get<T>(endpoint, {
-      headers,
-      signal,
-    });
-
-    if (!allowedStatuses.includes(status)) {
-      throw new FailedRequestError(
-        status,
-        // Return error message from server if available
-        typeof data === 'string' ? data : statusText,
-      );
-    }
-
-    return data;
+    return this.tryRequest<T>(
+      () => this.axios.get<T>(endpoint, { headers, signal }),
+      allowedStatuses,
+    );
   }
 
   async post<T>({
@@ -100,23 +91,34 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream;
   }): Promise<T> {
-    const {
-      status,
-      statusText,
-      data: response,
-    } = await this.axios.post<T>(endpoint, data, {
-      headers,
-      signal,
-    });
+    return this.tryRequest(
+      () => this.axios.post<T>(endpoint, data, { headers, signal }),
+      allowedStatuses,
+    );
+  }
 
-    if (!allowedStatuses.includes(status)) {
-      throw new FailedRequestError(
-        status,
-        // Return error message from server if available
-        typeof response === 'string' ? response : statusText,
-      );
+  private async tryRequest<T>(
+    request: () => Promise<AxiosResponse<T, unknown>>,
+    allowedStatuses: number[],
+  ): Promise<T> {
+    try {
+      const { status, data, statusText } = await request();
+      if (!allowedStatuses.includes(status)) {
+        throw new FailedRequestError(
+          // Return error message from server if available
+          typeof data === 'string' ? data : statusText,
+          status,
+        );
+      }
+      return data;
+    } catch (error) {
+      if (error instanceof CanceledError) {
+        throw error;
+      }
+      if (error instanceof AxiosError) {
+        throw new FailedRequestError(error.code ?? error.message, error.status);
+      }
+      throw error;
     }
-
-    return response;
   }
 }
