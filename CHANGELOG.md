@@ -1,3 +1,11 @@
+## [1.22.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.22.0...v1.22.1) (2025-02-10)
+
+
+### Bug Fixes
+
+* **data post:** add retry capability on upload file as intended PE-7598 ([cfe312b](https://github.com/ardriveapp/turbo-sdk/commit/cfe312b435096b697e70d5f6db2f76714a29f630))
+* **http:** catch uncaught `get` errors, return best effort error message PE-7598 ([c884edc](https://github.com/ardriveapp/turbo-sdk/commit/c884edc64b71ab9a37f46fa614aa30a9318754b9))
+
 # [1.22.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.21.0...v1.22.0) (2025-01-22)
 
 
