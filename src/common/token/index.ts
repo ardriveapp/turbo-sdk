@@ -22,6 +22,7 @@ import {
   tokenTypes,
 } from '../../types.js';
 import { ARToTokenAmount, ArweaveToken } from './arweave.js';
+import { BaseEthToken } from './baseEth.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 import { KYVEToTokenAmount, KyveToken } from './kyve.js';
 import { POLToTokenAmount, PolygonToken } from './polygon.js';
@@ -31,18 +32,22 @@ export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
+  'base-eth': (config: TokenConfig) => new BaseEthToken(config),
   kyve: (config: TokenConfig) => new KyveToken(config),
   matic: (config: TokenConfig) => new PolygonToken(config),
   pol: (config: TokenConfig) => new PolygonToken(config),
 } as const;
 
+const ethExponent = 18;
+
 export const exponentMap: Record<TokenType, number> = {
   arweave: 12,
   solana: 9,
-  ethereum: 18,
+  ethereum: ethExponent,
+  'base-eth': ethExponent,
   kyve: 6,
-  matic: 18,
-  pol: 18,
+  matic: ethExponent,
+  pol: ethExponent,
 } as const;
 
 export const tokenToBaseMap: Record<
@@ -52,6 +57,7 @@ export const tokenToBaseMap: Record<
   arweave: (a: BigNumber.Value) => ARToTokenAmount(a),
   solana: (a: BigNumber.Value) => SOLToTokenAmount(a),
   ethereum: (a: BigNumber.Value) => ETHToTokenAmount(a),
+  'base-eth': (a: BigNumber.Value) => ETHToTokenAmount(a),
   kyve: (a: BigNumber.Value) => KYVEToTokenAmount(a),
   matic: (a: BigNumber.Value) => POLToTokenAmount(a),
   pol: (a: BigNumber.Value) => POLToTokenAmount(a),
@@ -64,4 +70,6 @@ export function isTokenType(token: string): token is TokenType {
 export * from './arweave.js';
 export * from './solana.js';
 export * from './ethereum.js';
+export * from './baseEth.js';
+export * from './polygon.js';
 export * from './kyve.js';
