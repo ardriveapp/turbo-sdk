@@ -20,6 +20,7 @@ import { EthereumSigner } from '@dha-team/arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 
+import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import {
   TokenConfig,
   TokenCreateTxParams,
@@ -84,7 +85,7 @@ export class KyveToken implements TokenTools {
 
   constructor({
     logger = TurboWinstonLogger.default,
-    gatewayUrl = 'https://api.kyve.network/',
+    gatewayUrl = defaultProdGatewayUrls.kyve,
     pollingOptions = {
       maxAttempts: 5,
       pollingIntervalMs: 1_000,

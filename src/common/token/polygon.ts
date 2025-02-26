@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import { TokenConfig } from '../../types.js';
 import { TurboWinstonLogger } from '../logger.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
@@ -22,7 +23,7 @@ export const POLToTokenAmount = ETHToTokenAmount;
 export class PolygonToken extends EthereumToken {
   constructor({
     logger = TurboWinstonLogger.default,
-    gatewayUrl = 'https://polygon-rpc.com/',
+    gatewayUrl = defaultProdGatewayUrls.pol,
     pollingOptions = {
       maxAttempts: 10,
       pollingIntervalMs: 4_000,

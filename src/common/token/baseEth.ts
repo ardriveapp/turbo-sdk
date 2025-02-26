@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import { TokenConfig } from '../../types.js';
 import { EthereumToken } from './ethereum.js';
 
 export class BaseEthToken extends EthereumToken {
   constructor({
     logger,
-    gatewayUrl = 'https://mainnet.base.org',
+    gatewayUrl = defaultProdGatewayUrls['base-eth'],
     pollingOptions = {
       initialBackoffMs: 1_000,
       maxAttempts: 10,
