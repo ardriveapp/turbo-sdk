@@ -351,6 +351,7 @@ describe('Node environment', () => {
         it(`should return the correct token price for the given bytes for ${token}`, async () => {
           const { tokenPrice, byteCount: bytesResult } =
             await TurboFactory.unauthenticated({
+              ...turboTestEnvConfigurations,
               token,
             }).getTokenPriceForBytes({
               byteCount: bytes,
