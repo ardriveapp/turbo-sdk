@@ -65,6 +65,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
       - [Arweave (AR) Crypto Top Up](#arweave-ar-crypto-top-up)
       - [Ethereum (ETH) Crypto Top Up](#ethereum-eth-crypto-top-up)
       - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
+      - [Eth on Base Network Crypto Top Up](#eth-on-base-network-crypto-top-up)
       - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
       - [KYVE Crypto Top Up](#kyve-crypto-top-up)
     - [`shareCredits({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#sharecredits-approvedaddress-approvedwincamount-expiresbyseconds-)
@@ -685,6 +686,16 @@ const turbo = TurboFactory.authenticated({ signer, token: 'pol' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: POLToTokenAmount(0.00001), // 0.00001 POL
+});
+```
+
+##### Eth on Base Network Crypto Top Up
+
+```ts
+const turbo = TurboFactory.authenticated({ signer, token: 'base-eth' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: ETHToTokenAmount(0.00001), // 0.00001 ETH bridged on Base Network
 });
 ```
 
