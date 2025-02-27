@@ -65,6 +65,7 @@ export const tokenTypes = [
   'kyve',
   'matic',
   'pol',
+  'base-eth',
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 

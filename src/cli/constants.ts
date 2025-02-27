@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { TokenType } from '../types.js';
 import { version } from '../version.js';
 
 export const turboCliTags: { name: string; value: string }[] = [
@@ -22,3 +23,13 @@ export const turboCliTags: { name: string; value: string }[] = [
 ];
 
 export const wincPerCredit = 1_000_000_000_000;
+
+export const defaultProdGatewayUrls: Record<TokenType, string> = {
+  arweave: 'https://arweave.net',
+  solana: 'https://api.mainnet-beta.solana.com',
+  ethereum: 'https://cloudflare-eth.com/',
+  'base-eth': 'https://mainnet.base.org',
+  kyve: 'https://api.kyve.network/',
+  matic: 'https://polygon-rpc.com/',
+  pol: 'https://polygon-rpc.com/',
+};

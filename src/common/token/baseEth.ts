@@ -15,21 +15,22 @@
  */
 import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import { TokenConfig } from '../../types.js';
-import { TurboWinstonLogger } from '../logger.js';
-import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
+import { EthereumToken } from './ethereum.js';
 
-export const POLToTokenAmount = ETHToTokenAmount;
-
-export class PolygonToken extends EthereumToken {
+export class BaseEthToken extends EthereumToken {
   constructor({
-    logger = TurboWinstonLogger.default,
-    gatewayUrl = defaultProdGatewayUrls.pol,
+    logger,
+    gatewayUrl = defaultProdGatewayUrls['base-eth'],
     pollingOptions = {
+      initialBackoffMs: 1_000,
       maxAttempts: 10,
-      pollingIntervalMs: 4_000,
-      initialBackoffMs: 5_000,
+      pollingIntervalMs: 2_500,
     },
   }: TokenConfig = {}) {
-    super({ logger, gatewayUrl, pollingOptions });
+    super({
+      logger,
+      gatewayUrl,
+      pollingOptions,
+    });
   }
 }

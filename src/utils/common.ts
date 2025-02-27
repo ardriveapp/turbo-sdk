@@ -62,6 +62,7 @@ export function createTurboSigner({
     case 'ethereum':
     case 'pol':
     case 'matic':
+    case 'base-eth':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
           'A valid Ethereum private key must be provided for EthereumSigner.',
@@ -75,7 +76,7 @@ export function createTurboSigner({
         );
       }
       return signerFromKyvePrivateKey(clientProvidedPrivateKey);
-    default:
+    case 'arweave':
       if (!isJWK(clientProvidedPrivateKey)) {
         throw new Error('A JWK must be provided for ArweaveSigner.');
       }
