@@ -84,6 +84,7 @@ export abstract class TurboDataItemAbstractSigner
       case 'ethereum':
       case 'matic':
       case 'pol':
+      case 'base-eth':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':
@@ -98,7 +99,6 @@ export abstract class TurboDataItemAbstractSigner
         );
 
       case 'arweave':
-      default:
         return ownerToB64Address(owner);
     }
   }
