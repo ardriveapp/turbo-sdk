@@ -25,7 +25,7 @@ export class TurboWinstonLogger implements TurboLogger {
   static default = new TurboWinstonLogger();
 
   constructor({
-    level = 'debug',
+    level = 'info',
     logFormat = 'simple',
   }: {
     level?: 'info' | 'debug' | 'error' | 'none' | undefined;
