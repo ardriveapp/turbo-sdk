@@ -1,10 +1,3 @@
-# [1.23.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.22.1...v1.23.0-alpha.1) (2025-02-27)
-
-
-### Features
-
-* **eth on base:** add methods/commands for funding ETH on base network for SDK and CLI PE-7481 ([a5ac224](https://github.com/ardriveapp/turbo-sdk/commit/a5ac22488fdad80941aa32091dd92219294e2560))
-
 ## [1.22.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.22.0...v1.22.1) (2025-02-10)
 
 
