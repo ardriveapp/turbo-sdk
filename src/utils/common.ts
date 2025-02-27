@@ -76,7 +76,7 @@ export function createTurboSigner({
         );
       }
       return signerFromKyvePrivateKey(clientProvidedPrivateKey);
-    default:
+    case 'arweave':
       if (!isJWK(clientProvidedPrivateKey)) {
         throw new Error('A JWK must be provided for ArweaveSigner.');
       }
