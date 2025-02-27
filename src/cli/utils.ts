@@ -166,6 +166,7 @@ const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://arweave.net', // No arweave test net
   solana: 'https://api.devnet.solana.com',
   ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
+  'base-eth': 'https://sepolia.base.org',
   kyve: 'https://api.korellia.kyve.network',
   matic: 'https://rpc-amoy.polygon.technology',
   pol: 'https://rpc-amoy.polygon.technology',

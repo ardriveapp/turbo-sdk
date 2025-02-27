@@ -13,6 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { defaultProdGatewayUrls } from '../../cli/constants.js';
+import { TokenConfig } from '../../types.js';
+import { EthereumToken } from './ethereum.js';
 
-// AUTOMATICALLY GENERATED FILE - DO NOT TOUCH
-export const version = '1.23.0-alpha.1';
+export class BaseEthToken extends EthereumToken {
+  constructor({
+    logger,
+    gatewayUrl = defaultProdGatewayUrls['base-eth'],
+    pollingOptions = {
+      initialBackoffMs: 1_000,
+      maxAttempts: 10,
+      pollingIntervalMs: 2_500,
+    },
+  }: TokenConfig = {}) {
+    super({
+      logger,
+      gatewayUrl,
+      pollingOptions,
+    });
+  }
+}

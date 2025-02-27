@@ -25,6 +25,7 @@ import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
 import { Buffer } from 'node:buffer';
 
+import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import {
   TokenConfig,
   TokenCreateTxParams,
@@ -47,7 +48,7 @@ export class SolanaToken implements TokenTools {
 
   constructor({
     logger = TurboWinstonLogger.default,
-    gatewayUrl = 'https://api.mainnet-beta.solana.com',
+    gatewayUrl = defaultProdGatewayUrls.solana,
     pollingOptions = {
       maxAttempts: 10,
       pollingIntervalMs: 2_500,

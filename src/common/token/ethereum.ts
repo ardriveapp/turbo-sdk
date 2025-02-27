@@ -16,6 +16,7 @@
 import { BigNumber } from 'bignumber.js';
 import { ethers } from 'ethers';
 
+import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import {
   TokenConfig,
   TokenCreateTxParams,
@@ -38,7 +39,7 @@ export class EthereumToken implements TokenTools {
 
   constructor({
     logger = TurboWinstonLogger.default,
-    gatewayUrl = 'https://cloudflare-eth.com/',
+    gatewayUrl = defaultProdGatewayUrls.ethereum,
     pollingOptions = {
       maxAttempts: 10,
       pollingIntervalMs: 4_000,
