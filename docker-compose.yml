@@ -23,7 +23,7 @@ services:
   #     - '8545:8545'
 
   upload-service:
-    image: ghcr.io/ardriveapp/upload-service:latest
+    image: ghcr.io/ardriveapp/upload-service:722375f2aaa5bbe6ab0dd3ee9ca38be5f46925ba
     ports:
       - '3000:3000'
     healthcheck:
