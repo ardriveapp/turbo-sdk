@@ -1,3 +1,10 @@
+## [1.23.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.0...v1.23.1-alpha.1) (2025-03-19)
+
+
+### Bug Fixes
+
+* use correct kyve signer type PE-7834 ([b82e2db](https://github.com/ardriveapp/turbo-sdk/commit/b82e2db7e887e3a7023f72c113191b83effb189f))
+
 # [1.23.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.22.1...v1.23.0) (2025-02-27)
 
 
