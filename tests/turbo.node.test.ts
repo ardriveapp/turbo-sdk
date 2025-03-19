@@ -1126,12 +1126,7 @@ describe('Node environment', () => {
       expect(id).to.be.a('string');
     });
 
-    // TODO: Investigate error with kyve top up to korellia devnet
-    //    Error: Broadcasting transaction failed with code 13 (codespace: sdk). Log: insufficient fees; got: 1549tkyve required: 154852tkyve: insufficient fee
-    // at SigningStargateClient.broadcastTxSync (node_modules/@cosmjs/stargate/src/stargateclient.ts:492:9)
-    // at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    // at async SigningStargateClient.broadcastTx (node_modules/@cosmjs/stargate/src/stargateclient.ts:460:27)
-    it.skip('should topUpWithTokens() to a KYVE wallet', async () => {
+    it('should topUpWithTokens() to a KYVE wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
         {
           tokenAmount: 1_000, // 0.001_000 KYVE

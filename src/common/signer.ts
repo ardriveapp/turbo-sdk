@@ -173,7 +173,7 @@ export abstract class TurboDataItemAbstractSigner
         keyAsStringFromUint8Array,
       );
 
-      const tx = await client.kyve.base.v1beta1.transfer(
+      const tx = await client.cosmos.bank.v1beta1.transfer(
         target,
         amount.toString(),
       );
