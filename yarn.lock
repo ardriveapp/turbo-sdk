@@ -1089,10 +1089,10 @@
     big-integer "^1.6.48"
     utility-types "^3.10.0"
 
-"@kyvejs/sdk@^1.4.4":
-  version "1.4.4"
-  resolved "https://registry.yarnpkg.com/@kyvejs/sdk/-/sdk-1.4.4.tgz#16b9e52da38162362945d46d4e5efef54d49b570"
-  integrity sha512-hqrHAXZ5jPGYK92RM2KuWvLT4FrKTZ4qtMNGLSJ/C69nOKBSKqOYUkOELf3yFo5aIAcrhWsa/vy7xIo+kikpMg==
+"@kyvejs/sdk@^1.4.5":
+  version "1.4.5"
+  resolved "https://registry.yarnpkg.com/@kyvejs/sdk/-/sdk-1.4.5.tgz#cdd796b57dcf055f0a55f176b33c4e5eb2fbb94c"
+  integrity sha512-eOrxvqAKz9xD5620awGWPc33tyhCGyi684qHQjQswVZUN5/pNNRxOet6gL0K41t0OEMaRmjpWf2oSigHam7Mgw==
   dependencies:
     "@cosmjs/amino" "^0.32.4"
     "@cosmjs/crypto" "^0.32.4"
