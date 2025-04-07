@@ -13,13 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import winston, { createLogger, format, transports } from 'winston';
+import {
+  Logger as WinstonLogger,
+  createLogger,
+  format,
+  transports,
+} from 'winston';
 
 import { TurboLogger } from '../types.js';
 import { version } from '../version.js';
 
 export class TurboWinstonLogger implements TurboLogger {
-  protected logger: winston.Logger | Console;
+  protected logger: WinstonLogger | Console;
   private silent = false;
 
   static default = new TurboWinstonLogger();
