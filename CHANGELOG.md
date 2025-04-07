@@ -1,3 +1,18 @@
+## [1.23.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.2...v1.23.3) (2025-04-07)
+
+
+### Bug Fixes
+
+* gracefully access platform on in CLI constants file PE-7931 ([ab9d7a0](https://github.com/ardriveapp/turbo-sdk/commit/ab9d7a0d5dfef42650ca80ddd61da72ce99f6d71))
+* standardize winston import PE-7931 ([7e4a8bd](https://github.com/ardriveapp/turbo-sdk/commit/7e4a8bdec081987bdb2e00d50a3547ca4ef704b9))
+
+## [1.23.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.1...v1.23.2) (2025-04-04)
+
+
+### Bug Fixes
+
+* **kyve:** bump to kyve 1.4.5 to resolve kyve gas fee issue PE-7921 ([11e5226](https://github.com/ardriveapp/turbo-sdk/commit/11e52262dcba82d928036f9f3f3aa47a40a9023d))
+
 ## [1.23.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.0...v1.23.1) (2025-03-19)
 
 
