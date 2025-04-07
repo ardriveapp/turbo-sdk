@@ -1,3 +1,11 @@
+## [1.23.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.2...v1.23.3) (2025-04-07)
+
+
+### Bug Fixes
+
+* gracefully access platform on in CLI constants file PE-7931 ([ab9d7a0](https://github.com/ardriveapp/turbo-sdk/commit/ab9d7a0d5dfef42650ca80ddd61da72ce99f6d71))
+* standardize winston import PE-7931 ([7e4a8bd](https://github.com/ardriveapp/turbo-sdk/commit/7e4a8bdec081987bdb2e00d50a3547ca4ef704b9))
+
 ## [1.23.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.1...v1.23.2) (2025-04-04)
 
 
