@@ -30,7 +30,6 @@ import {
   TurboCountriesResponse,
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
-  TurboDataItemSigner,
   TurboFiatToArResponse,
   TurboFundWithTokensParams,
   TurboInfoResponse,
@@ -51,6 +50,7 @@ import {
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+import { TurboDataItemAbstractSigner } from './signer.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
@@ -321,7 +321,7 @@ export class TurboAuthenticatedPaymentService
   extends TurboUnauthenticatedPaymentService
   implements TurboAuthenticatedPaymentServiceInterface
 {
-  protected readonly signer: TurboDataItemSigner;
+  protected readonly signer: TurboDataItemAbstractSigner;
   protected readonly tokenTools: TokenTools | undefined;
 
   constructor({
