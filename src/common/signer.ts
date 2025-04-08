@@ -23,7 +23,6 @@ import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
 import { computeAddress } from 'ethers';
-import { Buffer } from 'node:buffer';
 import nacl from 'tweetnacl';
 
 import {

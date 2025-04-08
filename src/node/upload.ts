@@ -15,9 +15,8 @@
  */
 import { createReadStream, promises, statSync } from 'fs';
 import { lookup } from 'mime-types';
-import { Buffer } from 'node:buffer';
-import { Readable } from 'node:stream';
 import { join } from 'path';
+import { Readable } from 'stream';
 
 import {
   TurboAuthenticatedBaseUploadService,
