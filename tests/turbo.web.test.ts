@@ -14,7 +14,7 @@ import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
-import { TurboWinstonLogger } from '../src/common/logger.js';
+import { ConsoleTurboLogger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
   TurboAuthenticatedClient,
@@ -246,7 +246,7 @@ describe('Browser environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const turboSigner = new TurboWebArweaveSigner({
         signer,
-        logger: TurboWinstonLogger.default,
+        logger: ConsoleTurboLogger.default,
         token: 'arweave',
       });
       const error = await turboSigner

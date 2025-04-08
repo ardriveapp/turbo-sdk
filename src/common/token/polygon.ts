@@ -15,14 +15,14 @@
  */
 import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import { TokenConfig } from '../../types.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { ConsoleTurboLogger } from '../logger.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 
 export const POLToTokenAmount = ETHToTokenAmount;
 
 export class PolygonToken extends EthereumToken {
   constructor({
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     gatewayUrl = defaultProdGatewayUrls.pol,
     pollingOptions = {
       maxAttempts: 10,

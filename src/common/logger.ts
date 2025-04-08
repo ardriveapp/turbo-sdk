@@ -13,104 +13,82 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  Logger as WinstonLogger,
-  createLogger,
-  format,
-  transports,
-} from 'winston';
-
 import { TurboLogger } from '../types.js';
 import { version } from '../version.js';
 
-export class TurboWinstonLogger implements TurboLogger {
-  protected logger: WinstonLogger | Console;
-  private silent = false;
+export type LogLevel = 'info' | 'debug' | 'error' | 'none';
+export type LogFormat = 'simple' | 'json';
 
-  static default = new TurboWinstonLogger();
+export class ConsoleTurboLogger implements TurboLogger {
+  private level: LogLevel;
+  private format: LogFormat;
+  private silent: boolean;
+
+  static default = new ConsoleTurboLogger();
 
   constructor({
     level = 'info',
     logFormat = 'simple',
   }: {
-    level?: 'info' | 'debug' | 'error' | 'none' | undefined;
-    logFormat?: 'simple' | 'json' | undefined;
+    level?: LogLevel;
+    logFormat?: LogFormat;
   } = {}) {
-    if (level === 'none') {
-      this.silent = true;
-    }
-    if (typeof window !== 'undefined') {
-      this.logger = console;
-    } else {
-      this.logger = createLogger({
-        level,
-        silent: this.silent,
-        defaultMeta: {
-          name: 'turbo-sdk',
-          version,
-        },
-        format: format.combine(format.timestamp(), format.json()),
-        transports: [
-          new transports.Console({
-            format: getLogFormat(logFormat),
-          }),
-        ],
-      });
-    }
+    this.level = level;
+    this.format = logFormat;
+    this.silent = level === 'none';
+  }
+
+  private shouldLog(level: LogLevel): boolean {
+    if (this.silent) return false;
+    const order: LogLevel[] = ['none', 'error', 'info', 'debug'];
+    return order.indexOf(level) <= order.indexOf(this.level);
+  }
+
+  private formatMessage(level: string, message: string, args: unknown[]) {
+    const base = {
+      level,
+      message,
+      args,
+      version,
+      timestamp: new Date().toISOString(),
+    };
+    return this.format === 'json'
+      ? JSON.stringify(base)
+      : `[${base.timestamp}] [${level.toUpperCase()}] ${message} ${args
+          .map((a) => JSON.stringify(a))
+          .join(' ')}`;
   }
 
   info(message: string, ...args: unknown[]) {
-    if (this.silent) return;
-
-    this.logger.info(message, ...args);
+    if (this.shouldLog('info')) {
+      console.info(this.formatMessage('info', message, args));
+    }
   }
 
   warn(message: string, ...args: unknown[]) {
-    if (this.silent) return;
-
-    this.logger.warn(message, ...args);
+    if (this.shouldLog('info')) {
+      console.warn(this.formatMessage('warn', message, args));
+    }
   }
 
   error(message: string, ...args: unknown[]) {
-    if (this.silent) return;
-
-    this.logger.error(message, ...args);
+    if (this.shouldLog('error')) {
+      console.error(this.formatMessage('error', message, args));
+    }
   }
 
   debug(message: string, ...args: unknown[]) {
-    if (this.silent) return;
-
-    this.logger.debug(message, ...args);
+    if (this.shouldLog('debug')) {
+      console.debug(this.formatMessage('debug', message, args));
+    }
   }
 
-  setLogLevel(level: string) {
+  setLogLevel(level: LogLevel) {
+    this.level = level;
     this.silent = level === 'none';
-    if ('silent' in this.logger) {
-      this.logger.silent = level === 'none';
-    }
-
-    if ('level' in this.logger) {
-      this.logger.level = level;
-    }
   }
 
-  setLogFormat(logFormat: string) {
-    if ('format' in this.logger) {
-      this.logger.format = getLogFormat(logFormat);
-    }
+  setLogFormat(logFormat: LogFormat) {
+    this.format = logFormat;
   }
-}
-
-function getLogFormat(logFormat: string) {
-  return format.combine(
-    format((info) => {
-      if (info.stack && info.level !== 'error') {
-        delete info.stack;
-      }
-      return info;
-    })(),
-    format.errors({ stack: true }), // Ensure errors show a stack trace
-    format.timestamp(),
-    logFormat === 'json' ? format.json() : format.simple(),
-  );
 }

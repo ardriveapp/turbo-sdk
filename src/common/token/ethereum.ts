@@ -24,7 +24,7 @@ import {
   TokenTools,
   TurboLogger,
 } from '../../types.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { ConsoleTurboLogger } from '../logger.js';
 
 export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
 export const ETHToTokenAmount = (eth: BigNumber.Value) =>
@@ -38,7 +38,7 @@ export class EthereumToken implements TokenTools {
   protected rpcProvider: ethers.JsonRpcProvider;
 
   constructor({
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     gatewayUrl = defaultProdGatewayUrls.ethereum,
     pollingOptions = {
       maxAttempts: 10,

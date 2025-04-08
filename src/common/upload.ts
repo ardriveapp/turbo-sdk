@@ -43,7 +43,7 @@ import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { TurboHTTPService } from './http.js';
-import { TurboWinstonLogger } from './logger.js';
+import { ConsoleTurboLogger } from './logger.js';
 
 export const creditSharingTagNames = {
   shareCredits: 'x-approve-payment',
@@ -65,7 +65,7 @@ export class TurboUnauthenticatedUploadService
 
   constructor({
     url = defaultUploadServiceURL,
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     retryConfig = defaultRetryConfig(logger),
     token = 'arweave',
   }: TurboUnauthenticatedUploadServiceConfiguration) {

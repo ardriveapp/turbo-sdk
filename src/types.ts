@@ -30,7 +30,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
-import { TurboWinstonLogger } from './common/logger.js';
+import { ConsoleTurboLogger, LogFormat, LogLevel } from './common/logger.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
@@ -397,8 +397,8 @@ export type TurboUnauthenticatedConfiguration = {
 };
 
 export interface TurboLogger {
-  setLogLevel: (level: string) => void;
-  setLogFormat: (logFormat: string) => void;
+  setLogLevel: (level: LogLevel) => void;
+  setLogFormat: (logFormat: LogFormat) => void;
   info: (message: string, ...args: unknown[]) => void;
   warn: (message: string, ...args: unknown[]) => void;
   error: (message: string, ...args: unknown[]) => void;
@@ -463,7 +463,7 @@ export type GetTurboSignerParams = {
   providedPrivateKey: TurboWallet | undefined;
   providedWalletAdapter: WalletAdapter | undefined;
   token: TokenType;
-  logger: TurboWinstonLogger;
+  logger: ConsoleTurboLogger;
 };
 
 export function isEthereumWalletAdapter(

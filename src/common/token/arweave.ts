@@ -25,7 +25,7 @@ import {
 } from '../../types.js';
 import { sha256B64Url, toB64Url } from '../../utils/base64.js';
 import { sleep } from '../../utils/common.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { ConsoleTurboLogger } from '../logger.js';
 
 const ArweaveClass =
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -41,7 +41,7 @@ export class ArweaveToken implements TokenTools {
   constructor({
     gatewayUrl = 'https://arweave.net',
     arweave,
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     mintU = true,
     pollingOptions = {
       maxAttempts: 10,
