@@ -186,6 +186,7 @@ export class KyveToken implements TokenTools {
     );
   }
 
+  // ref: https://github.com/KYVENetwork/kyvejs/blob/e6c68b007fb50ab026e60ea6eaadf37b7cf8c76f/common/sdk/src/clients/rpc-client/signing.ts#L109-L183
   private async sendTokens({
     chainId,
     privateKeyUint8Array,
@@ -283,7 +284,7 @@ export async function signerFromKyveMnemonic(
   return signerFromKyvePrivateKey(privateKey);
 }
 
-// chains are always identified by their chain id
+// ref: https://github.com/KYVENetwork/kyvejs/blob/e6c68b007fb50ab026e60ea6eaadf37b7cf8c76f/common/sdk/src/constants.ts#L26-L89
 export const SUPPORTED_CHAIN_CONFIGS = {
   'kyve-1': {
     chainId: 'kyve-1',
