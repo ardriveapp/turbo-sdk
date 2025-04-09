@@ -15,9 +15,8 @@
  */
 import { AxiosError, CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
-import { Buffer } from 'node:buffer';
-import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
+import { Readable } from 'stream';
 
 import {
   ArweaveManifest,

@@ -22,7 +22,6 @@ import {
   InjectedEthereumSigner,
   createData,
 } from '@dha-team/arbundles';
-import { Buffer } from 'node:buffer';
 
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {

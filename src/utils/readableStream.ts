@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Buffer } from 'node:buffer';
-import { ReadableStream } from 'node:stream/web';
+import { ReadableStream } from 'stream/web';
 
 export async function readableStreamToBuffer({
   stream,

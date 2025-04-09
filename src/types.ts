@@ -25,8 +25,8 @@ import {
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
-import { Readable } from 'node:stream';
-import { ReadableStream } from 'node:stream/web';
+import { Readable } from 'stream';
+import { ReadableStream } from 'stream/web';
 
 import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';

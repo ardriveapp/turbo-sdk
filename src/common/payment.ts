@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { BigNumber } from 'bignumber.js';
-import { Buffer } from 'node:buffer';
 
 import {
   Currency,
