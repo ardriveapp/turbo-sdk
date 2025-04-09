@@ -31,7 +31,6 @@ import { ReadableStream } from 'stream/web';
 import { CurrencyMap } from './common/currency.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
-import { TurboDataItemAbstractSigner } from './common/signer.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
@@ -367,7 +366,7 @@ export type TurboSignedRequestHeaders = {
 };
 
 type TurboAuthConfiguration = {
-  signer: TurboDataItemAbstractSigner; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
+  signer: TurboDataItemSigner; // TODO: make a class that implements various functions (sign, verify, etc.) and implement for various wallet types
 };
 
 type TurboServiceConfiguration = {
@@ -659,7 +658,7 @@ export type TokenCreateTxParams = {
   target: string;
   tokenAmount: BigNumber;
   feeMultiplier: number;
-  signer: TurboDataItemAbstractSigner;
+  signer: TurboDataItemSigner;
 };
 
 export interface TokenTools {
