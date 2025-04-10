@@ -1,3 +1,11 @@
+## [1.23.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.3...v1.23.4) (2025-04-09)
+
+
+### Bug Fixes
+
+* **deps:** include bitcoinjs-lib as a dependency ([794748b](https://github.com/ardriveapp/turbo-sdk/commit/794748b045a58b8de9b9ac7f329845b061cc0610))
+* **types:** avoid using node: imports as they are only available in node environments ([37e5706](https://github.com/ardriveapp/turbo-sdk/commit/37e5706c6a95484ad49208ca2c88c45f2dfa79ca))
+
 ## [1.23.4-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.4-alpha.1...v1.23.4-alpha.2) (2025-04-08)
 
 
