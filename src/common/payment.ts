@@ -50,7 +50,7 @@ import {
   UserAddress,
 } from '../types.js';
 import { TurboHTTPService } from './http.js';
-import { TurboWinstonLogger } from './logger.js';
+import { ConsoleTurboLogger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
@@ -66,7 +66,7 @@ export class TurboUnauthenticatedPaymentService
   constructor({
     url = defaultPaymentServiceURL,
     retryConfig,
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
     this.logger = logger;
@@ -328,7 +328,7 @@ export class TurboAuthenticatedPaymentService
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     token = 'arweave',
     tokenTools,
   }: TurboAuthenticatedPaymentServiceConfiguration) {

@@ -13,7 +13,7 @@ import { Readable } from 'node:stream';
 import { restore, stub } from 'sinon';
 
 import { JPY, USD } from '../src/common/currency.js';
-import { TurboWinstonLogger } from '../src/common/logger.js';
+import { ConsoleTurboLogger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
   ARToTokenAmount,
@@ -230,7 +230,7 @@ describe('Node environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const turboSigner = new TurboNodeSigner({
         signer,
-        logger: TurboWinstonLogger.default,
+        logger: ConsoleTurboLogger.default,
         token: 'arweave',
       });
       const error = await turboSigner

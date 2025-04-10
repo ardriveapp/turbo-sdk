@@ -31,7 +31,7 @@ import {
 } from '../../types.js';
 import { createAxiosInstance } from '../../utils/axiosClient.js';
 import { sleep } from '../../utils/common.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { ConsoleTurboLogger } from '../logger.js';
 
 type KyveTransferTx = {
   '@type': '/cosmos.bank.v1beta1.MsgSend';
@@ -84,7 +84,7 @@ export class KyveToken implements TokenTools {
   protected pollingOptions: TokenPollingOptions;
 
   constructor({
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     gatewayUrl = defaultProdGatewayUrls.kyve,
     pollingOptions = {
       maxAttempts: 5,
