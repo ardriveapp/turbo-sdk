@@ -227,6 +227,13 @@ export async function turboFromOptions(
 ): Promise<TurboAuthenticatedClient> {
   const privateKey = await privateKeyFromOptions(options);
 
+  if (options.debug) {
+    TurboFactory.setLogLevel('debug');
+  }
+  if (options.quiet) {
+    TurboFactory.setLogLevel('none');
+  }
+
   return TurboFactory.authenticated({
     ...configFromOptions(options),
     privateKey,

@@ -74,13 +74,10 @@
     "docs": "markdown-toc-gen insert README.md"
   },
   "dependencies": {
-    "@cosmjs/amino": "^0.32.4",
-    "@cosmjs/crypto": "^0.32.4",
-    "@cosmjs/encoding": "^0.32.4",
-    "@cosmjs/proto-signing": "^0.32.4",
+    "@cosmjs/proto-signing": "^0.33.1",
+    "@cosmjs/stargate": "^0.33.1",
     "@dha-team/arbundles": "^1.0.1",
     "@ethersproject/signing-key": "^5.7.0",
-    "@kyvejs/sdk": "^1.4.5",
     "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
     "axios": "1.4.0",
