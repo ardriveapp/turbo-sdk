@@ -111,56 +111,67 @@ yarn add @ardrive/turbo-sdk
 ## Quick Start
 
 ```typescript
+
 import { TurboFactory, ArweaveSigner } from '@ardrive/turbo-sdk';
+import fs from 'fs';
+import path from 'path';
+import Arweave from 'arweave';
+import open from 'open';
 
-// load your JWK directly to authenticate
-const jwk = fs.readFileSync('./my-jwk.json');
-const address = arweave.wallets.jwkToAddress(jwk);
-const turbo = TurboFactory.authenticated({ privateKey: jwk });
+async function uploadWithTurbo() {
+  // load your JWK directly to authenticate
+  const arweave = Arweave({})
+  const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
+  const address = await arweave.wallets.jwkToAddress(jwk);
+  const turbo = TurboFactory.authenticated({ privateKey: jwk });
 
-// or provide your own signer
-const signer = new ArweaveSigner(jwk);
-const turbo = TurboFactory.authenticated({ signer });
+  // or provide your own signer
+  // const signer = new ArweaveSigner(jwk);
+  // const turbo = TurboFactory.authenticated({ signer });
 
-// get the wallet balance
-const { winc: balance } = await turbo.getBalance();
+  // get the wallet balance
+  const { winc: balance } = await turbo.getBalance();
 
-// prep file for upload
-const filePath = path.join(__dirname, './my-image.png');
-const fileSize = fs.statSync(filePath).size;
+  // prep file for upload
+  const filePath = path.join(__dirname, './my-image.png');
+  const fileSize = fs.statSync(filePath).size;
 
-// get the cost of uploading the file
-const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
-  bytes: [fileSize],
-});
-
-// check if balance greater than upload cost
-if (balance < fileSizeCost) {
-  const { url } = await turbo.createCheckoutSession({
-    amount: fileSizeCost,
-    owner: address,
-    // add a promo code if you have one
+  // get the cost of uploading the file
+  const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
+    bytes: [fileSize],
   });
-  // open the URL to top-up, continue when done
-  open(url);
-  return;
+
+  // check if balance greater than upload cost
+  if (balance < fileSizeCost) {
+    const { url } = await turbo.createCheckoutSession({
+      amount: fileSizeCost,
+      owner: address,
+      // add a promo code if you have one
+    });
+    // open the URL to top-up, continue when done
+    open(url);
+    console.log("Please top up your balance and try again");
+    return;
+  }
+
+  // upload the file
+  try {
+    const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.uploadFile({
+      fileStreamFactory : () => fs.createReadStream(filePath),
+      fileSizeFactory : () => fileSize
+    });
+    // upload complete!
+    console.log('Successfully upload data item!', { id, owner, dataCaches, fastFinalityIndexes });
+  } catch (error) {
+    // upload failed
+    console.error('Failed to upload data item!', error);
+  } finally {
+    const { winc: newBalance } = await turbo.getBalance();
+    console.log('New balance:', newBalance);
+  }
 }
 
-// upload the file
-try {
-  const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.uploadFile(() => {
-    fileStreamFactory => () => fs.createReadStream(filePath),
-    fileSizeFactory => () => fileSize,
-  });
-  // upload complete!
-  console.log('Successfully upload data item!', { id, owner, dataCaches, fastFinalityIndexes });
-} catch (error) {
-  // upload failed
-  console.error('Failed to upload data item!', error);
-} finally {
-  const { winc: newBalance } = await turbo.getBalance();
-  console.log('New balance:', newBalance);
-}
+uploadWithTurbo().catch(console.error);
 ```
 
 ## Usage
