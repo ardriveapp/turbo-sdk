@@ -71,7 +71,7 @@
     "example:ts:cjs": "cd examples/typescript/cjs && yarn && yarn test",
     "docker:up": "docker compose up --quiet-pull -d",
     "docker:down": "docker compose down -v",
-    "docs": "markdown-toc-gen insert README.md"
+    "docs": "markdown-toc-gen insert README.md --max-depth 3"
   },
   "dependencies": {
     "@cosmjs/amino": "^0.32.4",
