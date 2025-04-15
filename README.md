@@ -140,17 +140,22 @@ async function uploadWithTurbo() {
     bytes: [fileSize],
   });
 
-  // check if balance greater than upload cost
-  if (balance < fileSizeCost) {
+  // check if balance greater than upload cost, and if in browser
+  if (balance < fileSizeCost && window !== undefined) {
     const { url } = await turbo.createCheckoutSession({
       amount: fileSizeCost,
       owner: address,
       // add a promo code if you have one
     });
-    // open the URL to top-up, continue when done
-    open(url);
-    console.log('Please top up your balance and try again');
-    return;
+
+    // open the URL to top-up if in browser
+    window.open(url, '_blank');
+  } else {
+    // otherwise, print the URL to the console
+    console.log('Please top up your balance via the CLI before uploading', {
+      balance,
+      fileSizeCost,
+    });
   }
 
   // upload the file
