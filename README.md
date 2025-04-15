@@ -13,79 +13,17 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Web](#web)
-    - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
-    - [Browser](#browser)
   - [NodeJS](#nodejs)
-    - [CommonJS](#commonjs)
-    - [ESM](#esm)
   - [Typescript](#typescript)
   - [Examples](#examples)
 - [Logging](#logging)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
-    - [`unauthenticated()`](#unauthenticated)
-    - [`authenticated()`](#authenticated)
-      - [Arweave JWK](#arweave-jwk)
-      - [ArweaveSigner](#arweavesigner)
-      - [ArconnectSigner](#arconnectsigner)
-      - [EthereumSigner](#ethereumsigner)
-      - [Ethereum Private Key](#ethereum-private-key)
-      - [POL (MATIC) Private Key](#pol-matic-private-key)
-      - [HexSolanaSigner](#hexsolanasigner)
-      - [Solana Secret Key](#solana-secret-key)
-      - [KYVE Private Key](#kyve-private-key)
-      - [KYVE Mnemonic](#kyve-mnemonic)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
-    - [`getSupportedCurrencies()`](#getsupportedcurrencies)
-    - [`getSupportedCountries()`](#getsupportedcountries)
-    - [`getFiatToAR({ currency })`](#getfiattoar-currency-)
-    - [`getFiatRates()`](#getfiatrates)
-    - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
-    - [`getWincForToken({ tokenAmount })`](#getwincfortoken-tokenamount-)
-    - [`getTokenPriceForBytes({ byteCount })`](#gettokenpriceforbytes-bytecount-)
-    - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
-    - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
-    - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
-      - [Arweave (AR) Fiat Top Up](#arweave-ar-fiat-top-up)
-      - [Ethereum (ETH) Fiat Top Up](#ethereum-eth-fiat-top-up)
-      - [Solana (SOL) Fiat Top Up](#solana-sol-fiat-top-up)
-      - [Polygon (POL / MATIC) Fiat Top Up](#polygon-pol--matic-fiat-top-up)
-      - [KYVE Fiat Top Up](#kyve-fiat-top-up)
-    - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
-    - [`getBalance()`](#getbalance)
-    - [`signer.getNativeAddress()`](#signergetnativeaddress)
-    - [`getWincForFiat({ amount, promoCodes })`](#getwincforfiat-amount-promocodes-)
-    - [`createCheckoutSession({ amount, owner, promoCodes })`](#createcheckoutsession-amount-owner-promocodes-)
-    - [`uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`](#uploadfile-filestreamfactory-filesizefactory-signal-dataitemopts-)
-    - [`uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`](#uploadfolder-folderpath-files-dataitemopts-signal-maxconcurrentuploads-throwonfailure-manifestoptions-)
-      - [NodeJS Upload Folder](#nodejs-upload-folder)
-      - [Browser Upload Folder](#browser-upload-folder)
-    - [`topUpWithTokens({ tokenAmount, feeMultiplier })`](#topupwithtokens-tokenamount-feemultiplier-)
-      - [Arweave (AR) Crypto Top Up](#arweave-ar-crypto-top-up)
-      - [Ethereum (ETH) Crypto Top Up](#ethereum-eth-crypto-top-up)
-      - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
-      - [Eth on Base Network Crypto Top Up](#eth-on-base-network-crypto-top-up)
-      - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
-      - [KYVE Crypto Top Up](#kyve-crypto-top-up)
-    - [`shareCredits({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#sharecredits-approvedaddress-approvedwincamount-expiresbyseconds-)
-    - [`revokeCredits({ approvedAddress })`](#revokecredits-approvedaddress-)
-    - [`getCreditShareApprovals({ userAddress })`](#getcreditshareapprovals-useraddress-)
 - [CLI](#cli)
-  - [Install CLI](#install-cli)
-  - [CLI Usage](#cli-usage)
-    - [Options](#options)
-    - [Commands](#commands)
-      - [`balance`](#balance)
-      - [`top-up`](#top-up)
-      - [`crypto-fund`](#crypto-fund)
-      - [`upload-folder`](#upload-folder)
-      - [`upload-file`](#upload-file)
-      - [`price`](#price)
-      - [`token-price`](#token-price)
-      - [`share-credits`](#share-credits)
-      - [`revoke-credits`](#revoke-credits)
-      - [`list-shares`](#list-shares)
+  - [Installation](#installation-1)
+  - [Usage](#usage-1)
 - [Turbo Credit Sharing](#turbo-credit-sharing)
 - [Developers](#developers)
   - [Requirements](#requirements)
@@ -569,17 +507,8 @@ const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
     promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
   });
 
-// Open checkout session in a browser
-if (process.platform === 'darwin') {
-  // macOS
-  exec(`open ${url}`);
-} else if (process.platform === 'win32') {
-  // Windows
-  exec(`start "" "${url}"`, { shell: true });
-} else {
-  // Linux/Unix
-  open(url);
-}
+// open checkout session in a browser
+window.open(url, '_blank');
 ```
 
 #### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`
@@ -767,7 +696,9 @@ const { givenApprovals, receivedApprovals } =
 
 ## CLI
 
-### Install CLI
+<!-- markdownlint-disable MD024 -->
+
+### Installation
 
 Global installation:
 
@@ -793,7 +724,9 @@ or
 yarn add -D @ardrive/turbo-sdk
 ```
 
-### CLI Usage
+<!-- markdownlint-disable MD024 -->
+
+### Usage
 
 ```shell
 turbo --help
