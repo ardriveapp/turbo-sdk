@@ -111,55 +111,74 @@ yarn add @ardrive/turbo-sdk
 ## Quick Start
 
 ```typescript
-import { TurboFactory, ArweaveSigner } from '@ardrive/turbo-sdk';
+import { ArweaveSigner, TurboFactory } from '@ardrive/turbo-sdk';
+import Arweave from 'arweave';
+import fs from 'fs';
+import open from 'open';
+import path from 'path';
 
-// load your JWK directly to authenticate
-const jwk = fs.readFileSync('./my-jwk.json');
-const address = arweave.wallets.jwkToAddress(jwk);
-const turbo = TurboFactory.authenticated({ privateKey: jwk });
+async function uploadWithTurbo() {
+  // load your JWK directly to authenticate
+  const arweave = Arweave({});
+  const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
+  const address = await arweave.wallets.jwkToAddress(jwk);
+  const turbo = TurboFactory.authenticated({ privateKey: jwk });
 
-// or provide your own signer
-const signer = new ArweaveSigner(jwk);
-const turbo = TurboFactory.authenticated({ signer });
+  // or provide your own signer
+  // const signer = new ArweaveSigner(jwk);
+  // const turbo = TurboFactory.authenticated({ signer });
 
-// get the wallet balance
-const { winc: balance } = await turbo.getBalance();
+  // get the wallet balance
+  const { winc: balance } = await turbo.getBalance();
 
-// prep file for upload
-const filePath = path.join(__dirname, './my-image.png');
-const fileSize = fs.statSync(filePath).size;
+  // prep file for upload
+  const filePath = path.join(__dirname, './my-image.png');
+  const fileSize = fs.statSync(filePath).size;
 
-// get the cost of uploading the file
-const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
-  bytes: [fileSize],
-});
-
-// check if balance greater than upload cost
-if (balance < fileSizeCost) {
-  const { url } = await turbo.createCheckoutSession({
-    amount: fileSizeCost,
-    owner: address,
-    // add a promo code if you have one
+  // get the cost of uploading the file
+  const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
+    bytes: [fileSize],
   });
-  // open the URL to top-up, continue when done
-  open(url);
-  return;
-}
 
-// upload the file
-try {
-  const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.uploadFile(() => {
-    fileStreamFactory => () => fs.createReadStream(filePath),
-    fileSizeFactory => () => fileSize,
-  });
-  // upload complete!
-  console.log('Successfully upload data item!', { id, owner, dataCaches, fastFinalityIndexes });
-} catch (error) {
-  // upload failed
-  console.error('Failed to upload data item!', error);
-} finally {
-  const { winc: newBalance } = await turbo.getBalance();
-  console.log('New balance:', newBalance);
+  // check if balance greater than upload cost, and if in browser
+  if (balance < fileSizeCost && window !== undefined) {
+    const { url } = await turbo.createCheckoutSession({
+      amount: fileSizeCost,
+      owner: address,
+      // add a promo code if you have one
+    });
+
+    // open the URL to top-up if in browser
+    window.open(url, '_blank');
+  } else {
+    // otherwise, print the URL to the console
+    console.log('Please top up your balance via the CLI before uploading', {
+      balance,
+      fileSizeCost,
+    });
+  }
+
+  // upload the file
+  try {
+    const { id, owner, dataCaches, fastFinalityIndexes } =
+      await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+      });
+    // upload complete!
+    console.log('Successfully upload data item!', {
+      id,
+      owner,
+      dataCaches,
+      fastFinalityIndexes,
+    });
+  } catch (error) {
+    // upload failed
+    console.error('Failed to upload data item!', error);
+  } finally {
+    const { winc: newBalance } = await turbo.getBalance();
+    console.log('New balance:', newBalance);
+  }
 }
 ```
 
@@ -169,24 +188,13 @@ The SDK is provided in both CommonJS and ESM formats, and it's compatible with b
 
 ### Web
 
-#### Bundlers (Webpack, Rollup, ESbuild, etc.)
-
-CommonJS:
-
-```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk';
-
-const turbo = TurboFactory.unauthenticated();
-const rates = await turbo.getFiatRates();
-```
-
 > [!WARNING]
 > Polyfills are not provided by default for bundled web projects (Vite, ESBuild, Webpack, Rollup, etc.) . Depending on your apps bundler configuration and plugins, you will need to provide polyfills for various imports including `crypto`, `process`, `fs` and `buffer`. Refer to your bundler's documentation for how to provide the necessary polyfills.
 
-ESM:
+#### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
-```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/<node/web>';
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
@@ -207,11 +215,25 @@ const rates = await turbo.getFiatRates();
 
 #### CommonJS
 
-Example available in the [examples/typescript/cjs].
+Full example available in the [examples/typescript/cjs].
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
 
 #### ESM
 
-Example available in the [examples/typescript/esm].
+Full example available in the [examples/typescript/esm].
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/node';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
 
 ### Typescript
 
@@ -444,21 +466,12 @@ const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
   });
 
 // Open checkout session in a browser
-if (process.platform === 'darwin') {
-  // macOS
-  exec(`open ${url}`);
-} else if (process.platform === 'win32') {
-  // Windows
-  exec(`start "" "${url}"`, { shell: true });
-} else {
-  // Linux/Unix
-  open(url);
-}
+window.open(url, '_blank');
 ```
 
 ##### Ethereum (ETH) Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'ethereum' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -469,7 +482,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 ##### Solana (SOL) Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'solana' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -480,7 +493,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 ##### Polygon (POL / MATIC) Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'pol' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -491,7 +504,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 ##### KYVE Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -671,7 +684,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Ethereum (ETH) Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'ethereum' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -681,7 +694,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Polygon (POL / MATIC) Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'pol' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -691,7 +704,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Eth on Base Network Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'base-eth' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -701,7 +714,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Solana (SOL) Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -711,7 +724,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### KYVE Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
