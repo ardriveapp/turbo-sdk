@@ -1,3 +1,10 @@
+## [1.23.5](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.4...v1.23.5) (2025-04-16)
+
+
+### Bug Fixes
+
+* **arweave fund:** use a working GQL query PE-7980 ([848afdc](https://github.com/ardriveapp/turbo-sdk/commit/848afdc6493ba1149ee6b90ba8fdcb8c3eb27b1c))
+
 ## [1.23.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.3...v1.23.4) (2025-04-09)
 
 
