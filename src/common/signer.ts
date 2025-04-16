@@ -44,7 +44,7 @@ import {
   ownerToAddress as ownerToB64Address,
   toB64Url,
 } from '../utils/base64.js';
-import { TurboWinstonLogger } from './logger.js';
+import { ConsoleTurboLogger } from './logger.js';
 
 /**
  * Abstract class for signing TurboDataItems.
@@ -65,7 +65,7 @@ export abstract class TurboDataItemAbstractSigner
 
   constructor({
     signer,
-    logger = TurboWinstonLogger.default,
+    logger = ConsoleTurboLogger.default,
     token,
     walletAdapter,
   }: TurboDataItemSignerParams) {

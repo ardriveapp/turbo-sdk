@@ -31,7 +31,7 @@ import {
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
 } from '../types.js';
-import { TurboWinstonLogger } from './logger.js';
+import { ConsoleTurboLogger, LogFormat, LogLevel } from './logger.js';
 import {
   TurboAuthenticatedPaymentService,
   TurboUnauthenticatedPaymentService,
@@ -45,15 +45,15 @@ import {
 import { TurboUnauthenticatedUploadService } from './upload.js';
 
 export abstract class TurboBaseFactory {
-  protected static logger = TurboWinstonLogger.default;
+  protected static logger = ConsoleTurboLogger.default;
 
-  /* @deprecated - use TurboWinstonLogger directly */
-  static setLogLevel(level: string) {
+  /* @deprecated - use ConsoleTurboLogger directly */
+  static setLogLevel(level: LogLevel) {
     this.logger.setLogLevel(level);
   }
 
-  /* @deprecated - use TurboWinstonLogger directly */
-  static setLogFormat(format: string) {
+  /* @deprecated - use ConsoleTurboLogger directly */
+  static setLogFormat(format: LogFormat) {
     this.logger.setLogFormat(format);
   }
 
@@ -105,7 +105,7 @@ export abstract class TurboBaseFactory {
     tokenTools,
     logger,
     walletAdapter,
-  }: TurboAuthenticatedConfiguration & { logger: TurboWinstonLogger }) {
+  }: TurboAuthenticatedConfiguration & { logger: ConsoleTurboLogger }) {
     token = token === 'pol' ? 'matic' : token;
 
     if (!token) {

@@ -16,7 +16,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, CanceledError } from 'axios';
 import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
 
-import { TurboWinstonLogger } from '../common/logger.js';
+import { ConsoleTurboLogger } from '../common/logger.js';
 import { TurboLogger } from '../types.js';
 import { version } from '../version.js';
 
@@ -32,7 +32,7 @@ export interface AxiosInstanceParameters {
 }
 
 export const defaultRetryConfig: (logger?: TurboLogger) => IAxiosRetryConfig = (
-  logger = TurboWinstonLogger.default,
+  logger = ConsoleTurboLogger.default,
 ) => ({
   retryDelay: axiosRetry.exponentialDelay,
   retries: 5,
@@ -49,7 +49,7 @@ export const defaultRetryConfig: (logger?: TurboLogger) => IAxiosRetryConfig = (
 });
 
 export const createAxiosInstance = ({
-  logger = TurboWinstonLogger.default,
+  logger = ConsoleTurboLogger.default,
   axiosConfig = {},
   retryConfig = defaultRetryConfig(logger),
 }: AxiosInstanceParameters = {}): AxiosInstance => {
