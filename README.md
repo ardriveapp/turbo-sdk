@@ -611,6 +611,16 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
+##### AR.IO Network (ARIO) Crypto Top Up
+
+```typescript
+const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
+});
+```
+
 ##### Ethereum (ETH) Crypto Top Up
 
 ```typescript
@@ -820,6 +830,10 @@ turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 
 ```shell
 turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
+```
+
+```shell
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json
 ```
 
 ##### `upload-folder`
