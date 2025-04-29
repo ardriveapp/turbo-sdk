@@ -16,11 +16,13 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  AoProcessConfig,
   TokenConfig,
   TokenFactory,
   TokenType,
   tokenTypes,
 } from '../../types.js';
+import { ARIOToTokenAmount, ARIOToken } from './ario.js';
 import { ARToTokenAmount, ArweaveToken } from './arweave.js';
 import { BaseEthToken } from './baseEth.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
@@ -30,6 +32,7 @@ import { SOLToTokenAmount, SolanaToken } from './solana.js';
 
 export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
+  ario: (config: AoProcessConfig) => new ARIOToken(config),
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
   'base-eth': (config: TokenConfig) => new BaseEthToken(config),
@@ -42,6 +45,7 @@ const ethExponent = 18;
 
 export const exponentMap: Record<TokenType, number> = {
   arweave: 12,
+  ario: 6,
   solana: 9,
   ethereum: ethExponent,
   'base-eth': ethExponent,
@@ -55,6 +59,7 @@ export const tokenToBaseMap: Record<
   (a: BigNumber.Value) => BigNumber.Value
 > = {
   arweave: (a: BigNumber.Value) => ARToTokenAmount(a),
+  ario: (a: BigNumber.Value) => ARIOToTokenAmount(a),
   solana: (a: BigNumber.Value) => SOLToTokenAmount(a),
   ethereum: (a: BigNumber.Value) => ETHToTokenAmount(a),
   'base-eth': (a: BigNumber.Value) => ETHToTokenAmount(a),
@@ -68,6 +73,7 @@ export function isTokenType(token: string): token is TokenType {
 }
 
 export * from './arweave.js';
+export * from './ario.js';
 export * from './solana.js';
 export * from './ethereum.js';
 export * from './baseEth.js';

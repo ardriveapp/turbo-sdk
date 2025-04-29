@@ -27,6 +27,11 @@ import {
   isTokenType,
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
+import {
+  defaultProdAoConfigs,
+  tokenToDevAoConfigMap,
+  tokenToDevGatewayMap,
+} from '../utils/common.js';
 import { NoWalletProvidedError } from './errors.js';
 import {
   AddressOptions,
@@ -162,16 +167,6 @@ export async function privateKeyFromOptions({
   throw new NoWalletProvidedError();
 }
 
-const tokenToDevGatewayMap: Record<TokenType, string> = {
-  arweave: 'https://arweave.net', // No arweave test net
-  solana: 'https://api.devnet.solana.com',
-  ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
-  'base-eth': 'https://sepolia.base.org',
-  kyve: 'https://api.korellia.kyve.network',
-  matic: 'https://rpc-amoy.polygon.technology',
-  pol: 'https://rpc-amoy.polygon.technology',
-};
-
 export function configFromOptions(
   options: GlobalOptions,
 ): TurboUnauthenticatedConfiguration {
@@ -180,6 +175,8 @@ export function configFromOptions(
   let paymentUrl: string | undefined = undefined;
   let uploadUrl: string | undefined = undefined;
   let gatewayUrl: string | undefined = undefined;
+  let processId: string | undefined = undefined;
+  let cuUrl: string | undefined = undefined;
 
   if (options.local && options.dev) {
     throw new Error('Cannot use both --local and --dev flags');
@@ -190,6 +187,11 @@ export function configFromOptions(
     paymentUrl = developmentTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = developmentTurboConfiguration.uploadServiceConfig.url;
     gatewayUrl = tokenToDevGatewayMap[token];
+
+    if (options.token === 'ario') {
+      processId = tokenToDevAoConfigMap[token].processId;
+      cuUrl = tokenToDevAoConfigMap[token].cuUrl;
+    }
   } else if (options.local) {
     // Use local endpoints
     paymentUrl = 'http://localhost:4000';
@@ -199,6 +201,10 @@ export function configFromOptions(
     // Use default endpoints
     paymentUrl = defaultTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = defaultTurboConfiguration.uploadServiceConfig.url;
+    if (options.token === 'ario') {
+      processId = defaultProdAoConfigs[token].processId;
+      cuUrl = defaultProdAoConfigs[token].cuUrl;
+    }
   }
 
   // Override gateway, payment, and upload service default endpoints if provided
@@ -211,12 +217,20 @@ export function configFromOptions(
   if (options.uploadUrl !== undefined) {
     uploadUrl = options.uploadUrl;
   }
+  if (options.cuUrl !== undefined) {
+    cuUrl = options.cuUrl;
+  }
+  if (options.processId !== undefined) {
+    processId = options.processId;
+  }
 
   const config = {
     paymentServiceConfig: { url: paymentUrl },
     uploadServiceConfig: { url: uploadUrl },
     gatewayUrl,
     token,
+    processId,
+    cuUrl,
   };
 
   return config;

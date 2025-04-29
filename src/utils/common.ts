@@ -39,6 +39,46 @@ export function isWeb() {
   return typeof window !== 'undefined';
 }
 
+export const tokenToDevGatewayMap: Record<TokenType, string> = {
+  arweave: 'https://arweave.net', // No arweave test net
+  ario: 'https://arweave.net', // No arweave test net
+  solana: 'https://api.devnet.solana.com',
+  ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
+  'base-eth': 'https://sepolia.base.org',
+  kyve: 'https://api.korellia.kyve.network',
+  matic: 'https://rpc-amoy.polygon.technology',
+  pol: 'https://rpc-amoy.polygon.technology',
+};
+
+export const tokenToDevAoConfigMap: {
+  ario: { processId: string; cuUrl: string };
+} = {
+  ario: {
+    processId: 'agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA',
+    cuUrl: 'https://cu.ardrive.io',
+  },
+};
+
+export const defaultProdGatewayUrls: Record<TokenType, string> = {
+  arweave: 'https://arweave.net',
+  ario: 'https://arweave.net',
+  solana: 'https://api.mainnet-beta.solana.com',
+  ethereum: 'https://cloudflare-eth.com/',
+  'base-eth': 'https://mainnet.base.org',
+  kyve: 'https://api.kyve.network/',
+  matic: 'https://polygon-rpc.com/',
+  pol: 'https://polygon-rpc.com/',
+};
+
+export const defaultProdAoConfigs: {
+  ario: { processId: string; cuUrl: string };
+} = {
+  ario: {
+    processId: 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE',
+    cuUrl: 'https://cu.ardrive.io',
+  },
+};
+
 export function createTurboSigner({
   signer: clientProvidedSigner,
   privateKey: clientProvidedPrivateKey,
@@ -77,6 +117,7 @@ export function createTurboSigner({
       }
       return signerFromKyvePrivateKey(clientProvidedPrivateKey);
     case 'arweave':
+    case 'ario':
       if (!isJWK(clientProvidedPrivateKey)) {
         throw new Error('A JWK must be provided for ArweaveSigner.');
       }
