@@ -25,7 +25,6 @@ import {
   unmonitor,
 } from '@permaweb/aoconnect';
 import { BigNumber } from 'bignumber.js';
-import { id } from 'ethers';
 
 import {
   TokenCreateTxParams,
@@ -160,7 +159,12 @@ export class ARIOToken implements TokenTools {
         },
       ],
     });
-    this.logger.debug('Submitting fund transaction...', { id });
+    this.logger.debug('Submitted Transfer message to ARIO process...', {
+      id: txId,
+      target,
+      tokenAmount,
+      processId: this.processId,
+    });
 
     return { id: txId, target, reward: '0' };
   }
