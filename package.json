@@ -81,6 +81,7 @@
     "@dha-team/arbundles": "^1.0.1",
     "@ethersproject/signing-key": "^5.7.0",
     "@kyvejs/sdk": "^1.4.5",
+    "@permaweb/aoconnect": "0.0.57",
     "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
     "axios": "1.4.0",
