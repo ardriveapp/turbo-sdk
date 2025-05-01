@@ -37,66 +37,6 @@ import { defaultProdAoConfigs, sleep } from '../../utils/common.js';
 import { version } from '../../version.js';
 import { TurboWinstonLogger } from '../logger.js';
 
-export interface AoClient {
-  result: typeof result;
-  results: typeof results;
-  message: typeof message;
-  spawn: typeof spawn;
-  monitor: typeof monitor;
-  unmonitor: typeof unmonitor;
-  dryrun: typeof dryrun;
-}
-
-type AoSigner = (args: {
-  data: string | Buffer;
-  tags?: { name: string; value: string }[];
-  target?: string;
-  anchor?: string;
-}) => Promise<{ id: string; raw: ArrayBuffer }>;
-
-function createAoSigner(signer: TurboSigner): AoSigner {
-  if (!('publicKey' in signer)) {
-    return createDataItemSigner(signer) as AoSigner;
-  }
-
-  const aoSigner = async ({ data, tags, target, anchor }) => {
-    // ensure appropriate permissions are granted with injected signers.
-    if (
-      signer.publicKey === undefined &&
-      'setPublicKey' in signer &&
-      typeof signer.setPublicKey === 'function'
-    ) {
-      await signer.setPublicKey();
-    }
-    if (signer instanceof ArconnectSigner) {
-      // Sign using Arconnect signDataItem API
-      const signedDataItem = await signer['signer'].signDataItem({
-        data,
-        tags,
-        target,
-        anchor,
-      });
-      const dataItem = new DataItem(Buffer.from(signedDataItem));
-      return {
-        id: dataItem.id,
-        raw: dataItem.getRaw(),
-      };
-    }
-
-    const dataItem = createData(data ?? '', signer, { tags, target, anchor });
-    await dataItem.sign(signer);
-    const signedData = {
-      id: dataItem.id,
-      raw: dataItem.getRaw(),
-    };
-    return signedData;
-  };
-
-  // eslint-disable-next-line
-  // @ts-ignore Buffer vs ArrayBuffer type mismatch
-  return aoSigner;
-}
-
 export class ARIOToken implements TokenTools {
   protected logger: TurboLogger;
 
@@ -179,3 +119,67 @@ export class ARIOToken implements TokenTools {
 export const mARIOToTokenAmount = (mARIO: BigNumber.Value) => mARIO;
 export const ARIOToTokenAmount = (ario: BigNumber.Value) =>
   new BigNumber(ario).times(1e6).valueOf();
+
+/**
+ * These types and functions are copied from ar-io/sdk.
+ * Not importing here to avoid circular dependencies
+ */
+interface AoClient {
+  result: typeof result;
+  results: typeof results;
+  message: typeof message;
+  spawn: typeof spawn;
+  monitor: typeof monitor;
+  unmonitor: typeof unmonitor;
+  dryrun: typeof dryrun;
+}
+
+type AoSigner = (args: {
+  data: string | Buffer;
+  tags?: { name: string; value: string }[];
+  target?: string;
+  anchor?: string;
+}) => Promise<{ id: string; raw: ArrayBuffer }>;
+
+function createAoSigner(signer: TurboSigner): AoSigner {
+  if (!('publicKey' in signer)) {
+    return createDataItemSigner(signer) as AoSigner;
+  }
+
+  const aoSigner = async ({ data, tags, target, anchor }) => {
+    // ensure appropriate permissions are granted with injected signers.
+    if (
+      signer.publicKey === undefined &&
+      'setPublicKey' in signer &&
+      typeof signer.setPublicKey === 'function'
+    ) {
+      await signer.setPublicKey();
+    }
+    if (signer instanceof ArconnectSigner) {
+      // Sign using Arconnect signDataItem API
+      const signedDataItem = await signer['signer'].signDataItem({
+        data,
+        tags,
+        target,
+        anchor,
+      });
+      const dataItem = new DataItem(Buffer.from(signedDataItem));
+      return {
+        id: dataItem.id,
+        raw: dataItem.getRaw(),
+      };
+    }
+
+    const dataItem = createData(data ?? '', signer, { tags, target, anchor });
+    await dataItem.sign(signer);
+    const signedData = {
+      id: dataItem.id,
+      raw: dataItem.getRaw(),
+    };
+    return signedData;
+  };
+
+  // eslint-disable-next-line
+  // @ts-ignore Buffer vs ArrayBuffer type mismatch
+  return aoSigner;
+}
