@@ -762,6 +762,8 @@ Global options:
 - `-g, --gateway <url>` - Set a custom crypto gateway URL
 - `--upload-url <url>` - Set a custom upload service URL
 - `--payment-url <url>` - Set a custom payment service URL
+- `--cu-url <url>` - Set a custom AO compute unit URL
+- `--process-id <id>` - Set a custom target process ID for AO action
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
 Wallet options:
@@ -834,6 +836,11 @@ turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
 
 ```shell
 turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json
+```
+
+```shell
+# Use a custom AO process ID and compute unit:
+turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
 ```
 
 ##### `upload-folder`
