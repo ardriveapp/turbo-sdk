@@ -61,7 +61,7 @@ export async function cryptoFund(options: CryptoFundOptions) {
     const { confirm } = await prompts({
       type: 'confirm',
       name: 'confirm',
-      message: `\nTransaction details:\n\n  Amount: ${value} ${token}\n  Target: ${targetWallet}\n  Credits received: ${credits}\n  Credit recipient: ${await turbo.signer.getNativeAddress()}\n  Network fees: (Gas fees apply)\n\nThis payment is non-refundable.  Proceed with transaction?`,
+      message: `\nTransaction details:\n\n  Amount: ${value} ${token}\n  Target: ${targetWallet}\n  Est Credits to receive: ${credits}\n  Credit recipient: ${await turbo.signer.getNativeAddress()}\n  Note: Network Dependent Gas Fees May Apply\n\nThis payment is non-refundable.  Proceed with transaction?`,
       initial: true,
     });
 

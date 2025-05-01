@@ -52,14 +52,9 @@ import { TurboWinstonLogger } from './logger.js';
 export abstract class TurboDataItemAbstractSigner
   implements TurboDataItemSigner
 {
-  abstract signDataItem({
-    fileStreamFactory,
-    fileSizeFactory,
-    dataItemOpts,
-  }: TurboFileFactory<FileStreamFactory>): Promise<TurboSignedDataItemFactory>;
+  public signer: TurboSigner;
 
   protected logger: TurboLogger;
-  protected signer: TurboSigner;
   protected token: TokenType;
   protected walletAdapter: WalletAdapter | undefined;
 
@@ -74,6 +69,12 @@ export abstract class TurboDataItemAbstractSigner
     this.token = token;
     this.walletAdapter = walletAdapter;
   }
+
+  abstract signDataItem({
+    fileStreamFactory,
+    fileSizeFactory,
+    dataItemOpts,
+  }: TurboFileFactory<FileStreamFactory>): Promise<TurboSignedDataItemFactory>;
 
   private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {
     switch (token) {
@@ -98,6 +99,7 @@ export abstract class TurboDataItemAbstractSigner
         );
 
       case 'arweave':
+      case 'ario':
         return ownerToB64Address(owner);
     }
   }

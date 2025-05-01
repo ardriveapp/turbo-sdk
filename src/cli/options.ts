@@ -78,6 +78,16 @@ export const optionMap = {
     description: 'Set a custom payment service URL',
     default: undefined,
   },
+  processId: {
+    alias: '--process-id <processId>',
+    description: 'Set a custom target process ID for the action',
+    default: undefined,
+  },
+  cuUrl: {
+    alias: '--cu-url <cuUrl>',
+    description: 'Set a custom CU URL for the action',
+    default: undefined,
+  },
   dev: {
     alias: '--dev',
     description: 'Enable Turbo development endpoints',
