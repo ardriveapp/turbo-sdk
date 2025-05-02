@@ -1,3 +1,13 @@
+# [1.25.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.24.0...v1.25.0-alpha.1) (2025-05-02)
+
+
+### Features
+
+* **uploadData:** add uploadData api for web and node PE-8042 ([2ff41e8](https://github.com/ardriveapp/turbo-sdk/commit/2ff41e840bd1a360bf528bef6992f44f6668aef3))
+* **uploadData:** rely on Buffer polyfill PE-8042 ([4cef4be](https://github.com/ardriveapp/turbo-sdk/commit/4cef4befc8a85f7988804e8600e9f992a14cfe2c))
+* **uploadData:** simplify by just using a buffer when possible PE-8042 ([da903a2](https://github.com/ardriveapp/turbo-sdk/commit/da903a242542c9fc30a3091e4085ee002c18f145))
+* **upload:** rename uploadData to upload and update README PE-8042 ([a8124e1](https://github.com/ardriveapp/turbo-sdk/commit/a8124e1ff77a4bf6da408c703d948dc730e86273))
+
 # [1.24.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.5...v1.24.0) (2025-05-02)
 
 
