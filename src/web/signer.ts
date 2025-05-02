@@ -74,14 +74,19 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
     const fileStream = fileStreamFactory();
 
-    // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
-    const buffer =
-      fileStream instanceof Buffer
-        ? fileStream
-        : await readableStreamToBuffer({
-            stream: fileStream,
-            size: fileSizeFactory(),
-          });
+    // TODO: here we convert the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
+    // we should add support for incrementally signing ReadableStreams in the future
+    let buffer: Buffer;
+    if (Buffer.isBuffer(fileStream)) {
+      buffer = fileStream;
+    } else if (fileStream instanceof ReadableStream) {
+      buffer = await readableStreamToBuffer({
+        stream: fileStream,
+        size: fileSizeFactory(),
+      });
+    } else {
+      throw new Error('Unsupported file stream type for web signer');
+    }
 
     let signedDataItem: DataItem;
     this.logger.debug('Signing data item...');

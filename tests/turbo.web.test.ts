@@ -27,6 +27,7 @@ import {
   SolanaToken,
   TurboFactory,
   TurboWebArweaveSigner,
+  UploadDataType,
   WinstonToTokenAmount,
 } from '../src/web/index.js';
 import {
@@ -511,10 +512,12 @@ describe('Browser environment', () => {
     });
 
     describe('uploadData()', () => {
-      const uploadDataTypeInputsMap = {
+      const uploadDataTypeInputsMap: Record<string, UploadDataType> = {
         string: 'a test string',
         Uint8Array: new TextEncoder().encode('a test string'),
-        ArrayBuffer: new TextEncoder().encode('a test string').buffer,
+        ArrayBuffer: new TextEncoder().encode('a test string')
+          .buffer as ArrayBuffer,
+        Buffer: Buffer.from('a test string'),
         Blob: new Blob(['a test string'], { type: 'text/plain' }),
       };
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {

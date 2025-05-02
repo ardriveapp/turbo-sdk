@@ -33,6 +33,7 @@ import {
   NativeAddress,
   TokenType,
   TurboSigner,
+  UploadDataType,
   tokenTypes,
 } from '../src/types.js';
 import { signerFromKyveMnemonic } from '../src/utils/common.js';
@@ -593,11 +594,12 @@ describe('Node environment', () => {
         },
       ];
 
-      const uploadDataTypeInputsMap = {
+      const uploadDataTypeInputsMap: Record<string, UploadDataType> = {
         string: 'a test string',
         Buffer: Buffer.from('a test string'),
         Uint8Array: new Uint8Array(Buffer.from('a test string')),
-        ArrayBuffer: Buffer.from('a test string').buffer,
+        ArrayBuffer: new TextEncoder().encode('a test string')
+          .buffer as ArrayBuffer,
       };
 
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
