@@ -57,7 +57,7 @@ import path from 'path';
 
 async function uploadWithTurbo() {
   // load your JWK directly to authenticate
-  const arweave = Arweave({});
+  const arweave = Arweave.init({});
   const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
   const address = await arweave.wallets.jwkToAddress(jwk);
   const turbo = TurboFactory.authenticated({ privateKey: jwk });
