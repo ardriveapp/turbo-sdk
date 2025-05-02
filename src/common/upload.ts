@@ -151,7 +151,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       })();
 
       return this.uploadFile({
-        fileStreamFactory: () => Readable.from(dataBuffer),
+        fileStreamFactory: () => dataBuffer,
         fileSizeFactory: () => dataBuffer.byteLength,
         signal,
         dataItemOpts,
