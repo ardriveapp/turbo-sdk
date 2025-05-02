@@ -139,48 +139,19 @@ export abstract class TurboAuthenticatedBaseUploadService
       });
     }
 
-    if (typeof Buffer !== 'undefined') {
-      const dataBuffer: Buffer = (() => {
-        if (Buffer.isBuffer(data)) return data;
-        // Need type narrowing to ensure the correct Buffer.from overload is used
-        if (typeof data === 'string' || data instanceof Uint8Array) {
-          return Buffer.from(data);
-        }
+    const dataBuffer: Buffer = (() => {
+      if (Buffer.isBuffer(data)) return data;
+      // Need type narrowing to ensure the correct Buffer.from overload is used
+      if (typeof data === 'string' || data instanceof Uint8Array) {
+        return Buffer.from(data);
+      }
 
-        return Buffer.from(data); // Only other option is ArrayBuffer
-      })();
-
-      return this.uploadFile({
-        fileStreamFactory: () => dataBuffer,
-        fileSizeFactory: () => dataBuffer.byteLength,
-        signal,
-        dataItemOpts,
-      });
-    }
-
-    if (
-      typeof data !== 'string' &&
-      !(data instanceof ArrayBuffer) &&
-      !(data instanceof Uint8Array)
-    ) {
-      throw new Error(
-        'Unsupported data type. Expected Blob, Buffer, ArrayBuffer, or string.',
-      );
-    }
-
-    const bytes =
-      typeof data === 'string' ? new TextEncoder().encode(data) : data;
+      return Buffer.from(data); // Only other option is ArrayBuffer
+    })();
 
     return this.uploadFile({
-      fileStreamFactory: (() => {
-        return new ReadableStream({
-          start(controller) {
-            controller.enqueue(bytes);
-            controller.close();
-          },
-        });
-      }) as WebFileStreamFactory,
-      fileSizeFactory: () => bytes.byteLength,
+      fileStreamFactory: () => dataBuffer,
+      fileSizeFactory: () => dataBuffer.byteLength,
       signal,
       dataItemOpts,
     });
