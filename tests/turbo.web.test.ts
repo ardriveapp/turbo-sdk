@@ -510,7 +510,7 @@ describe('Browser environment', () => {
       });
     });
 
-    describe('uploadData()', () => {
+    describe('upload()', () => {
       const uploadDataTypeInputsMap = {
         string: 'a test string',
         Uint8Array: new TextEncoder().encode('a test string'),
@@ -519,7 +519,7 @@ describe('Browser environment', () => {
       };
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
         it(`should properly upload a ${label} to turbo`, async () => {
-          const response = await turbo.uploadData({
+          const response = await turbo.upload({
             data: input,
           });
           expect(response).to.not.be.undefined;
@@ -531,7 +531,7 @@ describe('Browser environment', () => {
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
           const error = await turbo
-            .uploadData({
+            .upload({
               data: input,
               signal: AbortSignal.timeout(0), // abort the request right away
             })
@@ -547,7 +547,7 @@ describe('Browser environment', () => {
           ...turboDevelopmentConfigurations,
         });
         const error = await newTurbo
-          .uploadData({
+          .upload({
             data: new Uint8Array(1024 * 1024), // 1MiB
           })
           .catch((err) => err);

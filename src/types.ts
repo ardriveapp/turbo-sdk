@@ -645,7 +645,7 @@ export interface TurboUnauthenticatedUploadServiceInterface {
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
-  uploadData({
+  upload({
     data,
   }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
   uploadFile({

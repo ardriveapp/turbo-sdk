@@ -564,7 +564,7 @@ describe('Node environment', () => {
       });
     });
 
-    describe('uploadData()', () => {
+    describe('upload()', () => {
       const validDataItemOpts = [
         {
           target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
@@ -603,7 +603,7 @@ describe('Node environment', () => {
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
         for (const dataItemOpts of validDataItemOpts) {
           it(`should properly upload a ${label} to turbo`, async () => {
-            const response = await turbo.uploadData({
+            const response = await turbo.upload({
               data: input,
               dataItemOpts,
             });
@@ -683,7 +683,7 @@ describe('Node environment', () => {
       } of invalidDataItemOpts) {
         it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
           await expectAsyncErrorThrow({
-            promiseToError: turbo.uploadData({
+            promiseToError: turbo.upload({
               data: 'a test string',
               dataItemOpts,
             }),
@@ -695,7 +695,7 @@ describe('Node environment', () => {
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
         const error = await turbo
-          .uploadData({
+          .upload({
             data: 'a test string',
             signal: AbortSignal.timeout(0), // abort the request right away
           })
@@ -712,7 +712,7 @@ describe('Node environment', () => {
           ...turboDevelopmentConfigurations,
         });
         const error = await newTurbo
-          .uploadData({
+          .upload({
             data: buffer,
           })
           .catch((error) => error);
@@ -723,7 +723,7 @@ describe('Node environment', () => {
       it('should return proper error when http throws an unrecognized error', async () => {
         stub(turbo['uploadService']['httpService'], 'post').throws(Error);
         const error = await turbo
-          .uploadData({
+          .upload({
             data: 'a test string',
           })
           .catch((error) => error);

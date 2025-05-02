@@ -122,7 +122,7 @@ export abstract class TurboAuthenticatedBaseUploadService
   /**
    * Signs and uploads raw data to the Turbo Upload Service.
    */
-  uploadData({
+  upload({
     data,
     dataItemOpts,
     signal,

@@ -274,12 +274,12 @@ export class TurboAuthenticatedClient
   /**
    * Signs and uploads raw data to the Turbo Upload Service.
    */
-  uploadData({
+  upload({
     data,
     dataItemOpts,
     signal,
   }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadData({ data, dataItemOpts, signal });
+    return this.uploadService.upload({ data, dataItemOpts, signal });
   }
 
   /**

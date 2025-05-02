@@ -99,10 +99,14 @@ async function uploadWithTurbo() {
   // upload the file
   try {
     const { id, owner, dataCaches, fastFinalityIndexes } =
-      await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(filePath),
-        fileSizeFactory: () => fileSize,
-      });
+      // Have data in memory already? Just use it!
+      haveDataInMemory
+        ? await turbo.upload({ data: 'The contents of my file!' })
+        : // Or perhaps you have a larger file that you don't want in memory? Stream it!
+          await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
+          });
     // upload complete!
     console.log('Successfully upload data item!', {
       id,
