@@ -52,6 +52,7 @@ import {
   TurboWincForFiatResponse,
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
+  UploadDataInput,
 } from '../types.js';
 import {
   TurboUnauthenticatedPaymentService,
@@ -272,6 +273,17 @@ export class TurboAuthenticatedClient
 
   /**
    * Signs and uploads raw data to the Turbo Upload Service.
+   */
+  uploadData({
+    data,
+    dataItemOpts,
+    signal,
+  }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadData({ data, dataItemOpts, signal });
+  }
+
+  /**
+   * Signs and uploads raw file data to the Turbo Upload Service.
    */
   uploadFile({
     fileStreamFactory,

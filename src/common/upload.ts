@@ -37,9 +37,11 @@ import {
   TurboUploadDataItemResponse,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
+  UploadDataInput,
+  WebFileStreamFactory,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
-import { sleep } from '../utils/common.js';
+import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -115,6 +117,73 @@ export abstract class TurboAuthenticatedBaseUploadService
   }: TurboAuthenticatedUploadServiceConfiguration) {
     super({ url, retryConfig, logger, token });
     this.signer = signer;
+  }
+
+  /**
+   * Signs and uploads raw data to the Turbo Upload Service.
+   */
+  uploadData({
+    data,
+    dataItemOpts,
+    signal,
+  }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    // This function is intended to be usable in both Node and browser environments.
+    if (isBlob(data)) {
+      const streamFactory = () => data.stream();
+      const sizeFactory = () => data.size;
+      return this.uploadFile({
+        fileStreamFactory: streamFactory as WebFileStreamFactory,
+        fileSizeFactory: sizeFactory,
+        signal,
+        dataItemOpts,
+      });
+    }
+
+    if (typeof Buffer !== 'undefined') {
+      const dataBuffer: Buffer = (() => {
+        if (Buffer.isBuffer(data)) return data;
+        // Need type narrowing to ensure the correct Buffer.from overload is used
+        if (typeof data === 'string' || data instanceof Uint8Array) {
+          return Buffer.from(data);
+        }
+
+        return Buffer.from(data); // Only other option is ArrayBuffer
+      })();
+
+      return this.uploadFile({
+        fileStreamFactory: () => Readable.from(dataBuffer),
+        fileSizeFactory: () => dataBuffer.byteLength,
+        signal,
+        dataItemOpts,
+      });
+    }
+
+    if (
+      typeof data !== 'string' &&
+      !(data instanceof ArrayBuffer) &&
+      !(data instanceof Uint8Array)
+    ) {
+      throw new Error(
+        'Unsupported data type. Expected Blob, Buffer, ArrayBuffer, or string.',
+      );
+    }
+
+    const bytes =
+      typeof data === 'string' ? new TextEncoder().encode(data) : data;
+
+    return this.uploadFile({
+      fileStreamFactory: (() => {
+        return new ReadableStream({
+          start(controller) {
+            controller.enqueue(bytes);
+            controller.close();
+          },
+        });
+      }) as WebFileStreamFactory,
+      fileSizeFactory: () => bytes.byteLength,
+      signal,
+      dataItemOpts,
+    });
   }
 
   async uploadFile({
