@@ -22,12 +22,13 @@ NOTE: Contribution implies licensing under the terms of [LICENSE].
 
 ## Branching Workflow
 
-- New branches should be created from `main`.
-- When ready, PR's should be made against `beta`. The team will review and merge when all issues/comments and all tests/CI must pass. Merging will create a new pre-release (e.g. `1.1.0-beta.1`).
-- The community & team will validate the pre-release and report any issues. If additional changes are required, a new PR should be made against `beta` and the process repeated.
-- Once the changes been validated in a pre-release package, a PR will then be created **by the team** from `beta` to `main`. When merged, a new release package will be created (e.g. `1.1.0`) and available in [npm registry] and [Github releases].
-- After release, `main` should me merged back into `alpha` and `beta` branches, so future PR's will be based on the latest code.
-- For internal testing, the same process can be followed, but PR's should be made against `alpha` instead of `beta`.
+- New branches should be created from `alpha`.
+- When ready, PR's should be made against `alpha`. The team will review and merge when all issues/comments and all tests/CI must pass. Merging will create a new pre-release (e.g. `1.1.0-alpha.1`).
+- The community & team will validate the pre-release and report any issues. If additional changes are required, a new PR should be made against `alpha` and the process repeated.
+- Once the changes been validated in a pre-release package, a PR will then be created **by the team** from `alpha` to `main`.
+- When merged, a new release package will be created (e.g. `1.1.0`) and available in [npm registry] and [Github releases].
+- After release, `main` should be merged back into `alpha`, so future PR's will be based on the latest code.
+- It's also good hygiene to remove any alpha build release notes of anything that has been released from the CHANGELOG.md file. This ensures the changelog only contains release notes for released versions and the latest alpha build release notes are at the top of the file.
 
 [license]: ./LICENSE
 [conventional commits]: https://www.conventionalcommits.org/en/v1.0.0/
