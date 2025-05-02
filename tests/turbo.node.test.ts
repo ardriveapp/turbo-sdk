@@ -564,6 +564,176 @@ describe('Node environment', () => {
       });
     });
 
+    describe('upload()', () => {
+      const validDataItemOpts = [
+        {
+          target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
+          anchor: 'anchorMustBeThirtyTwoBytesLong!!',
+          tags: [
+            {
+              name: '', // empty name
+              value: '', // empty val
+            },
+          ],
+        },
+        {
+          // cspell:disable
+          target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
+          anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
+          tags: [
+            {
+              name: 'test',
+              value: 'test',
+            },
+            {
+              name: 'test2',
+              value: 'test2',
+            },
+          ],
+        },
+      ];
+
+      const uploadDataTypeInputsMap = {
+        string: 'a test string',
+        Buffer: Buffer.from('a test string'),
+        Uint8Array: new Uint8Array(Buffer.from('a test string')),
+        ArrayBuffer: Buffer.from('a test string').buffer,
+      };
+
+      for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
+        for (const dataItemOpts of validDataItemOpts) {
+          it(`should properly upload a ${label} to turbo`, async () => {
+            const response = await turbo.upload({
+              data: input,
+              dataItemOpts,
+            });
+            expect(response).to.not.be.undefined;
+            expect(response).to.not.be.undefined;
+            expect(response).to.have.property('fastFinalityIndexes');
+            expect(response).to.have.property('dataCaches');
+            expect(response).to.have.property('owner');
+            expect(response['owner']).to.equal(testArweaveNativeB64Address);
+          });
+        }
+      }
+
+      const invalidDataItemOpts = [
+        {
+          testName: 'tag name too long',
+          errorType: 'FailedRequestError',
+          errorMessage:
+            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+          dataItemOpts: {
+            tags: [
+              {
+                name: Array(1025).fill('a').join(''),
+                value: 'test',
+              },
+            ],
+          },
+        },
+        {
+          testName: 'tag value too long',
+          errorType: 'FailedRequestError',
+          errorMessage:
+            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+          dataItemOpts: {
+            tags: [
+              {
+                name: 'test',
+                value: Array(3073).fill('a').join(''),
+              },
+            ],
+          },
+        },
+        {
+          testName: 'target Too Short',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 10',
+          dataItemOpts: {
+            target: 'target Too Short',
+          },
+        },
+        {
+          testName: 'anchor Too Short',
+          errorMessage: 'Anchor must be 32 bytes',
+          dataItemOpts: {
+            anchor: 'anchor Too Short',
+          },
+        },
+        {
+          testName: 'target Too Long',
+          errorMessage: 'Target must be 32 bytes but was incorrectly 33',
+          dataItemOpts: {
+            target: 'target Too Long This is 33 Bytes one two three four five',
+          },
+        },
+        {
+          testName: 'anchor Too Long',
+          errorMessage: 'Anchor must be 32 bytes',
+          dataItemOpts: {
+            anchor: 'anchor Too Long This is 33 Bytes one two three four five',
+          },
+        },
+      ];
+      for (const {
+        testName,
+        dataItemOpts,
+        errorMessage,
+        errorType,
+      } of invalidDataItemOpts) {
+        it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
+          await expectAsyncErrorThrow({
+            promiseToError: turbo.upload({
+              data: 'a test string',
+              dataItemOpts,
+            }),
+            errorType,
+            errorMessage,
+          });
+        });
+      }
+
+      it('should abort the upload when AbortController.signal is triggered', async () => {
+        const error = await turbo
+          .upload({
+            data: 'a test string',
+            signal: AbortSignal.timeout(0), // abort the request right away
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(CanceledError);
+      });
+
+      it('should return a FailedRequestError when the data is larger than the free limit and wallet is underfunded', async () => {
+        const nonAllowListedJWK = await testArweave.crypto.generateJWK();
+        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+        const buffer = fs.readFileSync(filePath);
+        const newTurbo = TurboFactory.authenticated({
+          privateKey: nonAllowListedJWK,
+          ...turboDevelopmentConfigurations,
+        });
+        const error = await newTurbo
+          .upload({
+            data: buffer,
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Insufficient balance');
+      });
+
+      it('should return proper error when http throws an unrecognized error', async () => {
+        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        const error = await turbo
+          .upload({
+            data: 'a test string',
+          })
+          .catch((error) => error);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.equal(
+          'Failed request: Failed to upload file after 6 attempts\n',
+        );
+      });
+    });
+
     describe('uploadFile()', () => {
       const validDataItemOpts = [
         {
@@ -674,7 +844,7 @@ describe('Node environment', () => {
         errorMessage,
         errorType,
       } of invalidDataItemOpts) {
-        it(`should fail to upload a Buffer to turbo with invalid when ${testName}`, async () => {
+        it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
           const fileSize = fs.statSync(oneKiBFilePath).size;
 
           await expectAsyncErrorThrow({
