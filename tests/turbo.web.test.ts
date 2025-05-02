@@ -510,6 +510,52 @@ describe('Browser environment', () => {
       });
     });
 
+    describe('upload()', () => {
+      const uploadDataTypeInputsMap = {
+        string: 'a test string',
+        Uint8Array: new TextEncoder().encode('a test string'),
+        ArrayBuffer: new TextEncoder().encode('a test string').buffer,
+        Blob: new Blob(['a test string'], { type: 'text/plain' }),
+      };
+      for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
+        it(`should properly upload a ${label} to turbo`, async () => {
+          const response = await turbo.upload({
+            data: input,
+          });
+          expect(response).to.not.be.undefined;
+          expect(response).to.have.property('fastFinalityIndexes');
+          expect(response).to.have.property('dataCaches');
+          expect(response).to.have.property('owner');
+          expect(response['owner']).to.equal(testArweaveNativeB64Address);
+        });
+
+        it('should abort the upload when AbortController.signal is triggered', async () => {
+          const error = await turbo
+            .upload({
+              data: input,
+              signal: AbortSignal.timeout(0), // abort the request right away
+            })
+            .catch((err) => err);
+          expect(error).to.be.instanceOf(CanceledError);
+        });
+      }
+
+      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
+        const nonAllowListedJWK = await testArweave.wallets.generate();
+        const newTurbo = TurboFactory.authenticated({
+          privateKey: nonAllowListedJWK,
+          ...turboDevelopmentConfigurations,
+        });
+        const error = await newTurbo
+          .upload({
+            data: new Uint8Array(1024 * 1024), // 1MiB
+          })
+          .catch((err) => err);
+        expect(error).to.be.instanceOf(FailedRequestError);
+        expect(error.message).to.contain('Insufficient balance');
+      });
+    });
+
     describe('uploadFile()', () => {
       it('should properly upload a ReadableStream to turbo', async () => {
         const encoder = new TextEncoder();

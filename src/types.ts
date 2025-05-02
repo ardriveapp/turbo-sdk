@@ -486,6 +486,14 @@ export type TurboAuthenticatedClientConfiguration = {
   signer: TurboDataItemSigner;
 };
 
+export type UploadDataType = string | Uint8Array | ArrayBuffer | Buffer | Blob;
+
+export type UploadDataInput = {
+  data: UploadDataType;
+  dataItemOpts?: DataItemOptions;
+  signal?: AbortSignal;
+};
+
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
 export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
@@ -637,6 +645,9 @@ export interface TurboUnauthenticatedUploadServiceInterface {
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
+  upload({
+    data,
+  }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,

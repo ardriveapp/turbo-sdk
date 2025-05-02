@@ -147,3 +147,7 @@ export async function signerFromKyveMnemonic(
 
   return signerFromKyvePrivateKey(privateKey);
 }
+
+export function isBlob(val: unknown): val is Blob {
+  return typeof Blob !== 'undefined' && val instanceof Blob;
+}
