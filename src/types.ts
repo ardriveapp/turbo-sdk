@@ -60,6 +60,7 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 
 export const tokenTypes = [
   'arweave',
+  'ario',
   'solana',
   'ethereum',
   'kyve',
@@ -394,6 +395,8 @@ export type TurboUnauthenticatedConfiguration = {
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
   token?: TokenType;
   gatewayUrl?: string;
+  processId?: string;
+  cuUrl?: string;
 };
 
 export interface TurboLogger {
@@ -568,6 +571,7 @@ export interface TurboDataItemSigner {
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
   getPublicKey(): Promise<Buffer>;
   getNativeAddress(): Promise<string>;
+  signer: TurboSigner;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -672,12 +676,21 @@ export interface TokenTools {
 }
 
 export type TokenConfig = {
-  gatewayUrl?: string;
   logger?: TurboLogger;
+  gatewayUrl?: string;
   pollingOptions?: TokenPollingOptions;
+};
+
+export type AoProcessConfig = {
+  logger?: TurboLogger;
+  processId?: string;
+  cuUrl?: string;
 };
 
 /** @deprecated -- This type was provided as a parameter in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl`  directly in the Factory constructor. This type will be removed in a v2 release  */
 export type TokenMap = { arweave: TokenTools };
 
-export type TokenFactory = Record<string, (config: TokenConfig) => TokenTools>;
+export type TokenFactory = Record<
+  string,
+  (config: TokenConfig | AoProcessConfig) => TokenTools
+>;

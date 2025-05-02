@@ -74,6 +74,7 @@ describe('Node environment', () => {
   describe('TurboDataItemSigner', () => {
     const signers: Record<TokenType, [TurboSigner, NativeAddress]> = {
       arweave: [new ArweaveSigner(testJwk), testArweaveNativeB64Address],
+      ario: [new ArweaveSigner(testJwk), testArweaveNativeB64Address],
       ethereum: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'base-eth': [new EthereumSigner(testEthWallet), testEthNativeAddress],
       solana: [new HexSolanaSigner(testSolWallet), testSolNativeAddress],
