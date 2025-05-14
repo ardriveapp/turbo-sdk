@@ -102,6 +102,7 @@ export class UploadEmitter extends EventEmitter<UploadEmitterEvent> {
   }
 
   createEventingReadableStream(data: Buffer | ReadableStream) {
+    // ReadableStream do not emit events, so we need to wrap it in a new ReadableStream with eventing in the hooks
     const originalStream =
       data instanceof ReadableStream
         ? data
