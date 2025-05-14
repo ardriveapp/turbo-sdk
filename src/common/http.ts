@@ -15,8 +15,7 @@
  */
 import { AxiosError, AxiosInstance, AxiosResponse, CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
-import { Readable } from 'stream';
-import { ReadableStream } from 'stream/web';
+import { Readable } from 'node:stream';
 
 import {
   TurboHTTPServiceInterface,

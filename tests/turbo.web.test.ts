@@ -10,7 +10,6 @@ import { BigNumber } from 'bignumber.js';
 import { expect } from 'chai';
 import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
-import { ReadableStream } from 'node:stream/web';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
