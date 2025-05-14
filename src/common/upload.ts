@@ -76,6 +76,13 @@ export class UploadEmitter extends EventEmitter<UploadEmitterEvent> {
     }
   }
 
+  static from(params?: UploadEmitterParams | UploadEmitter) {
+    if (params instanceof UploadEmitter) {
+      return params;
+    }
+    return new UploadEmitter(params);
+  }
+
   // todo: create listener params type
   on(event: 'progress', listener: (ctx: UploadProgressEvent) => void): this;
   on(event: UploadEmitterEvent, listener: (...args: any[]) => void): this {
@@ -165,17 +172,15 @@ export class TurboUnauthenticatedUploadService
     TurboAbortSignal & {
       events?: UploadEmitter | UploadEmitterParams;
     }): Promise<TurboUploadDataItemResponse> {
-    const emitter =
-      events instanceof UploadEmitter ? events : new UploadEmitter(events);
-
     const fileSize = dataItemSizeFactory();
-
     this.logger.debug('Uploading signed data item...');
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
-      data: emitter.createEventingStream(dataItemStreamFactory()),
+      data: UploadEmitter.from(events).createEventingStream(
+        dataItemStreamFactory(),
+      ),
       headers: {
         'content-type': 'application/octet-stream',
         'content-length': `${fileSize}`,
