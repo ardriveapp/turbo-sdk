@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { ReadableStream } from 'stream/web';
+
 import {
   TurboAuthenticatedBaseUploadService,
   defaultUploadServiceURL,
@@ -30,8 +32,9 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     signer,
     logger,
     token,
+    uploadEmitterFactory,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger, token, signer });
+    super({ url, retryConfig, logger, token, signer, uploadEmitterFactory });
   }
 
   getFiles(params: TurboUploadFolderParams): Promise<File[]> {
@@ -42,7 +45,7 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
   }
 
   getFileStreamForFile(file: File): ReadableStream {
-    return file.stream();
+    return file.stream() as ReadableStream;
   }
 
   getFileSize(file: File): number {

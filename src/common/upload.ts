@@ -37,8 +37,13 @@ import {
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboUploadEmitter,
+  TurboUploadEmitterEvent,
+  TurboUploadEmitterEventName,
+  TurboUploadEmitterParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
+  TurboUploadProgressEvent,
   UploadDataInput,
   WebFileStreamFactory,
 } from '../types.js';
@@ -58,85 +63,84 @@ export const creditSharingTagNames = {
 export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
 
-export type UploadEmitterEvent = 'progress';
-
-export type UploadProgressEvent = {
-  chunk: Buffer;
-};
-
-export type UploadEmitterParams = {
-  onProgress?: (event: UploadProgressEvent) => void;
-};
-
-export class UploadEmitter extends EventEmitter<UploadEmitterEvent> {
-  constructor(params?: UploadEmitterParams) {
+export abstract class BaseUploadEmitter
+  extends EventEmitter<TurboUploadEmitterEventName>
+  implements TurboUploadEmitter
+{
+  constructor(params?: TurboUploadEmitterParams) {
     super();
     if (params?.onProgress !== undefined) {
       this.on('progress', params.onProgress);
     }
   }
 
-  static from(params?: UploadEmitterParams | UploadEmitter) {
-    if (params instanceof UploadEmitter) {
-      return params;
-    }
-    return new UploadEmitter(params);
-  }
-
   // todo: create listener params type
-  on(event: 'progress', listener: (ctx: UploadProgressEvent) => void): this;
-  on(event: UploadEmitterEvent, listener: (...args: any[]) => void): this {
+  on(
+    event: 'progress',
+    listener: (ctx: TurboUploadProgressEvent) => void,
+  ): this;
+  on(
+    event: TurboUploadEmitterEventName,
+    listener: (ctx: TurboUploadEmitterEvent) => void,
+  ): this {
     return super.on(event, listener);
   }
 
-  emit(event: 'progress', ctx: UploadProgressEvent): boolean;
-  emit(event: UploadEmitterEvent, ...args: any[]): boolean {
-    return super.emit(event, ...args);
+  emit(event: 'progress', ctx: TurboUploadProgressEvent): boolean;
+  emit(
+    event: TurboUploadEmitterEventName,
+    ctx: TurboUploadEmitterEvent,
+  ): boolean {
+    return super.emit(event, ctx);
   }
 
-  createEventingStream(data: Readable | Buffer | ReadableStream) {
-    return data instanceof Readable
-      ? this.createEventingReadable(data)
-      : this.createEventingReadableStream(data);
-  }
+  abstract createEventingStream(
+    data: Readable | Buffer | ReadableStream,
+  ): Readable | ReadableStream;
 
-  createEventingReadable(data: Buffer | Readable) {
-    const stream = data instanceof Readable ? data : Readable.from(data);
-    stream.on('data', (chunk) => {
-      this.emit('progress', { chunk });
-    });
-    return stream;
-  }
+  // createEventingReadable(data: Buffer | Readable) {
+  //   const stream = data instanceof Readable ? data : Readable.from(data);
+  //   stream.on('data', (chunk) => {
+  //     this.emit('progress', { chunk });
+  //   });
+  //   return stream;
+  // }
 
-  createEventingReadableStream(data: Buffer | ReadableStream) {
-    // ReadableStream do not emit events, so we need to wrap it in a new ReadableStream with eventing in the hooks
-    const originalStream =
-      data instanceof ReadableStream
-        ? data
-        : new ReadableStream({
-            start: (controller) => {
-              controller.enqueue(data);
-              controller.close();
-            },
-          });
+  // createEventingReadableStream(data: Buffer | ReadableStream) {
+  //   // ReadableStream do not emit events, so we need to wrap it in a new ReadableStream with eventing in the hooks
+  //   const originalStream =
+  //     data instanceof ReadableStream
+  //       ? data
+  //       : new ReadableStream({
+  //           start: (controller) => {
+  //             controller.enqueue(data);
+  //             controller.close();
+  //           },
+  //         });
 
-    const reader = originalStream.getReader();
+  //   const reader = originalStream.getReader();
 
-    return new ReadableStream({
-      async pull(controller) {
-        const { value, done } = await reader.read();
-        if (done) {
-          controller.close();
-          return;
-        }
-        this.emit('progress', { chunk: value });
-        controller.enqueue(value);
-      },
-      cancel(reason) {
-        return reader.cancel(reason);
-      },
-    });
-  }
+  //   return new ReadableStream({
+  //     async pull(controller) {
+  //       const { value, done } = await reader.read();
+  //       if (done) {
+  //         controller.close();
+  //         return;
+  //       }
+  //       this.emit('progress', { chunk: value });
+  //       controller.enqueue(value);
+  //     },
+  //     cancel(reason) {
+  //       return reader.cancel(reason);
+  //     },
+  //   });
+  // }
+}
+
+export abstract class TurboUploadEmitterBaseFactory {
+  abstract from(
+    params?: TurboUploadEmitterParams | TurboUploadEmitter,
+  ): TurboUploadEmitter;
 }
 
 export class TurboUnauthenticatedUploadService
@@ -146,12 +150,13 @@ export class TurboUnauthenticatedUploadService
   protected logger: TurboLogger;
   protected token: TokenType;
   protected retryConfig: IAxiosRetryConfig;
-
+  protected uploadEmitterFactory?: TurboUploadEmitterBaseFactory;
   constructor({
     url = defaultUploadServiceURL,
     logger = TurboWinstonLogger.default,
     retryConfig = defaultRetryConfig(logger),
     token = 'arweave',
+    uploadEmitterFactory,
   }: TurboUnauthenticatedUploadServiceConfiguration) {
     this.token = token;
     this.logger = logger;
@@ -161,6 +166,7 @@ export class TurboUnauthenticatedUploadService
       logger: this.logger,
     });
     this.retryConfig = retryConfig;
+    this.uploadEmitterFactory = uploadEmitterFactory;
   }
 
   async uploadSignedDataItem({
@@ -170,17 +176,20 @@ export class TurboUnauthenticatedUploadService
     events,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal & {
-      events?: UploadEmitter | UploadEmitterParams;
+      events?: BaseUploadEmitter;
     }): Promise<TurboUploadDataItemResponse> {
     const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
+    const stream = this.uploadEmitterFactory
+      ? this.uploadEmitterFactory
+          .from(events)
+          .createEventingStream(dataItemStreamFactory())
+      : dataItemStreamFactory();
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
-      data: UploadEmitter.from(events).createEventingStream(
-        dataItemStreamFactory(),
-      ),
+      data: stream,
       headers: {
         'content-type': 'application/octet-stream',
         'content-length': `${fileSize}`,
@@ -202,8 +211,9 @@ export abstract class TurboAuthenticatedBaseUploadService
     signer,
     logger,
     token,
+    uploadEmitterFactory,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger, token });
+    super({ url, retryConfig, logger, token, uploadEmitterFactory });
     this.signer = signer;
   }
 

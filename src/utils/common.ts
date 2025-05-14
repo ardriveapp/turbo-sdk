@@ -25,6 +25,8 @@ import {
 import {
   TokenType,
   TurboSigner,
+  TurboUploadEmitter,
+  TurboUploadEmitterParams,
   TurboWallet,
   isEthPrivateKey,
   isJWK,
@@ -150,4 +152,20 @@ export async function signerFromKyveMnemonic(
 
 export function isBlob(val: unknown): val is Blob {
   return typeof Blob !== 'undefined' && val instanceof Blob;
+}
+
+export function isTurboUploadEmitter(
+  params: TurboUploadEmitterParams | TurboUploadEmitter | undefined,
+): params is TurboUploadEmitter {
+  if (params === undefined) {
+    return false;
+  }
+  if (
+    typeof params === 'object' &&
+    params !== null &&
+    'createEventingStream' in params
+  ) {
+    return true;
+  }
+  return false;
 }

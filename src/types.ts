@@ -375,6 +375,39 @@ type TurboServiceConfiguration = {
   retryConfig?: IAxiosRetryConfig;
   logger?: TurboLogger;
   token?: TokenType;
+  uploadEmitterFactory?: UploadEmitterFactory;
+};
+
+export type TurboUploadEmitterEventName = 'progress';
+
+export type TurboUploadProgressEvent = {
+  chunk: Buffer;
+};
+
+export type TurboUploadEmitterEvent = TurboUploadProgressEvent;
+
+export type TurboUploadEmitterParams = {
+  onProgress?: (event: TurboUploadProgressEvent) => void;
+};
+
+export interface TurboUploadEmitter {
+  on(
+    event: TurboUploadEmitterEventName,
+    listener: (ctx: TurboUploadEmitterEvent) => void,
+  ): this;
+  emit(
+    event: TurboUploadEmitterEventName,
+    ctx: TurboUploadEmitterEvent,
+  ): boolean;
+  createEventingStream(
+    data: Readable | Buffer | ReadableStream,
+  ): Readable | ReadableStream;
+}
+
+export type UploadEmitterFactory = {
+  from(
+    params?: TurboUploadEmitterParams | TurboUploadEmitter,
+  ): TurboUploadEmitter;
 };
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
@@ -397,6 +430,7 @@ export type TurboUnauthenticatedConfiguration = {
   gatewayUrl?: string;
   processId?: string;
   cuUrl?: string;
+  uploadEmitterFactory?: UploadEmitterFactory;
 };
 
 export interface TurboLogger {
