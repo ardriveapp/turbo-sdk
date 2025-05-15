@@ -36,6 +36,7 @@ import {
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboUploadEmitterParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
@@ -91,12 +92,14 @@ export class TurboUnauthenticatedUploadService
     TurboEvents): Promise<TurboUploadDataItemResponse> {
     const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
-    const stream = UploadEmitter.from(events).createEventingStream(
+    const emitter = new UploadEmitter(events as TurboUploadEmitterParams);
+    const stream = emitter.createEventingStream(
       dataItemStreamFactory(),
       fileSize,
     );
     // TODO: add p-limit constraint or replace with separate upload class
-    return this.httpService.post<TurboUploadDataItemResponse>({
+
+    const result = await this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: stream,
@@ -105,6 +108,7 @@ export class TurboUnauthenticatedUploadService
         'content-length': `${fileSize}`,
       },
     });
+    return result;
   }
 }
 

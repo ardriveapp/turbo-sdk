@@ -264,7 +264,14 @@ describe('Browser environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated(turboDevelopmentConfigurations);
+      turbo = TurboFactory.unauthenticated({
+        paymentServiceConfig: {
+          url: 'http://localhost:5432',
+        },
+        uploadServiceConfig: {
+          url: 'http://localhost:3000',
+        },
+      });
     });
 
     describe('unauthenticated requests', () => {
@@ -325,13 +332,21 @@ describe('Browser environment', () => {
       describe('uploadSignedDataItem()', () => {
         it('supports sending a signed Buffer to turbo', async () => {
           const signer = new ArweaveSigner(testJwk);
+          console.log('siging');
           const signedDataItem = createData('signed data item', signer);
           await signedDataItem.sign(signer);
+          console.log('signed');
 
           const response = await turbo.uploadSignedDataItem({
             dataItemStreamFactory: () => signedDataItem.getRaw(),
             dataItemSizeFactory: () => signedDataItem.getRaw().length,
+            events: {
+              onProgress: (progress) => {
+                console.log('progress', progress);
+              },
+            },
           });
+          console.log('uploaded');
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('fastFinalityIndexes');
           expect(response).to.have.property('dataCaches');
