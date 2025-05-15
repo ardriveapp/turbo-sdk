@@ -23,7 +23,6 @@ import {
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
-import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
 
@@ -374,13 +373,14 @@ type TurboServiceConfiguration = {
   retryConfig?: IAxiosRetryConfig;
   logger?: TurboLogger;
   token?: TokenType;
-  uploadEmitterFactory?: UploadEmitterFactory;
 };
 
 export type TurboUploadEmitterEventName = 'progress';
 
 export type TurboUploadProgressEvent = {
   chunk: Buffer;
+  uploadedBytes: number;
+  totalBytes: number;
 };
 
 export type TurboUploadEmitterEvent = TurboUploadProgressEvent;
@@ -400,14 +400,9 @@ export interface TurboUploadEmitter {
   ): boolean;
   createEventingStream(
     data: Readable | Buffer | ReadableStream,
+    dataSize: number,
   ): Readable | ReadableStream;
 }
-
-export type UploadEmitterFactory = {
-  from(
-    params?: TurboUploadEmitterParams | TurboUploadEmitter,
-  ): TurboUploadEmitter;
-};
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
@@ -429,7 +424,6 @@ export type TurboUnauthenticatedConfiguration = {
   gatewayUrl?: string;
   processId?: string;
   cuUrl?: string;
-  uploadEmitterFactory?: UploadEmitterFactory;
 };
 
 export interface TurboLogger {
@@ -553,6 +547,9 @@ export type TurboSignedDataItemFactory = {
 export type TurboAbortSignal = {
   signal?: AbortSignal;
 };
+export type TurboEvents = {
+  events?: TurboUploadEmitter | TurboUploadEmitterParams;
+};
 
 export interface TurboHTTPServiceInterface {
   get<T>({
@@ -672,19 +669,27 @@ export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
     signal,
+    events,
   }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    TurboAbortSignal &
+    TurboEvents): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
   upload({
     data,
-  }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    events,
+  }: UploadDataInput &
+    TurboAbortSignal &
+    TurboEvents): Promise<TurboUploadDataItemResponse>;
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
-  }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    events,
+  }: TurboFileFactory &
+    TurboAbortSignal &
+    TurboEvents): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 

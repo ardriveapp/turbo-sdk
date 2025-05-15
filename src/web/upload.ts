@@ -30,9 +30,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     signer,
     logger,
     token,
-    uploadEmitterFactory,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger, token, signer, uploadEmitterFactory });
+    super({ url, retryConfig, logger, token, signer });
   }
 
   getFiles(params: TurboUploadFolderParams): Promise<File[]> {

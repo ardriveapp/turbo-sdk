@@ -20,10 +20,8 @@ import {
   TurboAuthenticatedConfiguration,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
-  TurboUnauthenticatedConfiguration,
 } from '../types.js';
 import { createTurboSigner } from '../utils/common.js';
-import { TurboUploadEmitterFactory } from './events.js';
 import { TurboWebArweaveSigner } from './signer.js';
 import { TurboAuthenticatedUploadService } from './upload.js';
 
@@ -53,20 +51,6 @@ export class TurboFactory extends TurboBaseFactory {
     // Import the TurboAuthenticatedUploadService class from the web upload module
     return new TurboAuthenticatedUploadService(config);
   }
-  static unauthenticated({
-    paymentServiceConfig = {},
-    uploadServiceConfig = {},
-    token,
-  }: TurboUnauthenticatedConfiguration) {
-    return super.unauthenticated({
-      paymentServiceConfig,
-      uploadServiceConfig: {
-        uploadEmitterFactory: new TurboUploadEmitterFactory(),
-        ...uploadServiceConfig,
-      },
-      token,
-    });
-  }
 
   static authenticated({
     privateKey,
@@ -80,7 +64,6 @@ export class TurboFactory extends TurboBaseFactory {
     walletAdapter,
     cuUrl,
     processId,
-    uploadEmitterFactory = new TurboUploadEmitterFactory(),
   }: TurboAuthenticatedConfiguration) {
     return new TurboFactory().getAuthenticatedTurbo({
       privateKey,
@@ -91,7 +74,6 @@ export class TurboFactory extends TurboBaseFactory {
       gatewayUrl,
       tokenMap,
       tokenTools,
-      uploadEmitterFactory,
       logger: this.logger,
       walletAdapter,
       cuUrl,

@@ -32,6 +32,7 @@ import {
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
+  TurboEvents,
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboFundWithTokensParams,
@@ -189,12 +190,15 @@ export class TurboUnauthenticatedClient
     dataItemStreamFactory,
     dataItemSizeFactory,
     signal,
+    events,
   }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    TurboAbortSignal &
+    TurboEvents): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadSignedDataItem({
       dataItemStreamFactory,
       dataItemSizeFactory,
       signal,
+      events,
     });
   }
 
@@ -278,8 +282,11 @@ export class TurboAuthenticatedClient
     data,
     dataItemOpts,
     signal,
-  }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.upload({ data, dataItemOpts, signal });
+    events,
+  }: UploadDataInput &
+    TurboAbortSignal &
+    TurboEvents): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.upload({ data, dataItemOpts, signal, events });
   }
 
   /**
@@ -290,13 +297,16 @@ export class TurboAuthenticatedClient
     fileSizeFactory,
     signal,
     dataItemOpts,
+    events,
   }: TurboFileFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    TurboAbortSignal &
+    TurboEvents): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadFile({
       fileStreamFactory,
       fileSizeFactory,
       signal,
       dataItemOpts,
+      events,
     });
   }
 

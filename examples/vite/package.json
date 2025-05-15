@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@ardrive/turbo-sdk": "^1.20.0",
+    "@ardrive/turbo-sdk": "link:../..",
     "arweave": "^1.15.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -21,7 +21,7 @@
     "typescript": "^5.3.3",
     "vite": "^5.2.14",
     "vite-plugin-html": "^3.2.2",
-    "vite-plugin-node-polyfills": "^0.22.0"
+    "vite-plugin-node-polyfills": "0.17.0"
   },
   "scripts": {
     "start": "vite --config vite.config.js",

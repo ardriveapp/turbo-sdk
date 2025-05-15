@@ -107,7 +107,6 @@ export abstract class TurboBaseFactory {
     walletAdapter,
     processId,
     cuUrl,
-    uploadEmitterFactory,
   }: TurboAuthenticatedConfiguration & { logger: TurboWinstonLogger }) {
     token = token === 'pol' ? 'matic' : token;
 
@@ -157,14 +156,12 @@ export abstract class TurboBaseFactory {
       logger,
       token,
       tokenTools,
-      uploadEmitterFactory,
     });
     const uploadService = this.getAuthenticatedUploadService({
       ...uploadServiceConfig,
       signer: turboSigner,
       logger,
       token,
-      uploadEmitterFactory,
     });
     return new TurboAuthenticatedClient({
       uploadService,

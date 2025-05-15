@@ -36,7 +36,6 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     signer,
     logger,
     token,
-    uploadEmitterFactory,
   }: TurboAuthenticatedUploadServiceConfiguration) {
     super({
       url,
@@ -44,7 +43,6 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
       logger,
       token,
       signer,
-      uploadEmitterFactory,
     });
   }
 
