@@ -266,7 +266,7 @@ describe('Browser environment', () => {
     before(() => {
       turbo = TurboFactory.unauthenticated({
         paymentServiceConfig: {
-          url: 'http://localhost:5432',
+          url: 'http://localhost:4000',
         },
         uploadServiceConfig: {
           url: 'http://localhost:3000',

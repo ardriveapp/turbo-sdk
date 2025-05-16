@@ -101,6 +101,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
   ): Promise<T> {
     try {
       const { status, data, statusText } = await request();
+      console.log(status, data, statusText);
       if (!allowedStatuses.includes(status)) {
         throw new FailedRequestError(
           // Return error message from server if available
@@ -110,6 +111,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       }
       return data;
     } catch (error) {
+      console.log(error);
       if (error instanceof CanceledError) {
         throw error;
       }

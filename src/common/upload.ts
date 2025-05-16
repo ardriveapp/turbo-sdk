@@ -98,7 +98,6 @@ export class TurboUnauthenticatedUploadService
       fileSize,
     );
     // TODO: add p-limit constraint or replace with separate upload class
-
     const result = await this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
