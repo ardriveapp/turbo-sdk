@@ -71,7 +71,7 @@ export class UploadEmitter
   ): Readable | ReadableStream {
     if (
       data instanceof ReadableStream ||
-      (window !== undefined && data instanceof Buffer)
+      (typeof window !== 'undefined' && data instanceof Buffer)
     ) {
       return this.createEventingReadableStream(data, dataSize);
     }
@@ -137,12 +137,14 @@ export class UploadEmitter
   createEventingReadable(data: Readable | Buffer, dataSize: number): Readable {
     this.totalBytes = dataSize;
     const stream = data instanceof Readable ? data : Readable.from(data);
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     stream.on('data', (chunk) => {
-      this.uploadedBytes += chunk.length;
-      this.emit('progress', {
+      self.uploadedBytes += chunk.length;
+      self.emit('progress', {
         chunk,
-        uploadedBytes: this.uploadedBytes,
-        totalBytes: this.totalBytes,
+        uploadedBytes: self.uploadedBytes,
+        totalBytes: self.totalBytes,
       });
     });
     return stream;
