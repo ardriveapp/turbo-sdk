@@ -45,7 +45,6 @@ export class UploadEmitter
     return new UploadEmitter(params);
   }
 
-  // todo: create listener params type
   on(
     event: 'progress',
     listener: (ctx: TurboUploadProgressEvent) => void,

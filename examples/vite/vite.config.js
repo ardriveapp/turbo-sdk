@@ -3,7 +3,6 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
-
 // vite-plugin-node-polyfills must be 0.17.0 to avoid shim errors
 
 export default defineConfig({
