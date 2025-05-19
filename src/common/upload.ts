@@ -36,7 +36,6 @@ import {
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
-  TurboUploadEmitterParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
@@ -92,7 +91,7 @@ export class TurboUnauthenticatedUploadService
     TurboEvents): Promise<TurboUploadDataItemResponse> {
     const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
-    const emitter = new UploadEmitter(events as TurboUploadEmitterParams);
+    const emitter = UploadEmitter.from(events);
     const stream = emitter.createEventingStream(
       dataItemStreamFactory(),
       fileSize,
@@ -149,6 +148,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         fileSizeFactory: sizeFactory,
         signal,
         dataItemOpts,
+        events,
       });
     }
 
@@ -217,7 +217,7 @@ export abstract class TurboAuthenticatedBaseUploadService
             headers['x-paid-by'] = paidBy;
           }
         }
-
+        // wonder if we have repeated code here, could use the uploadSignedDataItem method
         const data = await this.httpService.post<TurboUploadDataItemResponse>({
           endpoint: `/tx/${this.token}`,
           signal,
