@@ -340,6 +340,14 @@ export abstract class TurboAuthenticatedBaseUploadService
     return this.contentTypeFromFile(file);
   }
 
+  /**
+   * TODO: add events to the uploadFolder method
+   * could be a predicate with a resolveConfig() function, eg: events: ({...file ctx}) => ({
+   *   onProgress: (progress) => {
+   *     console.log('progress', progress);
+   *   },
+   * })
+   */
   async uploadFolder(
     params: TurboUploadFolderParams,
   ): Promise<TurboUploadFolderResponse> {
