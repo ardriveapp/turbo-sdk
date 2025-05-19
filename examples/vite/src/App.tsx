@@ -27,14 +27,12 @@ function App() {
   const [address, setAddress] = useState<string>('');
   const [showJwkInput, setShowJwkInput] = useState(true);
   const [turbo, setTurbo] = useState<TurboAuthenticatedClient | null>(null);
-  const [progress, setProgress] = useState<number>(0);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setUploadStatus('');
-      setProgress(0);
     }
   };
 
@@ -65,22 +63,11 @@ function App() {
         fileStreamFactory: () =>
           new ReadableStream({
             start(controller) {
-              try {
-                controller.enqueue(new Uint8Array(buffer));
-                controller.close();
-              } catch (error) {
-                controller.error(error);
-              }
+              controller.enqueue(buffer);
+              controller.close();
             },
           }),
         fileSizeFactory: () => selectedFile.size,
-        events: {
-          onProgress: ({ totalBytes, uploadedBytes }) => {
-            const percent = Math.round((uploadedBytes / totalBytes) * 100);
-            console.log('progress', percent);
-            setProgress(percent);
-          },
-        },
       });
       setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
     } catch (error) {
@@ -209,7 +196,6 @@ function App() {
             }}
           >
             {uploadStatus}
-            <p>Progress: {progress}%</p>
           </p>
         )}
       </div>
