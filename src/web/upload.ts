@@ -42,7 +42,7 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
   }
 
   getFileStreamForFile(file: File): ReadableStream {
-    return file.stream() as ReadableStream;
+    return file.stream();
   }
 
   getFileSize(file: File): number {
