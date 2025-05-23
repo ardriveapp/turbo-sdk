@@ -519,15 +519,22 @@ describe('Browser environment', () => {
         Blob: new Blob(['a test string'], { type: 'text/plain' }),
       };
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
-        it(`should properly upload a ${label} to turbo`, async () => {
+        it(`should properly upload a ${label} to turbo events`, async () => {
+          let uploadProgressCalled = false;
           const response = await turbo.upload({
             data: input,
+            events: {
+              onUploadProgress: () => {
+                uploadProgressCalled = true;
+              },
+            },
           });
           expect(response).to.not.be.undefined;
           expect(response).to.have.property('fastFinalityIndexes');
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(testArweaveNativeB64Address);
+          expect(uploadProgressCalled).to.be.true;
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -567,15 +574,22 @@ describe('Browser environment', () => {
             controller.close();
           },
         });
+        let uploadProgressCalled = false;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => readableStream,
           fileSizeFactory: () => uint8Array.length,
+          events: {
+            onUploadProgress: () => {
+              uploadProgressCalled = true;
+            },
+          },
         });
         expect(response).to.not.be.undefined;
         expect(response).to.have.property('fastFinalityIndexes');
         expect(response).to.have.property('dataCaches');
         expect(response).to.have.property('owner');
         expect(response['owner']).to.equal(testArweaveNativeB64Address);
+        expect(uploadProgressCalled).to.be.true;
       });
 
       it('should abort the upload when AbortController.signal is triggered', async () => {

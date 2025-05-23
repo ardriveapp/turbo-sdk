@@ -598,15 +598,21 @@ describe('Node environment', () => {
         string: 'a test string',
         Buffer: Buffer.from('a test string'),
         Uint8Array: new Uint8Array(Buffer.from('a test string')),
-        ArrayBuffer: Buffer.from('a test string').buffer,
+        ArrayBuffer: Buffer.from('a test string').buffer as ArrayBuffer,
       };
 
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
         for (const dataItemOpts of validDataItemOpts) {
-          it(`should properly upload a ${label} to turbo`, async () => {
+          it(`should properly upload a ${label} to turbo with events`, async () => {
+            let uploadProgressCalled = false;
             const response = await turbo.upload({
               data: input,
               dataItemOpts,
+              events: {
+                onUploadProgress: (event) => {
+                  uploadProgressCalled = true;
+                },
+              },
             });
             expect(response).to.not.be.undefined;
             expect(response).to.not.be.undefined;
@@ -614,6 +620,7 @@ describe('Node environment', () => {
             expect(response).to.have.property('dataCaches');
             expect(response).to.have.property('owner');
             expect(response['owner']).to.equal(testArweaveNativeB64Address);
+            expect(uploadProgressCalled).to.be.true;
           });
         }
       }
@@ -765,12 +772,18 @@ describe('Node environment', () => {
       ];
 
       for (const dataItemOpts of validDataItemOpts) {
-        it('should properly upload a Readable to turbo', async () => {
+        it('should properly upload a Readable to turbo with events', async () => {
+          let uploadProgressCalled = false;
           const fileSize = fs.statSync(oneKiBFilePath).size;
           const response = await turbo.uploadFile({
             fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
             fileSizeFactory: () => fileSize,
             dataItemOpts,
+            events: {
+              onUploadProgress: (event) => {
+                uploadProgressCalled = true;
+              },
+            },
           });
           expect(response).to.not.be.undefined;
           expect(response).to.not.be.undefined;
@@ -778,6 +791,7 @@ describe('Node environment', () => {
           expect(response).to.have.property('dataCaches');
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(testArweaveNativeB64Address);
+          expect(uploadProgressCalled).to.be.true;
         });
       }
 
@@ -1098,13 +1112,19 @@ describe('Node environment', () => {
       expect(response['owner']).to.equal(testEthAddressBase64);
     });
 
-    it('should properly upload a Buffer to turbo with uploadSignedDataItem', async () => {
+    it('should properly upload a Buffer to turbo with uploadSignedDataItem with events', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
 
+      let uploadProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
+        events: {
+          onUploadProgress: (event) => {
+            uploadProgressCalled = true;
+          },
+        },
       });
 
       expect(response).to.not.be.undefined;
@@ -1112,6 +1132,7 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
+      expect(uploadProgressCalled).to.be.true;
     });
 
     it.skip('should topUpWithTokens() to an ETH wallet', async () => {
@@ -1182,13 +1203,19 @@ describe('Node environment', () => {
       expect(response['owner']).to.equal(testSolAddressBase64);
     });
 
-    it('should properly upload a Buffer to turbo', async () => {
+    it('should properly upload a Buffer to turbo with events', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
 
+      let uploadProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
+        events: {
+          onUploadProgress: (event) => {
+            uploadProgressCalled = true;
+          },
+        },
       });
 
       expect(response).to.not.be.undefined;
@@ -1196,6 +1223,7 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testSolAddressBase64);
+      expect(uploadProgressCalled).to.be.true;
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {
@@ -1255,26 +1283,39 @@ describe('Node environment', () => {
       });
     });
 
-    it('should properly upload a Readable to turbo', async () => {
+    it('should properly upload a Readable to turbo with events', async () => {
       const fileSize = fs.statSync(oneKiBFilePath).size;
+      let uploadProgressCalled = false;
       const response = await turbo.uploadFile({
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
+        events: {
+          onUploadProgress: (event) => {
+            uploadProgressCalled = true;
+          },
+        },
       });
       expect(response).to.not.be.undefined;
       expect(response).to.have.property('fastFinalityIndexes');
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(base64KyveAddress);
+      expect(uploadProgressCalled).to.be.true;
     });
 
-    it('should properly upload a Buffer to turbo', async () => {
+    it('should properly upload a Buffer to turbo with events', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
 
+      let uploadProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
+        events: {
+          onUploadProgress: (event) => {
+            uploadProgressCalled = true;
+          },
+        },
       });
 
       expect(response).to.not.be.undefined;
