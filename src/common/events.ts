@@ -18,56 +18,44 @@ import { Readable } from 'stream';
 
 import {
   TurboUploadEmitter,
-  TurboUploadEmitterEvent,
-  TurboUploadEmitterEventName,
-  TurboUploadEmitterParams,
-  TurboUploadProgressEvent,
+  TurboUploadEmitterEventArgs,
+  TurboUploadEventsAndPayloads,
 } from '../types.js';
-import { isTurboUploadEmitter } from '../utils/common.js';
 
 export class UploadEmitter
-  extends EventEmitter<TurboUploadEmitterEventName>
+  extends EventEmitter<keyof TurboUploadEventsAndPayloads>
   implements TurboUploadEmitter
 {
-  private uploadedBytes = 0;
-  private totalBytes = 0;
-  constructor(params?: TurboUploadEmitterParams) {
+  constructor({ onProgress }: TurboUploadEmitterEventArgs = {}) {
     super();
-    if (params?.onProgress !== undefined) {
-      this.on('progress', params.onProgress);
+    if (onProgress !== undefined) {
+      this.on('progress', onProgress);
     }
   }
 
-  static from(
-    params?: TurboUploadEmitterParams | TurboUploadEmitter,
-  ): TurboUploadEmitter {
-    if (isTurboUploadEmitter(params)) return params;
-    return new UploadEmitter(params);
-  }
-
   on(
-    event: 'progress',
-    listener: (ctx: TurboUploadProgressEvent) => void,
-  ): this;
-  on(
-    event: TurboUploadEmitterEventName,
-    listener: (ctx: TurboUploadEmitterEvent) => void,
+    event: keyof TurboUploadEventsAndPayloads,
+    listener: (
+      ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
+    ) => void,
   ): this {
     return super.on(event, listener);
   }
 
-  emit(event: 'progress', ctx: TurboUploadProgressEvent): boolean;
   emit(
-    event: TurboUploadEmitterEventName,
-    ctx: TurboUploadEmitterEvent,
+    event: keyof TurboUploadEventsAndPayloads,
+    ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
   ): boolean {
     return super.emit(event, ctx);
   }
 
-  createEventingStream(
-    data: Readable | Buffer | ReadableStream,
-    dataSize: number,
-  ): Readable | ReadableStream {
+  createEventingStream({
+    data,
+    dataSize,
+  }: {
+    data: Readable | Buffer | ReadableStream;
+    dataSize: number;
+  }): Readable | ReadableStream {
     if (
       data instanceof ReadableStream ||
       (typeof window !== 'undefined' && data instanceof Buffer)
@@ -82,12 +70,10 @@ export class UploadEmitter
     throw new Error('Invalid data or platform type');
   }
 
-  createEventingReadableStream(
+  private createEventingReadableStream(
     data: Buffer | ReadableStream,
     dataSize: number,
   ): ReadableStream {
-    this.totalBytes = dataSize;
-
     const originalStream =
       data instanceof ReadableStream
         ? data
@@ -98,9 +84,9 @@ export class UploadEmitter
             },
           });
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
+    let uploadedBytes = 0;
     let reader;
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
     return new ReadableStream({
       start() {
         reader = originalStream.getReader();
@@ -114,11 +100,10 @@ export class UploadEmitter
             return;
           }
 
-          self.uploadedBytes += value.length;
+          uploadedBytes += value.length;
           self.emit('progress', {
-            chunk: value,
-            uploadedBytes: self.uploadedBytes,
-            totalBytes: self.totalBytes,
+            uploadedBytes: uploadedBytes,
+            totalBytes: dataSize,
           });
 
           controller.enqueue(value);
@@ -133,17 +118,18 @@ export class UploadEmitter
     });
   }
 
-  createEventingReadable(data: Readable | Buffer, dataSize: number): Readable {
-    this.totalBytes = dataSize;
+  private createEventingReadable(
+    data: Readable | Buffer,
+    dataSize: number,
+  ): Readable {
     const stream = data instanceof Readable ? data : Readable.from(data);
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
+    let uploadedBytes = 0;
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
     stream.on('data', (chunk) => {
-      self.uploadedBytes += chunk.length;
+      uploadedBytes += chunk.length;
       self.emit('progress', {
-        chunk,
-        uploadedBytes: self.uploadedBytes,
-        totalBytes: self.totalBytes,
+        uploadedBytes,
+        totalBytes: dataSize,
       });
     });
     return stream;

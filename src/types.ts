@@ -376,8 +376,6 @@ type TurboServiceConfiguration = {
   token?: TokenType;
 };
 
-export type TurboUploadEmitterEventName = 'progress';
-
 export type TurboUploadProgressEvent = {
   chunk: Buffer;
   uploadedBytes: number;
@@ -386,23 +384,41 @@ export type TurboUploadProgressEvent = {
 
 export type TurboUploadEmitterEvent = TurboUploadProgressEvent;
 
-export type TurboUploadEmitterParams = {
+export type TurboUploadEmitterEventArgs = {
   onProgress?: (event: TurboUploadProgressEvent) => void;
+  // TODO: add other events
+};
+
+export type TurboUploadEventsAndPayloads = {
+  progress: {
+    totalBytes: number;
+    uploadedBytes: number;
+  };
+  // TODO; add other events
+};
+
+export type TurboUploadEmitterEvents = {
+  events?: TurboUploadEmitterEventArgs;
 };
 
 export interface TurboUploadEmitter {
   on(
-    event: TurboUploadEmitterEventName,
-    listener: (ctx: TurboUploadEmitterEvent) => void,
+    event: keyof TurboUploadEventsAndPayloads,
+    listener: (
+      ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
+    ) => void,
   ): this;
   emit(
-    event: TurboUploadEmitterEventName,
-    ctx: TurboUploadEmitterEvent,
+    event: keyof TurboUploadEventsAndPayloads,
+    ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
   ): boolean;
-  createEventingStream(
-    data: Readable | Buffer | ReadableStream,
-    dataSize: number,
-  ): Readable | ReadableStream;
+  createEventingStream({
+    data,
+    dataSize,
+  }: {
+    data: Readable | Buffer | ReadableStream;
+    dataSize: number;
+  }): Readable | ReadableStream;
 }
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
@@ -548,9 +564,6 @@ export type TurboSignedDataItemFactory = {
 export type TurboAbortSignal = {
   signal?: AbortSignal;
 };
-export type TurboEvents = {
-  events?: TurboUploadEmitter | TurboUploadEmitterParams;
-};
 
 export interface TurboHTTPServiceInterface {
   get<T>({
@@ -673,7 +686,7 @@ export interface TurboUnauthenticatedUploadServiceInterface {
     events,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
-    TurboEvents): Promise<TurboUploadDataItemResponse>;
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
@@ -683,14 +696,14 @@ export interface TurboAuthenticatedUploadServiceInterface
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboEvents): Promise<TurboUploadDataItemResponse>;
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
     events,
   }: TurboFileFactory &
     TurboAbortSignal &
-    TurboEvents): Promise<TurboUploadDataItemResponse>;
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 

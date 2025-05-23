@@ -28,7 +28,6 @@ import {
   TurboAuthenticatedUploadServiceInterface,
   TurboCreateCreditShareApprovalParams,
   TurboDataItemSigner,
-  TurboEvents,
   TurboFileFactory,
   TurboLogger,
   TurboRevokeCreditsParams,
@@ -36,6 +35,7 @@ import {
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadDataItemResponse,
+  TurboUploadEmitterEvents,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
@@ -88,19 +88,21 @@ export class TurboUnauthenticatedUploadService
     events,
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
-    TurboEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
     const fileSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
-    const emitter = UploadEmitter.from(events);
-    const stream = emitter.createEventingStream(
-      dataItemStreamFactory(),
-      fileSize,
-    );
+
+    // create the tapped stream with events
+    const streamWithEvents = new UploadEmitter(events).createEventingStream({
+      data: dataItemStreamFactory(),
+      dataSize: fileSize,
+    });
+
     // TODO: add p-limit constraint or replace with separate upload class
     const result = await this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
-      data: stream,
+      data: streamWithEvents,
       headers: {
         'content-type': 'application/octet-stream',
         'content-length': `${fileSize}`,
@@ -138,7 +140,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
     // This function is intended to be usable in both Node and browser environments.
     if (isBlob(data)) {
       const streamFactory = () => data.stream();
@@ -179,7 +181,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     events,
   }: TurboFileFactory &
     TurboAbortSignal &
-    TurboEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -217,14 +219,19 @@ export abstract class TurboAuthenticatedBaseUploadService
             headers['x-paid-by'] = paidBy;
           }
         }
+
+        const streamWithEvents = new UploadEmitter(events).createEventingStream(
+          {
+            data: dataItemStreamFactory(),
+            dataSize: dataItemSizeFactory(),
+          },
+        );
+
         // wonder if we have repeated code here, could use the uploadSignedDataItem method
         const data = await this.httpService.post<TurboUploadDataItemResponse>({
           endpoint: `/tx/${this.token}`,
           signal,
-          data: UploadEmitter.from(events).createEventingStream(
-            dataItemStreamFactory(),
-            dataItemSizeFactory(),
-          ),
+          data: streamWithEvents,
           headers,
         });
         return data;
