@@ -609,7 +609,7 @@ describe('Node environment', () => {
               data: input,
               dataItemOpts,
               events: {
-                onUploadProgress: (event) => {
+                onUploadProgress: () => {
                   uploadProgressCalled = true;
                 },
               },
@@ -780,7 +780,7 @@ describe('Node environment', () => {
             fileSizeFactory: () => fileSize,
             dataItemOpts,
             events: {
-              onUploadProgress: (event) => {
+              onUploadProgress: () => {
                 uploadProgressCalled = true;
               },
             },
@@ -1121,7 +1121,7 @@ describe('Node environment', () => {
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
-          onUploadProgress: (event) => {
+          onUploadProgress: () => {
             uploadProgressCalled = true;
           },
         },
@@ -1212,7 +1212,7 @@ describe('Node environment', () => {
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
-          onUploadProgress: (event) => {
+          onUploadProgress: () => {
             uploadProgressCalled = true;
           },
         },
@@ -1290,7 +1290,7 @@ describe('Node environment', () => {
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
         events: {
-          onUploadProgress: (event) => {
+          onUploadProgress: () => {
             uploadProgressCalled = true;
           },
         },
@@ -1312,7 +1312,7 @@ describe('Node environment', () => {
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
-          onUploadProgress: (event) => {
+          onUploadProgress: () => {
             uploadProgressCalled = true;
           },
         },
