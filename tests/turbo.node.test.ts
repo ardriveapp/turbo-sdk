@@ -410,12 +410,13 @@ describe('Node environment', () => {
       });
 
       it('should return FailedRequestError for incorrectly signed data item', async () => {
-        const signedDataItem = createData('signed data item', signer, {});
+        const unsignedDataItem = createData('signed data item', signer, {});
+        const unsignedBuffer = unsignedDataItem.getRaw();
         // not signed
         const error = await turbo
           .uploadSignedDataItem({
-            dataItemStreamFactory: () => signedDataItem.getRaw(),
-            dataItemSizeFactory: () => signedDataItem.getRaw().length,
+            dataItemStreamFactory: () => unsignedBuffer,
+            dataItemSizeFactory: () => unsignedBuffer.length,
           })
           .catch((err) => err);
         expect(error).to.be.instanceOf(FailedRequestError);

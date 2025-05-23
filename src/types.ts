@@ -385,16 +385,23 @@ export type TurboUploadProgressEvent = {
 export type TurboUploadEmitterEvent = TurboUploadProgressEvent;
 
 export type TurboUploadEmitterEventArgs = {
-  onProgress?: (event: TurboUploadProgressEvent) => void;
+  onUploadProgress?: (event: TurboUploadProgressEvent) => void;
   // TODO: add other events
+  // TODO: add other events for signing
 };
 
 export type TurboUploadEventsAndPayloads = {
-  progress: {
+  'upload-progress': {
     totalBytes: number;
     uploadedBytes: number;
   };
-  // TODO; add other events
+  'upload-success': {
+    dataItem: TurboUploadDataItemResponse;
+  };
+  'upload-failed': {
+    error: Error;
+  };
+  // TODO; add other events for signing
 };
 
 export type TurboUploadEmitterEvents = {

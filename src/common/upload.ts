@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AxiosError, CanceledError } from 'axios';
+import { CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
@@ -99,7 +99,7 @@ export class TurboUnauthenticatedUploadService
     });
 
     // TODO: add p-limit constraint or replace with separate upload class
-    const result = await this.httpService.post<TurboUploadDataItemResponse>({
+    return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: streamWithEvents,
@@ -108,7 +108,6 @@ export class TurboUnauthenticatedUploadService
         'content-length': `${fileSize}`,
       },
     });
-    return result;
   }
 }
 
@@ -238,10 +237,10 @@ export abstract class TurboAuthenticatedBaseUploadService
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
-        if (error instanceof AxiosError) {
-          lastStatusCode = error.response?.status;
-        } else if (error instanceof FailedRequestError) {
+        if (error instanceof FailedRequestError) {
           lastStatusCode = error.status;
+        } else {
+          lastStatusCode = error.response?.status;
         }
 
         if (

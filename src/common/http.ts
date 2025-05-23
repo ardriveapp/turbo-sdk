@@ -110,10 +110,12 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       }
       return data;
     } catch (error) {
-      if (error instanceof CanceledError) {
-        throw error;
-      }
-      if (error instanceof AxiosError) {
+      if (
+        error instanceof AxiosError &&
+        error.code === AxiosError.ERR_CANCELED
+      ) {
+        throw new CanceledError();
+      } else if (error instanceof AxiosError) {
         throw new FailedRequestError(error.code ?? error.message, error.status);
       }
       throw error;

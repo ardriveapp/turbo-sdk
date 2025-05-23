@@ -9,17 +9,17 @@ describe('UploadEmitter', () => {
     it('should call onProgress callback and emit progress events when stream is consumed', () => {
       let onProgressCalled = false;
       let progressEventEmitted = false;
-      const onProgress = () => {
+      const onUploadProgress = () => {
         onProgressCalled = true;
       };
-      const emitter = new UploadEmitter({ onProgress });
+      const emitter = new UploadEmitter({ onUploadProgress });
       const data = Readable.from(['test']);
       // we test this way so that we know when others read the stream, it will emit the event
       const stream = emitter.createEventingStream({
         data,
         dataSize: 10,
       });
-      emitter.on('progress', () => {
+      emitter.on('upload-progress', () => {
         progressEventEmitted = true;
       });
       // TODO: ideally use generics to avoid needing to cast here
@@ -33,7 +33,7 @@ describe('UploadEmitter', () => {
     it('should call onProgress callback and emit progress events when stream is consumed', async () => {
       let onProgressCalled = false;
       let progressEventEmitted = false;
-      const onProgress = () => {
+      const onUploadProgress = () => {
         onProgressCalled = true;
       };
       const data = new ReadableStream({
@@ -42,12 +42,12 @@ describe('UploadEmitter', () => {
           controller.close();
         },
       });
-      const emitter = new UploadEmitter({ onProgress });
+      const emitter = new UploadEmitter({ onUploadProgress });
       const stream = emitter.createEventingStream({
         data,
         dataSize: 10,
       });
-      emitter.on('progress', () => {
+      emitter.on('upload-progress', () => {
         progressEventEmitted = true;
       });
       // TODO: ideally use generics to avoid needing to cast here

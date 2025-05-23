@@ -25,7 +25,6 @@ import {
 import {
   TokenType,
   TurboSigner,
-  TurboUploadEmitter,
   TurboWallet,
   isEthPrivateKey,
   isJWK,

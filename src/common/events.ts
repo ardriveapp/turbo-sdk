@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { EventEmitter } from 'eventemitter3';
-import { Readable } from 'stream';
+import { PassThrough, Readable } from 'stream';
 
 import {
   TurboUploadEmitter,
@@ -26,10 +26,10 @@ export class UploadEmitter
   extends EventEmitter<keyof TurboUploadEventsAndPayloads>
   implements TurboUploadEmitter
 {
-  constructor({ onProgress }: TurboUploadEmitterEventArgs = {}) {
+  constructor({ onUploadProgress }: TurboUploadEmitterEventArgs = {}) {
     super();
-    if (onProgress !== undefined) {
-      this.on('progress', onProgress);
+    if (onUploadProgress !== undefined) {
+      this.on('upload-progress', onUploadProgress);
     }
   }
 
@@ -101,7 +101,7 @@ export class UploadEmitter
           }
 
           uploadedBytes += value.length;
-          self.emit('progress', {
+          self.emit('upload-progress', {
             uploadedBytes: uploadedBytes,
             totalBytes: dataSize,
           });
@@ -122,16 +122,35 @@ export class UploadEmitter
     data: Readable | Buffer,
     dataSize: number,
   ): Readable {
-    const stream = data instanceof Readable ? data : Readable.from(data);
+    const existingStream =
+      data instanceof Readable ? data : Readable.from(data);
+    const uploadStream = new PassThrough();
+
+    // pause the stream to avoid emitting progress events until the stream is ready
+    existingStream.pause();
+
+    // add listener to emit progress events as the stream is read
     let uploadedBytes = 0;
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-    stream.on('data', (chunk) => {
+    existingStream.on('data', (chunk) => {
+      uploadStream.write(chunk);
       uploadedBytes += chunk.length;
-      self.emit('progress', {
+      self.emit('upload-progress', {
         uploadedBytes,
         totalBytes: dataSize,
       });
     });
-    return stream;
+
+    existingStream.on('end', () => {
+      uploadStream.end();
+    });
+
+    existingStream.on('error', (error) => {
+      uploadStream.destroy(error);
+    });
+
+    // resume the stream to start emitting progress events
+    existingStream.resume();
+    return uploadStream;
   }
 }
