@@ -112,7 +112,6 @@ export class UploadEmitter
         }
       },
       cancel(reason) {
-        console.log('Stream cancelled:', reason);
         return reader.cancel(reason);
       },
     });
