@@ -26,7 +26,7 @@ import {
 } from '../types.js';
 
 /**
- * Creates an eventing ReadableStream that emits progress and error events using the event names map.
+ * Creates a ReadableStream with events that emits progress and error events using the event names map.
  *
  * E.g.
  *
@@ -34,6 +34,7 @@ import {
  * const eventNamesMap = {
  *   'on-progress': 'signing-progress', // emits 'signing-progress' on event progress
  *   'on-error': 'signing-error', // emits 'signing-error' errors
+ *   'on-end': 'signing-success', // emits 'signing-success' on end
  * };
  *
  * const streamWithEvents = createStreamWithEvents({
@@ -195,24 +196,6 @@ export function createStreamWithEvents({
   throw new Error('Invalid data or platform type');
 }
 
-// base class that extends EventEmitter with custom types for events and payloads
-export abstract class TurboEmitter<
-  T extends Record<string, unknown>,
-> extends EventEmitter<Extract<keyof T, string>> {
-  override on<K extends keyof T>(
-    event: K,
-    listener: (...args: T[K][]) => void,
-  ): this {
-    // @ts-expect-error - TODO: eventemitter3 has strict types
-    return super.on(event, listener);
-  }
-
-  override emit<K extends keyof T>(event: K, ...args: T[K][]): boolean {
-    // @ts-expect-error - TODO: eventemitter3 has strict types
-    return super.emit(event, ...args);
-  }
-}
-
 export type TurboEventEmitterEvents = TurboUploadEventsAndPayloads &
   TurboSigningEventsAndPayloads &
   TurboTotalEventsAndPayloads;
@@ -220,7 +203,7 @@ export type TurboEventEmitterEventArgs = TurboUploadEmitterEventArgs &
   TurboSigningEmitterEventArgs &
   TurboTotalEmitterEventArgs;
 
-export class TurboEventEmitter extends TurboEmitter<TurboEventEmitterEvents> {
+export class TurboEventEmitter extends EventEmitter<TurboEventEmitterEvents> {
   constructor({
     onProgress,
     onError,
@@ -289,29 +272,15 @@ export class TurboEventEmitter extends TurboEmitter<TurboEventEmitterEvents> {
         step: 'upload',
       });
     });
-    this.on('upload-success', (event) => {
-      this.emit('overall-success', {
-        ...event,
-        step: 'upload',
-      });
+    // NOTE: this is the last event emitted for successful upload,
+    // if another step was added (e.g. verifying optimistic caching)
+    // then this overall-success event will be emitted after that step
+    this.on('upload-success', () => {
+      this.emit('overall-success');
     });
-  }
-  override on<K extends keyof TurboEventEmitterEvents>(
-    event: K,
-    listener: (...args: any[]) => void,
-  ): this {
-    return super.on(event, listener);
-  }
-
-  override emit<K extends keyof TurboEventEmitterEvents>(
-    event: K,
-    ...args: any[]
-  ): boolean {
-    return super.emit(event, ...args);
   }
 }
 
-// TODO: any other emitters we want to add (e.g. upload file, total events, etc)
 export function createStreamWithUploadEvents({
   data,
   dataSize,
@@ -324,7 +293,6 @@ export function createStreamWithUploadEvents({
   return createStreamWithEvents({
     data,
     dataSize,
-    // @ts-expect-error TODO: fix this type issue
     emitter,
     eventNamesMap: {
       'on-progress': 'upload-progress',
@@ -346,7 +314,6 @@ export function createStreamWithSigningEvents({
   return createStreamWithEvents({
     data,
     dataSize,
-    // @ts-expect-error TODO: fix this type issue
     emitter,
     eventNamesMap: {
       'on-progress': 'signing-progress',

@@ -385,7 +385,7 @@ export type TurboUploadEventsAndPayloads = {
   'upload-error': {
     error: Error;
   };
-  'upload-success': never;
+  'upload-success': never[];
 };
 
 export type TurboSigningEventsAndPayloads = {
@@ -396,7 +396,7 @@ export type TurboSigningEventsAndPayloads = {
   'signing-error': {
     error: Error;
   };
-  'signing-success': never;
+  'signing-success': never[];
 };
 
 export type TurboTotalEventsAndPayloads = {
@@ -409,7 +409,7 @@ export type TurboTotalEventsAndPayloads = {
     error: Error;
     step: 'signing' | 'upload';
   };
-  'overall-success': never;
+  'overall-success': never[];
 };
 
 export type TurboUploadEmitterEventArgs = {
