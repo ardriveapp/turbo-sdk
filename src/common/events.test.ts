@@ -4,8 +4,7 @@ import { describe, it } from 'node:test';
 import { Readable } from 'stream';
 
 import {
-  SigningEmitter,
-  UploadEmitter,
+  TurboEventEmitter,
   createStreamWithEvents,
   createStreamWithSigningEvents,
   createStreamWithUploadEvents,
@@ -19,7 +18,7 @@ describe('createStreamWithUploadEvents', () => {
       const onUploadProgress = () => {
         onProgressCalled = true;
       };
-      const emitter = new UploadEmitter({ onUploadProgress });
+      const emitter = new TurboEventEmitter({ onUploadProgress });
       const data = Readable.from(['test']);
       // we test this way so that we know when others read the stream, it will emit the event
       const stream = createStreamWithUploadEvents({
@@ -48,7 +47,7 @@ describe('createStreamWithUploadEvents', () => {
       const onUploadError = () => {
         onErrorCalled = true;
       };
-      const emitter = new UploadEmitter({ onUploadError });
+      const emitter = new TurboEventEmitter({ onUploadError });
 
       // Create a readable stream that will emit an error
       const data = new Readable({
@@ -95,7 +94,7 @@ describe('createStreamWithUploadEvents', () => {
           controller.close();
         },
       });
-      const emitter = new UploadEmitter({ onUploadProgress });
+      const emitter = new TurboEventEmitter({ onUploadProgress });
       const stream = createStreamWithUploadEvents({
         data,
         dataSize: 4,
@@ -127,7 +126,7 @@ describe('createStreamWithUploadEvents', () => {
         },
       });
 
-      const emitter = new UploadEmitter({ onUploadError });
+      const emitter = new TurboEventEmitter({ onUploadError });
       const stream = createStreamWithUploadEvents({
         data,
         dataSize: 4,
@@ -376,7 +375,7 @@ describe('createStreamWithSigningEvents', () => {
       const onSigningProgress = () => {
         onProgressCalled = true;
       };
-      const emitter = new SigningEmitter({ onSigningProgress });
+      const emitter = new TurboEventEmitter({ onSigningProgress });
       const data = Readable.from(['test', 'test', 'test', 'test', 'test']); // needs to be big enough to trigger the event
       // we test this way so that we know when others read the stream, it will emit the event
       const stream = createStreamWithSigningEvents({
@@ -406,7 +405,7 @@ describe('createStreamWithSigningEvents', () => {
       const onSigningError = () => {
         onErrorCalled = true;
       };
-      const emitter = new SigningEmitter({ onSigningError });
+      const emitter = new TurboEventEmitter({ onSigningError });
 
       // Create a readable stream that will emit an error
       const data = new Readable({
@@ -453,7 +452,7 @@ describe('createStreamWithSigningEvents', () => {
           controller.close();
         },
       });
-      const emitter = new SigningEmitter({ onSigningProgress });
+      const emitter = new TurboEventEmitter({ onSigningProgress });
       const stream = createStreamWithSigningEvents({
         data,
         dataSize: 10,
@@ -487,7 +486,7 @@ describe('createStreamWithSigningEvents', () => {
         },
       });
 
-      const emitter = new SigningEmitter({ onSigningError });
+      const emitter = new TurboEventEmitter({ onSigningError });
       const stream = createStreamWithSigningEvents({
         data,
         dataSize: 10,

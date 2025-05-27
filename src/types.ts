@@ -28,6 +28,7 @@ import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
 
 import { CurrencyMap } from './common/currency.js';
+import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
 
@@ -398,6 +399,19 @@ export type TurboSigningEventsAndPayloads = {
   'signing-success': never;
 };
 
+export type TurboTotalEventsAndPayloads = {
+  'overall-progress': {
+    totalBytes: number;
+    processedBytes: number;
+    step: 'signing' | 'upload';
+  };
+  'overall-error': {
+    error: Error;
+    step: 'signing' | 'upload';
+  };
+  'overall-success': never;
+};
+
 export type TurboUploadEmitterEventArgs = {
   onUploadProgress?: (
     event: TurboUploadEventsAndPayloads['upload-progress'],
@@ -420,6 +434,16 @@ export type TurboSigningEmitterEventArgs = {
   ) => void;
 };
 
+export type TurboTotalEmitterEventArgs = {
+  onProgress?: (event: TurboTotalEventsAndPayloads['overall-progress']) => void;
+  onError?: (event: TurboTotalEventsAndPayloads['overall-error']) => void;
+  onSuccess?: (event: TurboTotalEventsAndPayloads['overall-success']) => void;
+};
+
+export type TurboTotalEmitterEvents = {
+  events?: TurboTotalEmitterEventArgs;
+};
+
 export type TurboUploadEmitterEvents = {
   events?: TurboUploadEmitterEventArgs;
 };
@@ -427,9 +451,9 @@ export type TurboUploadEmitterEvents = {
 export type TurboSigningEmitterEvents = {
   events?: TurboSigningEmitterEventArgs;
 };
-
 export type TurboUploadAndSigningEmitterEvents = TurboUploadEmitterEvents &
-  TurboSigningEmitterEvents;
+  TurboSigningEmitterEvents &
+  TurboTotalEmitterEvents;
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
@@ -560,7 +584,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
-
+  emitter?: TurboEventEmitter;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
@@ -627,9 +651,10 @@ export interface TurboDataItemSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-    events,
-  }: TurboFileFactory &
-    TurboSigningEmitterEvents): Promise<TurboSignedDataItemFactory>;
+    emitter,
+  }: TurboFileFactory & {
+    emitter?: TurboEventEmitter;
+  }): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;

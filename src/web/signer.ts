@@ -23,13 +23,11 @@ import {
   createData,
 } from '@dha-team/arbundles';
 
-import { SigningEmitter } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   StreamSizeFactory,
   TurboDataItemSignerParams,
   TurboSignedRequestHeaders,
-  TurboSigningEmitterEvents,
   WebTurboFileFactory,
 } from '../types.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
@@ -67,28 +65,27 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-    events,
-  }: WebTurboFileFactory & TurboSigningEmitterEvents): Promise<{
-    // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
+    emitter,
+  }: WebTurboFileFactory): Promise<{
+    // TODO: once streamReadableStreamSigner is implemented, we can return a ReadableStream instead of a Buffer
     dataItemStreamFactory: () => Buffer;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
     await this.setPublicKey();
 
     // Create signing emitter if events are provided
-    const signingEmitter = new SigningEmitter(events);
     const fileSize = fileSizeFactory();
 
     try {
       const fileStream = fileStreamFactory();
 
       // start with 0 progress
-      signingEmitter.emit('signing-progress', {
+      emitter?.emit('signing-progress', {
         processedBytes: 0,
         totalBytes: fileSize,
       });
 
-      // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
+      // TODO: implement streamReadableStreamSigner that incrementally signs the stream with events instead of converting to a buffer
       const buffer =
         fileStream instanceof Buffer
           ? fileStream
@@ -98,7 +95,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
             });
 
       // TODO: replace this with streamSigner that uses a ReadableStream with events
-      signingEmitter.emit('signing-progress', {
+      emitter?.emit('signing-progress', {
         processedBytes: Math.floor(fileSize / 2),
         totalBytes: fileSize,
       });
@@ -128,13 +125,13 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
       }
 
       // emit last progress event (100%)
-      signingEmitter.emit('signing-progress', {
+      emitter?.emit('signing-progress', {
         processedBytes: fileSize,
         totalBytes: fileSize,
       });
 
       // emit completion event
-      signingEmitter.emit('signing-success');
+      emitter?.emit('signing-success');
 
       this.logger.debug('Successfully signed data item...');
       return {
@@ -144,7 +141,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
       };
     } catch (error) {
       // If we have a signing emitter, emit error
-      signingEmitter.emit('signing-error', { error });
+      emitter?.emit('signing-error', { error });
       throw error;
     }
   }

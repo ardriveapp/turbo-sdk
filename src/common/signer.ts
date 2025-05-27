@@ -36,7 +36,6 @@ import {
   TurboLogger,
   TurboSignedDataItemFactory,
   TurboSigner,
-  TurboSigningEmitterEvents,
   WalletAdapter,
   isEthereumWalletAdapter,
 } from '../types.js';
@@ -75,9 +74,8 @@ export abstract class TurboDataItemAbstractSigner
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-    events,
-  }: TurboFileFactory<FileStreamFactory> &
-    TurboSigningEmitterEvents): Promise<TurboSignedDataItemFactory>;
+    emitter,
+  }: TurboFileFactory<FileStreamFactory>): Promise<TurboSignedDataItemFactory>;
 
   private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {
     switch (token) {

@@ -19,6 +19,8 @@ import { PassThrough, Readable } from 'stream';
 import {
   TurboSigningEmitterEventArgs,
   TurboSigningEventsAndPayloads,
+  TurboTotalEmitterEventArgs,
+  TurboTotalEventsAndPayloads,
   TurboUploadEmitterEventArgs,
   TurboUploadEventsAndPayloads,
 } from '../types.js';
@@ -211,12 +213,25 @@ export abstract class TurboEmitter<
   }
 }
 
-export class UploadEmitter extends TurboEmitter<TurboUploadEventsAndPayloads> {
+export type TurboEventEmitterEvents = TurboUploadEventsAndPayloads &
+  TurboSigningEventsAndPayloads &
+  TurboTotalEventsAndPayloads;
+export type TurboEventEmitterEventArgs = TurboUploadEmitterEventArgs &
+  TurboSigningEmitterEventArgs &
+  TurboTotalEmitterEventArgs;
+
+export class TurboEventEmitter extends TurboEmitter<TurboEventEmitterEvents> {
   constructor({
+    onProgress,
+    onError,
+    onSuccess,
     onUploadProgress,
     onUploadError,
     onUploadSuccess,
-  }: TurboUploadEmitterEventArgs = {}) {
+    onSigningProgress,
+    onSigningError,
+    onSigningSuccess,
+  }: TurboEventEmitterEventArgs = {}) {
     super();
     if (onUploadProgress !== undefined) {
       this.on('upload-progress', onUploadProgress);
@@ -227,16 +242,6 @@ export class UploadEmitter extends TurboEmitter<TurboUploadEventsAndPayloads> {
     if (onUploadSuccess !== undefined) {
       this.on('upload-success', onUploadSuccess);
     }
-  }
-}
-
-export class SigningEmitter extends TurboEmitter<TurboSigningEventsAndPayloads> {
-  constructor({
-    onSigningProgress,
-    onSigningError,
-    onSigningSuccess,
-  }: TurboSigningEmitterEventArgs = {}) {
-    super();
     if (onSigningProgress !== undefined) {
       this.on('signing-progress', onSigningProgress);
     }
@@ -246,6 +251,57 @@ export class SigningEmitter extends TurboEmitter<TurboSigningEventsAndPayloads> 
     if (onSigningSuccess !== undefined) {
       this.on('signing-success', onSigningSuccess);
     }
+    if (onProgress !== undefined) {
+      this.on('overall-progress', onProgress);
+    }
+    if (onError !== undefined) {
+      this.on('overall-error', onError);
+    }
+    if (onSuccess !== undefined) {
+      this.on('overall-success', onSuccess);
+    }
+    // emit listeners for total events
+    this.on('signing-progress', (event) => {
+      this.emit('overall-progress', {
+        ...event,
+        processedBytes: event.processedBytes / 2, // since the total progress requires 2 passes through the stream, signing progress is only half of the total progress
+        totalBytes: event.totalBytes,
+        step: 'signing',
+      });
+    });
+    this.on('signing-error', (event) => {
+      this.emit('overall-error', {
+        ...event,
+        step: 'signing',
+      });
+    });
+    this.on('upload-progress', (event) => {
+      this.emit('overall-progress', {
+        ...event,
+        processedBytes: event.totalBytes / 2 + event.processedBytes / 2, // Start at 50% since signing is done, then add half of upload progress
+        totalBytes: event.totalBytes,
+        step: 'upload',
+      });
+    });
+    this.on('upload-error', (event) => {
+      this.emit('overall-error', {
+        ...event,
+        step: 'upload',
+      });
+    });
+  }
+  override on<K extends keyof TurboEventEmitterEvents>(
+    event: K,
+    listener: (...args: any[]) => void,
+  ): this {
+    return super.on(event, listener);
+  }
+
+  override emit<K extends keyof TurboEventEmitterEvents>(
+    event: K,
+    ...args: any[]
+  ): boolean {
+    return super.emit(event, ...args);
   }
 }
 
@@ -253,11 +309,11 @@ export class SigningEmitter extends TurboEmitter<TurboSigningEventsAndPayloads> 
 export function createStreamWithUploadEvents({
   data,
   dataSize,
-  emitter = new UploadEmitter(),
+  emitter = new TurboEventEmitter(),
 }: {
   data: Readable | Buffer | ReadableStream;
   dataSize: number;
-  emitter?: UploadEmitter;
+  emitter?: TurboEventEmitter;
 }) {
   return createStreamWithEvents({
     data,
@@ -275,11 +331,11 @@ export function createStreamWithUploadEvents({
 export function createStreamWithSigningEvents({
   data,
   dataSize,
-  emitter = new SigningEmitter(),
+  emitter = new TurboEventEmitter(),
 }: {
   data: Readable | Buffer | ReadableStream;
   dataSize: number;
-  emitter?: SigningEmitter;
+  emitter?: TurboEventEmitter;
 }): Readable | ReadableStream {
   return createStreamWithEvents({
     data,

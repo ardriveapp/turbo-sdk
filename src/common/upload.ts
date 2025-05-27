@@ -45,7 +45,7 @@ import {
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
-import { UploadEmitter, createStreamWithUploadEvents } from './events.js';
+import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -94,7 +94,9 @@ export class TurboUnauthenticatedUploadService
     this.logger.debug('Uploading signed data item...');
 
     // create the tapped stream with events
-    const emitter = new UploadEmitter(events);
+    const emitter = new TurboEventEmitter(events);
+
+    // create the stream with upload events
     const streamWithUploadEvents = createStreamWithUploadEvents({
       data: dataItemStreamFactory(),
       dataSize: fileSize,
@@ -191,6 +193,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       ((retryNumber: number) => retryNumber * 1000);
     let lastError: Error | undefined = undefined; // Store the last error for throwing
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
+    const emitter = new TurboEventEmitter(events);
 
     while (retries < maxRetries) {
       if (signal?.aborted) {
@@ -202,7 +205,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           fileStreamFactory,
           fileSizeFactory,
           dataItemOpts,
-          events,
+          emitter,
         });
 
       try {
@@ -223,7 +226,6 @@ export abstract class TurboAuthenticatedBaseUploadService
           }
         }
 
-        const emitter = new UploadEmitter(events);
         const streamWithUploadEvents = createStreamWithUploadEvents({
           data: dataItemStreamFactory(),
           dataSize: dataItemSizeFactory(),

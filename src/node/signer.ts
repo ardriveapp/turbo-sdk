@@ -23,10 +23,7 @@ import {
 } from '@dha-team/arbundles';
 import { Readable } from 'stream';
 
-import {
-  SigningEmitter,
-  createStreamWithSigningEvents,
-} from '../common/events.js';
+import { createStreamWithSigningEvents } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   DataItemOptions,
@@ -34,7 +31,6 @@ import {
   StreamSizeFactory,
   TurboDataItemSignerParams,
   TurboFileFactory,
-  TurboSigningEmitterEvents,
 } from '../types.js';
 import { fromB64Url } from '../utils/base64.js';
 
@@ -55,30 +51,13 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-    events = {
-      onSigningProgress: (event) => {
-        this.logger.debug('Signing progress...', {
-          totalBytes: event.totalBytes,
-          processedBytes: event.processedBytes,
-        });
-      },
-      onSigningError: (error) => {
-        this.logger.error('Signing error...', { error });
-      },
-      onSigningSuccess: () => {
-        this.logger.debug('Signing successful...');
-      },
-    },
-  }: TurboFileFactory<NodeFileStreamFactory> &
-    TurboSigningEmitterEvents): Promise<{
+    emitter,
+  }: TurboFileFactory<NodeFileStreamFactory>): Promise<{
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
     // TODO: replace with our own signer implementation
     this.logger.debug('Signing data item...');
-
-    // Create signing emitter if events are provided
-    const signingEmitter = new SigningEmitter(events);
 
     // TODO: we could just use tee or PassThrough rather than require a fileStreamFactory
 
@@ -89,7 +68,6 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
 
     // If we have a signing emitter, wrap the stream with events
     const fileSize = fileSizeFactory();
-    const emitter = new SigningEmitter(events);
     const streamWithSigningEvents = createStreamWithSigningEvents({
       data: stream1,
       dataSize: fileSize,
@@ -117,7 +95,7 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
       };
     } catch (error) {
       // If we have a signing emitter, emit error
-      signingEmitter.emit('signing-error', { error });
+      emitter?.emit('signing-error', { error });
       throw error;
     }
   }
