@@ -1135,6 +1135,7 @@ describe('Node environment', () => {
           onUploadProgress: () => {
             uploadProgressCalled = true;
           },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
           onSigningProgress: () => {
             signingProgressCalled = true;
           },
@@ -1232,6 +1233,7 @@ describe('Node environment', () => {
           onUploadProgress: () => {
             uploadProgressCalled = true;
           },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
           onSigningProgress: () => {
             signingProgressCalled = true;
           },
@@ -1343,6 +1345,7 @@ describe('Node environment', () => {
           onUploadProgress: () => {
             uploadProgressCalled = true;
           },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
           onSigningProgress: () => {
             signingProgressCalled = true;
           },
