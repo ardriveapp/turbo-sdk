@@ -376,32 +376,22 @@ type TurboServiceConfiguration = {
   token?: TokenType;
 };
 
-export type TurboUploadProgressEvent = {
-  chunk: Buffer;
-  uploadedBytes: number;
-  totalBytes: number;
-};
-
-export type TurboUploadEmitterEvent = TurboUploadProgressEvent;
-
-export type TurboUploadEmitterEventArgs = {
-  onUploadProgress?: (event: TurboUploadProgressEvent) => void;
-  // TODO: add other events
-  // TODO: add other events for signing
-};
-
 export type TurboUploadEventsAndPayloads = {
   'upload-progress': {
     totalBytes: number;
     uploadedBytes: number;
   };
-  'upload-success': {
-    dataItem: TurboUploadDataItemResponse;
-  };
-  'upload-failed': {
+  'upload-error': {
     error: Error;
   };
   // TODO; add other events for signing
+};
+
+export type TurboUploadEmitterEventArgs = {
+  onUploadProgress?: (
+    event: TurboUploadEventsAndPayloads['upload-progress'],
+  ) => void;
+  onUploadError?: (event: TurboUploadEventsAndPayloads['upload-error']) => void;
 };
 
 export type TurboUploadEmitterEvents = {

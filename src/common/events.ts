@@ -26,10 +26,16 @@ export class UploadEmitter
   extends EventEmitter<keyof TurboUploadEventsAndPayloads>
   implements TurboUploadEmitter
 {
-  constructor({ onUploadProgress }: TurboUploadEmitterEventArgs = {}) {
+  constructor({
+    onUploadProgress,
+    onUploadError,
+  }: TurboUploadEmitterEventArgs = {}) {
     super();
     if (onUploadProgress !== undefined) {
       this.on('upload-progress', onUploadProgress);
+    }
+    if (onUploadError !== undefined) {
+      this.on('upload-error', onUploadError);
     }
   }
 
@@ -108,6 +114,9 @@ export class UploadEmitter
 
           controller.enqueue(value);
         } catch (error) {
+          self.emit('upload-error', {
+            error,
+          });
           controller.error(error);
         }
       },
@@ -145,6 +154,9 @@ export class UploadEmitter
     });
 
     existingStream.on('error', (error) => {
+      self.emit('upload-error', {
+        error,
+      });
       uploadStream.destroy(error);
     });
 

@@ -59,7 +59,7 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "test": "yarn test:web && yarn test:node",
-    "test:unit": "c8 node --import=./register.mjs --test src/**/*.test.ts",
+    "test:unit": "c8 node --import=./register.mjs --enable-source-maps --test src/**/*.test.ts",
     "test:web": "c8 mocha --config .mocharc --exclude tests/**/*.node.test.ts --exit",
     "test:node": "c8 mocha --config .mocharc --exclude tests/**/*.web.test.ts --exit",
     "test:docker": "./run-tests.sh",
