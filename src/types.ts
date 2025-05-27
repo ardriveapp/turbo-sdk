@@ -379,12 +379,21 @@ type TurboServiceConfiguration = {
 export type TurboUploadEventsAndPayloads = {
   'upload-progress': {
     totalBytes: number;
-    uploadedBytes: number;
+    processedBytes: number;
   };
   'upload-error': {
     error: Error;
   };
-  // TODO; add other events for signing
+};
+
+export type TurboSigningEventsAndPayloads = {
+  'signing-progress': {
+    totalBytes: number;
+    processedBytes: number;
+  };
+  'signing-error': {
+    error: Error;
+  };
 };
 
 export type TurboUploadEmitterEventArgs = {
@@ -394,29 +403,25 @@ export type TurboUploadEmitterEventArgs = {
   onUploadError?: (event: TurboUploadEventsAndPayloads['upload-error']) => void;
 };
 
+export type TurboSigningEmitterEventArgs = {
+  onSigningProgress?: (
+    event: TurboSigningEventsAndPayloads['signing-progress'],
+  ) => void;
+  onSigningError?: (
+    event: TurboSigningEventsAndPayloads['signing-error'],
+  ) => void;
+};
+
 export type TurboUploadEmitterEvents = {
   events?: TurboUploadEmitterEventArgs;
 };
 
-export interface TurboUploadEmitter {
-  on(
-    event: keyof TurboUploadEventsAndPayloads,
-    listener: (
-      ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
-    ) => void,
-  ): this;
-  emit(
-    event: keyof TurboUploadEventsAndPayloads,
-    ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
-  ): boolean;
-  createEventingStream({
-    data,
-    dataSize,
-  }: {
-    data: Readable | Buffer | ReadableStream;
-    dataSize: number;
-  }): Readable | ReadableStream;
-}
+export type TurboSigningEmitterEvents = {
+  events?: TurboSigningEmitterEventArgs;
+};
+
+export type TurboUploadAndSigningEmitterEvents = TurboUploadEmitterEvents &
+  TurboSigningEmitterEvents;
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
@@ -614,7 +619,9 @@ export interface TurboDataItemSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-  }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
+    events,
+  }: TurboFileFactory &
+    TurboSigningEmitterEvents): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;

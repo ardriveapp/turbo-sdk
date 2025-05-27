@@ -23,11 +23,13 @@ import {
   createData,
 } from '@dha-team/arbundles';
 
+import { SigningEmitter } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   StreamSizeFactory,
   TurboDataItemSignerParams,
   TurboSignedRequestHeaders,
+  TurboSigningEmitterEvents,
   WebTurboFileFactory,
 } from '../types.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
@@ -65,53 +67,83 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-  }: WebTurboFileFactory): Promise<{
+    events,
+  }: WebTurboFileFactory & TurboSigningEmitterEvents): Promise<{
     // TODO: axios only supports Readable's, Buffer's, or Blob's in request bodies, so we need to convert the ReadableStream to a Buffer
     dataItemStreamFactory: () => Buffer;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
     await this.setPublicKey();
 
-    const fileStream = fileStreamFactory();
+    // Create signing emitter if events are provided
+    const signingEmitter = new SigningEmitter(events);
+    const fileSize = fileSizeFactory();
 
-    // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
-    const buffer =
-      fileStream instanceof Buffer
-        ? fileStream
-        : await readableStreamToBuffer({
-            stream: fileStream,
-            size: fileSizeFactory(),
-          });
+    try {
+      const fileStream = fileStreamFactory();
 
-    let signedDataItem: DataItem;
-    this.logger.debug('Signing data item...');
-    if (this.signer instanceof ArconnectSigner) {
-      this.logger.debug(
-        'Arconnect signer detected, signing with Arconnect signData Item API...',
-      );
-      const sign = Buffer.from(
-        await this.signer['signer'].signDataItem({
-          data: Uint8Array.from(buffer),
-          tags: dataItemOpts?.tags,
-          target: dataItemOpts?.target,
-          anchor: dataItemOpts?.anchor,
-        }),
-      );
-      signedDataItem = new DataItem(sign);
-    } else {
-      signedDataItem = createData(
-        Uint8Array.from(buffer),
-        this.signer,
-        dataItemOpts,
-      );
-      await signedDataItem.sign(this.signer);
+      // start with 0 progress
+      signingEmitter.emit('signing-progress', {
+        signedBytes: 0,
+        totalBytes: fileSize,
+      });
+
+      // TODO: converts the readable stream to a buffer bc incrementally signing ReadableStreams is not trivial
+      const buffer =
+        fileStream instanceof Buffer
+          ? fileStream
+          : await readableStreamToBuffer({
+              stream: fileStream,
+              size: fileSize,
+            });
+
+      // TODO: replace this with streamSigner that uses a ReadableStream with events
+      signingEmitter.emit('signing-progress', {
+        signedBytes: Math.floor(fileSize / 2),
+        totalBytes: fileSize,
+      });
+
+      let signedDataItem: DataItem;
+      this.logger.debug('Signing data item...');
+      if (this.signer instanceof ArconnectSigner) {
+        this.logger.debug(
+          'Arconnect signer detected, signing with Arconnect signData Item API...',
+        );
+        const sign = Buffer.from(
+          await this.signer['signer'].signDataItem({
+            data: Uint8Array.from(buffer),
+            tags: dataItemOpts?.tags,
+            target: dataItemOpts?.target,
+            anchor: dataItemOpts?.anchor,
+          }),
+        );
+        signedDataItem = new DataItem(sign);
+      } else {
+        signedDataItem = createData(
+          Uint8Array.from(buffer),
+          this.signer,
+          dataItemOpts,
+        );
+        await signedDataItem.sign(this.signer);
+      }
+
+      // emit completion progress (100%)
+      signingEmitter.emit('signing-progress', {
+        signedBytes: fileSize,
+        totalBytes: fileSize,
+      });
+
+      this.logger.debug('Successfully signed data item...');
+      return {
+        // while this returns a Buffer - it needs to match our return type for uploading
+        dataItemStreamFactory: () => signedDataItem.getRaw(),
+        dataItemSizeFactory: () => signedDataItem.getRaw().length,
+      };
+    } catch (error) {
+      // If we have a signing emitter, emit error
+      signingEmitter.emit('signing-error', { error });
+      throw error;
     }
-    this.logger.debug('Successfully signed data item...');
-    return {
-      // while this returns a Buffer - it needs to match our return type for uploading
-      dataItemStreamFactory: () => signedDataItem.getRaw(),
-      dataItemSizeFactory: () => signedDataItem.getRaw().length,
-    };
   }
 
   public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {

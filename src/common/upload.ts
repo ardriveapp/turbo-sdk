@@ -34,6 +34,7 @@ import {
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
+  TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
   TurboUploadFolderParams,
@@ -44,7 +45,7 @@ import {
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
-import { UploadEmitter } from './events.js';
+import { UploadEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -85,7 +86,7 @@ export class TurboUnauthenticatedUploadService
     dataItemStreamFactory,
     dataItemSizeFactory,
     signal,
-    events,
+    events = {},
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
@@ -93,16 +94,18 @@ export class TurboUnauthenticatedUploadService
     this.logger.debug('Uploading signed data item...');
 
     // create the tapped stream with events
-    const streamWithEvents = new UploadEmitter(events).createEventingStream({
+    const emitter = new UploadEmitter(events);
+    const streamWithUploadEvents = createStreamWithUploadEvents({
       data: dataItemStreamFactory(),
       dataSize: fileSize,
+      emitter,
     });
 
     // TODO: add p-limit constraint or replace with separate upload class
     return this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
-      data: streamWithEvents,
+      data: streamWithUploadEvents,
       headers: {
         'content-type': 'application/octet-stream',
         'content-length': `${fileSize}`,
@@ -139,7 +142,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
     // This function is intended to be usable in both Node and browser environments.
     if (isBlob(data)) {
       const streamFactory = () => data.stream();
@@ -177,10 +180,10 @@ export abstract class TurboAuthenticatedBaseUploadService
     fileSizeFactory,
     signal,
     dataItemOpts,
-    events,
+    events = {},
   }: TurboFileFactory &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -199,6 +202,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           fileStreamFactory,
           fileSizeFactory,
           dataItemOpts,
+          events,
         });
 
       try {
@@ -219,18 +223,17 @@ export abstract class TurboAuthenticatedBaseUploadService
           }
         }
 
-        const streamWithEvents = new UploadEmitter(events).createEventingStream(
-          {
-            data: dataItemStreamFactory(),
-            dataSize: dataItemSizeFactory(),
-          },
-        );
-
+        const emitter = new UploadEmitter(events);
+        const streamWithUploadEvents = createStreamWithUploadEvents({
+          data: dataItemStreamFactory(),
+          dataSize: dataItemSizeFactory(),
+          emitter,
+        });
         // wonder if we have repeated code here, could use the uploadSignedDataItem method
         const data = await this.httpService.post<TurboUploadDataItemResponse>({
           endpoint: `/tx/${this.token}`,
           signal,
-          data: streamWithEvents,
+          data: streamWithUploadEvents,
           headers,
         });
         return data;

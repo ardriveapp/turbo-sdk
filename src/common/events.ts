@@ -17,15 +17,196 @@ import { EventEmitter } from 'eventemitter3';
 import { PassThrough, Readable } from 'stream';
 
 import {
-  TurboUploadEmitter,
+  TurboSigningEmitterEventArgs,
+  TurboSigningEventsAndPayloads,
   TurboUploadEmitterEventArgs,
   TurboUploadEventsAndPayloads,
 } from '../types.js';
 
-export class UploadEmitter
-  extends EventEmitter<keyof TurboUploadEventsAndPayloads>
-  implements TurboUploadEmitter
-{
+/**
+ * Creates an eventing ReadableStream that emits progress and error events using the event names map.
+ *
+ * E.g.
+ *
+ * ```ts
+ * const eventNamesMap = {
+ *   'on-progress': 'signing-progress', // emits 'signing-progress' on event progress
+ *   'on-error': 'signing-error', // emits 'signing-error' errors
+ * };
+ *
+ * const streamWithEvents = createStreamWithEvents({
+ *   data,
+ *   dataSize,
+ *   emitter,
+ *   eventNamesMap,
+ * });
+ * ```
+ */
+function createReadableStreamWithEvents({
+  data,
+  dataSize,
+  emitter,
+  eventNamesMap,
+}: {
+  data: Buffer | ReadableStream;
+  dataSize: number;
+  emitter: EventEmitter;
+  eventNamesMap: {
+    'on-progress': string;
+    'on-error': string;
+  };
+}): ReadableStream {
+  const originalStream =
+    data instanceof ReadableStream
+      ? data
+      : new ReadableStream({
+          start: (controller) => {
+            controller.enqueue(data);
+            controller.close();
+          },
+        });
+
+  let bytesProcessed = 0;
+  let reader;
+  return new ReadableStream({
+    start() {
+      reader = originalStream.getReader();
+    },
+    async pull(controller) {
+      try {
+        const { value, done } = await reader.read();
+
+        if (done) {
+          controller.close();
+          return;
+        }
+
+        bytesProcessed += value.length;
+        emitter.emit(eventNamesMap['on-progress'], {
+          bytesProcessed,
+          totalBytes: dataSize,
+        });
+
+        controller.enqueue(value);
+      } catch (error) {
+        emitter.emit(eventNamesMap['on-error'], error);
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+}
+
+/**
+ * Creates an eventing Readable stream that emits progress and error events
+ */
+function createReadableWithEvents({
+  data,
+  dataSize,
+  emitter,
+  eventNamesMap,
+}: {
+  data: Readable | Buffer;
+  dataSize: number;
+  emitter: EventEmitter;
+  eventNamesMap: {
+    'on-progress': string;
+    'on-error': string;
+  };
+}): Readable {
+  const existingStream = data instanceof Readable ? data : Readable.from(data);
+  const eventingStream = new PassThrough();
+
+  // pause the stream to avoid emitting progress events until the stream is ready
+  existingStream.pause();
+
+  // add listener to emit progress events as the stream is read
+  let bytesProcessed = 0;
+  existingStream.on('data', (chunk) => {
+    eventingStream.write(chunk);
+    bytesProcessed += chunk.length;
+    emitter.emit(eventNamesMap['on-progress'], {
+      bytesProcessed,
+      totalBytes: dataSize,
+    });
+  });
+
+  existingStream.on('end', () => {
+    eventingStream.end();
+  });
+
+  existingStream.on('error', (error) => {
+    emitter.emit(eventNamesMap['on-error'], error);
+    eventingStream.destroy(error);
+  });
+
+  // resume the stream to start emitting progress events
+  existingStream.resume();
+  return eventingStream;
+}
+
+/**
+ * Creates an eventing stream from the input data that emits progress and error events
+ */
+export function createStreamWithEvents({
+  data,
+  dataSize,
+  emitter,
+  eventNamesMap,
+}: {
+  data: Readable | Buffer | ReadableStream;
+  dataSize: number;
+  emitter: EventEmitter;
+  eventNamesMap: {
+    'on-progress': string;
+    'on-error': string;
+  };
+}): Readable | ReadableStream {
+  if (
+    data instanceof ReadableStream ||
+    (typeof window !== 'undefined' && data instanceof Buffer)
+  ) {
+    return createReadableStreamWithEvents({
+      data,
+      dataSize,
+      emitter,
+      eventNamesMap,
+    });
+  }
+
+  if (data instanceof Readable || data instanceof Buffer) {
+    return createReadableWithEvents({
+      data,
+      dataSize,
+      emitter,
+      eventNamesMap,
+    });
+  }
+
+  throw new Error('Invalid data or platform type');
+}
+
+// base class that extends EventEmitter with custom types for events and payloads
+export abstract class TurboEmitter<
+  T extends Record<string, unknown>,
+> extends EventEmitter<Extract<keyof T, string>> {
+  override on<K extends keyof T>(
+    event: K,
+    listener: (...args: any[]) => void,
+  ): this {
+    // @ts-expect-error - TODO: eventemitter3 has strict types
+    return super.on(event, listener);
+  }
+
+  override emit<K extends keyof T>(event: K, ...args: any[]): boolean {
+    // @ts-expect-error - TODO: eventemitter3 has strict types
+    return super.emit(event, ...args);
+  }
+}
+
+export class UploadEmitter extends TurboEmitter<TurboUploadEventsAndPayloads> {
   constructor({
     onUploadProgress,
     onUploadError,
@@ -38,130 +219,62 @@ export class UploadEmitter
       this.on('upload-error', onUploadError);
     }
   }
+}
 
-  on(
-    event: keyof TurboUploadEventsAndPayloads,
-    listener: (
-      ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
-    ) => void,
-  ): this {
-    return super.on(event, listener);
+export class SigningEmitter extends TurboEmitter<TurboSigningEventsAndPayloads> {
+  constructor({
+    onSigningProgress,
+    onSigningError,
+  }: TurboSigningEmitterEventArgs = {}) {
+    super();
+    if (onSigningProgress !== undefined) {
+      this.on('signing-progress', onSigningProgress);
+    }
+    if (onSigningError !== undefined) {
+      this.on('signing-error', onSigningError);
+    }
   }
+}
 
-  emit(
-    event: keyof TurboUploadEventsAndPayloads,
-    ctx: TurboUploadEventsAndPayloads[keyof TurboUploadEventsAndPayloads],
-  ): boolean {
-    return super.emit(event, ctx);
-  }
-
-  createEventingStream({
+// TODO: any other emitters we want to add (e.g. upload file, total events, etc)
+export function createStreamWithUploadEvents({
+  data,
+  dataSize,
+  emitter = new UploadEmitter(),
+}: {
+  data: Readable | Buffer | ReadableStream;
+  dataSize: number;
+  emitter?: UploadEmitter;
+}) {
+  return createStreamWithEvents({
     data,
     dataSize,
-  }: {
-    data: Readable | Buffer | ReadableStream;
-    dataSize: number;
-  }): Readable | ReadableStream {
-    if (
-      data instanceof ReadableStream ||
-      (typeof window !== 'undefined' && data instanceof Buffer)
-    ) {
-      return this.createEventingReadableStream(data, dataSize);
-    }
+    // @ts-expect-error TODO: fix this type issue
+    emitter,
+    eventNamesMap: {
+      'on-progress': 'upload-progress',
+      'on-error': 'upload-error',
+    },
+  });
+}
 
-    if (data instanceof Readable || data instanceof Buffer) {
-      return this.createEventingReadable(data, dataSize);
-    }
-
-    throw new Error('Invalid data or platform type');
-  }
-
-  private createEventingReadableStream(
-    data: Buffer | ReadableStream,
-    dataSize: number,
-  ): ReadableStream {
-    const originalStream =
-      data instanceof ReadableStream
-        ? data
-        : new ReadableStream({
-            start: (controller) => {
-              controller.enqueue(data);
-              controller.close();
-            },
-          });
-
-    let uploadedBytes = 0;
-    let reader;
-    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-    return new ReadableStream({
-      start() {
-        reader = originalStream.getReader();
-      },
-      async pull(controller) {
-        try {
-          const { value, done } = await reader.read();
-
-          if (done) {
-            controller.close();
-            return;
-          }
-
-          uploadedBytes += value.length;
-          self.emit('upload-progress', {
-            uploadedBytes: uploadedBytes,
-            totalBytes: dataSize,
-          });
-
-          controller.enqueue(value);
-        } catch (error) {
-          self.emit('upload-error', {
-            error,
-          });
-          controller.error(error);
-        }
-      },
-      cancel(reason) {
-        return reader.cancel(reason);
-      },
-    });
-  }
-
-  private createEventingReadable(
-    data: Readable | Buffer,
-    dataSize: number,
-  ): Readable {
-    const existingStream =
-      data instanceof Readable ? data : Readable.from(data);
-    const uploadStream = new PassThrough();
-
-    // pause the stream to avoid emitting progress events until the stream is ready
-    existingStream.pause();
-
-    // add listener to emit progress events as the stream is read
-    let uploadedBytes = 0;
-    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-    existingStream.on('data', (chunk) => {
-      uploadStream.write(chunk);
-      uploadedBytes += chunk.length;
-      self.emit('upload-progress', {
-        uploadedBytes,
-        totalBytes: dataSize,
-      });
-    });
-
-    existingStream.on('end', () => {
-      uploadStream.end();
-    });
-
-    existingStream.on('error', (error) => {
-      self.emit('upload-error', {
-        error,
-      });
-      uploadStream.destroy(error);
-    });
-
-    // resume the stream to start emitting progress events
-    existingStream.resume();
-    return uploadStream;
-  }
+export function createStreamWithSigningEvents({
+  data,
+  dataSize,
+  emitter = new SigningEmitter(),
+}: {
+  data: Readable | Buffer | ReadableStream;
+  dataSize: number;
+  emitter?: SigningEmitter;
+}): Readable | ReadableStream {
+  return createStreamWithEvents({
+    data,
+    dataSize,
+    // @ts-expect-error TODO: fix this type issue
+    emitter,
+    eventNamesMap: {
+      'on-progress': 'signing-progress',
+      'on-error': 'signing-error',
+    },
+  });
 }

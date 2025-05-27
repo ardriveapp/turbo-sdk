@@ -23,6 +23,10 @@ import {
 } from '@dha-team/arbundles';
 import { Readable } from 'stream';
 
+import {
+  SigningEmitter,
+  createStreamWithSigningEvents,
+} from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   DataItemOptions,
@@ -30,6 +34,7 @@ import {
   StreamSizeFactory,
   TurboDataItemSignerParams,
   TurboFileFactory,
+  TurboSigningEmitterEvents,
 } from '../types.js';
 import { fromB64Url } from '../utils/base64.js';
 
@@ -50,34 +55,58 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-  }: TurboFileFactory<NodeFileStreamFactory>): Promise<{
+    events = {},
+  }: TurboFileFactory<NodeFileStreamFactory> &
+    TurboSigningEmitterEvents): Promise<{
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
     // TODO: replace with our own signer implementation
     this.logger.debug('Signing data item...');
+
+    // Create signing emitter if events are provided
+    const signingEmitter = new SigningEmitter(events);
+
+    // TODO: we could just use tee or PassThrough rather than require a fileStreamFactory
+
     let [stream1, stream2] = [fileStreamFactory(), fileStreamFactory()];
 
     stream1 = stream1 instanceof Buffer ? Readable.from(stream1) : stream1;
     stream2 = stream2 instanceof Buffer ? Readable.from(stream2) : stream2;
 
-    const signedDataItem = await streamSigner(
-      stream1,
-      stream2,
-      this.signer,
-      dataItemOpts,
-    );
-    this.logger.debug('Successfully signed data item...');
+    // If we have a signing emitter, wrap the stream with events
+    const fileSize = fileSizeFactory();
+    const emitter = new SigningEmitter(events);
+    const streamWithSigningEvents = createStreamWithSigningEvents({
+      data: stream1,
+      dataSize: fileSize,
+      emitter,
+    }) as Readable; // TODO: use generics to avoid this cast
 
-    // TODO: support target, anchor, and tags
-    const signedDataItemSize = this.calculateSignedDataHeadersSize({
-      dataSize: fileSizeFactory(),
-      dataItemOpts,
-    });
-    return {
-      dataItemStreamFactory: () => signedDataItem,
-      dataItemSizeFactory: () => signedDataItemSize,
-    };
+    try {
+      const signedDataItem = await streamSigner(
+        streamWithSigningEvents,
+        stream2,
+        this.signer,
+        dataItemOpts,
+      );
+      this.logger.debug('Successfully signed data item...');
+
+      // TODO: support target, anchor, and tags
+      const signedDataItemSize = this.calculateSignedDataHeadersSize({
+        dataSize: fileSizeFactory(),
+        dataItemOpts,
+      });
+
+      return {
+        dataItemStreamFactory: () => signedDataItem,
+        dataItemSizeFactory: () => signedDataItemSize,
+      };
+    } catch (error) {
+      // If we have a signing emitter, emit error
+      signingEmitter.emit('signing-error', { error });
+      throw error;
+    }
   }
 
   // TODO: make dynamic that accepts anchor and target and tags to return the size of the headers + data
