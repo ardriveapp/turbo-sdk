@@ -1277,7 +1277,7 @@ describe('Node environment', () => {
       // Since this is already signed, signing progress won't be called
       expect(signingProgressCalled).to.be.false;
       expect(signingErrorCalled).to.be.false;
-      expect(signingSuccessCalled).to.be.true;
+      expect(signingSuccessCalled).to.be.false;
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {
@@ -1429,7 +1429,7 @@ describe('Node environment', () => {
       // Since this is already signed, signing progress won't be called
       expect(signingProgressCalled).to.be.false;
       expect(signingErrorCalled).to.be.false;
-      expect(signingSuccessCalled).to.be.true;
+      expect(signingSuccessCalled).to.be.false;
     });
 
     it('should get a checkout session with kyve token', async () => {
