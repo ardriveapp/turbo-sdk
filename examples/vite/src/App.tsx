@@ -75,17 +75,12 @@ function App() {
               totalBytes,
               processedBytes,
             });
-            setUploadStatus(
-              `Signing... ${((processedBytes / totalBytes) * 100).toFixed(2)}%`,
-            );
           },
           onSigningError: ({ error }: { error: Error }) => {
             console.log('Signing error:', { error });
-            setUploadStatus(`Signing failed: ${error.message}`);
           },
           onSigningSuccess: () => {
             console.log('Signing success!');
-            setUploadStatus('Signing successful!');
           },
           onUploadProgress: ({
             totalBytes,
@@ -98,17 +93,12 @@ function App() {
               totalBytes,
               processedBytes,
             });
-            setUploadStatus(
-              `Uploading... ${((processedBytes / totalBytes) * 100).toFixed(
-                2,
-              )}%`,
-            );
           },
           onUploadError: ({ error }: { error: Error }) => {
-            setUploadStatus(`Upload failed: ${error.message}`);
+            console.log('Upload error:', { error });
           },
           onUploadSuccess: () => {
-            setUploadStatus('Upload successful!');
+            console.log('Upload success!');
           },
         },
       });

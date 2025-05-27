@@ -763,7 +763,7 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
-### Events
+## Events
 
 The SDK provides events for uploading and signing data. You can listen to these events by providing a callback function to the `events` parameter of the `upload` and `uploadFile` methods.
 
