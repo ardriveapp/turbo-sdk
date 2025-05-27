@@ -630,19 +630,19 @@ describe('Node environment', () => {
                   uploadProgressCalled = true;
                 },
                 onUploadError: () => {
-                  overallErrorCalled = true;
+                  uploadErrorCalled = true;
                 },
                 onUploadSuccess: () => {
-                  overallSuccessCalled = true;
+                  uploadSuccessCalled = true;
                 },
                 onSigningProgress: () => {
                   signingProgressCalled = true;
                 },
                 onSigningError: () => {
-                  overallErrorCalled = true;
+                  signingErrorCalled = true;
                 },
                 onSigningSuccess: () => {
-                  overallSuccessCalled = true;
+                  signingSuccessCalled = true;
                 },
               },
             });
@@ -660,12 +660,12 @@ describe('Node environment', () => {
 
             // upload events
             expect(uploadProgressCalled).to.be.true;
-            expect(uploadErrorCalled).to.be.true;
+            expect(uploadErrorCalled).to.be.false;
             expect(uploadSuccessCalled).to.be.true;
 
             // overall events
             expect(overallProgressCalled).to.be.true;
-            expect(overallErrorCalled).to.be.true;
+            expect(overallErrorCalled).to.be.false;
             expect(overallSuccessCalled).to.be.true;
           });
         }
@@ -844,6 +844,7 @@ describe('Node environment', () => {
               onSuccess: () => {
                 overallSuccessCalled = true;
               },
+              // upload events
               onUploadProgress: () => {
                 uploadProgressCalled = true;
               },
@@ -853,6 +854,7 @@ describe('Node environment', () => {
               onUploadSuccess: () => {
                 uploadSuccessCalled = true;
               },
+              // signing events
               onSigningProgress: () => {
                 signingProgressCalled = true;
               },
@@ -1545,13 +1547,16 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(base64KyveAddress);
-      expect(uploadProgressCalled).to.be.true;
-      expect(uploadErrorCalled).to.be.false;
-      expect(uploadSuccessCalled).to.be.true;
-      // Since this is already signed, signing progress won't be called
+
+      // signing events should not be called at all
       expect(signingProgressCalled).to.be.false;
       expect(signingErrorCalled).to.be.false;
       expect(signingSuccessCalled).to.be.false;
+
+      // upload events
+      expect(uploadProgressCalled).to.be.true;
+      expect(uploadErrorCalled).to.be.false;
+      expect(uploadSuccessCalled).to.be.true;
     });
 
     it('should get a checkout session with kyve token', async () => {

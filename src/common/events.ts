@@ -201,13 +201,13 @@ export abstract class TurboEmitter<
 > extends EventEmitter<Extract<keyof T, string>> {
   override on<K extends keyof T>(
     event: K,
-    listener: (...args: any[]) => void,
+    listener: (...args: T[K][]) => void,
   ): this {
     // @ts-expect-error - TODO: eventemitter3 has strict types
     return super.on(event, listener);
   }
 
-  override emit<K extends keyof T>(event: K, ...args: any[]): boolean {
+  override emit<K extends keyof T>(event: K, ...args: T[K][]): boolean {
     // @ts-expect-error - TODO: eventemitter3 has strict types
     return super.emit(event, ...args);
   }
@@ -285,6 +285,12 @@ export class TurboEventEmitter extends TurboEmitter<TurboEventEmitterEvents> {
     });
     this.on('upload-error', (event) => {
       this.emit('overall-error', {
+        ...event,
+        step: 'upload',
+      });
+    });
+    this.on('upload-success', (event) => {
+      this.emit('overall-success', {
         ...event,
         step: 'upload',
       });
