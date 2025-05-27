@@ -1,12 +1,7 @@
-import {
-  TurboAuthenticatedClient,
-  TurboFactory,
-  developmentTurboConfiguration,
-} from '@ardrive/turbo-sdk/web';
+import { TurboAuthenticatedClient, TurboFactory } from '@ardrive/turbo-sdk/web';
 import Arweave from 'arweave';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { useEffect, useState } from 'react';
-import { ReadableStream } from 'web-streams-polyfill';
 
 import './App.css';
 
@@ -68,6 +63,54 @@ function App() {
             },
           }),
         fileSizeFactory: () => selectedFile.size,
+        events: {
+          onSigningProgress: ({
+            totalBytes,
+            processedBytes,
+          }: {
+            totalBytes: number;
+            processedBytes: number;
+          }) => {
+            console.log('Signing progress:', {
+              totalBytes,
+              processedBytes,
+            });
+            setUploadStatus(
+              `Signing... ${((processedBytes / totalBytes) * 100).toFixed(2)}%`,
+            );
+          },
+          onSigningError: ({ error }: { error: Error }) => {
+            console.log('Signing error:', { error });
+            setUploadStatus(`Signing failed: ${error.message}`);
+          },
+          onSigningSuccess: () => {
+            console.log('Signing success!');
+            setUploadStatus('Signing successful!');
+          },
+          onUploadProgress: ({
+            totalBytes,
+            processedBytes,
+          }: {
+            totalBytes: number;
+            processedBytes: number;
+          }) => {
+            console.log('Upload progress:', {
+              totalBytes,
+              processedBytes,
+            });
+            setUploadStatus(
+              `Uploading... ${((processedBytes / totalBytes) * 100).toFixed(
+                2,
+              )}%`,
+            );
+          },
+          onUploadError: ({ error }: { error: Error }) => {
+            setUploadStatus(`Upload failed: ${error.message}`);
+          },
+          onUploadSuccess: () => {
+            setUploadStatus('Upload successful!');
+          },
+        },
       });
       setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
     } catch (error) {
