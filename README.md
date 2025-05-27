@@ -57,79 +57,55 @@ import open from 'open';
 import path from 'path';
 
 async function uploadWithTurbo() {
-  // load your JWK directly to authenticate
-  const arweave = Arweave.init({});
   const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
-  const address = await arweave.wallets.jwkToAddress(jwk);
-  const turbo = TurboFactory.authenticated({ privateKey: jwk });
+  const signer = new ArweaveSigner(jwk);
+  const turbo = TurboFactory.authenticated({ signer });
 
-  // or provide your own signer
-  // const signer = new ArweaveSigner(jwk);
-  // const turbo = TurboFactory.authenticated({ signer });
-
-  // get the wallet balance
-  const { winc: balance } = await turbo.getBalance();
-
-  // prep file for upload
-  const filePath = path.join(__dirname, './my-image.png');
-  const fileSize = fs.statSync(filePath).size;
-
-  // get the cost of uploading the file
-  const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
-    bytes: [fileSize],
-  });
-
-  // check if balance greater than upload cost, and if in browser
-  if (balance < fileSizeCost && window !== undefined) {
-    const { url } = await turbo.createCheckoutSession({
-      amount: fileSizeCost,
-      owner: address,
-      // add a promo code if you have one
-    });
-
-    // open the URL to top-up if in browser
-    window.open(url, '_blank');
-  } else {
-    // otherwise, print the URL to the console
-    console.log('Please top up your balance via the CLI before uploading', {
-      balance,
-      fileSizeCost,
-    });
-  }
-
-  // create a callback for events you want to listen to
-  const uploadProgressEvents = {
-    onSigningProgress: ({ totalBytes, processedBytes }) => {
-      console.log('Signing progress:', { totalBytes, processedBytes });
-    },
-    onSigningError: ({ error }) => {
-      console.log('Signing error:', { error });
-    },
-    onSigningSuccess: () => {
-      console.log('Signing success!');
-    },
-    onUploadProgress: ({ totalBytes, processedBytes }) => {
-      console.log('Upload progress:', { totalBytes, processedBytes });
-    },
-    onUploadError: ({ error }) => {
-      console.log('Upload error:', { error });
-    },
-    onUploadSuccess: () => {
-      console.log('Upload success!');
-    },
-  };
-
-  // upload the file
   try {
+    // upload some simple data - log upload progress events
+    const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.upload({
+      data: 'Hello, world!',
+      events: {
+        onUploadProgress: ({ totalBytes, processedBytes }) => {
+          console.log('Upload progress:', { totalBytes, processedBytes });
+        },
+        onUploadError: ({ error }) => {
+          console.log('Upload error:', { error });
+        },
+        onUploadSuccess: () => {
+          console.log('Upload success!');
+        },
+      },
+    });
+
+    // upload a file - log signing and upload progress events
+    const filePath = path.join(__dirname, './my-image.png');
+    const fileSize = fs.statSync(filePath).size;
     const { id, owner, dataCaches, fastFinalityIndexes } =
-      // Have data in memory already? Just use it!
-      haveDataInMemory
-        ? await turbo.upload({ data: 'The contents of my file!', events: uploadProgressEvents })
-        : // Or perhaps you have a larger file that you don't want in memory? Stream it!
-          await turbo.uploadFile({
-            fileStreamFactory: () => fs.createReadStream(filePath),
-            fileSizeFactory: () => fileSize,
-            events: uploadProgressEvents);
+      await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+        events: {
+          onSigningProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Signing progress:', { totalBytes, processedBytes });
+          },
+          onSigningError: ({ error }) => {
+            console.log('Signing error:', { error });
+          },
+          onSigningSuccess: () => {
+            console.log('Signing success!');
+          },
+          onUploadProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Upload progress:', { totalBytes, processedBytes });
+          },
+          onUploadError: ({ error }) => {
+            console.log('Upload error:', { error });
+          },
+          onUploadSuccess: () => {
+            console.log('Upload success!');
+          },
+        },
+      });
     // upload complete!
     console.log('Successfully upload data item!', {
       id,
@@ -140,9 +116,6 @@ async function uploadWithTurbo() {
   } catch (error) {
     // upload failed
     console.error('Failed to upload data item!', error);
-  } finally {
-    const { winc: newBalance } = await turbo.getBalance();
-    console.log('New balance:', newBalance);
   }
 }
 ```

@@ -330,12 +330,33 @@ describe('Browser environment', () => {
           await signedDataItem.sign(signer);
 
           let uploadProgressCalled = false;
+          let uploadErrorCalled = false;
+          let uploadSuccessCalled = false;
+          let signingProgressCalled = false;
+          let signingErrorCalled = false;
+          let signingSuccessCalled = false;
           const response = await turbo.uploadSignedDataItem({
             dataItemStreamFactory: () => signedDataItem.getRaw(),
             dataItemSizeFactory: () => signedDataItem.getRaw().length,
             events: {
+              onUploadError: () => {
+                uploadErrorCalled = true;
+              },
+              onUploadSuccess: () => {
+                uploadSuccessCalled = true;
+              },
               onUploadProgress: () => {
                 uploadProgressCalled = true;
+              },
+              // @ts-expect-error - this is a test to check that the signing progress is not called for signed data
+              onSigningProgress: () => {
+                signingProgressCalled = true;
+              },
+              onSigningError: () => {
+                signingErrorCalled = true;
+              },
+              onSigningSuccess: () => {
+                signingSuccessCalled = true;
               },
             },
           });
@@ -346,6 +367,11 @@ describe('Browser environment', () => {
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(testArweaveNativeB64Address);
           expect(uploadProgressCalled).to.be.true;
+          expect(uploadErrorCalled).to.be.false;
+          expect(uploadSuccessCalled).to.be.true;
+          expect(signingProgressCalled).to.be.false;
+          expect(signingErrorCalled).to.be.false;
+          expect(signingSuccessCalled).to.be.false;
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -528,15 +554,31 @@ describe('Browser environment', () => {
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
         it(`should properly upload a ${label} to turbo events`, async () => {
           let uploadProgressCalled = false;
+          let uploadErrorCalled = false;
+          let uploadSuccessCalled = false;
           let signingProgressCalled = false;
+          let signingErrorCalled = false;
+          let signingSuccessCalled = false;
           const response = await turbo.upload({
             data: input,
             events: {
               onUploadProgress: () => {
                 uploadProgressCalled = true;
               },
+              onUploadError: () => {
+                uploadErrorCalled = true;
+              },
+              onUploadSuccess: () => {
+                uploadSuccessCalled = true;
+              },
               onSigningProgress: () => {
                 signingProgressCalled = true;
+              },
+              onSigningError: () => {
+                signingErrorCalled = true;
+              },
+              onSigningSuccess: () => {
+                signingSuccessCalled = true;
               },
             },
           });
@@ -546,7 +588,11 @@ describe('Browser environment', () => {
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(testArweaveNativeB64Address);
           expect(uploadProgressCalled).to.be.true;
+          expect(uploadErrorCalled).to.be.false;
+          expect(uploadSuccessCalled).to.be.true;
           expect(signingProgressCalled).to.be.true;
+          expect(signingErrorCalled).to.be.false;
+          expect(signingSuccessCalled).to.be.true;
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -587,7 +633,11 @@ describe('Browser environment', () => {
           },
         });
         let uploadProgressCalled = false;
+        let uploadErrorCalled = false;
+        let uploadSuccessCalled = false;
         let signingProgressCalled = false;
+        let signingErrorCalled = false;
+        let signingSuccessCalled = false;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => readableStream,
           fileSizeFactory: () => uint8Array.length,
@@ -595,8 +645,20 @@ describe('Browser environment', () => {
             onUploadProgress: () => {
               uploadProgressCalled = true;
             },
+            onUploadError: () => {
+              uploadErrorCalled = true;
+            },
+            onUploadSuccess: () => {
+              uploadSuccessCalled = true;
+            },
             onSigningProgress: () => {
               signingProgressCalled = true;
+            },
+            onSigningError: () => {
+              signingErrorCalled = true;
+            },
+            onSigningSuccess: () => {
+              signingSuccessCalled = true;
             },
           },
         });
@@ -606,7 +668,11 @@ describe('Browser environment', () => {
         expect(response).to.have.property('owner');
         expect(response['owner']).to.equal(testArweaveNativeB64Address);
         expect(uploadProgressCalled).to.be.true;
+        expect(uploadErrorCalled).to.be.false;
+        expect(uploadSuccessCalled).to.be.true;
         expect(signingProgressCalled).to.be.true;
+        expect(signingErrorCalled).to.be.false;
+        expect(signingSuccessCalled).to.be.true;
       });
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -816,12 +882,33 @@ describe('Browser environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
+      let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
           onUploadProgress: () => {
             uploadProgressCalled = true;
+          },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data
+          onSigningProgress: () => {
+            signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
           },
         },
       });
@@ -832,6 +919,12 @@ describe('Browser environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
       expect(uploadProgressCalled).to.be.true;
+      expect(uploadErrorCalled).to.be.false;
+      expect(uploadSuccessCalled).to.be.true;
+      // no signing callbacks should be called for signed data
+      expect(signingProgressCalled).to.be.false;
+      expect(signingErrorCalled).to.be.false;
+      expect(signingSuccessCalled).to.be.false;
     });
 
     it.skip('should topUpWithTokens() to an ETH wallet', async () => {

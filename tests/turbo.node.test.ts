@@ -1127,6 +1127,8 @@ describe('Node environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
       let signingProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
@@ -1134,6 +1136,12 @@ describe('Node environment', () => {
         events: {
           onUploadProgress: () => {
             uploadProgressCalled = true;
+          },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
           },
           // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
           onSigningProgress: () => {
@@ -1148,6 +1156,8 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
       expect(uploadProgressCalled).to.be.true;
+      expect(uploadErrorCalled).to.be.false;
+      expect(uploadSuccessCalled).to.be.true;
       // Since this is already signed, signing progress won't be called
       expect(signingProgressCalled).to.be.false;
     });
@@ -1225,7 +1235,11 @@ describe('Node environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
       let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
@@ -1233,9 +1247,21 @@ describe('Node environment', () => {
           onUploadProgress: () => {
             uploadProgressCalled = true;
           },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
           // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
           onSigningProgress: () => {
             signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
           },
         },
       });
@@ -1246,8 +1272,12 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testSolAddressBase64);
       expect(uploadProgressCalled).to.be.true;
+      expect(uploadErrorCalled).to.be.false;
+      expect(uploadSuccessCalled).to.be.true;
       // Since this is already signed, signing progress won't be called
       expect(signingProgressCalled).to.be.false;
+      expect(signingErrorCalled).to.be.false;
+      expect(signingSuccessCalled).to.be.true;
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {
@@ -1310,7 +1340,11 @@ describe('Node environment', () => {
     it('should properly upload a Readable to turbo with events', async () => {
       const fileSize = fs.statSync(oneKiBFilePath).size;
       let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
       let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
       const response = await turbo.uploadFile({
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
@@ -1318,8 +1352,20 @@ describe('Node environment', () => {
           onUploadProgress: () => {
             uploadProgressCalled = true;
           },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
           onSigningProgress: () => {
             signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
           },
         },
       });
@@ -1329,7 +1375,11 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(base64KyveAddress);
       expect(uploadProgressCalled).to.be.true;
+      expect(uploadErrorCalled).to.be.false;
+      expect(uploadSuccessCalled).to.be.true;
       expect(signingProgressCalled).to.be.true;
+      expect(signingErrorCalled).to.be.false;
+      expect(signingSuccessCalled).to.be.true;
     });
 
     it('should properly upload a Buffer to turbo with events', async () => {
@@ -1337,7 +1387,11 @@ describe('Node environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
       let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
@@ -1345,9 +1399,21 @@ describe('Node environment', () => {
           onUploadProgress: () => {
             uploadProgressCalled = true;
           },
-          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data
           onSigningProgress: () => {
             signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
           },
         },
       });
@@ -1358,8 +1424,12 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(base64KyveAddress);
       expect(uploadProgressCalled).to.be.true;
+      expect(uploadErrorCalled).to.be.false;
+      expect(uploadSuccessCalled).to.be.true;
       // Since this is already signed, signing progress won't be called
       expect(signingProgressCalled).to.be.false;
+      expect(signingErrorCalled).to.be.false;
+      expect(signingSuccessCalled).to.be.true;
     });
 
     it('should get a checkout session with kyve token', async () => {

@@ -127,11 +127,14 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
         await signedDataItem.sign(this.signer);
       }
 
-      // emit completion progress (100%)
+      // emit last progress event (100%)
       signingEmitter.emit('signing-progress', {
         processedBytes: fileSize,
         totalBytes: fileSize,
       });
+
+      // emit completion event
+      signingEmitter.emit('signing-success');
 
       this.logger.debug('Successfully signed data item...');
       return {

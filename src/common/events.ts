@@ -54,6 +54,7 @@ function createReadableStreamWithEvents({
   eventNamesMap: {
     'on-progress': string;
     'on-error': string;
+    'on-end': string;
   };
 }): ReadableStream {
   const originalStream =
