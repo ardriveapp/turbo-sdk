@@ -384,6 +384,7 @@ export type TurboUploadEventsAndPayloads = {
   'upload-error': {
     error: Error;
   };
+  'upload-success': never;
 };
 
 export type TurboSigningEventsAndPayloads = {
@@ -394,6 +395,7 @@ export type TurboSigningEventsAndPayloads = {
   'signing-error': {
     error: Error;
   };
+  'signing-success': never;
 };
 
 export type TurboUploadEmitterEventArgs = {
@@ -401,6 +403,9 @@ export type TurboUploadEmitterEventArgs = {
     event: TurboUploadEventsAndPayloads['upload-progress'],
   ) => void;
   onUploadError?: (event: TurboUploadEventsAndPayloads['upload-error']) => void;
+  onUploadSuccess?: (
+    event: TurboUploadEventsAndPayloads['upload-success'],
+  ) => void;
 };
 
 export type TurboSigningEmitterEventArgs = {
@@ -409,6 +414,9 @@ export type TurboSigningEmitterEventArgs = {
   ) => void;
   onSigningError?: (
     event: TurboSigningEventsAndPayloads['signing-error'],
+  ) => void;
+  onSigningSuccess?: (
+    event: TurboSigningEventsAndPayloads['signing-success'],
   ) => void;
 };
 

@@ -66,7 +66,7 @@ function createReadableStreamWithEvents({
           },
         });
 
-  let bytesProcessed = 0;
+  let processedBytes = 0;
   let reader;
   return new ReadableStream({
     start() {
@@ -77,13 +77,14 @@ function createReadableStreamWithEvents({
         const { value, done } = await reader.read();
 
         if (done) {
+          emitter.emit(eventNamesMap['on-end']);
           controller.close();
           return;
         }
 
-        bytesProcessed += value.length;
+        processedBytes += value.length;
         emitter.emit(eventNamesMap['on-progress'], {
-          bytesProcessed,
+          processedBytes,
           totalBytes: dataSize,
         });
 
@@ -114,6 +115,7 @@ function createReadableWithEvents({
   eventNamesMap: {
     'on-progress': string;
     'on-error': string;
+    'on-end': string;
   };
 }): Readable {
   const existingStream = data instanceof Readable ? data : Readable.from(data);
@@ -123,17 +125,18 @@ function createReadableWithEvents({
   existingStream.pause();
 
   // add listener to emit progress events as the stream is read
-  let bytesProcessed = 0;
+  let processedBytes = 0;
   existingStream.on('data', (chunk) => {
     eventingStream.write(chunk);
-    bytesProcessed += chunk.length;
+    processedBytes += chunk.length;
     emitter.emit(eventNamesMap['on-progress'], {
-      bytesProcessed,
+      processedBytes,
       totalBytes: dataSize,
     });
   });
 
   existingStream.on('end', () => {
+    emitter.emit(eventNamesMap['on-end']);
     eventingStream.end();
   });
 
@@ -162,6 +165,7 @@ export function createStreamWithEvents({
   eventNamesMap: {
     'on-progress': string;
     'on-error': string;
+    'on-end': string;
   };
 }): Readable | ReadableStream {
   if (
@@ -210,6 +214,7 @@ export class UploadEmitter extends TurboEmitter<TurboUploadEventsAndPayloads> {
   constructor({
     onUploadProgress,
     onUploadError,
+    onUploadSuccess,
   }: TurboUploadEmitterEventArgs = {}) {
     super();
     if (onUploadProgress !== undefined) {
@@ -218,6 +223,9 @@ export class UploadEmitter extends TurboEmitter<TurboUploadEventsAndPayloads> {
     if (onUploadError !== undefined) {
       this.on('upload-error', onUploadError);
     }
+    if (onUploadSuccess !== undefined) {
+      this.on('upload-success', onUploadSuccess);
+    }
   }
 }
 
@@ -225,6 +233,7 @@ export class SigningEmitter extends TurboEmitter<TurboSigningEventsAndPayloads> 
   constructor({
     onSigningProgress,
     onSigningError,
+    onSigningSuccess,
   }: TurboSigningEmitterEventArgs = {}) {
     super();
     if (onSigningProgress !== undefined) {
@@ -232,6 +241,9 @@ export class SigningEmitter extends TurboEmitter<TurboSigningEventsAndPayloads> 
     }
     if (onSigningError !== undefined) {
       this.on('signing-error', onSigningError);
+    }
+    if (onSigningSuccess !== undefined) {
+      this.on('signing-success', onSigningSuccess);
     }
   }
 }
@@ -254,6 +266,7 @@ export function createStreamWithUploadEvents({
     eventNamesMap: {
       'on-progress': 'upload-progress',
       'on-error': 'upload-error',
+      'on-end': 'upload-success',
     },
   });
 }
@@ -275,6 +288,7 @@ export function createStreamWithSigningEvents({
     eventNamesMap: {
       'on-progress': 'signing-progress',
       'on-error': 'signing-error',
+      'on-end': 'signing-success',
     },
   });
 }

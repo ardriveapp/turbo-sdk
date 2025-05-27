@@ -55,7 +55,20 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-    events = {},
+    events = {
+      onSigningProgress: (event) => {
+        this.logger.debug('Signing progress...', {
+          totalBytes: event.totalBytes,
+          processedBytes: event.processedBytes,
+        });
+      },
+      onSigningError: (error) => {
+        this.logger.error('Signing error...', { error });
+      },
+      onSigningSuccess: () => {
+        this.logger.debug('Signing successful...');
+      },
+    },
   }: TurboFileFactory<NodeFileStreamFactory> &
     TurboSigningEmitterEvents): Promise<{
     dataItemStreamFactory: () => Readable;

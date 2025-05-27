@@ -78,13 +78,15 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     // Create signing emitter if events are provided
     const signingEmitter = new SigningEmitter(events);
     const fileSize = fileSizeFactory();
+    console.log('herherherhehr', events);
+    console.log('signingEmitter', signingEmitter);
 
     try {
       const fileStream = fileStreamFactory();
 
       // start with 0 progress
       signingEmitter.emit('signing-progress', {
-        signedBytes: 0,
+        processedBytes: 0,
         totalBytes: fileSize,
       });
 
@@ -99,7 +101,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
       // TODO: replace this with streamSigner that uses a ReadableStream with events
       signingEmitter.emit('signing-progress', {
-        signedBytes: Math.floor(fileSize / 2),
+        processedBytes: Math.floor(fileSize / 2),
         totalBytes: fileSize,
       });
 
@@ -129,7 +131,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
       // emit completion progress (100%)
       signingEmitter.emit('signing-progress', {
-        signedBytes: fileSize,
+        processedBytes: fileSize,
         totalBytes: fileSize,
       });
 

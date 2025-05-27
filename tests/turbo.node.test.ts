@@ -605,12 +605,16 @@ describe('Node environment', () => {
         for (const dataItemOpts of validDataItemOpts) {
           it(`should properly upload a ${label} to turbo with events`, async () => {
             let uploadProgressCalled = false;
+            let signingProgressCalled = false;
             const response = await turbo.upload({
               data: input,
               dataItemOpts,
               events: {
                 onUploadProgress: () => {
                   uploadProgressCalled = true;
+                },
+                onSigningProgress: () => {
+                  signingProgressCalled = true;
                 },
               },
             });
@@ -621,6 +625,7 @@ describe('Node environment', () => {
             expect(response).to.have.property('owner');
             expect(response['owner']).to.equal(testArweaveNativeB64Address);
             expect(uploadProgressCalled).to.be.true;
+            expect(signingProgressCalled).to.be.true;
           });
         }
       }
@@ -774,6 +779,7 @@ describe('Node environment', () => {
       for (const dataItemOpts of validDataItemOpts) {
         it('should properly upload a Readable to turbo with events', async () => {
           let uploadProgressCalled = false;
+          let signingProgressCalled = false;
           const fileSize = fs.statSync(oneKiBFilePath).size;
           const response = await turbo.uploadFile({
             fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
@@ -782,6 +788,9 @@ describe('Node environment', () => {
             events: {
               onUploadProgress: () => {
                 uploadProgressCalled = true;
+              },
+              onSigningProgress: () => {
+                signingProgressCalled = true;
               },
             },
           });
@@ -792,6 +801,7 @@ describe('Node environment', () => {
           expect(response).to.have.property('owner');
           expect(response['owner']).to.equal(testArweaveNativeB64Address);
           expect(uploadProgressCalled).to.be.true;
+          expect(signingProgressCalled).to.be.true;
         });
       }
 
@@ -1117,12 +1127,16 @@ describe('Node environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let signingProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
           onUploadProgress: () => {
             uploadProgressCalled = true;
+          },
+          onSigningProgress: () => {
+            signingProgressCalled = true;
           },
         },
       });
@@ -1133,6 +1147,8 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
       expect(uploadProgressCalled).to.be.true;
+      // Since this is already signed, signing progress won't be called
+      expect(signingProgressCalled).to.be.false;
     });
 
     it.skip('should topUpWithTokens() to an ETH wallet', async () => {
@@ -1208,12 +1224,16 @@ describe('Node environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let signingProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
           onUploadProgress: () => {
             uploadProgressCalled = true;
+          },
+          onSigningProgress: () => {
+            signingProgressCalled = true;
           },
         },
       });
@@ -1224,6 +1244,8 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testSolAddressBase64);
       expect(uploadProgressCalled).to.be.true;
+      // Since this is already signed, signing progress won't be called
+      expect(signingProgressCalled).to.be.false;
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {
@@ -1286,12 +1308,16 @@ describe('Node environment', () => {
     it('should properly upload a Readable to turbo with events', async () => {
       const fileSize = fs.statSync(oneKiBFilePath).size;
       let uploadProgressCalled = false;
+      let signingProgressCalled = false;
       const response = await turbo.uploadFile({
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
         events: {
           onUploadProgress: () => {
             uploadProgressCalled = true;
+          },
+          onSigningProgress: () => {
+            signingProgressCalled = true;
           },
         },
       });
@@ -1301,6 +1327,7 @@ describe('Node environment', () => {
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(base64KyveAddress);
       expect(uploadProgressCalled).to.be.true;
+      expect(signingProgressCalled).to.be.true;
     });
 
     it('should properly upload a Buffer to turbo with events', async () => {
@@ -1308,12 +1335,16 @@ describe('Node environment', () => {
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
+      let signingProgressCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
         events: {
           onUploadProgress: () => {
             uploadProgressCalled = true;
+          },
+          onSigningProgress: () => {
+            signingProgressCalled = true;
           },
         },
       });
@@ -1323,6 +1354,9 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(base64KyveAddress);
+      expect(uploadProgressCalled).to.be.true;
+      // Since this is already signed, signing progress won't be called
+      expect(signingProgressCalled).to.be.false;
     });
 
     it('should get a checkout session with kyve token', async () => {

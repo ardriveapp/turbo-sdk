@@ -45,6 +45,7 @@ import {
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
+  TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
   TurboUploadFolderParams,
@@ -285,7 +286,7 @@ export class TurboAuthenticatedClient
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.upload({ data, dataItemOpts, signal, events });
   }
 
@@ -300,7 +301,7 @@ export class TurboAuthenticatedClient
     events,
   }: TurboFileFactory &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadFile({
       fileStreamFactory,
       fileSizeFactory,

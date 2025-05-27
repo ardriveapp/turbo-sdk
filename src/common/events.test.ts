@@ -179,6 +179,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as Readable;
 
@@ -222,6 +223,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as Readable;
 
@@ -282,6 +284,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as ReadableStream;
 
@@ -323,6 +326,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as ReadableStream;
 
@@ -357,6 +361,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': 'test-progress',
           'on-error': 'test-error',
+          'on-end': 'test-end',
         },
       });
     }, /Invalid data or platform type/);
@@ -533,6 +538,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as Readable;
 
@@ -576,6 +582,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as Readable;
 
@@ -638,6 +645,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as ReadableStream;
 
@@ -679,6 +687,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': progressEventName,
           'on-error': errorEventName,
+          'on-end': 'test-end',
         },
       }) as ReadableStream;
 
@@ -713,6 +722,7 @@ describe('createStreamWithEvents', () => {
         eventNamesMap: {
           'on-progress': 'test-progress',
           'on-error': 'test-error',
+          'on-end': 'test-end',
         },
       });
     }, /Invalid data or platform type/);

@@ -43,16 +43,6 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       axiosConfig: {
         baseURL: url,
         maxRedirects: 0, // prevents backpressure issues when uploading larger streams via https
-        onUploadProgress: (progressEvent) => {
-          this.logger.debug(`Uploading...`, {
-            percent: Math.floor((progressEvent.progress ?? 0) * 100),
-            loaded: `${progressEvent.loaded} bytes`,
-            total: `${progressEvent.total} bytes`,
-          });
-          if (progressEvent.progress === 1) {
-            this.logger.debug(`Upload complete!`);
-          }
-        },
       },
       retryConfig,
       logger: this.logger,
