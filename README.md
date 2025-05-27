@@ -20,7 +20,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboFactory](#turbofactory)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
-  - [Events](#events)
+- [Events](#events)
 - [Logging](#logging)
 - [CLI](#cli)
   - [Installation](#installation-1)
