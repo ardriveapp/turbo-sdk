@@ -78,8 +78,6 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     // Create signing emitter if events are provided
     const signingEmitter = new SigningEmitter(events);
     const fileSize = fileSizeFactory();
-    console.log('herherherhehr', events);
-    console.log('signingEmitter', signingEmitter);
 
     try {
       const fileStream = fileStreamFactory();
