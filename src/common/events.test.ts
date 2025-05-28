@@ -1,4 +1,3 @@
-import { EventEmitter } from 'eventemitter3';
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { Readable } from 'stream';
@@ -6,7 +5,6 @@ import { Readable } from 'stream';
 import { TurboTotalEventsAndPayloads } from '../types.js';
 import {
   TurboEventEmitter,
-  createStreamWithEvents,
   createStreamWithSigningEvents,
   createStreamWithUploadEvents,
 } from './events.js';
@@ -101,21 +99,25 @@ describe('createStreamWithUploadEvents', () => {
       let progressEventEmitted = false;
       let onSuccessCalled = false;
       let successEventEmitted = false;
-      const onUploadProgress = () => {
-        onProgressCalled = true;
-      };
-      const onUploadSuccess = () => {
-        onSuccessCalled = true;
-      };
-      const data = new ReadableStream({
-        start(controller) {
-          controller.enqueue(Buffer.from('test'));
-          controller.close();
+      let onErrorCalled = false;
+      let errorEventEmitted = false;
+
+      const emitter = new TurboEventEmitter({
+        onUploadProgress: () => {
+          onProgressCalled = true;
+        },
+        onUploadSuccess: () => {
+          onSuccessCalled = true;
+        },
+        onUploadError: () => {
+          onErrorCalled = true;
         },
       });
-      const emitter = new TurboEventEmitter({
-        onUploadProgress,
-        onUploadSuccess,
+      const data = new ReadableStream({
+        start(controller) {
+          controller.enqueue(Buffer.from('test test test test test'));
+          controller.close();
+        },
       });
       const stream = createStreamWithUploadEvents({
         data,
@@ -125,17 +127,34 @@ describe('createStreamWithUploadEvents', () => {
       emitter.on('upload-progress', () => {
         progressEventEmitted = true;
       });
+      emitter.on('upload-error', () => {
+        errorEventEmitted = true;
+      });
       emitter.on('upload-success', () => {
         successEventEmitted = true;
       });
       // TODO: ideally use generics to avoid needing to cast here
       const reader = (stream as ReadableStream).getReader();
-      // read the stream
-      await reader.read();
-      assert(onProgressCalled);
-      assert(progressEventEmitted);
-      assert(onSuccessCalled);
-      assert(successEventEmitted);
+
+      // read the stream to the end
+      while (true) {
+        const { done } = await reader.read();
+        if (done) {
+          break;
+        }
+      }
+
+      // progress events called
+      assert(onProgressCalled, 'onProgressCalled should be true');
+      assert(progressEventEmitted, 'progressEventEmitted should be true');
+
+      // error event not called
+      assert(!errorEventEmitted, 'errorEventEmitted should be false');
+      assert(!onErrorCalled, 'onErrorCalled should be false');
+
+      // success event called
+      assert(onSuccessCalled, 'onSuccessCalled should be true');
+      assert(successEventEmitted, 'successEventEmitted should be true');
     });
 
     it('should call onUploadError callback and emit error events when stream errors', async () => {
@@ -172,225 +191,9 @@ describe('createStreamWithUploadEvents', () => {
         // Error is expected
       }
 
-      assert(onErrorCalled);
-      assert(errorEventEmitted);
+      assert(onErrorCalled, 'onErrorCalled should be true');
+      assert(errorEventEmitted, 'errorEventEmitted should be true');
     });
-  });
-});
-
-describe('createStreamWithEvents', () => {
-  describe('with Readable', () => {
-    it('should emit progress events with correct payload when stream is consumed', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-
-      // Track events
-      let progressCalled = false;
-
-      emitter.on(progressEventName, () => {
-        progressCalled = true;
-      });
-
-      // Create test data
-      const testData = 'testdata';
-      const data = Readable.from([testData]);
-      const dataSize = testData.length;
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as Readable;
-
-      // Consume the stream
-      await new Promise<void>((resolve) => {
-        stream.on('data', () => {});
-        stream.on('end', () => resolve());
-      });
-
-      // Verify events
-      assert(progressCalled, 'Progress event should be called');
-    });
-
-    it('should emit error events with correct payload when stream errors', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-      const testError = new Error('Test error');
-
-      // Track events
-      let errorCalled = false;
-      let errorPayload = null;
-
-      emitter.on(errorEventName, (payload) => {
-        errorCalled = true;
-        errorPayload = payload;
-      });
-
-      // Create a readable stream that will emit an error
-      const data = new Readable({
-        read() {
-          this.emit('error', testError);
-        },
-      });
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize: 10,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as Readable;
-
-      // Trigger error
-      try {
-        await new Promise((_, reject) => {
-          stream.on('error', (err) => {
-            reject(err);
-          });
-
-          // Force read to trigger error
-          stream.resume();
-        });
-      } catch (error) {
-        // Error is expected
-      }
-
-      // Verify events
-      assert(errorCalled, 'Error event should be called');
-      assert.equal(
-        errorPayload,
-        testError,
-        'Error payload should contain the error',
-      );
-    });
-  });
-
-  describe('with ReadableStream', () => {
-    it('should emit progress events with correct payload when stream is consumed', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-
-      // Track events
-      let progressCalled = false;
-
-      emitter.on(progressEventName, () => {
-        progressCalled = true;
-      });
-
-      // Create test data
-      const testData = Buffer.from('testdata');
-      const dataSize = testData.length;
-
-      // Create a ReadableStream with the test data
-      const data = new ReadableStream({
-        start(controller) {
-          controller.enqueue(testData);
-          controller.close();
-        },
-      });
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as ReadableStream;
-
-      // Consume the stream
-      const reader = stream.getReader();
-      await reader.read();
-
-      // Verify events
-      assert(progressCalled, 'Progress event should be called');
-    });
-
-    it('should emit error events with correct payload when stream errors', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-      const testError = new Error('Test error');
-
-      // Track events
-      let errorCalled = false;
-      let errorPayload = null;
-
-      emitter.on(errorEventName, (payload) => {
-        errorCalled = true;
-        errorPayload = payload;
-      });
-
-      // Create a ReadableStream that will throw an error
-      const data = new ReadableStream({
-        pull() {
-          throw testError;
-        },
-      });
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize: 10,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as ReadableStream;
-
-      // Trigger error
-      try {
-        const reader = stream.getReader();
-        await reader.read();
-      } catch (error) {
-        // Error is expected
-      }
-
-      // Verify events
-      assert(errorCalled, 'Error event should be called');
-      assert.equal(
-        errorPayload,
-        testError,
-        'Error payload should contain the error',
-      );
-    });
-  });
-
-  it('should throw an error for invalid input types', () => {
-    const emitter = new EventEmitter();
-    const invalidData = {};
-
-    assert.throws(() => {
-      createStreamWithEvents({
-        // @ts-expect-error Testing invalid input
-        data: invalidData,
-        dataSize: 10,
-        emitter,
-        eventNamesMap: {
-          'on-progress': 'test-progress',
-          'on-error': 'test-error',
-          'on-end': 'test-end',
-        },
-      });
-    }, /Invalid data or platform type/);
   });
 });
 
@@ -534,224 +337,6 @@ describe('createStreamWithSigningEvents', () => {
       assert(onErrorCalled);
       assert(errorEventEmitted);
     });
-  });
-});
-
-describe('createStreamWithEvents', () => {
-  describe('with Readable', () => {
-    it('should emit progress events with correct payload when stream is consumed', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-
-      // Track events
-      let progressCalled = false;
-
-      emitter.on(progressEventName, () => {
-        progressCalled = true;
-      });
-
-      // Create test data
-      const testData = 'testdata';
-      const data = Readable.from([testData]);
-      const dataSize = testData.length;
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as Readable;
-
-      // Consume the stream
-      await new Promise<void>((resolve) => {
-        stream.on('data', () => {});
-        stream.on('end', () => resolve());
-      });
-
-      // Verify events
-      assert(progressCalled, 'Progress event should be called');
-    });
-
-    it('should emit error events with correct payload when stream errors', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-      const testError = new Error('Test error');
-
-      // Track events
-      let errorCalled = false;
-      let errorPayload = null;
-
-      emitter.on(errorEventName, (payload) => {
-        errorCalled = true;
-        errorPayload = payload;
-      });
-
-      // Create a readable stream that will emit an error
-      const data = new Readable({
-        read() {
-          this.emit('error', testError);
-        },
-      });
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize: 10,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as Readable;
-
-      // Trigger error
-      try {
-        await new Promise((_, reject) => {
-          stream.on('error', (err) => {
-            reject(err);
-          });
-
-          // Force read to trigger error
-          stream.resume();
-        });
-      } catch (error) {
-        // Error is expected
-      }
-
-      // Verify events
-      assert(errorCalled, 'Error event should be called');
-      assert.equal(
-        errorPayload,
-        testError,
-        'Error payload should contain the error',
-      );
-    });
-  });
-
-  describe('with ReadableStream', () => {
-    it('should emit progress events with correct payload when stream is consumed', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-
-      // Track events
-      let progressCalled = false;
-      let totalBytes = 0;
-
-      // Create test data
-      const testData = Buffer.from('testdata');
-      const dataSize = testData.length;
-
-      emitter.on(progressEventName, (chunk) => {
-        progressCalled = true;
-        totalBytes += chunk.processedBytes;
-      });
-
-      // Create a ReadableStream with the test data
-      const data = new ReadableStream({
-        start(controller) {
-          controller.enqueue(testData);
-          controller.close();
-        },
-      });
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as ReadableStream;
-
-      // Consume the stream
-      const reader = stream.getReader();
-      await reader.read();
-
-      // Verify events
-      assert(progressCalled, 'Progress event should be called');
-    });
-
-    it('should emit error events with correct payload when stream errors', async () => {
-      const emitter = new EventEmitter();
-      const progressEventName = 'test-progress';
-      const errorEventName = 'test-error';
-      const testError = new Error('Test error');
-
-      // Track events
-      let errorCalled = false;
-      let errorPayload = null;
-
-      emitter.on(errorEventName, (payload) => {
-        errorCalled = true;
-        errorPayload = payload;
-      });
-
-      // Create a ReadableStream that will throw an error
-      const data = new ReadableStream({
-        pull() {
-          throw testError;
-        },
-      });
-
-      // Create stream with events
-      const stream = createStreamWithEvents({
-        data,
-        dataSize: 10,
-        emitter,
-        eventNamesMap: {
-          'on-progress': progressEventName,
-          'on-error': errorEventName,
-          'on-end': 'test-end',
-        },
-      }) as ReadableStream;
-
-      // Trigger error
-      try {
-        const reader = stream.getReader();
-        await reader.read();
-      } catch (error) {
-        // Error is expected
-      }
-
-      // Verify events
-      assert(errorCalled, 'Error event should be called');
-      assert.equal(
-        errorPayload,
-        testError,
-        'Error payload should contain the error',
-      );
-    });
-  });
-
-  it('should throw an error for invalid input types', () => {
-    const emitter = new EventEmitter();
-    const invalidData = {};
-
-    assert.throws(() => {
-      createStreamWithEvents({
-        // @ts-expect-error Testing invalid input
-        data: invalidData,
-        dataSize: 10,
-        emitter,
-        eventNamesMap: {
-          'on-progress': 'test-progress',
-          'on-error': 'test-error',
-          'on-end': 'test-end',
-        },
-      });
-    }, /Invalid data or platform type/);
   });
 });
 

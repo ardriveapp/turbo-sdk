@@ -53,11 +53,20 @@ function createReadableStreamWithEvents({
 }: {
   data: Buffer | ReadableStream;
   dataSize: number;
-  emitter: EventEmitter;
+  emitter: TurboEventEmitter;
   eventNamesMap: {
-    'on-progress': string;
-    'on-error': string;
-    'on-end': string;
+    'on-progress':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
+    'on-error':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
+    'on-end':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
   };
 }): ReadableStream {
   const originalStream =
@@ -115,11 +124,20 @@ function createReadableWithEvents({
 }: {
   data: Readable | Buffer;
   dataSize: number;
-  emitter: EventEmitter;
+  emitter: TurboEventEmitter;
   eventNamesMap: {
-    'on-progress': string;
-    'on-error': string;
-    'on-end': string;
+    'on-progress':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
+    'on-error':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
+    'on-end':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
   };
 }): Readable {
   const existingStream = data instanceof Readable ? data : Readable.from(data);
@@ -165,11 +183,20 @@ export function createStreamWithEvents({
 }: {
   data: Readable | Buffer | ReadableStream;
   dataSize: number;
-  emitter: EventEmitter;
+  emitter: TurboEventEmitter;
   eventNamesMap: {
-    'on-progress': string;
-    'on-error': string;
-    'on-end': string;
+    'on-progress':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
+    'on-error':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
+    'on-end':
+      | keyof TurboUploadEventsAndPayloads
+      | keyof TurboSigningEventsAndPayloads
+      | keyof TurboTotalEventsAndPayloads;
   };
 }): Readable | ReadableStream {
   if (
