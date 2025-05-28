@@ -3,6 +3,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 import { Readable } from 'stream';
 
+import { TurboTotalEventsAndPayloads } from '../types.js';
 import {
   TurboEventEmitter,
   createStreamWithEvents,
@@ -12,13 +13,21 @@ import {
 
 describe('createStreamWithUploadEvents', () => {
   describe('Readable', () => {
-    it('should call onUploadProgress callback and emit progress events when stream is consumed', async () => {
+    it('should call onUploadProgress and onUploadSuccess callback and emit progress events when stream is consumed', async () => {
       let onProgressCalled = false;
       let progressEventEmitted = false;
+      let onSuccessCalled = false;
+      let successEventEmitted = false;
       const onUploadProgress = () => {
         onProgressCalled = true;
       };
-      const emitter = new TurboEventEmitter({ onUploadProgress });
+      const onUploadSuccess = () => {
+        onSuccessCalled = true;
+      };
+      const emitter = new TurboEventEmitter({
+        onUploadProgress,
+        onUploadSuccess,
+      });
       const data = Readable.from(['test']);
       // we test this way so that we know when others read the stream, it will emit the event
       const stream = createStreamWithUploadEvents({
@@ -29,6 +38,9 @@ describe('createStreamWithUploadEvents', () => {
       emitter.on('upload-progress', () => {
         progressEventEmitted = true;
       });
+      emitter.on('upload-success', () => {
+        successEventEmitted = true;
+      });
       // TODO: ideally use generics to avoid needing to cast here
       // consume the stream using promises
       await new Promise((resolve) => {
@@ -38,6 +50,8 @@ describe('createStreamWithUploadEvents', () => {
       });
       assert(onProgressCalled);
       assert(progressEventEmitted);
+      assert(onSuccessCalled);
+      assert(successEventEmitted);
     });
 
     it('should call onUploadError callback and emit error events when stream errors', async () => {
@@ -82,11 +96,16 @@ describe('createStreamWithUploadEvents', () => {
   });
 
   describe('ReadableStream', () => {
-    it('should call onUploadProgress callback and emit progress events when stream is consumed', async () => {
+    it('should call onUploadProgress and onUploadSuccess callback and emit progress events when stream is consumed', async () => {
       let onProgressCalled = false;
       let progressEventEmitted = false;
+      let onSuccessCalled = false;
+      let successEventEmitted = false;
       const onUploadProgress = () => {
         onProgressCalled = true;
+      };
+      const onUploadSuccess = () => {
+        onSuccessCalled = true;
       };
       const data = new ReadableStream({
         start(controller) {
@@ -94,7 +113,10 @@ describe('createStreamWithUploadEvents', () => {
           controller.close();
         },
       });
-      const emitter = new TurboEventEmitter({ onUploadProgress });
+      const emitter = new TurboEventEmitter({
+        onUploadProgress,
+        onUploadSuccess,
+      });
       const stream = createStreamWithUploadEvents({
         data,
         dataSize: 4,
@@ -103,12 +125,17 @@ describe('createStreamWithUploadEvents', () => {
       emitter.on('upload-progress', () => {
         progressEventEmitted = true;
       });
+      emitter.on('upload-success', () => {
+        successEventEmitted = true;
+      });
       // TODO: ideally use generics to avoid needing to cast here
       const reader = (stream as ReadableStream).getReader();
       // read the stream
       await reader.read();
       assert(onProgressCalled);
       assert(progressEventEmitted);
+      assert(onSuccessCalled);
+      assert(successEventEmitted);
     });
 
     it('should call onUploadError callback and emit error events when stream errors', async () => {
@@ -725,5 +752,92 @@ describe('createStreamWithEvents', () => {
         },
       });
     }, /Invalid data or platform type/);
+  });
+});
+
+describe('TurboEventEmitter', () => {
+  it('should emit overall-success event when upload-success event is emitted', () => {
+    const emitter = new TurboEventEmitter();
+    let overallSuccessCalled = false;
+    emitter.on('overall-success', () => {
+      overallSuccessCalled = true;
+    });
+    emitter.emit('upload-success');
+    assert(overallSuccessCalled);
+  });
+  it('should emit progress events when signing-progress event is emitted', () => {
+    const emitter = new TurboEventEmitter();
+
+    let overallProgressCalled = false;
+    let overallProgressPayload:
+      | TurboTotalEventsAndPayloads['overall-progress']
+      | undefined;
+    emitter.on('overall-progress', (event) => {
+      overallProgressCalled = true;
+      overallProgressPayload = event;
+    });
+    emitter.emit('signing-progress', {
+      processedBytes: 100,
+      totalBytes: 1000,
+    });
+    assert(overallProgressCalled);
+    assert.equal(overallProgressPayload?.processedBytes, 50);
+    assert.equal(overallProgressPayload?.totalBytes, 1000);
+    assert.equal(overallProgressPayload?.step, 'signing');
+  });
+
+  it('should emit error events when signing-error event is emitted', () => {
+    const emitter = new TurboEventEmitter();
+    const testError = new Error('Signing error');
+    let overallErrorCalled = false;
+    let overallErrorPayload:
+      | TurboTotalEventsAndPayloads['overall-error']
+      | undefined;
+    emitter.on('overall-error', (event) => {
+      overallErrorCalled = true;
+      overallErrorPayload = event;
+    });
+    emitter.emit('signing-error', {
+      error: testError,
+    });
+    assert(overallErrorCalled);
+    assert.deepStrictEqual(overallErrorPayload?.error, testError);
+  });
+
+  it('should emit error events when upload-error event is emitted', () => {
+    const emitter = new TurboEventEmitter();
+    const testError = new Error('Upload error');
+    let overallErrorCalled = false;
+    let overallErrorPayload:
+      | TurboTotalEventsAndPayloads['overall-error']
+      | undefined;
+    emitter.on('overall-error', (event) => {
+      overallErrorCalled = true;
+      overallErrorPayload = event;
+    });
+    emitter.emit('upload-error', {
+      error: testError,
+    });
+    assert(overallErrorCalled);
+    assert.deepStrictEqual(overallErrorPayload?.error, testError);
+  });
+  it('should emit progress events when upload-progress event is emitted', () => {
+    const emitter = new TurboEventEmitter();
+    let overallProgressCalled = false;
+    let overallProgressPayload:
+      | TurboTotalEventsAndPayloads['overall-progress']
+      | undefined;
+    emitter.on('overall-progress', (event) => {
+      overallProgressCalled = true;
+      overallProgressPayload = event;
+    });
+    emitter.emit('upload-progress', {
+      processedBytes: 100,
+      totalBytes: 1000,
+    });
+    assert(overallProgressCalled);
+    assert.equal(overallProgressPayload?.processedBytes, 500 + 100 / 2);
+    assert.equal(overallProgressPayload?.totalBytes, 1000);
+    assert.equal(overallProgressPayload?.step, 'upload');
   });
 });
