@@ -68,26 +68,32 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
 
     // If we have a signing emitter, wrap the stream with events
     const fileSize = fileSizeFactory();
-    const streamWithSigningEvents = createStreamWithSigningEvents({
-      data: stream1,
-      dataSize: fileSize,
-      emitter,
-    }) as Readable; // TODO: use generics to avoid this cast
+    const { stream: streamWithSigningEvents, resume } =
+      createStreamWithSigningEvents({
+        data: stream1,
+        dataSize: fileSize,
+        emitter,
+      });
 
     try {
-      const signedDataItem = await streamSigner(
-        streamWithSigningEvents,
+      const signedDataItemPromise = streamSigner(
+        streamWithSigningEvents as unknown as Readable, // TODO: use generics to avoid this cast
         stream2,
         this.signer,
         dataItemOpts,
       );
       this.logger.debug('Successfully signed data item...');
 
+      // resume the stream so events start flowing to the streamSigner
+      resume();
+
       // TODO: support target, anchor, and tags
       const signedDataItemSize = this.calculateSignedDataHeadersSize({
         dataSize: fileSizeFactory(),
         dataItemOpts,
       });
+
+      const signedDataItem = await signedDataItemPromise;
 
       return {
         dataItemStreamFactory: () => signedDataItem,

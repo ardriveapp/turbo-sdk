@@ -1217,6 +1217,7 @@ describe('Node environment', () => {
       let signingProgressCalled = false;
       let signingErrorCalled = false;
       let signingSuccessCalled = false;
+
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
@@ -1250,6 +1251,7 @@ describe('Node environment', () => {
       expect(response).to.have.property('dataCaches');
       expect(response).to.have.property('owner');
       expect(response['owner']).to.equal(testEthAddressBase64);
+      expect(response['id']).to.equal(signedDataItem.id);
 
       // upload events
       expect(uploadProgressCalled).to.be.true;

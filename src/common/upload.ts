@@ -97,14 +97,15 @@ export class TurboUnauthenticatedUploadService
     const emitter = new TurboEventEmitter(events);
 
     // create the stream with upload events
-    const streamWithUploadEvents = createStreamWithUploadEvents({
-      data: dataItemStreamFactory(),
-      dataSize: fileSize,
-      emitter,
-    });
+    const { stream: streamWithUploadEvents, resume } =
+      createStreamWithUploadEvents({
+        data: dataItemStreamFactory(),
+        dataSize: fileSize,
+        emitter,
+      });
 
-    // TODO: add p-limit constraint or replace with separate upload class
-    return this.httpService.post<TurboUploadDataItemResponse>({
+    // setup the post request using the stream with upload events
+    const postPromise = this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: streamWithUploadEvents,
@@ -113,6 +114,11 @@ export class TurboUnauthenticatedUploadService
         'content-length': `${fileSize}`,
       },
     });
+
+    // resume the stream so events start flowing to the post
+    resume();
+
+    return postPromise;
   }
 }
 
@@ -226,19 +232,13 @@ export abstract class TurboAuthenticatedBaseUploadService
           }
         }
 
-        const streamWithUploadEvents = createStreamWithUploadEvents({
-          data: dataItemStreamFactory(),
-          dataSize: dataItemSizeFactory(),
-          emitter,
-        });
-        // wonder if we have repeated code here, could use the uploadSignedDataItem method
-        const data = await this.httpService.post<TurboUploadDataItemResponse>({
-          endpoint: `/tx/${this.token}`,
+        // now that is signed, use the signed data item and uploadSignedDataItem method to upload
+        return this.uploadSignedDataItem({
+          dataItemStreamFactory,
+          dataItemSizeFactory,
           signal,
-          data: streamWithUploadEvents,
-          headers,
+          events,
         });
-        return data;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;

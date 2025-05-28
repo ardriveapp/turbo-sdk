@@ -68,7 +68,7 @@ function createReadableStreamWithEvents({
       | keyof TurboSigningEventsAndPayloads
       | keyof TurboTotalEventsAndPayloads;
   };
-}): ReadableStream {
+}): { stream: ReadableStream; resume: () => void } {
   const originalStream =
     data instanceof ReadableStream
       ? data
@@ -81,7 +81,7 @@ function createReadableStreamWithEvents({
 
   let processedBytes = 0;
   let reader;
-  return new ReadableStream({
+  const stream = new ReadableStream({
     start() {
       reader = originalStream.getReader();
     },
@@ -111,10 +111,43 @@ function createReadableStreamWithEvents({
       return reader.cancel(reason);
     },
   });
+
+  return {
+    stream,
+    resume: () => void 0, // not needed for ReadableStreams but stubbed out for type compatibility
+  };
 }
 
 /**
- * Creates an eventing Readable stream that emits progress and error events
+ * Creates an eventing Readable stream that emits progress and error events.
+ *
+ * NOTE: When dealing ith Readable streams, any downstream consumer stream will need to call `resume()` once the consumer is properly set up.
+ * If we were to call it internally here, bytes would start flowing due to the configured 'data' event listener.
+ * For ReadableStreams, this is not a concern, so we stub out the resume function
+ *
+ * Example usage:
+ *
+ * ```ts
+ * const { stream, resume } = createReadableWithEvents({
+ *   data,
+ *   dataSize,
+ *   emitter,
+ *   eventNamesMap,
+ * });
+ *
+ * // setup any promise that will consume the stream (e.g. a POST request)
+ * const promise = new Promise((resolve, reject) => {
+ *   stream.on('data', (chunk) => {
+ *     resolve(chunk);
+ *   });
+ * });
+ *
+ * // allow bytes to start flowing so the promise gets the data
+ * resume();
+ *
+ * // wait for the promise to resolve
+ * const result = await promise;
+ * ```
  */
 function createReadableWithEvents({
   data,
@@ -139,7 +172,7 @@ function createReadableWithEvents({
       | keyof TurboSigningEventsAndPayloads
       | keyof TurboTotalEventsAndPayloads;
   };
-}): Readable {
+}): { stream: Readable; resume: () => void } {
   const existingStream = data instanceof Readable ? data : Readable.from(data);
   const eventingStream = new PassThrough();
 
@@ -167,9 +200,11 @@ function createReadableWithEvents({
     eventingStream.destroy(error);
   });
 
-  // resume the stream to start emitting progress events
-  existingStream.resume();
-  return eventingStream;
+  return {
+    stream: eventingStream,
+    // allows bytes to start flowing from the original stream when the consumer is ready
+    resume: () => existingStream.resume(),
+  };
 }
 
 /**
@@ -198,7 +233,7 @@ export function createStreamWithEvents({
       | keyof TurboSigningEventsAndPayloads
       | keyof TurboTotalEventsAndPayloads;
   };
-}): Readable | ReadableStream {
+}): { stream: Readable | ReadableStream; resume: () => void } {
   if (
     data instanceof ReadableStream ||
     (typeof window !== 'undefined' && data instanceof Buffer)
@@ -316,7 +351,7 @@ export function createStreamWithUploadEvents({
   data: Readable | Buffer | ReadableStream;
   dataSize: number;
   emitter?: TurboEventEmitter;
-}) {
+}): { stream: Readable | ReadableStream; resume: () => void } {
   return createStreamWithEvents({
     data,
     dataSize,
@@ -337,7 +372,7 @@ export function createStreamWithSigningEvents({
   data: Readable | Buffer | ReadableStream;
   dataSize: number;
   emitter?: TurboEventEmitter;
-}): Readable | ReadableStream {
+}): { stream: Readable | ReadableStream; resume: () => void } {
   return createStreamWithEvents({
     data,
     dataSize,

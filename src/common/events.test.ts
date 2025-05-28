@@ -1,6 +1,6 @@
+import { describe, it } from 'mocha';
 import { strict as assert } from 'node:assert';
-import { describe, it } from 'node:test';
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 
 import { TurboTotalEventsAndPayloads } from '../types.js';
 import {
@@ -16,22 +16,21 @@ describe('createStreamWithUploadEvents', () => {
       let progressEventEmitted = false;
       let onSuccessCalled = false;
       let successEventEmitted = false;
-      const onUploadProgress = () => {
-        onProgressCalled = true;
-      };
-      const onUploadSuccess = () => {
-        onSuccessCalled = true;
-      };
+
       const emitter = new TurboEventEmitter({
-        onUploadProgress,
-        onUploadSuccess,
+        onUploadProgress: () => {
+          onProgressCalled = true;
+        },
+        onUploadSuccess: () => {
+          onSuccessCalled = true;
+        },
       });
-      const data = Readable.from(['test']);
-      // we test this way so that we know when others read the stream, it will emit the event
-      const stream = createStreamWithUploadEvents({
-        data,
-        dataSize: 4,
-        emitter,
+
+      const data = new Readable({
+        read() {
+          this.push(Buffer.from('test'));
+          this.push(null); // End the stream
+        },
       });
       emitter.on('upload-progress', () => {
         progressEventEmitted = true;
@@ -39,27 +38,48 @@ describe('createStreamWithUploadEvents', () => {
       emitter.on('upload-success', () => {
         successEventEmitted = true;
       });
-      // TODO: ideally use generics to avoid needing to cast here
-      // consume the stream using promises
-      await new Promise((resolve) => {
+
+      const { stream, resume } = createStreamWithUploadEvents({
+        data,
+        dataSize: 4,
+        emitter,
+      });
+
+      // Promise that resolves when all events have fired
+      const streamConsumerPromise = new Promise<void>((resolve) => {
         (stream as Readable).on('data', () => {
-          resolve(true);
+          // data starts flowing through the stream
+        });
+        (stream as Readable).on('end', () => {
+          resolve();
+        });
+        (stream as Readable).on('error', (error: Error) => {
+          throw error;
         });
       });
-      assert(onProgressCalled);
-      assert(progressEventEmitted);
-      assert(onSuccessCalled);
-      assert(successEventEmitted);
+
+      // allow bytes to start flowing
+      resume();
+
+      // consume the full stream
+      await streamConsumerPromise;
+
+      // Assert that the events were called after the stream has been fully consumed
+      assert(onProgressCalled, 'onProgressCalled should be true');
+      assert(progressEventEmitted, 'progressEventEmitted should be true');
+      assert(onSuccessCalled, 'onSuccessCalled should be true');
+      assert(successEventEmitted, 'successEventEmitted should be true');
     });
 
     it('should call onUploadError callback and emit error events when stream errors', async () => {
       let onErrorCalled = false;
       let errorEventEmitted = false;
       const testError = new Error('Test error');
-      const onUploadError = () => {
-        onErrorCalled = true;
-      };
-      const emitter = new TurboEventEmitter({ onUploadError });
+      const emitter = new TurboEventEmitter({
+        onUploadError: () => {
+          onErrorCalled = true;
+        },
+      });
 
       // Create a readable stream that will emit an error
       const data = new Readable({
@@ -68,22 +88,28 @@ describe('createStreamWithUploadEvents', () => {
         },
       });
 
-      const stream = createStreamWithUploadEvents({
+      emitter.on('upload-error', () => {
+        errorEventEmitted = true;
+      });
+
+      const { stream, resume } = createStreamWithUploadEvents({
         data,
         dataSize: 10,
         emitter,
       });
 
-      emitter.on('upload-error', () => {
-        errorEventEmitted = true;
+      const streamErrorPromise = new Promise<void>((_, reject) => {
+        (stream as Readable).on('error', (error: Error) => {
+          reject(error);
+        });
       });
 
+      // allow bytes to start flowing
+      resume();
+
       try {
-        await new Promise((_, reject) => {
-          (stream as Readable).on('error', () => {
-            reject(testError);
-          });
-        });
+        // consume the full stream and wait for the error to be thrown
+        await streamErrorPromise;
       } catch (error) {
         // Error is expected
       }
@@ -119,7 +145,7 @@ describe('createStreamWithUploadEvents', () => {
           controller.close();
         },
       });
-      const stream = createStreamWithUploadEvents({
+      const { stream } = createStreamWithUploadEvents({
         data,
         dataSize: 4,
         emitter,
@@ -173,7 +199,7 @@ describe('createStreamWithUploadEvents', () => {
       });
 
       const emitter = new TurboEventEmitter({ onUploadError });
-      const stream = createStreamWithUploadEvents({
+      const { stream } = createStreamWithUploadEvents({
         data,
         dataSize: 4,
         emitter,
@@ -199,43 +225,77 @@ describe('createStreamWithUploadEvents', () => {
 
 describe('createStreamWithSigningEvents', () => {
   describe('Readable', () => {
-    it('should call onSigningProgress callback and emit progress events when stream is consumed', async () => {
+    it('should call onSigningProgress and onSigningSuccess callback and emit progress events when stream is consumed', async () => {
       let onProgressCalled = false;
       let progressEventEmitted = false;
-      const onSigningProgress = () => {
-        onProgressCalled = true;
-      };
-      const emitter = new TurboEventEmitter({ onSigningProgress });
-      const data = Readable.from(['test', 'test', 'test', 'test', 'test']); // needs to be big enough to trigger the event
-      // we test this way so that we know when others read the stream, it will emit the event
-      const stream = createStreamWithSigningEvents({
-        data,
-        dataSize: 50,
-        emitter,
+      let onErrorCalled = false;
+      let errorEventEmitted = false;
+      let onSuccessCalled = false;
+      let successEventEmitted = false;
+      const emitter = new TurboEventEmitter({
+        onSigningProgress: () => {
+          onProgressCalled = true;
+        },
+        onSigningError: () => {
+          onErrorCalled = true;
+        },
+        onSigningSuccess: () => {
+          onSuccessCalled = true;
+        },
       });
       emitter.on('signing-progress', () => {
         progressEventEmitted = true;
       });
+      emitter.on('signing-success', () => {
+        successEventEmitted = true;
+      });
+      emitter.on('signing-error', () => {
+        errorEventEmitted = true;
+      });
 
-      // consume the stream using promises
-      await new Promise((resolve) => {
+      const data = Readable.from(['test']);
+      const { stream, resume } = createStreamWithSigningEvents({
+        data,
+        dataSize: 50,
+        emitter,
+      });
+
+      // Promise that resolves when all events have fired
+      const streamConsumerPromise = new Promise<void>((resolve) => {
         (stream as Readable).on('data', () => {
-          resolve(true);
+          // data starts flowing through the stream
+        });
+        (stream as Readable).on('end', () => {
+          resolve();
+        });
+        (stream as Readable).on('error', (error: Error) => {
+          throw error;
         });
       });
 
+      // allow bytes to start flowing
+      resume();
+
+      // consume the full stream
+      await streamConsumerPromise;
+
       assert(onProgressCalled);
       assert(progressEventEmitted);
+      assert(onSuccessCalled);
+      assert(successEventEmitted);
+      assert(!onErrorCalled);
+      assert(!errorEventEmitted);
     });
 
     it('should call onSigningError callback and emit error events when stream errors', async () => {
       let onErrorCalled = false;
       let errorEventEmitted = false;
       const testError = new Error('Test error');
-      const onSigningError = () => {
-        onErrorCalled = true;
-      };
-      const emitter = new TurboEventEmitter({ onSigningError });
+      const emitter = new TurboEventEmitter({
+        onSigningError: () => {
+          onErrorCalled = true;
+        },
+      });
 
       // Create a readable stream that will emit an error
       const data = new Readable({
@@ -244,22 +304,28 @@ describe('createStreamWithSigningEvents', () => {
         },
       });
 
-      const stream = createStreamWithSigningEvents({
+      emitter.on('signing-error', () => {
+        errorEventEmitted = true;
+      });
+
+      const { stream, resume } = createStreamWithSigningEvents({
         data,
         dataSize: 10,
         emitter,
       });
 
-      emitter.on('signing-error', () => {
-        errorEventEmitted = true;
+      const streamErrorPromise = new Promise<void>((_, reject) => {
+        (stream as Readable).on('error', (error: Error) => {
+          reject(error);
+        });
       });
 
+      // allow bytes to start flowing
+      resume();
+
       try {
-        await new Promise((_, reject) => {
-          (stream as Readable).on('error', () => {
-            reject(testError);
-          });
-        });
+        // consume the full stream
+        await streamErrorPromise;
       } catch (error) {
         // Error is expected
       }
@@ -270,20 +336,31 @@ describe('createStreamWithSigningEvents', () => {
   });
 
   describe('ReadableStream', () => {
-    it('should call onSigningProgress callback and emit progress events when stream is consumed', async () => {
+    it('should call onSigningProgress and onSigningSuccess callback and emit progress events when stream is consumed', async () => {
       let onProgressCalled = false;
       let progressEventEmitted = false;
-      const onSigningProgress = () => {
-        onProgressCalled = true;
-      };
+      let onErrorCalled = false;
+      let errorEventEmitted = false;
+      let onSuccessCalled = false;
+      let successEventEmitted = false;
       const data = new ReadableStream({
         start(controller) {
           controller.enqueue(Buffer.from('test'));
           controller.close();
         },
       });
-      const emitter = new TurboEventEmitter({ onSigningProgress });
-      const stream = createStreamWithSigningEvents({
+      const emitter = new TurboEventEmitter({
+        onSigningProgress: () => {
+          onProgressCalled = true;
+        },
+        onSigningError: () => {
+          onErrorCalled = true;
+        },
+        onSigningSuccess: () => {
+          onSuccessCalled = true;
+        },
+      });
+      const { stream } = createStreamWithSigningEvents({
         data,
         dataSize: 10,
         emitter,
@@ -291,23 +368,38 @@ describe('createStreamWithSigningEvents', () => {
       emitter.on('signing-progress', () => {
         progressEventEmitted = true;
       });
+      emitter.on('signing-success', () => {
+        successEventEmitted = true;
+      });
+      emitter.on('signing-error', () => {
+        errorEventEmitted = true;
+      });
 
       // TODO: ideally use generics to avoid needing to cast here
       const reader = (stream as ReadableStream).getReader();
-      // read the stream
-      await reader.read();
+
+      // read the stream to the end
+      while (true) {
+        const { done } = await reader.read();
+        if (done) {
+          break;
+        }
+      }
 
       assert(onProgressCalled);
       assert(progressEventEmitted);
+      assert(onSuccessCalled);
+      assert(successEventEmitted);
+      assert(!onErrorCalled);
+      assert(!errorEventEmitted);
     });
 
     it('should call onSigningError callback and emit error events when stream errors', async () => {
       let onErrorCalled = false;
       let errorEventEmitted = false;
+      let onSuccessCalled = false;
+      let successEventEmitted = false;
       const testError = new Error('Test error');
-      const onSigningError = () => {
-        onErrorCalled = true;
-      };
 
       // Create a ReadableStream that will throw an error
       const data = new ReadableStream({
@@ -316,8 +408,15 @@ describe('createStreamWithSigningEvents', () => {
         },
       });
 
-      const emitter = new TurboEventEmitter({ onSigningError });
-      const stream = createStreamWithSigningEvents({
+      const emitter = new TurboEventEmitter({
+        onSigningError: () => {
+          onErrorCalled = true;
+        },
+        onSigningSuccess: () => {
+          onSuccessCalled = true;
+        },
+      });
+      const { stream } = createStreamWithSigningEvents({
         data,
         dataSize: 10,
         emitter,
@@ -327,15 +426,27 @@ describe('createStreamWithSigningEvents', () => {
         errorEventEmitted = true;
       });
 
+      emitter.on('signing-success', () => {
+        successEventEmitted = true;
+      });
+
       try {
+        // consume the full stream
         const reader = (stream as ReadableStream).getReader();
-        await reader.read();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) {
+            break;
+          }
+        }
       } catch (error) {
         // Error is expected
       }
 
       assert(onErrorCalled);
       assert(errorEventEmitted);
+      assert(!onSuccessCalled);
+      assert(!successEventEmitted);
     });
   });
 });
