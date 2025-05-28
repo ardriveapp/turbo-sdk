@@ -82,18 +82,19 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
         this.signer,
         dataItemOpts,
       );
-      this.logger.debug('Successfully signed data item...');
 
-      // resume the stream so events start flowing to the streamSigner
+      // resume the stream so bytes start flowing to the streamSigner
       resume();
+
+      const signedDataItem = await signedDataItemPromise;
+
+      this.logger.debug('Successfully signed data item...');
 
       // TODO: support target, anchor, and tags
       const signedDataItemSize = this.calculateSignedDataHeadersSize({
         dataSize: fileSizeFactory(),
         dataItemOpts,
       });
-
-      const signedDataItem = await signedDataItemPromise;
 
       return {
         dataItemStreamFactory: () => signedDataItem,

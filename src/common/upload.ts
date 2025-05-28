@@ -200,24 +200,25 @@ export abstract class TurboAuthenticatedBaseUploadService
     let lastError: Error | undefined = undefined; // Store the last error for throwing
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
     const emitter = new TurboEventEmitter(events);
+    // avoid duplicating signing on failures here - these errors will immediately be thrown
+    // TODO: create a SigningError class and throw that instead of the generic Error
+    const { dataItemStreamFactory, dataItemSizeFactory } =
+      await this.signer.signDataItem({
+        fileStreamFactory,
+        fileSizeFactory,
+        dataItemOpts,
+        emitter,
+      });
+
+    // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
     while (retries < maxRetries) {
       if (signal?.aborted) {
         throw new CanceledError();
       }
 
-      const { dataItemStreamFactory, dataItemSizeFactory } =
-        await this.signer.signDataItem({
-          fileStreamFactory,
-          fileSizeFactory,
-          dataItemOpts,
-          emitter,
-        });
-
       try {
         this.logger.debug('Uploading signed data item...');
-        // TODO: add p-limit constraint or replace with separate upload class
-
         const headers = {
           'content-type': 'application/octet-stream',
           'content-length': `${dataItemSizeFactory()}`,
@@ -232,13 +233,17 @@ export abstract class TurboAuthenticatedBaseUploadService
           }
         }
 
-        // now that is signed, use the signed data item and uploadSignedDataItem method to upload
-        return this.uploadSignedDataItem({
+        // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
+        // which will create a new emitter with upload events. We await
+        // this result due to the wrapped retry logic of this method.
+        const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
           signal,
           events,
         });
+
+        return response;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
