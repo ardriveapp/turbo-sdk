@@ -240,6 +240,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
+          dataItemOpts,
           signal,
           events,
         });
