@@ -382,9 +382,7 @@ export type TurboUploadEventsAndPayloads = {
     totalBytes: number;
     processedBytes: number;
   };
-  'upload-error': {
-    error: Error;
-  };
+  'upload-error': Error; // TODO: replace with FailedRequestError
   'upload-success': never[];
 };
 
@@ -393,9 +391,7 @@ export type TurboSigningEventsAndPayloads = {
     totalBytes: number;
     processedBytes: number;
   };
-  'signing-error': {
-    error: Error;
-  };
+  'signing-error': Error; // TODO: replace with SigningError
   'signing-success': never[];
 };
 
@@ -405,10 +401,7 @@ export type TurboTotalEventsAndPayloads = {
     processedBytes: number;
     step: 'signing' | 'upload';
   };
-  'overall-error': {
-    error: Error;
-    step: 'signing' | 'upload';
-  };
+  'overall-error': Error; // TODO: replace with union of FailedRequestError and SigningError
   'overall-success': never[];
 };
 

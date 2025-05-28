@@ -105,7 +105,7 @@ async function uploadWithTurbo() {
           onUploadProgress: ({ totalBytes, processedBytes }) => {
             console.log('Upload progress:', { totalBytes, processedBytes });
           },
-          onUploadError: ({ error }) => {
+          onUploadError: (error) => {
             console.log('Upload error:', { error });
           },
           onUploadSuccess: () => {
@@ -389,7 +389,7 @@ const uploadResponse = await turbo.uploadSignedDataItem({
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
-    onUploadError: ({ error }) => {
+    onUploadError: (error) => {
       console.log('Upload error:', { error });
     },
     onUploadSuccess: () => {
@@ -566,7 +566,7 @@ const uploadResult = await turbo.uploadFile({
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
-    onUploadError: ({ error }) => {
+    onUploadError: (error) => {
       console.log('Upload error:', { error });
     },
     onUploadSuccess: () => {
@@ -775,13 +775,13 @@ const uploadResult = await turbo.upload({
         percentComplete: percentComplete.toFixed(2) + '%', // eg 50.68%
       });
     },
-    onError: ({ error }) => {
+    onError: (error) => {
       console.log('Overall error:', { error });
     },
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
-    onUploadError: ({ error }) => {
+    onUploadError: (error) => {
       console.log('Upload error:', { error });
     },
     onUploadSuccess: () => {
@@ -790,7 +790,7 @@ const uploadResult = await turbo.upload({
     onSigningProgress: ({ totalBytes, processedBytes }) => {
       console.log('Signing progress:', { totalBytes, processedBytes });
     },
-    onSigningError: ({ error }) => {
+    onSigningError: (error) => {
       console.log('Signing error:', { error });
     },
     onSigningSuccess: () => {

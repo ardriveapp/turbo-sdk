@@ -489,15 +489,13 @@ describe('TurboEventEmitter', () => {
     let overallErrorPayload:
       | TurboTotalEventsAndPayloads['overall-error']
       | undefined;
-    emitter.on('overall-error', (event) => {
+    emitter.on('overall-error', (error) => {
       overallErrorCalled = true;
-      overallErrorPayload = event;
+      overallErrorPayload = error;
     });
-    emitter.emit('signing-error', {
-      error: testError,
-    });
+    emitter.emit('signing-error', testError);
     assert(overallErrorCalled);
-    assert.deepStrictEqual(overallErrorPayload?.error, testError);
+    assert.deepStrictEqual(overallErrorPayload, testError);
   });
 
   it('should emit error events when upload-error event is emitted', () => {
@@ -511,11 +509,9 @@ describe('TurboEventEmitter', () => {
       overallErrorCalled = true;
       overallErrorPayload = event;
     });
-    emitter.emit('upload-error', {
-      error: testError,
-    });
+    emitter.emit('upload-error', testError);
     assert(overallErrorCalled);
-    assert.deepStrictEqual(overallErrorPayload?.error, testError);
+    assert.deepStrictEqual(overallErrorPayload, testError);
   });
   it('should emit progress events when upload-progress event is emitted', () => {
     const emitter = new TurboEventEmitter();

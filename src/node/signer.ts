@@ -101,8 +101,8 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
         dataItemSizeFactory: () => signedDataItemSize,
       };
     } catch (error) {
-      // If we have a signing emitter, emit error
-      emitter?.emit('signing-error', { error });
+      // TODO: create a SigningError class and throw that instead of the generic Error
+      emitter?.emit('signing-error', error);
       throw error;
     }
   }

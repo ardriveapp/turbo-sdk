@@ -76,7 +76,7 @@ function App() {
               processedBytes,
             });
           },
-          onSigningError: ({ error }: { error: Error }) => {
+          onSigningError: (error: Error) => {
             console.log('Signing error:', { error });
           },
           onSigningSuccess: () => {
@@ -94,7 +94,7 @@ function App() {
               processedBytes,
             });
           },
-          onUploadError: ({ error }: { error: Error }) => {
+          onUploadError: (error: Error) => {
             console.log('Upload error:', { error });
           },
           onUploadSuccess: () => {

@@ -314,11 +314,8 @@ export class TurboEventEmitter extends EventEmitter<TurboEventEmitterEvents> {
         step: 'signing',
       });
     });
-    this.on('signing-error', (event) => {
-      this.emit('overall-error', {
-        ...event,
-        step: 'signing',
-      });
+    this.on('signing-error', (error) => {
+      this.emit('overall-error', error);
     });
     this.on('upload-progress', (event) => {
       this.emit('overall-progress', {
@@ -328,11 +325,8 @@ export class TurboEventEmitter extends EventEmitter<TurboEventEmitterEvents> {
         step: 'upload',
       });
     });
-    this.on('upload-error', (event) => {
-      this.emit('overall-error', {
-        ...event,
-        step: 'upload',
-      });
+    this.on('upload-error', (error) => {
+      this.emit('overall-error', error);
     });
     // NOTE: this is the last event emitted for successful upload,
     // if another step was added (e.g. verifying optimistic caching)
