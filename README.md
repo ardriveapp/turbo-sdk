@@ -376,7 +376,7 @@ const { winc, adjustments } = uploadCostForFile;
 
 #### `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal, events })`
 
-Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `events` is an optional object that can be used to listen to upload progress, errors, and success.
+Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `events` parameter is an optional object that can be used to listen to upload progress, errors, and success (refer to the [Events] section for more details).
 
 ```typescript
 const filePath = path.join(__dirname, './my-signed-data-item');
@@ -1133,3 +1133,4 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
 [docs/native-address]: https://docs.ar.io/glossary.html#native-address
+[Events]: #events
