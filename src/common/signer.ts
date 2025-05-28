@@ -74,6 +74,7 @@ export abstract class TurboDataItemAbstractSigner
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
+    emitter,
   }: TurboFileFactory<FileStreamFactory>): Promise<TurboSignedDataItemFactory>;
 
   private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {

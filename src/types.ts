@@ -25,10 +25,10 @@ import {
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
-import { Readable } from 'stream';
-import { ReadableStream } from 'stream/web';
+import { Readable } from 'node:stream';
 
 import { CurrencyMap } from './common/currency.js';
+import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
 
@@ -377,6 +377,77 @@ type TurboServiceConfiguration = {
   token?: TokenType;
 };
 
+export type TurboUploadEventsAndPayloads = {
+  'upload-progress': {
+    totalBytes: number;
+    processedBytes: number;
+  };
+  'upload-error': Error; // TODO: replace with FailedRequestError
+  'upload-success': never[];
+};
+
+export type TurboSigningEventsAndPayloads = {
+  'signing-progress': {
+    totalBytes: number;
+    processedBytes: number;
+  };
+  'signing-error': Error; // TODO: replace with SigningError
+  'signing-success': never[];
+};
+
+export type TurboTotalEventsAndPayloads = {
+  'overall-progress': {
+    totalBytes: number;
+    processedBytes: number;
+    step: 'signing' | 'upload';
+  };
+  'overall-error': Error; // TODO: replace with union of FailedRequestError and SigningError
+  'overall-success': never[];
+};
+
+export type TurboUploadEmitterEventArgs = {
+  onUploadProgress?: (
+    event: TurboUploadEventsAndPayloads['upload-progress'],
+  ) => void;
+  onUploadError?: (event: TurboUploadEventsAndPayloads['upload-error']) => void;
+  onUploadSuccess?: (
+    event: TurboUploadEventsAndPayloads['upload-success'],
+  ) => void;
+};
+
+export type TurboSigningEmitterEventArgs = {
+  onSigningProgress?: (
+    event: TurboSigningEventsAndPayloads['signing-progress'],
+  ) => void;
+  onSigningError?: (
+    event: TurboSigningEventsAndPayloads['signing-error'],
+  ) => void;
+  onSigningSuccess?: (
+    event: TurboSigningEventsAndPayloads['signing-success'],
+  ) => void;
+};
+
+export type TurboTotalEmitterEventArgs = {
+  onProgress?: (event: TurboTotalEventsAndPayloads['overall-progress']) => void;
+  onError?: (event: TurboTotalEventsAndPayloads['overall-error']) => void;
+  onSuccess?: (event: TurboTotalEventsAndPayloads['overall-success']) => void;
+};
+
+export type TurboTotalEmitterEvents = {
+  events?: TurboTotalEmitterEventArgs;
+};
+
+export type TurboUploadEmitterEvents = {
+  events?: TurboUploadEmitterEventArgs;
+};
+
+export type TurboSigningEmitterEvents = {
+  events?: TurboSigningEmitterEventArgs;
+};
+export type TurboUploadAndSigningEmitterEvents = TurboUploadEmitterEvents &
+  TurboSigningEmitterEvents &
+  TurboTotalEmitterEvents;
+
 export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
 export type TurboAuthenticatedUploadServiceConfiguration =
@@ -506,7 +577,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
-
+  emitter?: TurboEventEmitter;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
@@ -515,6 +586,7 @@ export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
   dataItemSizeFactory: StreamSizeFactory;
+  dataItemOpts?: DataItemOptions;
 };
 
 export type TurboAbortSignal = {
@@ -573,7 +645,10 @@ export interface TurboDataItemSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-  }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
+    emitter,
+  }: TurboFileFactory & {
+    emitter?: TurboEventEmitter;
+  }): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
@@ -638,20 +713,30 @@ export interface TurboAuthenticatedPaymentServiceInterface
 export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
+    dataItemOpts,
     signal,
+    events,
   }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
   upload({
     data,
-  }: UploadDataInput & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    events,
+  }: UploadDataInput &
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
-  }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    events,
+  }: TurboFileFactory &
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 

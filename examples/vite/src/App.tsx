@@ -1,12 +1,7 @@
-import {
-  TurboAuthenticatedClient,
-  TurboFactory,
-  developmentTurboConfiguration,
-} from '@ardrive/turbo-sdk/web';
+import { TurboAuthenticatedClient, TurboFactory } from '@ardrive/turbo-sdk/web';
 import Arweave from 'arweave';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { useEffect, useState } from 'react';
-import { ReadableStream } from 'web-streams-polyfill';
 
 import './App.css';
 
@@ -68,6 +63,44 @@ function App() {
             },
           }),
         fileSizeFactory: () => selectedFile.size,
+        events: {
+          onSigningProgress: ({
+            totalBytes,
+            processedBytes,
+          }: {
+            totalBytes: number;
+            processedBytes: number;
+          }) => {
+            console.log('Signing progress:', {
+              totalBytes,
+              processedBytes,
+            });
+          },
+          onSigningError: (error: Error) => {
+            console.log('Signing error:', { error });
+          },
+          onSigningSuccess: () => {
+            console.log('Signing success!');
+          },
+          onUploadProgress: ({
+            totalBytes,
+            processedBytes,
+          }: {
+            totalBytes: number;
+            processedBytes: number;
+          }) => {
+            console.log('Upload progress:', {
+              totalBytes,
+              processedBytes,
+            });
+          },
+          onUploadError: (error: Error) => {
+            console.log('Upload error:', { error });
+          },
+          onUploadSuccess: () => {
+            console.log('Upload success!');
+          },
+        },
       });
       setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
     } catch (error) {

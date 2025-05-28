@@ -3,7 +3,8 @@
     "ts"
   ],
   "spec": [
-    "tests/**/*.test.ts"
+    "tests/**/*.test.ts",
+    "src/**/*.test.ts"
   ],
   "require": [
     "ts-node/register/transpile-only",
