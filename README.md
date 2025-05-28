@@ -767,7 +767,13 @@ const uploadResult = await turbo.upload({
   events: {
     // overall progress
     onProgress: ({ totalBytes, processedBytes, step }) => {
-      console.log('Overall progress:', { totalBytes, processedBytes, step });
+      const percentComplete = (processedBytes / totalBytes) * 100;
+      console.log('Overall progress:', {
+        totalBytes,
+        processedBytes,
+        step,
+        percentComplete: percentComplete.toFixed(2) + '%', // eg 50.68%
+      });
     },
     onError: ({ error }) => {
       console.log('Overall error:', { error });
