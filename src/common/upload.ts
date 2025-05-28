@@ -85,6 +85,7 @@ export class TurboUnauthenticatedUploadService
   async uploadSignedDataItem({
     dataItemStreamFactory,
     dataItemSizeFactory,
+    dataItemOpts,
     signal,
     events = {},
   }: TurboSignedDataItemFactory &
@@ -104,15 +105,28 @@ export class TurboUnauthenticatedUploadService
         emitter,
       });
 
+    const headers = {
+      'content-type': 'application/octet-stream',
+      'content-length': `${fileSize}`,
+    };
+
+    if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+      const paidBy = Array.isArray(dataItemOpts.paidBy)
+        ? dataItemOpts.paidBy
+        : [dataItemOpts.paidBy];
+
+      // TODO: these should be comma separated values vs. an array of headers
+      if (dataItemOpts.paidBy.length > 0) {
+        headers['x-paid-by'] = paidBy;
+      }
+    }
+
     // setup the post request using the stream with upload events
     const postPromise = this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
       data: streamWithUploadEvents,
-      headers: {
-        'content-type': 'application/octet-stream',
-        'content-length': `${fileSize}`,
-      },
+      headers,
     });
 
     // resume the stream so events start flowing to the post
@@ -219,19 +233,6 @@ export abstract class TurboAuthenticatedBaseUploadService
 
       try {
         this.logger.debug('Uploading signed data item...');
-        const headers = {
-          'content-type': 'application/octet-stream',
-          'content-length': `${dataItemSizeFactory()}`,
-        };
-        if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
-          const paidBy = Array.isArray(dataItemOpts.paidBy)
-            ? dataItemOpts.paidBy
-            : [dataItemOpts.paidBy];
-
-          if (dataItemOpts.paidBy.length > 0) {
-            headers['x-paid-by'] = paidBy;
-          }
-        }
 
         // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
         // which will create a new emitter with upload events. We await

@@ -586,6 +586,7 @@ export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
   dataItemSizeFactory: StreamSizeFactory;
+  dataItemOpts?: DataItemOptions;
 };
 
 export type TurboAbortSignal = {
@@ -712,6 +713,8 @@ export interface TurboAuthenticatedPaymentServiceInterface
 export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
+    dataItemOpts,
     signal,
     events,
   }: TurboSignedDataItemFactory &
