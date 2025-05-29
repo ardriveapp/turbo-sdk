@@ -26,10 +26,6 @@ import {
   createData,
   stringToBuffer,
 } from '@dha-team/arbundles';
-import {
-  DeepHashChunk,
-  DeepHashChunks,
-} from '@dha-team/arbundles/src/deepHash';
 import { createHash } from 'crypto';
 
 import { TurboEventEmitter } from '../common/events.js';
@@ -46,6 +42,9 @@ import { readableStreamToBuffer } from '../utils/readableStream.js';
  * Utility exports to avoid clients having to install arbundles
  */
 export { ArconnectSigner, ArweaveSigner, EthereumSigner, HexSolanaSigner };
+
+export type DeepHashChunk = Uint8Array | AsyncIterable<Buffer> | DeepHashChunks;
+export type DeepHashChunks = DeepHashChunk[];
 
 /**
  * Web implementation of TurboDataItemSigner.
