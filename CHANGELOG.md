@@ -1,3 +1,36 @@
+# [1.26.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.25.0...v1.26.0-alpha.1) (2025-05-29)
+
+
+### Bug Fixes
+
+* **cleanups:** remove logs and old comments ([161201e](https://github.com/ardriveapp/turbo-sdk/commit/161201efc4e0b8d25217b3ec255e1a30fd80ca9f))
+* **comment:** add comment on readable wrapping for events ([2179b85](https://github.com/ardriveapp/turbo-sdk/commit/2179b854a1f401d3262b0b60bb095994caa7ad08))
+* **emitter:** add emitter factory ([65fe89b](https://github.com/ardriveapp/turbo-sdk/commit/65fe89b98d027792a9913cdf74dc1834f47f4801))
+* **emitter:** add upload progress properties to listenter ([1a3740d](https://github.com/ardriveapp/turbo-sdk/commit/1a3740d405ab5e09a365a07b020285976cc49a01))
+* **errors:** do not provide an object with nested error on callbacks ([c926e23](https://github.com/ardriveapp/turbo-sdk/commit/c926e232df64893ea8f819e4ef90b4b47705902e))
+* **events:** bump axios to 1.7 and use fetch adapter ([dcebfa7](https://github.com/ardriveapp/turbo-sdk/commit/dcebfa7a0c9b4d62e7b443e5de66326bec3a8d92))
+* **events:** use `upload-progress` and update tests ([61c9e29](https://github.com/ardriveapp/turbo-sdk/commit/61c9e296897f5ccb79a58f4611e2b4ecf12de451))
+* **events:** use start instead of pull in readable stream ([b75a93c](https://github.com/ardriveapp/turbo-sdk/commit/b75a93ce8b2105054ad11e5f3c4209d92eef23f8))
+* **example:** use preexisting example ([0b72d60](https://github.com/ardriveapp/turbo-sdk/commit/0b72d602641cf6f201f5a199b3d1cfaa657e9fbb))
+* **readme:** add percent example ([e8dc385](https://github.com/ardriveapp/turbo-sdk/commit/e8dc385ccf66ef5aa2c5cf1a36a1d1c318410c8e))
+* **sharing:** allow dataItemOpts on uploadSignedDataItem ([8900a0f](https://github.com/ardriveapp/turbo-sdk/commit/8900a0f61cbd3ca230849a411ccb8151c59ecdff))
+* **streams:** use native ReadableStream vs the node import ([f892e61](https://github.com/ardriveapp/turbo-sdk/commit/f892e61e418dbadeeea46045fd135543ebf01b9f))
+* **tests:** add tests and fix some type errors ([5e0b3a6](https://github.com/ardriveapp/turbo-sdk/commit/5e0b3a61aa5a7ab17cdb33a8ca3abda2d34ff4ee))
+* **upload emitter:** add a from method that can consume an existing emitter ([383e030](https://github.com/ardriveapp/turbo-sdk/commit/383e030e35a22e89abb20978509adb3b9f3f4d8b))
+* **upload:** actaully provide dataItemOpts to uploadSignedDataItem from uploadFile ([0ac2e55](https://github.com/ardriveapp/turbo-sdk/commit/0ac2e55812c77a3f71bb52bc03942dea6ec7e9a6))
+* **upload:** add upload events for progress on signed data item ([738f5e5](https://github.com/ardriveapp/turbo-sdk/commit/738f5e50aaa790358f700c327c998ca968b92f11))
+* **uploader:** do not resume stream internally, leave that to caller ([3490fd4](https://github.com/ardriveapp/turbo-sdk/commit/3490fd433a8924207dbb7d9ebff5eea5dd1fa8eb))
+* **uploadFile:** fix the uploadFile implementation to throw expected errors ([9fc33d8](https://github.com/ardriveapp/turbo-sdk/commit/9fc33d8ef9a054a41f96a374416056f1e6e54134))
+* **uploadFolder:** add comment to add events ([1d033e3](https://github.com/ardriveapp/turbo-sdk/commit/1d033e3075b32afb2834a2acd4e5b318214b83a7))
+* **upload:** use UploadEmitter.from ([88aad83](https://github.com/ardriveapp/turbo-sdk/commit/88aad83c6478cba6a1b30c3dee690db86fbdf881))
+
+
+### Features
+
+* **emitter:** use a global TurboEventEmitter that submits all requests and manages progress internally ([f01645e](https://github.com/ardriveapp/turbo-sdk/commit/f01645e452402a7f65613ec28e2d26c131a38b21))
+* **events:** add signing-success and upload-success events ([c837540](https://github.com/ardriveapp/turbo-sdk/commit/c837540e380af92981d4179a26ddaac574cd7fde))
+* **events:** add SigningEmitter that emits events for signing ([4330ca9](https://github.com/ardriveapp/turbo-sdk/commit/4330ca90de5a8df8370a04f812e7d1c2d1e4a060))
+
 # [1.25.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.24.0...v1.25.0) (2025-05-02)
 
 
