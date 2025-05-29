@@ -1,6 +1,7 @@
 import {
   ArconnectSigner,
   ArweaveSigner,
+  DataItem,
   EthereumSigner,
   HexSolanaSigner,
   createData,
@@ -27,6 +28,7 @@ import {
   TurboFactory,
   TurboWebArweaveSigner,
   WinstonToTokenAmount,
+  streamSigner,
 } from '../src/web/index.js';
 import {
   delayedBlockMining,
@@ -1069,6 +1071,212 @@ describe('Browser environment', () => {
             'Failed to submit fund transaction!',
           );
         });
+    });
+  });
+
+  describe('streamSigner', () => {
+    const testData = 'test data for stream signing';
+    const encoder = new TextEncoder();
+    const testBuffer = encoder.encode(testData);
+
+    function createTestStream(data: Uint8Array): ReadableStream<Uint8Array> {
+      return new ReadableStream({
+        start(controller) {
+          controller.enqueue(data);
+          controller.close();
+        },
+      });
+    }
+
+    async function streamToBuffer(
+      stream: ReadableStream<Uint8Array>,
+    ): Promise<Buffer> {
+      const reader = stream.getReader();
+      const chunks: Uint8Array[] = [];
+      let done = false;
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          chunks.push(value);
+        }
+      }
+
+      const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      return Buffer.from(result);
+    }
+
+    it('should sign a ReadableStream with ArweaveSigner and return a valid signed stream', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const inputStream = createTestStream(testBuffer);
+
+      const signedStream = await streamSigner({
+        input: inputStream,
+        signer,
+        fileSize: testBuffer.length,
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      expect(isValidDataItem).to.be.true;
+    });
+
+    it('should sign a ReadableStream with EthereumSigner and return a valid signed stream', async () => {
+      const signer = new EthereumSigner(testEthWallet);
+      const inputStream = createTestStream(testBuffer);
+
+      const signedStream = await streamSigner({
+        input: inputStream,
+        signer,
+        fileSize: testBuffer.length,
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      expect(isValidDataItem).to.be.true;
+    });
+
+    it('should sign a ReadableStream with HexSolanaSigner and return a valid signed stream', async () => {
+      const signer = new HexSolanaSigner(testSolWallet);
+      const inputStream = createTestStream(testBuffer);
+
+      const signedStream = await streamSigner({
+        input: inputStream,
+        signer,
+        fileSize: testBuffer.length,
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      expect(isValidDataItem).to.be.true;
+    });
+
+    it('should sign a ReadableStream with custom DataItemCreateOptions', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const inputStream = createTestStream(testBuffer);
+      const customOptions = {
+        tags: [{ name: 'Content-Type', value: 'text/plain' }],
+        target: '43-character-stub-arweave-address-000000000',
+      };
+
+      const signedStream = await streamSigner(
+        {
+          input: inputStream,
+          signer,
+          fileSize: testBuffer.length,
+        },
+        customOptions,
+      );
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      expect(signedBuffer).to.be.instanceOf(Buffer);
+      expect(signedBuffer.length).to.be.greaterThan(testBuffer.length);
+
+      // The signed stream should contain the original data
+      const originalDataIndex = signedBuffer.indexOf(testBuffer);
+      expect(originalDataIndex).to.be.greaterThan(-1);
+    });
+
+    it('should handle empty stream input', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const emptyStream = new ReadableStream({
+        start(controller) {
+          controller.close();
+        },
+      });
+
+      const signedStream = await streamSigner({
+        input: emptyStream,
+        signer,
+        fileSize: 0,
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      expect(isValidDataItem).to.be.true;
+    });
+
+    it('should handle large stream input', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const largeData = new Uint8Array(1024 * 1024 * 51); // 51MB ~ ideally this tests metamask limits but because its not injected we can't
+      largeData.fill(65); // Fill with 'A' characters
+
+      const largeStream = createTestStream(largeData);
+
+      const signedStream = await streamSigner({
+        input: largeStream,
+        signer,
+        fileSize: largeData.length,
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      expect(isValidDataItem).to.be.true;
+    });
+
+    it('should produce different signatures for different data', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const data1 = encoder.encode('first test data');
+      const data2 = encoder.encode('second test data');
+
+      const stream1 = createTestStream(data1);
+      const stream2 = createTestStream(data2);
+
+      const [signedStream1, signedStream2] = await Promise.all([
+        streamSigner({
+          input: stream1,
+          signer,
+          fileSize: data1.length,
+        }),
+        streamSigner({
+          input: stream2,
+          signer,
+          fileSize: data2.length,
+        }),
+      ]);
+
+      const [buffer1, buffer2] = await Promise.all([
+        streamToBuffer(signedStream1),
+        streamToBuffer(signedStream2),
+      ]);
+
+      expect(buffer1).to.not.deep.equal(buffer2);
+      expect(buffer1.indexOf(data1)).to.be.greaterThan(-1);
+      expect(buffer2.indexOf(data2)).to.be.greaterThan(-1);
+    });
+
+    it('should work with chunked stream input', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const chunks = [
+        encoder.encode('chunk1'),
+        encoder.encode('chunk2'),
+        encoder.encode('chunk3'),
+      ];
+
+      const chunkedStream = new ReadableStream({
+        start(controller) {
+          chunks.forEach((chunk) => controller.enqueue(chunk));
+          controller.close();
+        },
+      });
+
+      const signedStream = await streamSigner({
+        input: chunkedStream,
+        signer,
+        fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      expect(isValidDataItem).to.be.true;
     });
   });
 });
