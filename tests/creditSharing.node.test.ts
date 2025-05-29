@@ -1,6 +1,7 @@
 import Arweave from 'arweave';
-import { expect } from 'chai';
+import { strict as assert } from 'node:assert';
 import { createReadStream, statSync } from 'node:fs';
+import { afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
 import { JWKInterface } from '../src/common/jwk.js';
@@ -56,9 +57,9 @@ describe('Credit Sharing', () => {
     const res = await turbo.getBalance();
     const { controlledWinc, effectiveBalance, winc: wincLater } = res;
 
-    expect(controlledWinc).to.equal('766');
-    expect(effectiveBalance).to.equal('766');
-    expect(wincLater).to.equal('766');
+    assert.equal(controlledWinc, '766');
+    assert.equal(effectiveBalance, '766');
+    assert.equal(wincLater, '766');
   });
 
   let oldestApprovalId: string;
@@ -70,8 +71,8 @@ describe('Credit Sharing', () => {
         approvedAddress: unfundedSignerAddress1,
       });
       oldestApprovalId = approvalDataItemId;
-      expect(approvalDataItemId).to.be.a('string');
-      expect(payingAddress).to.equal(arweavePayerAddress);
+      assert.ok(typeof approvalDataItemId === 'string');
+      assert.equal(payingAddress, arweavePayerAddress);
 
       const balance = await turbo.getBalance();
       const {
@@ -82,11 +83,11 @@ describe('Credit Sharing', () => {
         winc,
       } = balance;
 
-      expect(controlledWinc).to.equal('766');
-      expect(winc).to.equal('666');
-      expect(effectiveBalance).to.equal('666');
-      expect(givenApprovals).to.have.length(1);
-      expect(receivedApprovals).to.have.length(0);
+      assert.equal(controlledWinc, '766');
+      assert.equal(winc, '666');
+      assert.equal(effectiveBalance, '666');
+      assert.equal(givenApprovals.length, 1);
+      assert.equal(receivedApprovals.length, 0);
     });
 
     it('should properly create a credit share approval with expiration, and the approval should expire as expected', async () => {
@@ -95,8 +96,8 @@ describe('Credit Sharing', () => {
         approvedAddress: unfundedSignerAddress1,
         expiresBySeconds: 1,
       });
-      expect(approvalDataItemId).to.be.a('string');
-      expect(payingAddress).to.equal(arweavePayerAddress);
+      assert.ok(typeof approvalDataItemId === 'string');
+      assert.equal(payingAddress, arweavePayerAddress);
 
       const balance = await turbo.getBalance();
       const {
@@ -107,11 +108,11 @@ describe('Credit Sharing', () => {
         winc,
       } = balance;
 
-      expect(controlledWinc).to.equal('766');
-      expect(winc).to.equal('566');
-      expect(effectiveBalance).to.equal('566');
-      expect(givenApprovals).to.have.length(2);
-      expect(receivedApprovals).to.have.length(0);
+      assert.equal(controlledWinc, '766');
+      assert.equal(winc, '566');
+      assert.equal(effectiveBalance, '566');
+      assert.equal(givenApprovals.length, 2);
+      assert.equal(receivedApprovals.length, 0);
       await sleep(1500);
 
       const balanceLater = await turbo.getBalance();
@@ -123,11 +124,11 @@ describe('Credit Sharing', () => {
         winc: wincLater,
       } = balanceLater;
 
-      expect(controlledWincLater).to.equal('766');
-      expect(effectiveBalanceLater).to.equal('666');
-      expect(wincLater).to.equal('666');
-      expect(givenApprovalsLater).to.have.length(1);
-      expect(receivedApprovalsLater).to.have.length(0);
+      assert.equal(controlledWincLater, '766');
+      assert.equal(effectiveBalanceLater, '666');
+      assert.equal(wincLater, '666');
+      assert.equal(givenApprovalsLater.length, 1);
+      assert.equal(receivedApprovalsLater.length, 0);
     });
 
     it('should fail to create payment approvals to invalid addresses', async () => {
@@ -196,15 +197,18 @@ describe('Credit Sharing', () => {
       ).approvalDataItemId;
 
       const { givenApprovals } = await turbo.getCreditShareApprovals();
-      expect(givenApprovals).to.have.length(4);
-      expect(givenApprovals[0].approvalDataItemId).to.equal(
+      assert.equal(givenApprovals.length, 4);
+      assert.equal(
+        givenApprovals[0].approvalDataItemId,
         approvalWithNearExpirationId,
       );
-      expect(givenApprovals[1].approvalDataItemId).to.equal(
+      assert.equal(
+        givenApprovals[1].approvalDataItemId,
         approvalWithFarExpirationId,
       );
-      expect(givenApprovals[2].approvalDataItemId).to.equal(oldestApprovalId);
-      expect(givenApprovals[3].approvalDataItemId).to.equal(
+      assert.equal(givenApprovals[2].approvalDataItemId, oldestApprovalId);
+      assert.equal(
+        givenApprovals[3].approvalDataItemId,
         newApprovalWithNoExpirationId,
       );
     });
@@ -215,21 +219,21 @@ describe('Credit Sharing', () => {
       ).getCreditShareApprovals({
         userAddress: 'stub-43-char-address-stub-43-char-address-0',
       });
-      expect(givenApprovals).to.have.length(0);
+      assert.equal(givenApprovals.length, 0);
     });
   });
 
   describe('revokeCredits', () => {
     it('should properly revoke all credit share approvals for given address', async () => {
       const { givenApprovals } = await turbo.getBalance();
-      expect(givenApprovals).to.have.length(4);
+      assert.equal(givenApprovals.length, 4);
 
       await turbo.revokeCredits({
         revokedAddress: unfundedSignerAddress1,
       });
 
       const { givenApprovals: givenApprovalsLater } = await turbo.getBalance();
-      expect(givenApprovalsLater).to.have.length(0);
+      assert.equal(givenApprovalsLater.length, 0);
     });
 
     it('should fail to revoke if there are no credit share approvals for given address', async () => {
@@ -300,12 +304,12 @@ describe('Credit Sharing', () => {
       });
 
       const payerBalance = await payingTurbo.getBalance();
-      expect(payerBalance.winc).to.equal('0');
-      expect(+payerBalance.controlledWinc).to.equal(766_000_000_000);
+      assert.equal(payerBalance.winc, '0');
+      assert.equal(+payerBalance.controlledWinc, 766_000_000_000);
 
       const signerBalance = await signerTurbo.getBalance();
-      expect(signerBalance.winc).to.equal('0');
-      expect(+signerBalance.effectiveBalance).to.equal(766_000_000_000);
+      assert.equal(signerBalance.winc, '0');
+      assert.equal(+signerBalance.effectiveBalance, 766_000_000_000);
     });
 
     const filePath = new URL('files/1MB_file', import.meta.url).pathname;
@@ -317,15 +321,15 @@ describe('Credit Sharing', () => {
         fileSizeFactory: () => fileSize,
       });
 
-      expect(winc).to.not.equal('0');
+      assert.notEqual(winc, '0');
 
       const payerBalance = await payingTurbo.getBalance();
-      expect(payerBalance.winc).to.equal('0');
-      expect(+payerBalance.controlledWinc).to.equal(766_000_000_000 - +winc);
+      assert.equal(payerBalance.winc, '0');
+      assert.equal(+payerBalance.controlledWinc, 766_000_000_000 - +winc);
 
       const signerBalance = await signerTurbo.getBalance();
-      expect(signerBalance.winc).to.equal('0');
-      expect(+signerBalance.effectiveBalance).to.equal(766_000_000_000 - +winc);
+      assert.equal(signerBalance.winc, '0');
+      assert.equal(+signerBalance.effectiveBalance, 766_000_000_000 - +winc);
     });
 
     it('should properly use a credit share approvals to upload data when multiple paid-bys are provided', async () => {
@@ -337,9 +341,10 @@ describe('Credit Sharing', () => {
         fileSizeFactory: () => fileSize,
       });
 
-      expect(winc).to.not.equal('0');
+      assert.notEqual(winc, '0');
       const payerBalanceLater = await payingTurbo.getBalance();
-      expect(+payerBalanceLater.controlledWinc).to.equal(
+      assert.equal(
+        +payerBalanceLater.controlledWinc,
         +payerBalance.controlledWinc - +winc,
       );
     });
