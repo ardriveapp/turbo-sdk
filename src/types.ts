@@ -81,7 +81,7 @@ export type Adjustment = {
 export type CurrencyLimit = {
   minimumPaymentAmount: number;
   maximumPaymentAmount: number;
-  suggestedPaymentAmount: number[];
+  suggestedPaymentAmounts: number[];
   zeroDecimalCurrency: boolean;
 };
 

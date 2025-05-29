@@ -1,6 +1,6 @@
-import { describe, it } from 'mocha';
 import { strict as assert } from 'node:assert';
 import { Readable } from 'node:stream';
+import { describe, it } from 'node:test';
 
 import { TurboTotalEventsAndPayloads } from '../types.js';
 import {
@@ -65,10 +65,18 @@ describe('createStreamWithUploadEvents', () => {
       await streamConsumerPromise;
 
       // Assert that the events were called after the stream has been fully consumed
-      assert(onProgressCalled, 'onProgressCalled should be true');
-      assert(progressEventEmitted, 'progressEventEmitted should be true');
-      assert(onSuccessCalled, 'onSuccessCalled should be true');
-      assert(successEventEmitted, 'successEventEmitted should be true');
+      assert.equal(onProgressCalled, true, 'onProgressCalled should be true');
+      assert.equal(
+        progressEventEmitted,
+        true,
+        'progressEventEmitted should be true',
+      );
+      assert.equal(onSuccessCalled, true, 'onSuccessCalled should be true');
+      assert.equal(
+        successEventEmitted,
+        true,
+        'successEventEmitted should be true',
+      );
     });
 
     it('should call onUploadError callback and emit error events when stream errors', async () => {
@@ -114,8 +122,8 @@ describe('createStreamWithUploadEvents', () => {
         // Error is expected
       }
 
-      assert(onErrorCalled);
-      assert(errorEventEmitted);
+      assert.equal(onErrorCalled, true);
+      assert.equal(errorEventEmitted, true);
     });
   });
 
@@ -171,16 +179,28 @@ describe('createStreamWithUploadEvents', () => {
       }
 
       // progress events called
-      assert(onProgressCalled, 'onProgressCalled should be true');
-      assert(progressEventEmitted, 'progressEventEmitted should be true');
+      assert.equal(onProgressCalled, true, 'onProgressCalled should be true');
+      assert.equal(
+        progressEventEmitted,
+        true,
+        'progressEventEmitted should be true',
+      );
 
       // error event not called
-      assert(!errorEventEmitted, 'errorEventEmitted should be false');
-      assert(!onErrorCalled, 'onErrorCalled should be false');
+      assert.equal(
+        errorEventEmitted,
+        false,
+        'errorEventEmitted should be false',
+      );
+      assert.equal(onErrorCalled, false, 'onErrorCalled should be false');
 
       // success event called
-      assert(onSuccessCalled, 'onSuccessCalled should be true');
-      assert(successEventEmitted, 'successEventEmitted should be true');
+      assert.equal(onSuccessCalled, true, 'onSuccessCalled should be true');
+      assert.equal(
+        successEventEmitted,
+        true,
+        'successEventEmitted should be true',
+      );
     });
 
     it('should call onUploadError callback and emit error events when stream errors', async () => {
@@ -217,8 +237,8 @@ describe('createStreamWithUploadEvents', () => {
         // Error is expected
       }
 
-      assert(onErrorCalled, 'onErrorCalled should be true');
-      assert(errorEventEmitted, 'errorEventEmitted should be true');
+      assert.equal(onErrorCalled, true, 'onErrorCalled should be true');
+      assert.equal(errorEventEmitted, true, 'errorEventEmitted should be true');
     });
   });
 });
@@ -279,12 +299,12 @@ describe('createStreamWithSigningEvents', () => {
       // consume the full stream
       await streamConsumerPromise;
 
-      assert(onProgressCalled);
-      assert(progressEventEmitted);
-      assert(onSuccessCalled);
-      assert(successEventEmitted);
-      assert(!onErrorCalled);
-      assert(!errorEventEmitted);
+      assert.equal(onProgressCalled, true);
+      assert.equal(progressEventEmitted, true);
+      assert.equal(onSuccessCalled, true);
+      assert.equal(successEventEmitted, true);
+      assert.equal(onErrorCalled, false);
+      assert.equal(errorEventEmitted, false);
     });
 
     it('should call onSigningError callback and emit error events when stream errors', async () => {
@@ -330,8 +350,8 @@ describe('createStreamWithSigningEvents', () => {
         // Error is expected
       }
 
-      assert(onErrorCalled);
-      assert(errorEventEmitted);
+      assert.equal(onErrorCalled, true);
+      assert.equal(errorEventEmitted, true);
     });
   });
 
@@ -386,12 +406,12 @@ describe('createStreamWithSigningEvents', () => {
         }
       }
 
-      assert(onProgressCalled);
-      assert(progressEventEmitted);
-      assert(onSuccessCalled);
-      assert(successEventEmitted);
-      assert(!onErrorCalled);
-      assert(!errorEventEmitted);
+      assert.equal(onProgressCalled, true);
+      assert.equal(progressEventEmitted, true);
+      assert.equal(onSuccessCalled, true);
+      assert.equal(successEventEmitted, true);
+      assert.equal(onErrorCalled, false);
+      assert.equal(errorEventEmitted, false);
     });
 
     it('should call onSigningError callback and emit error events when stream errors', async () => {
@@ -443,10 +463,10 @@ describe('createStreamWithSigningEvents', () => {
         // Error is expected
       }
 
-      assert(onErrorCalled);
-      assert(errorEventEmitted);
-      assert(!onSuccessCalled);
-      assert(!successEventEmitted);
+      assert.equal(onErrorCalled, true);
+      assert.equal(errorEventEmitted, true);
+      assert.equal(onSuccessCalled, false);
+      assert.equal(successEventEmitted, false);
     });
   });
 });
@@ -459,8 +479,9 @@ describe('TurboEventEmitter', () => {
       overallSuccessCalled = true;
     });
     emitter.emit('upload-success');
-    assert(overallSuccessCalled);
+    assert.equal(overallSuccessCalled, true);
   });
+
   it('should emit progress events when signing-progress event is emitted', () => {
     const emitter = new TurboEventEmitter();
 
@@ -476,7 +497,7 @@ describe('TurboEventEmitter', () => {
       processedBytes: 100,
       totalBytes: 1000,
     });
-    assert(overallProgressCalled);
+    assert.equal(overallProgressCalled, true);
     assert.equal(overallProgressPayload?.processedBytes, 50);
     assert.equal(overallProgressPayload?.totalBytes, 1000);
     assert.equal(overallProgressPayload?.step, 'signing');
@@ -494,7 +515,7 @@ describe('TurboEventEmitter', () => {
       overallErrorPayload = error;
     });
     emitter.emit('signing-error', testError);
-    assert(overallErrorCalled);
+    assert.equal(overallErrorCalled, true);
     assert.deepStrictEqual(overallErrorPayload, testError);
   });
 
@@ -510,9 +531,10 @@ describe('TurboEventEmitter', () => {
       overallErrorPayload = event;
     });
     emitter.emit('upload-error', testError);
-    assert(overallErrorCalled);
+    assert.equal(overallErrorCalled, true);
     assert.deepStrictEqual(overallErrorPayload, testError);
   });
+
   it('should emit progress events when upload-progress event is emitted', () => {
     const emitter = new TurboEventEmitter();
     let overallProgressCalled = false;
@@ -527,7 +549,7 @@ describe('TurboEventEmitter', () => {
       processedBytes: 100,
       totalBytes: 1000,
     });
-    assert(overallProgressCalled);
+    assert.equal(overallProgressCalled, true);
     assert.equal(overallProgressPayload?.processedBytes, 500 + 100 / 2);
     assert.equal(overallProgressPayload?.totalBytes, 1000);
     assert.equal(overallProgressPayload?.step, 'upload');
