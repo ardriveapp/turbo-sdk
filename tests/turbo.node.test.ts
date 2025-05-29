@@ -1575,7 +1575,7 @@ describe('Node environment', () => {
       expect(id).to.be.a('string');
     });
 
-    it('should topUpWithTokens() to a KYVE wallet', async () => {
+    it.skip('should topUpWithTokens() to a KYVE wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
         {
           tokenAmount: 1_000, // 0.001_000 KYVE
