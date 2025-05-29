@@ -7,9 +7,10 @@ import {
 } from '@dha-team/arbundles';
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
-import { expect } from 'chai';
 import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
+import { strict as assert } from 'node:assert';
+import { after, afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
@@ -67,7 +68,7 @@ describe('Browser environment', () => {
       const turbo = TurboFactory.unauthenticated(
         turboDevelopmentConfigurations,
       );
-      expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+      assert.ok(turbo instanceof TurboUnauthenticatedClient);
     });
 
     it('should be a TurboAuthenticatedClient running in the browser and provided a privateKey', async () => {
@@ -75,7 +76,7 @@ describe('Browser environment', () => {
         privateKey: testJwk,
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+      assert.ok(turbo instanceof TurboUnauthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Web environment and an EthereumSigner', async () => {
@@ -83,7 +84,7 @@ describe('Browser environment', () => {
         signer: new EthereumSigner(testEthWallet),
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Web environment and a HexSolanaSigner', async () => {
@@ -91,7 +92,7 @@ describe('Browser environment', () => {
         signer: new HexSolanaSigner(testSolWallet),
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Web environment and an ArconnectSigner', async () => {
@@ -99,7 +100,7 @@ describe('Browser environment', () => {
         signer: new ArconnectSigner(global.window.arweaveWallet),
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when a compatible solana walletAdapter is provided', async () => {
@@ -110,22 +111,24 @@ describe('Browser environment', () => {
           publicKey: { toBuffer: () => Buffer.from(testSolWallet, 'hex') },
         },
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('throws an error when an incompatible solana walletAdapter is provided', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          token: 'solana',
-          walletAdapter: {
-            getSigner: () => ({
-              signMessage: (m) => Promise.resolve(m as string),
-              sendTransaction: () =>
-                Promise.resolve({ hash: 'hash' } as TransactionResponse),
-            }),
-          },
-        }),
-      ).to.throw('Unsupported wallet adapter');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            token: 'solana',
+            walletAdapter: {
+              getSigner: () => ({
+                signMessage: (m) => Promise.resolve(m as string),
+                sendTransaction: () =>
+                  Promise.resolve({ hash: 'hash' } as TransactionResponse),
+              }),
+            },
+          }),
+        /Unsupported wallet adapter/,
+      );
     });
 
     it('should return a TurboAuthenticatedClient with InjectedEthereumSigner when a compatible ethereum walletAdapter is provided', async () => {
@@ -139,38 +142,43 @@ describe('Browser environment', () => {
           }),
         },
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
-      expect(
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(
         await turbo.signer.sendTransaction({
           amount: BigNumber('1'),
           target: 'target',
           gatewayUrl: 'http://this.location',
         }),
-      ).to.equal('hash');
+        'hash',
+      );
     });
 
     it('throws an error when an incompatible ethereum walletAdapter is provided', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          token: 'ethereum',
-          walletAdapter: {
-            signMessage: (m) => Promise.resolve(m),
-            publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
-          },
-        }),
-      ).to.throw('Unsupported wallet adapter');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            token: 'ethereum',
+            walletAdapter: {
+              signMessage: (m) => Promise.resolve(m),
+              publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+            },
+          }),
+        /Unsupported wallet adapter/,
+      );
     });
 
     it('throws an error when a walletAdapter is provided with an incompatible token', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          token: 'arweave',
-          walletAdapter: {
-            signMessage: (m) => Promise.resolve(m),
-            publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
-          },
-        }),
-      ).to.throw('Unsupported wallet adapter');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            token: 'arweave',
+            walletAdapter: {
+              signMessage: (m) => Promise.resolve(m),
+              publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+            },
+          }),
+        /Unsupported wallet adapter/,
+      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
@@ -179,17 +187,19 @@ describe('Browser environment', () => {
         token: 'solana',
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Arweave signer', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          privateKey: testSolWallet,
-          token: 'arweave',
-          ...turboDevelopmentConfigurations,
-        }),
-      ).to.throw('A JWK must be provided for ArweaveSigner.');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            privateKey: testSolWallet,
+            token: 'arweave',
+            ...turboDevelopmentConfigurations,
+          }),
+        /A JWK must be provided for ArweaveSigner./,
+      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided ethereum private key', async () => {
@@ -198,27 +208,29 @@ describe('Browser environment', () => {
         token: 'ethereum',
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Ethereum signer', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          privateKey: testSolWallet,
-          token: 'ethereum',
-          ...turboDevelopmentConfigurations,
-        }),
-      ).to.throw(
-        'A valid Ethereum private key must be provided for EthereumSigner.',
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            privateKey: testSolWallet,
+            token: 'ethereum',
+            ...turboDevelopmentConfigurations,
+          }),
+        /A valid Ethereum private key must be provided for EthereumSigner./,
       );
     });
 
     it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          ...turboDevelopmentConfigurations,
-        }),
-      ).to.throw('A privateKey or signer must be provided.');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            ...turboDevelopmentConfigurations,
+          }),
+        /A privateKey or signer must be provided./,
+      );
     });
 
     it('should construct a TurboAuthenticatedClient with a provided deprecated tokenMap', async () => {
@@ -238,7 +250,7 @@ describe('Browser environment', () => {
         tokenMap,
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('TurboDataItemSigner errors when using an invalid signer on sendTransaction api', async () => {
@@ -255,8 +267,8 @@ describe('Browser environment', () => {
           gatewayUrl: '',
         })
         .catch((error) => error);
-      expect(error).to.be.instanceOf(Error);
-      expect(error.message).to.contain('Only EthereumSigner is supported');
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Only EthereumSigner is supported/);
     });
   });
 
@@ -270,56 +282,56 @@ describe('Browser environment', () => {
     describe('unauthenticated requests', () => {
       it('getFiatRates()', async () => {
         const { winc, fiat, adjustments } = await turbo.getFiatRates();
-        expect(winc).to.not.be.undefined.and.to.be.a('number');
-        expect(fiat).to.have.property('usd').that.is.a('number');
-        expect(adjustments).to.not.be.undefined;
+        assert.ok(typeof winc === 'string');
+        assert.ok(typeof fiat.usd === 'number');
+        assert.ok(adjustments !== undefined);
       });
 
       it('getFiatToAR()', async () => {
         const { currency, rate } = await turbo.getFiatToAR({ currency: 'usd' });
-        expect(currency).to.equal('usd');
-        expect(rate).to.be.a('number');
+        assert.equal(currency, 'usd');
+        assert.ok(typeof rate === 'number');
       });
 
       it('getSupportedCountries()', async () => {
         const countries = await turbo.getSupportedCountries();
-        expect(countries).to.be.an('array');
-        expect(countries.length).to.be.greaterThan(0);
-        expect(countries).to.include('United States');
+        assert.ok(Array.isArray(countries));
+        assert.ok(countries.length > 0);
+        assert.ok(countries.includes('United States'));
       });
 
       it('getSupportedCurrencies()', async () => {
         const { supportedCurrencies, limits } =
           await turbo.getSupportedCurrencies();
-        expect(supportedCurrencies).to.not.be.undefined;
-        expect(supportedCurrencies).to.be.an('array');
-        expect(supportedCurrencies.length).to.be.greaterThan(0);
-        expect(supportedCurrencies).to.include('usd');
-        expect(limits).to.not.be.undefined;
-        expect(limits).to.be.an('object');
-        expect(limits).to.have.property('usd');
-        expect(limits.usd).to.have.property('minimumPaymentAmount');
-        expect(limits.usd).to.have.property('maximumPaymentAmount');
-        expect(limits.usd).to.have.property('suggestedPaymentAmounts');
-        expect(limits.usd).to.have.property('zeroDecimalCurrency');
+        assert.ok(supportedCurrencies !== undefined);
+        assert.ok(Array.isArray(supportedCurrencies));
+        assert.ok(supportedCurrencies.length > 0);
+        assert.ok(supportedCurrencies.includes('usd'));
+        assert.ok(limits !== undefined);
+        assert.ok(typeof limits === 'object');
+        assert.ok(limits.usd !== undefined);
+        assert.ok(limits.usd.minimumPaymentAmount !== undefined);
+        assert.ok(limits.usd.maximumPaymentAmount !== undefined);
+        assert.ok(limits.usd.suggestedPaymentAmounts !== undefined);
+        assert.ok(limits.usd.zeroDecimalCurrency !== undefined);
       });
 
       it('getUploadCosts()', async () => {
         const [{ winc, adjustments }] = await turbo.getUploadCosts({
           bytes: [1024],
         });
-        expect(winc).to.not.be.undefined;
-        expect(+winc).to.be.greaterThan(0);
-        expect(adjustments).to.not.be.undefined;
-        expect(adjustments).to.be.an('array');
+        assert.ok(winc !== undefined);
+        assert.ok(+winc > 0);
+        assert.ok(adjustments !== undefined);
+        assert.ok(Array.isArray(adjustments));
       });
 
       it('getWincForFiat()', async () => {
         const { winc } = await turbo.getWincForFiat({
           amount: USD(10), // $10.00 USD
         });
-        expect(winc).to.not.be.undefined;
-        expect(+winc).to.be.greaterThan(0);
+        assert.ok(winc !== undefined);
+        assert.ok(+winc > 0);
       });
 
       describe('uploadSignedDataItem()', () => {
@@ -361,17 +373,17 @@ describe('Browser environment', () => {
             },
           });
 
-          expect(response).to.not.be.undefined;
-          expect(response).to.have.property('fastFinalityIndexes');
-          expect(response).to.have.property('dataCaches');
-          expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(testArweaveNativeB64Address);
-          expect(uploadProgressCalled).to.be.true;
-          expect(uploadErrorCalled).to.be.false;
-          expect(uploadSuccessCalled).to.be.true;
-          expect(signingProgressCalled).to.be.false;
-          expect(signingErrorCalled).to.be.false;
-          expect(signingSuccessCalled).to.be.false;
+          assert.ok(response !== undefined);
+          assert.ok(response.fastFinalityIndexes !== undefined);
+          assert.ok(response.dataCaches !== undefined);
+          assert.ok(response.owner !== undefined);
+          assert.equal(response.owner, testArweaveNativeB64Address);
+          assert.equal(uploadProgressCalled, true);
+          assert.equal(uploadErrorCalled, false);
+          assert.equal(uploadSuccessCalled, true);
+          assert.equal(signingProgressCalled, false);
+          assert.equal(signingErrorCalled, false);
+          assert.equal(signingSuccessCalled, false);
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -385,7 +397,7 @@ describe('Browser environment', () => {
               signal: AbortSignal.timeout(0), // abort the request right away
             })
             .catch((err) => err);
-          expect(error).be.instanceOf(CanceledError);
+          assert.ok(error instanceof CanceledError);
         });
 
         it('should return FailedRequestError for incorrectly signed data item', async () => {
@@ -398,8 +410,8 @@ describe('Browser environment', () => {
               dataItemSizeFactory: () => signedDataItem.getRaw().length,
             })
             .catch((err) => err);
-          expect(error).to.be.instanceOf(FailedRequestError);
-          expect(error.message).to.contain('Invalid Data Item');
+          assert.ok(error instanceof FailedRequestError);
+          assert.match(error.message, /Invalid Data Item/);
         });
       });
 
@@ -417,13 +429,13 @@ describe('Browser environment', () => {
             amount: USD(10),
             owner: '43-character-stub-arweave-address-000000000',
           });
-          expect(adjustments).to.deep.equal([]);
-          expect(paymentAmount).to.equal(1000);
-          expect(quotedPaymentAmount).to.equal(1000);
-          expect(url).to.be.a('string');
-          expect(id).to.be.a('string');
-          expect(client_secret).to.equal(undefined);
-          expect(winc).to.be.a('string');
+          assert.deepEqual(adjustments, []);
+          assert.equal(paymentAmount, 1000);
+          assert.equal(quotedPaymentAmount, 1000);
+          assert.ok(typeof url === 'string');
+          assert.ok(typeof id === 'string');
+          assert.equal(client_secret, undefined);
+          assert.ok(typeof winc === 'string');
         });
       });
 
@@ -441,13 +453,13 @@ describe('Browser environment', () => {
           owner: '43-character-stub-arweave-address-000000000',
           uiMode: 'embedded',
         });
-        expect(adjustments).to.deep.equal([]);
-        expect(paymentAmount).to.equal(2000);
-        expect(quotedPaymentAmount).to.equal(2000);
-        expect(url).to.equal(undefined);
-        expect(id).to.be.a('string');
-        expect(client_secret).to.be.a('string');
-        expect(winc).to.be.a('string');
+        assert.deepEqual(adjustments, []);
+        assert.equal(paymentAmount, 2000);
+        assert.equal(quotedPaymentAmount, 2000);
+        assert.equal(url, undefined);
+        assert.ok(typeof id === 'string');
+        assert.ok(typeof client_secret === 'string');
+        assert.ok(typeof winc === 'string');
       });
     });
 
@@ -463,9 +475,10 @@ describe('Browser environment', () => {
         const error = await turbo
           .submitFundTransaction({ txId: nonExistentPaymentTxId })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain(
-          'Failed request (Status 404): Transaction not found',
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(
+          error.message,
+          /Failed request \(Status 404\): Transaction not found/,
         );
       });
 
@@ -476,11 +489,11 @@ describe('Browser environment', () => {
           await turbo.submitFundTransaction({
             txId,
           });
-        expect(id).to.equal(txId);
-        expect(owner).to.equal(testArweaveNativeB64Address);
-        expect(winc).to.equal('766');
-        expect(token).to.equal('arweave');
-        expect(status).to.equal('pending');
+        assert.equal(id, txId);
+        assert.equal(owner, testArweaveNativeB64Address);
+        assert.equal(winc, '766');
+        assert.equal(token, 'arweave');
+        assert.equal(status, 'pending');
       });
 
       const minConfirmations = 25;
@@ -494,15 +507,15 @@ describe('Browser environment', () => {
           await turbo.submitFundTransaction({
             txId,
           });
-        expect(id).to.equal(txId);
-        expect(owner).to.equal(testArweaveNativeB64Address);
-        expect(winc).to.equal('766');
-        expect(token).to.equal('arweave');
-        expect(status).to.equal('confirmed');
+        assert.equal(id, txId);
+        assert.equal(owner, testArweaveNativeB64Address);
+        assert.equal(winc, '766');
+        assert.equal(token, 'arweave');
+        assert.equal(status, 'confirmed');
 
         const balanceAfter = await getRawBalance(testArweaveNativeB64Address);
 
-        expect(+balanceAfter - +balanceBefore).to.equal(766);
+        assert.equal(+balanceAfter - +balanceBefore, 766);
       });
     });
   });
@@ -530,7 +543,7 @@ describe('Browser environment', () => {
       it('returns correct balance for test wallet', async () => {
         const rawBalance = await getRawBalance(testArweaveNativeB64Address);
         const balance = await turbo.getBalance();
-        expect(balance.winc).to.equal(rawBalance);
+        assert.equal(balance.winc, rawBalance);
       });
 
       it('returns correct balance for an empty wallet', async () => {
@@ -540,7 +553,7 @@ describe('Browser environment', () => {
           ...turboDevelopmentConfigurations,
         });
         const balance = await emptyTurbo.getBalance();
-        expect(balance.winc).to.equal('0');
+        assert.equal(balance.winc, '0');
       });
     });
 
@@ -582,17 +595,17 @@ describe('Browser environment', () => {
               },
             },
           });
-          expect(response).to.not.be.undefined;
-          expect(response).to.have.property('fastFinalityIndexes');
-          expect(response).to.have.property('dataCaches');
-          expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(testArweaveNativeB64Address);
-          expect(uploadProgressCalled).to.be.true;
-          expect(uploadErrorCalled).to.be.false;
-          expect(uploadSuccessCalled).to.be.true;
-          expect(signingProgressCalled).to.be.true;
-          expect(signingErrorCalled).to.be.false;
-          expect(signingSuccessCalled).to.be.true;
+          assert.ok(response !== undefined);
+          assert.ok(response.fastFinalityIndexes !== undefined);
+          assert.ok(response.dataCaches !== undefined);
+          assert.ok(response.owner !== undefined);
+          assert.equal(response.owner, testArweaveNativeB64Address);
+          assert.equal(uploadProgressCalled, true);
+          assert.equal(uploadErrorCalled, false);
+          assert.equal(uploadSuccessCalled, true);
+          assert.equal(signingProgressCalled, true);
+          assert.equal(signingErrorCalled, false);
+          assert.equal(signingSuccessCalled, true);
         });
 
         it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -602,7 +615,7 @@ describe('Browser environment', () => {
               signal: AbortSignal.timeout(0), // abort the request right away
             })
             .catch((err) => err);
-          expect(error).to.be.instanceOf(CanceledError);
+          assert.ok(error instanceof CanceledError);
         });
       }
 
@@ -617,8 +630,8 @@ describe('Browser environment', () => {
             data: new Uint8Array(1024 * 1024), // 1MiB
           })
           .catch((err) => err);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain('Insufficient balance');
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(error.message, /Insufficient balance/);
       });
     });
 
@@ -662,17 +675,17 @@ describe('Browser environment', () => {
             },
           },
         });
-        expect(response).to.not.be.undefined;
-        expect(response).to.have.property('fastFinalityIndexes');
-        expect(response).to.have.property('dataCaches');
-        expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(testArweaveNativeB64Address);
-        expect(uploadProgressCalled).to.be.true;
-        expect(uploadErrorCalled).to.be.false;
-        expect(uploadSuccessCalled).to.be.true;
-        expect(signingProgressCalled).to.be.true;
-        expect(signingErrorCalled).to.be.false;
-        expect(signingSuccessCalled).to.be.true;
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+        assert.equal(uploadProgressCalled, true);
+        assert.equal(uploadErrorCalled, false);
+        assert.equal(uploadSuccessCalled, true);
+        assert.equal(signingProgressCalled, true);
+        assert.equal(signingErrorCalled, false);
+        assert.equal(signingSuccessCalled, true);
       });
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
@@ -691,7 +704,7 @@ describe('Browser environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
-        expect(error).to.be.instanceOf(CanceledError);
+        assert.ok(error instanceof CanceledError);
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
@@ -713,8 +726,8 @@ describe('Browser environment', () => {
             fileSizeFactory: () => oneMBBuffer.byteLength,
           })
           .catch((err) => err);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain('Insufficient balance');
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(error.message, /Insufficient balance/);
       });
     });
 
@@ -734,11 +747,11 @@ describe('Browser environment', () => {
         const result = await turbo.uploadFolder({
           files,
         });
-        expect(result).to.not.be.undefined;
-        expect(result).to.have.property('manifest');
+        assert.ok(result !== undefined);
+        assert.ok(result.manifest !== undefined);
 
-        expect(result['fileResponses']).to.have.length(4);
-        expect(result['manifestResponse']).to.not.be.undefined;
+        assert.equal(result.fileResponses.length, 4);
+        assert.ok(result.manifestResponse !== undefined);
       });
     });
 
@@ -749,8 +762,9 @@ describe('Browser environment', () => {
           promoCodes: ['BAD_CODE'],
         })
         .catch((error) => error);
-      expect(error).to.be.instanceOf(FailedRequestError);
-      expect(error?.message).to.equal(
+      assert.ok(error instanceof FailedRequestError);
+      assert.equal(
+        error.message,
         "Failed request (Status 400): No promo code found with code 'BAD_CODE'",
       );
     });
@@ -759,8 +773,8 @@ describe('Browser environment', () => {
       const { winc, adjustments } = await turbo.getWincForFiat({
         amount: USD(10), // $10.00 USD
       });
-      expect(+winc).to.be.greaterThan(0);
-      expect(adjustments).to.not.be.undefined;
+      assert.ok(+winc > 0);
+      assert.ok(adjustments !== undefined);
     });
 
     describe('createCheckoutSession()', () => {
@@ -772,8 +786,9 @@ describe('Browser environment', () => {
             promoCodes: ['BAD_PROMO_CODE'],
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error?.message).to.equal(
+        assert.ok(error instanceof FailedRequestError);
+        assert.equal(
+          error.message,
           "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
         );
       });
@@ -788,7 +803,7 @@ describe('Browser environment', () => {
           delayedBlockMining(),
         ]);
 
-        expect(winc).to.equal('7');
+        assert.equal(winc, '7');
       });
 
       it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
@@ -813,8 +828,8 @@ describe('Browser environment', () => {
             feeMultiplier: 1.5,
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(Error);
-        expect(error.message).to.contain('Failed to submit fund transaction!');
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /Failed to submit fund transaction!/);
       });
 
       it('should fail to submit fund tx when fund tx fails to post to arweave', async () => {
@@ -825,8 +840,8 @@ describe('Browser environment', () => {
             tokenAmount: WinstonToTokenAmount(1000),
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(Error);
-        expect(error.message).to.contain('Failed to post transaction');
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /Failed to post transaction/);
       });
     });
   });
@@ -870,11 +885,11 @@ describe('Browser environment', () => {
         fileSizeFactory: () => uint8Array.length,
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testEthAddressBase64);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testEthAddressBase64);
     });
 
     it('should properly upload a Buffer to turbo', async () => {
@@ -913,18 +928,18 @@ describe('Browser environment', () => {
         },
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testEthAddressBase64);
-      expect(uploadProgressCalled).to.be.true;
-      expect(uploadErrorCalled).to.be.false;
-      expect(uploadSuccessCalled).to.be.true;
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testEthAddressBase64);
+      assert.equal(uploadProgressCalled, true);
+      assert.equal(uploadErrorCalled, false);
+      assert.equal(uploadSuccessCalled, true);
       // no signing callbacks should be called for signed data
-      expect(signingProgressCalled).to.be.false;
-      expect(signingErrorCalled).to.be.false;
-      expect(signingSuccessCalled).to.be.false;
+      assert.equal(signingProgressCalled, false);
+      assert.equal(signingErrorCalled, false);
+      assert.equal(signingSuccessCalled, false);
     });
 
     it.skip('should topUpWithTokens() to an ETH wallet', async () => {
@@ -934,11 +949,11 @@ describe('Browser environment', () => {
         },
       );
 
-      expect(id).to.be.a('string');
-      expect(target).to.be.a('string');
-      expect(winc).be.a('string');
-      expect(quantity).to.equal('100000000');
-      expect(owner).to.equal(testEthNativeAddress);
+      assert.ok(typeof id === 'string');
+      assert.ok(typeof target === 'string');
+      assert.ok(typeof winc === 'string');
+      assert.equal(quantity, '100000000');
+      assert.equal(owner, testEthNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to an ETH wallet if tx is stubbed to succeed but wont exist on chain', async () => {
@@ -952,10 +967,8 @@ describe('Browser environment', () => {
           tokenAmount: 100_000, // 0.0001 ETH
         })
         .catch((error) => {
-          expect(error).to.be.instanceOf(Error);
-          expect(error.message).to.contain(
-            'Failed to submit fund transaction!',
-          );
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /Failed to submit fund transaction!/);
         });
     });
   });
@@ -996,11 +1009,11 @@ describe('Browser environment', () => {
         fileSizeFactory: () => uint8Array.length,
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testSolAddressBase64);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testSolAddressBase64);
     });
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
@@ -1012,8 +1025,8 @@ describe('Browser environment', () => {
         fileSizeFactory: () => uint8Array.length,
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response['owner']).to.equal(testSolAddressBase64);
+      assert.ok(response !== undefined);
+      assert.equal(response.owner, testSolAddressBase64);
     });
 
     it('should properly upload a Buffer to turbo', async () => {
@@ -1031,12 +1044,12 @@ describe('Browser environment', () => {
         },
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testSolAddressBase64);
-      expect(uploadProgressCalled).to.be.true;
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testSolAddressBase64);
+      assert.equal(uploadProgressCalled, true);
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {
@@ -1046,11 +1059,11 @@ describe('Browser environment', () => {
         },
       );
 
-      expect(id).to.be.a('string');
-      expect(target).to.be.a('string');
-      expect(winc).be.a('string');
-      expect(quantity).to.equal('100000');
-      expect(owner).to.equal(testSolNativeAddress);
+      assert.ok(typeof id === 'string');
+      assert.ok(typeof target === 'string');
+      assert.ok(typeof winc === 'string');
+      assert.equal(quantity, '100000');
+      assert.equal(owner, testSolNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to a SOL wallet if tx is stubbed to succeed but wont exist on chain', async () => {
@@ -1064,10 +1077,8 @@ describe('Browser environment', () => {
           tokenAmount: 100_000, // 0.0001 SOL
         })
         .catch((error) => {
-          expect(error).to.be.instanceOf(Error);
-          expect(error.message).to.contain(
-            'Failed to submit fund transaction!',
-          );
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /Failed to submit fund transaction!/);
         });
     });
   });

@@ -1,9 +1,9 @@
 import Arweave from 'arweave';
 import axios from 'axios';
 import bs58 from 'bs58';
-import { expect } from 'chai';
 import { JsonRpcProvider, parseEther } from 'ethers';
 import * as fs from 'fs';
+import { strict as assert } from 'node:assert';
 
 import { defaultRetryConfig } from '../src/utils/axiosClient.js';
 import { sleep } from '../src/utils/common.js';
@@ -35,10 +35,10 @@ export async function expectAsyncErrorThrow({
     error = err as Error | null;
   }
 
-  expect(error?.name).to.equal(errorType);
+  assert.equal(error?.name, errorType);
 
   if (errorMessage) {
-    expect(error?.message).to.equal(errorMessage);
+    assert.equal(error?.message, errorMessage);
   }
 }
 
