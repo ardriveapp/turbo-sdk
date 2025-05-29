@@ -1137,7 +1137,7 @@ describe('Browser environment', () => {
       const signedBuffer = await streamToBuffer(signedStream);
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
-      expect(isValidDataItem).to.be.true;
+      assert.ok(isValidDataItem);
     });
 
     it('should sign a ReadableStream with EthereumSigner and return a valid signed stream', async () => {
@@ -1152,7 +1152,7 @@ describe('Browser environment', () => {
       const signedBuffer = await streamToBuffer(signedStream);
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
-      expect(isValidDataItem).to.be.true;
+      assert.ok(isValidDataItem);
     });
 
     it('should sign a ReadableStream with HexSolanaSigner and return a valid signed stream', async () => {
@@ -1167,7 +1167,7 @@ describe('Browser environment', () => {
       const signedBuffer = await streamToBuffer(signedStream);
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
-      expect(isValidDataItem).to.be.true;
+      assert.ok(isValidDataItem);
     });
 
     it('should sign a ReadableStream with custom DataItemCreateOptions', async () => {
@@ -1188,12 +1188,12 @@ describe('Browser environment', () => {
       );
       const signedBuffer = await streamToBuffer(signedStream);
 
-      expect(signedBuffer).to.be.instanceOf(Buffer);
-      expect(signedBuffer.length).to.be.greaterThan(testBuffer.length);
+      assert.ok(signedBuffer instanceof Buffer);
+      assert.ok(signedBuffer.length > testBuffer.length);
 
       // The signed stream should contain the original data
       const originalDataIndex = signedBuffer.indexOf(testBuffer);
-      expect(originalDataIndex).to.be.greaterThan(-1);
+      assert.ok(originalDataIndex > -1);
     });
 
     it('should handle empty stream input', async () => {
@@ -1212,7 +1212,7 @@ describe('Browser environment', () => {
       const signedBuffer = await streamToBuffer(signedStream);
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
-      expect(isValidDataItem).to.be.true;
+      assert.ok(isValidDataItem);
     });
 
     it('should handle large stream input', async () => {
@@ -1230,7 +1230,7 @@ describe('Browser environment', () => {
       const signedBuffer = await streamToBuffer(signedStream);
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
-      expect(isValidDataItem).to.be.true;
+      assert.ok(isValidDataItem);
     });
 
     it('should produce different signatures for different data', async () => {
@@ -1259,9 +1259,9 @@ describe('Browser environment', () => {
         streamToBuffer(signedStream2),
       ]);
 
-      expect(buffer1).to.not.deep.equal(buffer2);
-      expect(buffer1.indexOf(data1)).to.be.greaterThan(-1);
-      expect(buffer2.indexOf(data2)).to.be.greaterThan(-1);
+      assert.notDeepEqual(buffer1, buffer2);
+      assert.ok(buffer1.indexOf(data1) > -1);
+      assert.ok(buffer2.indexOf(data2) > -1);
     });
 
     it('should work with chunked stream input', async () => {
@@ -1287,7 +1287,7 @@ describe('Browser environment', () => {
       const signedBuffer = await streamToBuffer(signedStream);
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
-      expect(isValidDataItem).to.be.true;
+      assert.ok(isValidDataItem);
     });
   });
 });
