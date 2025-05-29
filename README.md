@@ -95,7 +95,7 @@ async function uploadWithTurbo() {
           onSigningProgress: ({ totalBytes, processedBytes }) => {
             console.log('Signing progress:', { totalBytes, processedBytes });
           },
-          onSigningError: ({ error }) => {
+          onSigningError: (error) => {
             console.log('Signing error:', { error });
           },
           onSigningSuccess: () => {
@@ -386,6 +386,7 @@ const uploadResponse = await turbo.uploadSignedDataItem({
   dataItemSizeFactory: () => dataItemSize,
   signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
   events: {
+    // track upload events only
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
@@ -540,7 +541,7 @@ const uploadResult = await turbo.upload({
 
 #### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts, events })`
 
-Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
 ```typescript
 const filePath = path.join(__dirname, './my-unsigned-file.txt');
@@ -563,6 +564,7 @@ const uploadResult = await turbo.uploadFile({
     // no timeout or AbortSignal provided
   },
   events: {
+    // upload events
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
@@ -745,10 +747,10 @@ const { givenApprovals, receivedApprovals } =
 
 ## Events
 
-The SDK provides events for uploading and signing data. You can listen to these events by providing a callback function to the `events` parameter of the `upload` and `uploadFile` and `uploadSignedDataItem` methods.
+The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, and `uploadSignedDataItem` methods.
 
-- `onProgress` - emitted when the overall progress changes (includes both upload and signing). Each event includes the total bytes, processed bytes, and the step (upload or signing)
-- `onError` - emitted when the overall upload or signing fails (includes both upload and signing). Each event includes the error and the step (upload or signing)
+- `onProgress` - emitted when the overall progress changes (includes both upload and signing). Each event consists of the total bytes, processed bytes, and the step (upload or signing)
+- `onError` - emitted when the overall upload or signing fails (includes both upload and signing)
 - `onSuccess` - emitted when the overall upload or signing succeeds (includes both upload and signing) - this is the last event emitted for the upload or signing process
 - `onSigningProgress` - emitted when the signing progress changes.
 - `onSigningError` - emitted when the signing fails.
@@ -765,7 +767,7 @@ const uploadResult = await turbo.upload({
     // optional
   },
   events: {
-    // overall progress
+    // overall events (includes signing and upload events)
     onProgress: ({ totalBytes, processedBytes, step }) => {
       const percentComplete = (processedBytes / totalBytes) * 100;
       console.log('Overall progress:', {
@@ -778,6 +780,10 @@ const uploadResult = await turbo.upload({
     onError: (error) => {
       console.log('Overall error:', { error });
     },
+    onSuccess: () => {
+      console.log('Signed and upload data item!');
+    },
+    // upload events
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
@@ -787,6 +793,7 @@ const uploadResult = await turbo.upload({
     onUploadSuccess: () => {
       console.log('Upload success!');
     },
+    // signing events
     onSigningProgress: ({ totalBytes, processedBytes }) => {
       console.log('Signing progress:', { totalBytes, processedBytes });
     },
