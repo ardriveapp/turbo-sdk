@@ -1,4 +1,8 @@
-import { TurboAuthenticatedClient, TurboFactory } from '@ardrive/turbo-sdk/web';
+import {
+  ArconnectSigner,
+  TurboAuthenticatedClient,
+  TurboFactory,
+} from '@ardrive/turbo-sdk/web';
 import Arweave from 'arweave';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { useEffect, useState } from 'react';
@@ -15,7 +19,9 @@ const arweave = new Arweave({
 });
 
 function App() {
-  const [wallet, setWallet] = useState<JWKInterface | null>(null);
+  const [wallet, setWallet] = useState<
+    JWKInterface | Window['arweaveWallet'] | null
+  >(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [jwk, setJwk] = useState<string>('');
@@ -136,13 +142,30 @@ function App() {
   useEffect(() => {
     if (jwk) {
       setWallet(JSON.parse(jwk));
+    }
+  }, [jwk]);
+  useEffect(() => {
+    if (jwk) {
       setTurbo(
         TurboFactory.authenticated({
           privateKey: JSON.parse(jwk),
         }),
       );
     }
-  }, [jwk]);
+    if (wallet && 'connect' in wallet) {
+      setTurbo(
+        TurboFactory.authenticated({
+          signer: new ArconnectSigner(window.arweaveWallet),
+          paymentServiceConfig: {
+            url: 'https://payment.ardrive.dev',
+          },
+          uploadServiceConfig: {
+            url: 'https://upload.ardrive.dev',
+          },
+        }),
+      );
+    }
+  }, [jwk, wallet]);
 
   return (
     <div
@@ -157,6 +180,49 @@ function App() {
         }}
       >
         <h2>File Upload with Turbo SDK</h2>
+        <button
+          onClick={async () => {
+            if (!window.arweaveWallet) {
+              setUploadStatus('No arweave wallet injected');
+              return;
+            }
+            if (window.arweaveWallet) {
+              try {
+                const requiredPermissions = [
+                  'ACCESS_ADDRESS',
+                  'ACCESS_PUBLIC_KEY',
+                  'SIGNATURE',
+                  'SIGN_TRANSACTION',
+                ];
+                const isConnected = await window.arweaveWallet.getPermissions();
+                if (isConnected.length === requiredPermissions.length) {
+                  setUploadStatus('Wallet already connected');
+                  setWallet(window.arweaveWallet);
+                  setShowJwkInput(false);
+                  return;
+                }
+                await window.arweaveWallet.connect([
+                  'ACCESS_ADDRESS',
+                  'ACCESS_PUBLIC_KEY',
+                  'SIGNATURE',
+                  'SIGN_TRANSACTION',
+                ]);
+                setWallet(window.arweaveWallet);
+                setShowJwkInput(false);
+              } catch (error) {
+                setUploadStatus(
+                  `Error connecting with injected arweave wallet: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                  }`,
+                );
+              }
+            }
+          }}
+        >
+          {wallet && 'connect' in wallet
+            ? 'connected'
+            : 'Connect with Injected Arweave Wallet'}
+        </button>
 
         <h3>Provide a JWK</h3>
 
@@ -182,7 +248,7 @@ function App() {
               Generate Random JWK
             </button>
           </div>
-        ) : (
+        ) : wallet && !('connect' in wallet) ? (
           <div
             style={{
               marginBottom: '10px',
@@ -196,7 +262,7 @@ function App() {
               Use Different JWK
             </button>
           </div>
-        )}
+        ) : null}
         <h3>Select a file to upload</h3>
 
         <form

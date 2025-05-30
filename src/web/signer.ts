@@ -89,8 +89,8 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
       });
       this.logger.debug('Signing data item...');
 
-      // signing progress is handled by the streamSigner function internally
-      const { stream: dataItemStream, size: dataItemSize } = await streamSigner(
+      // Create the signature and header by processing the stream once
+      const signedHeader = await this.createSignedHeader(
         {
           input: fileStream,
           signer: this.signer,
@@ -105,9 +105,10 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
       this.logger.debug('Successfully signed data item...');
       return {
-        // while this returns a Buffer - it needs to match our return type for uploading
-        dataItemStreamFactory: () => dataItemStream,
-        dataItemSizeFactory: () => dataItemSize,
+        // Return a factory that creates fresh signed streams by combining header with fresh data
+        dataItemStreamFactory: () =>
+          this.createSignedDataItemStream(signedHeader, fileStreamFactory()),
+        dataItemSizeFactory: () => signedHeader.headerBytes.length + fileSize,
       };
     } catch (error) {
       // If we have a signing emitter, emit error
@@ -115,6 +116,119 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
       emitter?.emit('signing-error', error);
       throw error;
     }
+  }
+
+  private async createSignedHeader(
+    {
+      input,
+      signer,
+      fileSize,
+      emitter,
+    }: {
+      input: ReadableStream<Uint8Array> | Buffer;
+      signer: Signer;
+      fileSize: number;
+      emitter?: TurboEventEmitter;
+    },
+    opts?: DataItemCreateOptions,
+  ): Promise<{ headerBytes: Uint8Array }> {
+    const header = createData('', signer, opts);
+
+    const stream =
+      input instanceof ReadableStream
+        ? input
+        : new ReadableStream({
+            start(controller) {
+              controller.enqueue(input);
+              controller.close();
+            },
+          });
+
+    const [s1, s2] = stream.tee();
+
+    // Create a stream that emits signing progress
+    let bytesProcessed = 0;
+    const s1Reader = s1.getReader();
+    const streamWithSigningEvents = new ReadableStream({
+      async pull(controller) {
+        const { done, value } = await s1Reader.read();
+        if (done) {
+          controller.close();
+        } else {
+          bytesProcessed += value.length;
+          emitter?.emit('signing-progress', {
+            totalBytes: fileSize,
+            processedBytes: bytesProcessed,
+          });
+          controller.enqueue(value);
+        }
+      },
+      cancel(reason) {
+        emitter?.emit('signing-error', reason);
+        s1Reader.cancel(reason);
+      },
+    });
+
+    // Use the stream for hashing
+    const parts: DeepHashChunk = [
+      stringToBuffer('dataitem'),
+      stringToBuffer('1'),
+      stringToBuffer(header.signatureType.toString()),
+      Uint8Array.from(header.rawOwner),
+      Uint8Array.from(header.rawTarget),
+      Uint8Array.from(header.rawAnchor),
+      Uint8Array.from(header.rawTags),
+      streamWithSigningEvents as unknown as DeepHashChunk,
+    ];
+
+    const hash = await deepHash(parts);
+    const sigBytes = Buffer.from(await signer.sign(hash));
+    header.setSignature(sigBytes);
+
+    // Clean up s2 since we only needed it for the tee
+    s2.getReader().cancel();
+
+    return {
+      headerBytes: Uint8Array.from(header.getRaw()),
+    };
+  }
+
+  private createSignedDataItemStream(
+    signedHeader: { headerBytes: Uint8Array },
+    dataStream: ReadableStream | Buffer,
+  ): ReadableStream {
+    const stream =
+      dataStream instanceof ReadableStream
+        ? dataStream
+        : new ReadableStream({
+            start(controller) {
+              controller.enqueue(dataStream);
+              controller.close();
+            },
+          });
+
+    const reader = stream.getReader();
+    let headerSent = false;
+
+    return new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (!headerSent) {
+          controller.enqueue(signedHeader.headerBytes);
+          headerSent = true;
+          return;
+        }
+
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(value);
+      },
+      cancel() {
+        reader.cancel();
+      },
+    });
   }
 
   public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {

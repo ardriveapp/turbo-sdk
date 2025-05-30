@@ -79,6 +79,14 @@ function createReadableStreamWithEvents({
           },
         });
 
+  // Check if the stream is locked and throw a helpful error
+  if (originalStream.locked) {
+    throw new Error(
+      'ReadableStream is already locked. This typically happens during upload retries when the dataItemStreamFactory returns the same stream instance. ' +
+        'The dataItemStreamFactory should return a fresh, unlocked stream on each call to support retries.',
+    );
+  }
+
   let processedBytes = 0;
   let reader;
   const stream = new ReadableStream({
