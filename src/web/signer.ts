@@ -342,5 +342,6 @@ export async function deepHashChunks(
   const newAcc = new Uint8Array(
     await crypto.subtle.digest('SHA-384', hashPair),
   );
-  return await deepHashChunks(chunks.slice(1), newAcc);
+
+  return deepHashChunks(chunks.slice(1), newAcc);
 }
