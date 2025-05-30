@@ -156,6 +156,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
             ? new ReadableStream({
                 start(controller) {
                   controller.enqueue(signedDataItem.getRaw());
+                  controller.close();
                 },
               })
             : signedDataItem,
@@ -184,8 +185,7 @@ export async function streamSigner(
   {
     input,
     signer,
-    fileSize,
-    emitter,
+    fileSize, //  emitter,
   }: {
     input: ReadableStream<Uint8Array> | Buffer;
     signer: Signer;
@@ -202,34 +202,34 @@ export async function streamSigner(
       : new ReadableStream({
           start(controller) {
             controller.enqueue(input);
+            controller.close();
           },
         });
 
   const [s1, s2] = stream.tee(); // Clone the input stream
   // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
-  let bytesProcessed = 0;
-  const s1Reader = s1.getReader();
-  const streamWithSigningEvents = new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await s1Reader.read();
-      if (done) {
-        emitter?.emit('signing-success');
-        controller.close();
-      } else {
-        bytesProcessed += value.length;
-        emitter?.emit('signing-progress', {
-          totalBytes: fileSize,
-          processedBytes: bytesProcessed,
-        });
-        controller.enqueue(value);
-      }
-    },
-
-    cancel(reason) {
-      emitter?.emit('signing-error', reason);
-      s1Reader.cancel(reason);
-    },
-  });
+  // let bytesProcessed = 0;
+  // const s1Reader = s1.getReader();
+  // const streamWithSigningEvents = new ReadableStream({
+  //   async pull(controller) {
+  //     const { done, value } = await s1Reader.read();
+  //     if (done) {
+  //       emitter?.emit('signing-success');
+  //       controller.close();
+  //     } else {
+  //       bytesProcessed += value.length;
+  //       emitter?.emit('signing-progress', {
+  //         totalBytes: fileSize,
+  //         processedBytes: bytesProcessed,
+  //       });
+  //       controller.enqueue(value);
+  //     }
+  //   },
+  //   cancel(reason) {
+  //     emitter?.emit('signing-error', reason);
+  //     s1Reader.cancel(reason);
+  //   },
+  // });
 
   // provide that ReadableStream with events to deep hash, so as it pulls bytes through events get emitted
   const parts: DeepHashChunk = [
@@ -240,7 +240,7 @@ export async function streamSigner(
     Uint8Array.from(header.rawTarget),
     Uint8Array.from(header.rawAnchor),
     Uint8Array.from(header.rawTags),
-    streamWithSigningEvents as unknown as DeepHashChunk,
+    s1 as unknown as DeepHashChunk,
   ];
 
   const hash = await deepHash(parts);
@@ -282,18 +282,23 @@ export async function deepHash(
 
     const context = createHash('sha384');
 
+    let bytesProcessed = 0;
+
     for await (const chunk of _data) {
       context.update(Uint8Array.from(chunk));
+      bytesProcessed += chunk.byteLength;
     }
+
+    const digest = context.digest(); // Call digest() once and store result
 
     const tag = concatBuffers([
       stringToBuffer('blob'),
-      stringToBuffer(context.digest().byteLength.toString()),
+      stringToBuffer(bytesProcessed.toString()),
     ]);
 
     const taggedHash = concatBuffers([
       new Uint8Array(await crypto.subtle.digest('SHA-384', tag)),
-      new Uint8Array(context.digest()),
+      new Uint8Array(digest), // Use the stored digest
     ]);
 
     return new Uint8Array(await crypto.subtle.digest('SHA-384', taggedHash));

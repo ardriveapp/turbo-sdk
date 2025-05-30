@@ -1248,11 +1248,6 @@ describe('Browser environment', () => {
           fileSize: data1.length,
         }),
         streamSigner({
-          input: stream1,
-          signer,
-          fileSize: data1.length,
-        }),
-        streamSigner({
           input: stream2,
           signer,
           fileSize: data2.length,
