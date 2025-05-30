@@ -55,13 +55,15 @@ function App() {
       setUploadStatus('Uploading...');
       const buffer = await selectedFile.arrayBuffer();
       const upload = await turbo.uploadFile({
-        fileStreamFactory: () =>
-          new ReadableStream({
+        fileStreamFactory: () => {
+          console.log('fileStreamFactory called');
+          return new ReadableStream({
             start(controller) {
               controller.enqueue(buffer);
               controller.close();
             },
-          }),
+          });
+        },
         fileSizeFactory: () => selectedFile.size,
         events: {
           onSigningProgress: ({

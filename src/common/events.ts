@@ -88,14 +88,17 @@ function createReadableStreamWithEvents({
     async pull(controller) {
       try {
         const { value, done } = await reader.read();
+        console.log('value', value);
+        console.log('done', done);
 
         if (done) {
           emitter.emit(eventNamesMap['on-end']);
           controller.close();
+          console.log('closing controller');
           return;
         }
 
-        processedBytes += value.length;
+        processedBytes += value.byteLength;
         emitter.emit(eventNamesMap['on-progress'], {
           processedBytes,
           totalBytes: dataSize,
@@ -183,7 +186,7 @@ function createReadableWithEvents({
   let processedBytes = 0;
   existingStream.on('data', (chunk) => {
     eventingStream.write(chunk);
-    processedBytes += chunk.length;
+    processedBytes += chunk.byteLength;
     emitter.emit(eventNamesMap['on-progress'], {
       processedBytes,
       totalBytes: dataSize,

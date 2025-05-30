@@ -80,8 +80,6 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     const fileSize = fileSizeFactory();
 
     try {
-      const fileStream = fileStreamFactory();
-
       // start with 0 progress
       emitter?.emit('signing-progress', {
         processedBytes: 0,
@@ -90,9 +88,9 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
       this.logger.debug('Signing data item...');
 
       // signing progress is handled by the streamSigner function internally
-      const { stream: dataItemStream, size: dataItemSize } = await streamSigner(
+      const { dataItemStreamFactory, size: dataItemSize } = await streamSigner(
         {
-          input: fileStream,
+          streamFactory: fileStreamFactory as any,
           signer: this.signer,
           fileSize,
           emitter,
@@ -100,14 +98,14 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
         dataItemOpts,
       );
 
-      // emit completion event
-      emitter?.emit('signing-success');
-
       this.logger.debug('Successfully signed data item...');
       return {
         // while this returns a Buffer - it needs to match our return type for uploading
-        dataItemStreamFactory: () => dataItemStream,
-        dataItemSizeFactory: () => dataItemSize,
+        dataItemStreamFactory,
+        dataItemSizeFactory: () => {
+          console.log('dataItemSizeFactory called, signDataItem', dataItemSize);
+          return dataItemSize;
+        },
       };
     } catch (error) {
       // If we have a signing emitter, emit error
@@ -130,47 +128,48 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
 export async function streamSigner(
   {
-    input,
+    streamFactory,
     signer,
     fileSize,
     emitter,
   }: {
-    input: ReadableStream<Uint8Array> | Buffer;
+    streamFactory: () => ReadableStream<Uint8Array>;
     signer: Signer;
     fileSize: number;
     emitter?: TurboEventEmitter;
   },
   opts?: DataItemCreateOptions,
-): Promise<{ stream: ReadableStream<Uint8Array>; size: number }> {
+): Promise<{
+  dataItemStreamFactory: () => ReadableStream<Uint8Array>;
+  size: number;
+}> {
   const header = createData('', signer, opts);
 
-  const stream =
-    input instanceof ReadableStream
-      ? input
-      : new ReadableStream({
-          start(controller) {
-            controller.enqueue(input);
-            controller.close();
-          },
-        });
-
-  const [s1, s2] = stream.tee(); // Clone the input stream
+  const deepHashStream = streamFactory(); // Clone the input stream
+  console.log('deep hash stream', deepHashStream);
   // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
   let bytesProcessed = 0;
-  const s1Reader = s1.getReader();
+  const s1Reader = deepHashStream.getReader();
   const streamWithSigningEvents = new ReadableStream({
     async pull(controller) {
-      const { done, value } = await s1Reader.read();
-      if (done) {
-        emitter?.emit('signing-success');
-        controller.close();
-      } else {
-        bytesProcessed += value.length;
-        emitter?.emit('signing-progress', {
-          totalBytes: fileSize,
-          processedBytes: bytesProcessed,
-        });
-        controller.enqueue(value);
+      try {
+        const { done, value } = await s1Reader.read();
+        console.log('signing value', value);
+        console.log('signing done', done);
+        if (done) {
+          emitter?.emit('signing-success');
+          controller.close();
+        } else {
+          bytesProcessed += value.byteLength;
+          emitter?.emit('signing-progress', {
+            totalBytes: fileSize,
+            processedBytes: bytesProcessed,
+          });
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        emitter?.emit('signing-error', error);
+        controller.error(error);
       }
     },
     cancel(reason) {
@@ -196,27 +195,33 @@ export async function streamSigner(
   header.setSignature(sigBytes);
   const headerBytes = header.getRaw();
 
-  // Stream headerBytes first, then the rest of s2
-  const reader = s2.getReader();
-
-  const dataItemStream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(Uint8Array.from(headerBytes));
+  return {
+    dataItemStreamFactory: () => {
+      console.log('creating data item stream');
+      const reader = streamFactory().getReader();
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(Uint8Array.from(headerBytes));
+        },
+        async pull(controller) {
+          try {
+            const { done, value } = await reader.read();
+            if (done) {
+              controller.close();
+              return;
+            }
+            controller.enqueue(value);
+          } catch (error) {
+            controller.error(error);
+          }
+        },
+        cancel() {
+          reader.cancel();
+        },
+      });
     },
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-      controller.enqueue(value);
-    },
-    cancel() {
-      reader.cancel();
-    },
-  });
-
-  return { stream: dataItemStream, size: headerBytes.length + fileSize };
+    size: headerBytes.byteLength + fileSize,
+  };
 }
 
 export async function deepHash(

@@ -205,9 +205,11 @@ export abstract class TurboDataItemAbstractSigner
       const publicKey = Uint8Array.from(await this.getPublicKey());
 
       // Concatenate the private and public keys correctly
-      const combinedKey = new Uint8Array(privateKey.length + publicKey.length);
+      const combinedKey = new Uint8Array(
+        privateKey.byteLength + publicKey.byteLength,
+      );
       combinedKey.set(privateKey);
-      combinedKey.set(publicKey, privateKey.length);
+      combinedKey.set(publicKey, privateKey.byteLength);
 
       const signature = nacl.sign.detached(dataToSign, combinedKey);
       return signature;
