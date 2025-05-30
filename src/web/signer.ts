@@ -16,7 +16,6 @@
 import {
   ArconnectSigner,
   ArweaveSigner,
-  DataItem,
   DataItemCreateOptions,
   EthereumSigner,
   HexSolanaSigner,
@@ -36,7 +35,6 @@ import {
   TurboSignedRequestHeaders,
   WebTurboFileFactory,
 } from '../types.js';
-import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 /**
  * Utility exports to avoid clients having to install arbundles
@@ -89,61 +87,18 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
         processedBytes: 0,
         totalBytes: fileSize,
       });
-
-      let signedDataItem: DataItem | ReadableStream<Uint8Array>;
-      let dataItemSize: number;
       this.logger.debug('Signing data item...');
 
-      if (this.signer instanceof ArconnectSigner) {
-        this.logger.debug(
-          'Arconnect signer detected, signing with Arconnect signData Item API...',
-        );
-        // fake progress event for arconnect
-        emitter?.emit('signing-progress', {
-          processedBytes: Math.floor(fileSize / 2),
-          totalBytes: fileSize,
-        });
-
-        const buffer =
-          fileStream instanceof Buffer
-            ? fileStream
-            : await readableStreamToBuffer({
-                stream: fileStream,
-                size: fileSize,
-              });
-
-        const sign = Buffer.from(
-          await this.signer['signer'].signDataItem({
-            data: Uint8Array.from(buffer),
-            tags: dataItemOpts?.tags,
-            target: dataItemOpts?.target,
-            anchor: dataItemOpts?.anchor,
-          }),
-        );
-        signedDataItem = new DataItem(sign);
-        dataItemSize = sign.length;
-        // emit last fake progress event for arconnect (100%)
-        emitter?.emit('signing-progress', {
-          processedBytes: fileSize,
-          totalBytes: fileSize,
-        });
-      } else {
-        // signing progress is handled by the streamSigner function internally
-        const { stream: dataItemStream, size: dataItemStreamSize } =
-          await streamSigner(
-            {
-              input: fileStream,
-              signer: this.signer,
-              fileSize,
-              emitter,
-            },
-            dataItemOpts,
-          );
-
-        // TODO: opportunity to optimize this by using the stream directly since its turned into a stream again later
-        signedDataItem = dataItemStream;
-        dataItemSize = dataItemStreamSize;
-      }
+      // signing progress is handled by the streamSigner function internally
+      const { stream: dataItemStream, size: dataItemSize } = await streamSigner(
+        {
+          input: fileStream,
+          signer: this.signer,
+          fileSize,
+          emitter,
+        },
+        dataItemOpts,
+      );
 
       // emit completion event
       emitter?.emit('signing-success');
@@ -151,15 +106,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
       this.logger.debug('Successfully signed data item...');
       return {
         // while this returns a Buffer - it needs to match our return type for uploading
-        dataItemStreamFactory: () =>
-          signedDataItem instanceof DataItem
-            ? new ReadableStream({
-                start(controller) {
-                  controller.enqueue(signedDataItem.getRaw());
-                  controller.close();
-                },
-              })
-            : signedDataItem,
+        dataItemStreamFactory: () => dataItemStream,
         dataItemSizeFactory: () => dataItemSize,
       };
     } catch (error) {
