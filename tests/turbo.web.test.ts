@@ -1125,6 +1125,22 @@ describe('Browser environment', () => {
       return Buffer.from(result);
     }
 
+    it('should return matching size for the data item stream', async () => {
+      const signer = new ArweaveSigner(testJwk);
+      const inputStream = createTestStream(testBuffer);
+
+      const { stream: signedStream, size } = await streamSigner({
+        input: inputStream,
+        signer,
+        fileSize: testBuffer.length,
+      });
+      const signedBuffer = await streamToBuffer(signedStream);
+
+      const isValidDataItem = await DataItem.verify(signedBuffer);
+      assert.ok(isValidDataItem);
+      assert.equal(size, signedBuffer.length);
+    });
+
     it('should sign a ReadableStream with ArweaveSigner and return a valid signed stream', async () => {
       const signer = new ArweaveSigner(testJwk);
       const inputStream = createTestStream(testBuffer);
