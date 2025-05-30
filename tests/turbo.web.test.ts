@@ -1129,7 +1129,7 @@ describe('Browser environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const inputStream = createTestStream(testBuffer);
 
-      const signedStream = await streamSigner({
+      const { stream: signedStream } = await streamSigner({
         input: inputStream,
         signer,
         fileSize: testBuffer.length,
@@ -1144,7 +1144,7 @@ describe('Browser environment', () => {
       const signer = new EthereumSigner(testEthWallet);
       const inputStream = createTestStream(testBuffer);
 
-      const signedStream = await streamSigner({
+      const { stream: signedStream } = await streamSigner({
         input: inputStream,
         signer,
         fileSize: testBuffer.length,
@@ -1159,7 +1159,7 @@ describe('Browser environment', () => {
       const signer = new HexSolanaSigner(testSolWallet);
       const inputStream = createTestStream(testBuffer);
 
-      const signedStream = await streamSigner({
+      const { stream: signedStream } = await streamSigner({
         input: inputStream,
         signer,
         fileSize: testBuffer.length,
@@ -1178,7 +1178,7 @@ describe('Browser environment', () => {
         target: '43-character-stub-arweave-address-000000000',
       };
 
-      const signedStream = await streamSigner(
+      const { stream: signedStream } = await streamSigner(
         {
           input: inputStream,
           signer,
@@ -1204,7 +1204,7 @@ describe('Browser environment', () => {
         },
       });
 
-      const signedStream = await streamSigner({
+      const { stream: signedStream } = await streamSigner({
         input: emptyStream,
         signer,
         fileSize: 0,
@@ -1222,7 +1222,7 @@ describe('Browser environment', () => {
 
       const largeStream = createTestStream(largeData);
 
-      const signedStream = await streamSigner({
+      const { stream: signedStream } = await streamSigner({
         input: largeStream,
         signer,
         fileSize: largeData.length,
@@ -1248,6 +1248,11 @@ describe('Browser environment', () => {
           fileSize: data1.length,
         }),
         streamSigner({
+          input: stream1,
+          signer,
+          fileSize: data1.length,
+        }),
+        streamSigner({
           input: stream2,
           signer,
           fileSize: data2.length,
@@ -1255,8 +1260,8 @@ describe('Browser environment', () => {
       ]);
 
       const [buffer1, buffer2] = await Promise.all([
-        streamToBuffer(signedStream1),
-        streamToBuffer(signedStream2),
+        streamToBuffer(signedStream1.stream),
+        streamToBuffer(signedStream2.stream),
       ]);
 
       assert.notDeepEqual(buffer1, buffer2);
@@ -1279,7 +1284,7 @@ describe('Browser environment', () => {
         },
       });
 
-      const signedStream = await streamSigner({
+      const { stream: signedStream } = await streamSigner({
         input: chunkedStream,
         signer,
         fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
