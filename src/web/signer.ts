@@ -31,11 +31,9 @@ import { createHash } from 'crypto';
 import { TurboEventEmitter } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
-  StreamSizeFactory,
   TurboDataItemSignerParams,
   TurboSignedDataItemFactory,
   TurboSignedRequestHeaders,
-  WebFileStreamFactory,
   WebTurboFileFactory,
 } from '../types.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
