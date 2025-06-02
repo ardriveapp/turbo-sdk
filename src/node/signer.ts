@@ -89,8 +89,6 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
       const signedDataItem = await signedDataItemPromise;
 
       this.logger.debug('Successfully signed data item...');
-
-      // TODO: support target, anchor, and tags
       const signedDataItemSize = this.calculateSignedDataHeadersSize({
         dataSize: fileSizeFactory(),
         dataItemOpts,
