@@ -16,11 +16,12 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [NodeJS](#nodejs)
   - [Typescript](#typescript)
   - [Examples](#examples)
-- [Logging](#logging)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
+- [Events](#events)
+- [Logging](#logging)
 - [CLI](#cli)
   - [Installation](#installation-1)
   - [Usage](#usage-1)
@@ -56,57 +57,62 @@ import open from 'open';
 import path from 'path';
 
 async function uploadWithTurbo() {
-  // load your JWK directly to authenticate
-  const arweave = Arweave.init({});
   const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
-  const address = await arweave.wallets.jwkToAddress(jwk);
-  const turbo = TurboFactory.authenticated({ privateKey: jwk });
+  const signer = new ArweaveSigner(jwk);
+  const turbo = TurboFactory.authenticated({ signer });
 
-  // or provide your own signer
-  // const signer = new ArweaveSigner(jwk);
-  // const turbo = TurboFactory.authenticated({ signer });
-
-  // get the wallet balance
-  const { winc: balance } = await turbo.getBalance();
-
-  // prep file for upload
-  const filePath = path.join(__dirname, './my-image.png');
-  const fileSize = fs.statSync(filePath).size;
-
-  // get the cost of uploading the file
-  const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
-    bytes: [fileSize],
-  });
-
-  // check if balance greater than upload cost, and if in browser
-  if (balance < fileSizeCost && window !== undefined) {
-    const { url } = await turbo.createCheckoutSession({
-      amount: fileSizeCost,
-      owner: address,
-      // add a promo code if you have one
-    });
-
-    // open the URL to top-up if in browser
-    window.open(url, '_blank');
-  } else {
-    // otherwise, print the URL to the console
-    console.log('Please top up your balance via the CLI before uploading', {
-      balance,
-      fileSizeCost,
-    });
-  }
-
-  // upload the file
   try {
+    // upload some simple data - log upload progress events
+    const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.upload({
+      data: 'Hello, world!',
+      events: {
+        // overall events (includes signing and upload events)
+        onProgress: ({ totalBytes, processedBytes, step }) => {
+          console.log('Overall progress:', { totalBytes, processedBytes, step });
+        },
+        onError: ({ error, step }) => {
+          console.log('Overall error:', { error, step });
+        },
+      },
+    });
+
+    // upload a file - log signing and upload progress events
+    const filePath = path.join(__dirname, './my-image.png');
+    const fileSize = fs.statSync(filePath).size;
     const { id, owner, dataCaches, fastFinalityIndexes } =
-      // Have data in memory already? Just use it!
-      haveDataInMemory
-        ? await turbo.upload({ data: 'The contents of my file!' })
-        : // Or perhaps you have a larger file that you don't want in memory? Stream it!
-          await turbo.uploadFile({
-            fileStreamFactory: () => fs.createReadStream(filePath),
-            fileSizeFactory: () => fileSize,
-          });
+      await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+        events: {
+          // overall events (includes signing and upload events)
+          onProgress: ({ totalBytes, processedBytes, step }) => {
+            console.log('Overall progress:', { totalBytes, processedBytes, step });
+          },
+          onError: ({ error, step }) => {
+            console.log('Overall error:', { error, step });
+          },
+          // signing events
+          onSigningProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Signing progress:', { totalBytes, processedBytes });
+          },
+          onSigningError: (error) => {
+            console.log('Signing error:', { error });
+          },
+          onSigningSuccess: () => {
+            console.log('Signing success!');
+          },
+          // upload events
+          onUploadProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Upload progress:', { totalBytes, processedBytes });
+          },
+          onUploadError: (error) => {
+            console.log('Upload error:', { error });
+          },
+          onUploadSuccess: () => {
+            console.log('Upload success!');
+          },
+        },
+      });
     // upload complete!
     console.log('Successfully upload data item!', {
       id,
@@ -117,9 +123,6 @@ async function uploadWithTurbo() {
   } catch (error) {
     // upload failed
     console.error('Failed to upload data item!', error);
-  } finally {
-    const { winc: newBalance } = await turbo.getBalance();
-    console.log('New balance:', newBalance);
   }
 }
 ```
@@ -194,14 +197,6 @@ Examples are available in the [examples] directory. To run examples:
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
 - `yarn example:esm` - runs example ESM node script
-
-## Logging
-
-The SDK uses winston for logging. You can set the log level using the `setLogLevel` method.
-
-```typescript
-TurboFactory.setLogLevel('debug');
-```
 
 ## APIs
 
@@ -379,9 +374,9 @@ const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
 const { winc, adjustments } = uploadCostForFile;
 ```
 
-#### `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`
+#### `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal, events })`
 
-Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
+Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `events` parameter is an optional object that can be used to listen to upload progress, errors, and success (refer to the [Events] section for more details).
 
 ```typescript
 const filePath = path.join(__dirname, './my-signed-data-item');
@@ -390,6 +385,18 @@ const uploadResponse = await turbo.uploadSignedDataItem({
   dataItemStreamFactory: () => fs.createReadStream(filePath),
   dataItemSizeFactory: () => dataItemSize,
   signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  events: {
+    // track upload events only
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+  },
 });
 ```
 
@@ -515,9 +522,26 @@ const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
 window.open(url, '_blank');
 ```
 
-#### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`
+#### `upload({ data, signal, dataItemOpts, events })`
 
-Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+The easiest way to upload data to Turbo. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+
+```typescript
+const uploadResult = await turbo.upload({
+  data: 'The contents of my file!',
+  signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  dataItemOpts: {
+    // optional
+  },
+  events: {
+    // optional
+  },
+});
+```
+
+#### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts, events })`
+
+Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
 ```typescript
 const filePath = path.join(__dirname, './my-unsigned-file.txt');
@@ -538,6 +562,19 @@ const uploadResult = await turbo.uploadFile({
       },
     ],
     // no timeout or AbortSignal provided
+  },
+  events: {
+    // upload events
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+    // add any other events you want to listen to (see `Events` section for more details)
   },
 });
 ```
@@ -706,6 +743,76 @@ const { givenApprovals, receivedApprovals } =
   await turbo.getCreditShareApprovals({
     userAddress: '2cor...VUa',
   });
+```
+
+## Events
+
+The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, and `uploadSignedDataItem` methods.
+
+- `onProgress` - emitted when the overall progress changes (includes both upload and signing). Each event consists of the total bytes, processed bytes, and the step (upload or signing)
+- `onError` - emitted when the overall upload or signing fails (includes both upload and signing)
+- `onSuccess` - emitted when the overall upload or signing succeeds (includes both upload and signing) - this is the last event emitted for the upload or signing process
+- `onSigningProgress` - emitted when the signing progress changes.
+- `onSigningError` - emitted when the signing fails.
+- `onSigningSuccess` - emitted when the signing succeeds
+- `onUploadProgress` - emitted when the upload progress changes
+- `onUploadError` - emitted when the upload fails
+- `onUploadSuccess` - emitted when the upload succeeds
+
+```typescript
+const uploadResult = await turbo.upload({
+  data: 'The contents of my file!',
+  signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  dataItemOpts: {
+    // optional
+  },
+  events: {
+    // overall events (includes signing and upload events)
+    onProgress: ({ totalBytes, processedBytes, step }) => {
+      const percentComplete = (processedBytes / totalBytes) * 100;
+      console.log('Overall progress:', {
+        totalBytes,
+        processedBytes,
+        step,
+        percentComplete: percentComplete.toFixed(2) + '%', // eg 50.68%
+      });
+    },
+    onError: (error) => {
+      console.log('Overall error:', { error });
+    },
+    onSuccess: () => {
+      console.log('Signed and upload data item!');
+    },
+    // upload events
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+    // signing events
+    onSigningProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Signing progress:', { totalBytes, processedBytes });
+    },
+    onSigningError: (error) => {
+      console.log('Signing error:', { error });
+    },
+    onSigningSuccess: () => {
+      console.log('Signing success!');
+    },
+  },
+});
+```
+
+## Logging
+
+The SDK uses winston for logging. You can set the log level using the `setLogLevel` method.
+
+```typescript
+TurboFactory.setLogLevel('debug');
 ```
 
 ## CLI
@@ -1033,3 +1140,4 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
 [docs/native-address]: https://docs.ar.io/glossary.html#native-address
+[Events]: #events

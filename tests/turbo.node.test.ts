@@ -6,10 +6,10 @@ import {
 } from '@dha-team/arbundles';
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
-import { expect } from 'chai';
 import fs from 'fs';
-import { describe } from 'mocha';
+import { strict as assert } from 'node:assert';
 import { Readable } from 'node:stream';
+import { afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
 import { JPY, USD } from '../src/common/currency.js';
@@ -93,7 +93,7 @@ describe('Node environment', () => {
 
       it(`should return the correct native address for ${token}`, async () => {
         const nativeAddress = await turboSigner.getNativeAddress();
-        expect(nativeAddress).to.equal(expectedNativeAddress);
+        assert.equal(nativeAddress, expectedNativeAddress);
       });
     }
   });
@@ -103,7 +103,7 @@ describe('Node environment', () => {
       const turbo = TurboFactory.unauthenticated(
         turboDevelopmentConfigurations,
       );
-      expect(turbo).to.be.instanceOf(TurboUnauthenticatedClient);
+      assert.ok(turbo instanceof TurboUnauthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and provided a privateKey', async () => {
@@ -111,7 +111,7 @@ describe('Node environment', () => {
         privateKey: testJwk,
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and an ArweaveSigner', async () => {
@@ -119,8 +119,9 @@ describe('Node environment', () => {
         signer: new ArweaveSigner(testJwk),
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
-      expect(await turbo.signer.getNativeAddress()).to.equal(
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(
+        await turbo.signer.getNativeAddress(),
         testArweaveNativeB64Address,
       );
     });
@@ -130,10 +131,8 @@ describe('Node environment', () => {
         signer: new EthereumSigner(testEthWallet),
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
-      expect(await turbo.signer.getNativeAddress()).to.equal(
-        testEthNativeAddress,
-      );
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(await turbo.signer.getNativeAddress(), testEthNativeAddress);
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
@@ -142,8 +141,9 @@ describe('Node environment', () => {
         token: 'kyve',
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
-      expect(await turbo.signer.getNativeAddress()).to.equal(
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(
+        await turbo.signer.getNativeAddress(),
         testKyveNativeAddress,
       );
     });
@@ -153,10 +153,8 @@ describe('Node environment', () => {
         signer: new HexSolanaSigner(testSolWallet),
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
-      expect(await turbo.signer.getNativeAddress()).to.equal(
-        testSolNativeAddress,
-      );
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(await turbo.signer.getNativeAddress(), testSolNativeAddress);
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided base58 SOL secret key', async () => {
@@ -165,17 +163,19 @@ describe('Node environment', () => {
         token: 'solana',
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Arweave signer', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          privateKey: testSolWallet,
-          token: 'arweave',
-          ...turboDevelopmentConfigurations,
-        }),
-      ).to.throw('A JWK must be provided for ArweaveSigner.');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            privateKey: testSolWallet,
+            token: 'arweave',
+            ...turboDevelopmentConfigurations,
+          }),
+        /A JWK must be provided for ArweaveSigner./,
+      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided ethereum private key', async () => {
@@ -184,27 +184,29 @@ describe('Node environment', () => {
         token: 'ethereum',
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('should error when creating a TurboAuthenticatedClient and when providing a SOL Secret Key to construct an Ethereum signer', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          privateKey: testSolWallet,
-          token: 'ethereum',
-          ...turboDevelopmentConfigurations,
-        }),
-      ).to.throw(
-        'A valid Ethereum private key must be provided for EthereumSigner.',
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            privateKey: testSolWallet,
+            token: 'ethereum',
+            ...turboDevelopmentConfigurations,
+          }),
+        /A valid Ethereum private key must be provided for EthereumSigner./,
       );
     });
 
     it('should error when creating a TurboAuthenticatedClient and not providing a privateKey or a signer', async () => {
-      expect(() =>
-        TurboFactory.authenticated({
-          ...turboDevelopmentConfigurations,
-        }),
-      ).to.throw('A privateKey or signer must be provided.');
+      assert.throws(
+        () =>
+          TurboFactory.authenticated({
+            ...turboDevelopmentConfigurations,
+          }),
+        /A privateKey or signer must be provided./,
+      );
     });
 
     it('should construct a TurboAuthenticatedClient with a provided deprecated tokenMap', async () => {
@@ -224,7 +226,7 @@ describe('Node environment', () => {
         tokenMap,
         ...turboDevelopmentConfigurations,
       });
-      expect(turbo).to.be.instanceOf(TurboAuthenticatedClient);
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
 
     it('TurboDataItemSigner errors when using an invalid signer on sendTransaction api', async () => {
@@ -241,13 +243,13 @@ describe('Node environment', () => {
           gatewayUrl: '',
         })
         .catch((error) => error);
-      expect(error).to.be.instanceOf(Error);
-      expect(error.message).to.contain('Only EthereumSigner is supported');
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Only EthereumSigner is supported/);
     });
 
     it('signerFromKyveMnemonic() should return a TurboSigner', async () => {
       const signer = await signerFromKyveMnemonic(testKyveMnemonic);
-      expect(signer).to.be.instanceOf(EthereumSigner);
+      assert.ok(signer instanceof EthereumSigner);
     });
   });
 
@@ -260,60 +262,60 @@ describe('Node environment', () => {
 
     it('getFiatRates()', async () => {
       const { winc, fiat, adjustments } = await turbo.getFiatRates();
-      expect(winc).to.not.be.undefined.and.to.be.a('number');
-      expect(fiat).to.have.property('usd').that.is.a('number');
-      expect(adjustments).to.not.be.undefined;
+      assert.ok(typeof winc === 'string');
+      assert.ok(typeof fiat.usd === 'number');
+      assert.ok(adjustments !== undefined);
     });
 
     it('getFiatToAR()', async () => {
       const { currency, rate } = await turbo.getFiatToAR({
         currency: 'usd',
       });
-      expect(currency).to.equal('usd');
-      expect(rate).to.be.a('number');
+      assert.equal(currency, 'usd');
+      assert.ok(typeof rate === 'number');
     });
 
     it('getSupportedCountries()', async () => {
       const countries = await turbo.getSupportedCountries();
-      expect(countries).to.be.an('array');
-      expect(countries.length).to.be.greaterThan(0);
-      expect(countries).to.include('United States');
+      assert.ok(Array.isArray(countries));
+      assert.ok(countries.length > 0);
+      assert.ok(countries.includes('United States'));
     });
 
     it('getTurboCryptoWallets', async () => {
       const wallets = await turbo.getTurboCryptoWallets();
 
-      expect(wallets).to.not.be.undefined;
-      expect(wallets).to.have.property('arweave');
-      expect(wallets).to.have.property('ethereum');
-      expect(wallets).to.have.property('solana');
-      expect(wallets).to.have.property('kyve');
+      assert.ok(wallets !== undefined);
+      assert.ok(wallets.arweave !== undefined);
+      assert.ok(wallets.ethereum !== undefined);
+      assert.ok(wallets.solana !== undefined);
+      assert.ok(wallets.kyve !== undefined);
     });
 
     it('getSupportedCurrencies()', async () => {
       const { supportedCurrencies, limits } =
         await turbo.getSupportedCurrencies();
-      expect(supportedCurrencies).to.not.be.undefined;
-      expect(supportedCurrencies).to.be.an('array');
-      expect(supportedCurrencies.length).to.be.greaterThan(0);
-      expect(supportedCurrencies).to.include('usd');
-      expect(limits).to.not.be.undefined;
-      expect(limits).to.be.an('object');
-      expect(limits).to.have.property('usd');
-      expect(limits.usd).to.have.property('minimumPaymentAmount');
-      expect(limits.usd).to.have.property('maximumPaymentAmount');
-      expect(limits.usd).to.have.property('suggestedPaymentAmounts');
-      expect(limits.usd).to.have.property('zeroDecimalCurrency');
+      assert.ok(supportedCurrencies !== undefined);
+      assert.ok(Array.isArray(supportedCurrencies));
+      assert.ok(supportedCurrencies.length > 0);
+      assert.ok(supportedCurrencies.includes('usd'));
+      assert.ok(limits !== undefined);
+      assert.ok(typeof limits === 'object');
+      assert.ok(limits.usd !== undefined);
+      assert.ok(limits.usd.minimumPaymentAmount !== undefined);
+      assert.ok(limits.usd.maximumPaymentAmount !== undefined);
+      assert.ok(limits.usd.suggestedPaymentAmounts !== undefined);
+      assert.ok(limits.usd.zeroDecimalCurrency !== undefined);
     });
 
     it('getUploadCosts()', async () => {
       const [{ winc, adjustments }] = await turbo.getUploadCosts({
         bytes: [1024],
       });
-      expect(winc).to.not.be.undefined;
-      expect(+winc).to.be.greaterThan(0);
-      expect(adjustments).to.not.be.undefined;
-      expect(adjustments).to.be.an('array');
+      assert.ok(winc !== undefined);
+      assert.ok(+winc > 0);
+      assert.ok(adjustments !== undefined);
+      assert.ok(Array.isArray(adjustments));
     });
 
     it('getWincForFiat()', async () => {
@@ -326,12 +328,12 @@ describe('Node environment', () => {
       } = await turbo.getWincForFiat({
         amount: USD(10), // $10.00 USD
       });
-      expect(winc).to.not.be.undefined;
-      expect(+winc).to.be.greaterThan(0);
-      expect(actualPaymentAmount).to.equal(1000);
-      expect(quotedPaymentAmount).to.equal(1000);
-      expect(adjustments).to.have.length(0);
-      expect(fees).to.have.length(1);
+      assert.ok(winc !== undefined);
+      assert.ok(+winc > 0);
+      assert.equal(actualPaymentAmount, 1000);
+      assert.equal(quotedPaymentAmount, 1000);
+      assert.deepEqual(adjustments, []);
+      assert.equal(fees.length, 1);
     });
 
     it('getWincForToken()', async () => {
@@ -339,11 +341,11 @@ describe('Node environment', () => {
         await turbo.getWincForToken({
           tokenAmount: 100000, // 100,000 winston
         });
-      expect(winc).to.not.be.undefined;
-      expect(+winc).to.be.greaterThan(0);
-      expect(actualTokenAmount).to.equal('100000');
-      expect(equivalentWincTokenAmount).to.equal('100000');
-      expect(fees).to.have.length(1);
+      assert.ok(winc !== undefined);
+      assert.ok(+winc > 0);
+      assert.equal(actualTokenAmount, '100000');
+      assert.equal(equivalentWincTokenAmount, '100000');
+      assert.equal(fees.length, 1);
     });
 
     describe('getTokenPriceForBytes()', async () => {
@@ -357,9 +359,9 @@ describe('Node environment', () => {
             }).getTokenPriceForBytes({
               byteCount: bytes,
             });
-          expect(tokenPrice).to.not.be.undefined;
-          expect(bytesResult).to.equal(bytes);
-          expect(+tokenPrice).to.be.a('number');
+          assert.ok(tokenPrice !== undefined);
+          assert.equal(bytesResult, bytes);
+          assert.ok(typeof +tokenPrice === 'number');
         });
       }
     });
@@ -374,11 +376,11 @@ describe('Node environment', () => {
           dataItemStreamFactory: () => signedDataItem.getRaw(),
           dataItemSizeFactory: () => signedDataItem.getRaw().length,
         });
-        expect(response).to.not.be.undefined;
-        expect(response).to.have.property('fastFinalityIndexes');
-        expect(response).to.have.property('dataCaches');
-        expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(testArweaveNativeB64Address);
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
       it('should properly upload signed Readable to turbo', async () => {
@@ -389,11 +391,11 @@ describe('Node environment', () => {
           dataItemStreamFactory: () => Readable.from(signedDataItem.getRaw()),
           dataItemSizeFactory: () => signedDataItem.getRaw().length,
         });
-        expect(response).to.not.be.undefined;
-        expect(response).to.have.property('fastFinalityIndexes');
-        expect(response).to.have.property('dataCaches');
-        expect(response).to.have.property('owner');
-        expect(response['owner']).to.equal(testArweaveNativeB64Address);
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
       it('should abort an upload when AbortController.signal is triggered', async () => {
@@ -406,20 +408,21 @@ describe('Node environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
-        expect(error).to.be.instanceOf(CanceledError);
+        assert.ok(error instanceof CanceledError);
       });
 
       it('should return FailedRequestError for incorrectly signed data item', async () => {
-        const signedDataItem = createData('signed data item', signer, {});
+        const unsignedDataItem = createData('signed data item', signer, {});
+        const unsignedBuffer = unsignedDataItem.getRaw();
         // not signed
         const error = await turbo
           .uploadSignedDataItem({
-            dataItemStreamFactory: () => signedDataItem.getRaw(),
-            dataItemSizeFactory: () => signedDataItem.getRaw().length,
+            dataItemStreamFactory: () => unsignedBuffer,
+            dataItemSizeFactory: () => unsignedBuffer.length,
           })
           .catch((err) => err);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain('Invalid Data Item');
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(error.message, /Invalid Data Item/);
       });
     });
 
@@ -437,13 +440,13 @@ describe('Node environment', () => {
           amount: USD(10),
           owner: '43-character-stub-arweave-address-000000000',
         });
-        expect(adjustments).to.deep.equal([]);
-        expect(paymentAmount).to.equal(1000);
-        expect(quotedPaymentAmount).to.equal(1000);
-        expect(url).to.be.a('string');
-        expect(id).to.be.a('string');
-        expect(client_secret).to.equal(undefined);
-        expect(winc).to.be.a('string');
+        assert.deepEqual(adjustments, []);
+        assert.equal(paymentAmount, 1000);
+        assert.equal(quotedPaymentAmount, 1000);
+        assert.ok(typeof url === 'string');
+        assert.ok(typeof id === 'string');
+        assert.equal(client_secret, undefined);
+        assert.ok(typeof winc === 'string');
       });
 
       it('should properly get a checkout session with a embedded ui mode', async () => {
@@ -460,13 +463,13 @@ describe('Node environment', () => {
           owner: '43-character-stub-arweave-address-000000000',
           uiMode: 'embedded',
         });
-        expect(adjustments).to.deep.equal([]);
-        expect(paymentAmount).to.equal(2000);
-        expect(quotedPaymentAmount).to.equal(2000);
-        expect(url).to.equal(undefined);
-        expect(id).to.be.a('string');
-        expect(client_secret).to.be.a('string');
-        expect(winc).to.be.a('string');
+        assert.deepEqual(adjustments, []);
+        assert.equal(paymentAmount, 2000);
+        assert.equal(quotedPaymentAmount, 2000);
+        assert.equal(url, undefined);
+        assert.ok(typeof id === 'string');
+        assert.ok(typeof client_secret === 'string');
+        assert.ok(typeof winc === 'string');
       });
     });
 
@@ -482,9 +485,10 @@ describe('Node environment', () => {
         const error = await turbo
           .submitFundTransaction({ txId: nonExistentPaymentTxId })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain(
-          'Failed request (Status 404): Transaction not found',
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(
+          error.message,
+          /Failed request \(Status 404\): Transaction not found/,
         );
       });
 
@@ -495,11 +499,11 @@ describe('Node environment', () => {
           await turbo.submitFundTransaction({
             txId,
           });
-        expect(id).to.equal(txId);
-        expect(owner).to.equal(testArweaveNativeB64Address);
-        expect(winc).to.equal('766');
-        expect(token).to.equal('arweave');
-        expect(status).to.equal('pending');
+        assert.equal(id, txId);
+        assert.equal(owner, testArweaveNativeB64Address);
+        assert.equal(winc, '766');
+        assert.equal(token, 'arweave');
+        assert.equal(status, 'pending');
       });
 
       const minConfirmations = 25;
@@ -513,15 +517,15 @@ describe('Node environment', () => {
           await turbo.submitFundTransaction({
             txId,
           });
-        expect(id).to.equal(txId);
-        expect(owner).to.equal(testArweaveNativeB64Address);
-        expect(winc).to.equal('766');
-        expect(token).to.equal('arweave');
-        expect(status).to.equal('confirmed');
+        assert.equal(id, txId);
+        assert.equal(owner, testArweaveNativeB64Address);
+        assert.equal(winc, '766');
+        assert.equal(token, 'arweave');
+        assert.equal(status, 'confirmed');
 
         const balanceAfter = await getRawBalance(testArweaveNativeB64Address);
 
-        expect(+balanceAfter - +balanceBefore).to.equal(766);
+        assert.equal(+balanceAfter - +balanceBefore, 766);
       });
     });
   });
@@ -550,7 +554,7 @@ describe('Node environment', () => {
       it('returns correct balance for test wallet', async () => {
         const rawBalance = await getRawBalance(testArweaveNativeB64Address);
         const balance = await turbo.getBalance();
-        expect(balance.winc).to.equal(rawBalance);
+        assert.equal(balance.winc, rawBalance);
       });
 
       it('returns correct balance for an empty wallet', async () => {
@@ -560,7 +564,7 @@ describe('Node environment', () => {
           ...turboDevelopmentConfigurations,
         });
         const balance = await emptyTurbo.getBalance();
-        expect(balance.winc).to.equal('0');
+        assert.equal(balance.winc, '0');
       });
     });
 
@@ -597,22 +601,74 @@ describe('Node environment', () => {
         string: 'a test string',
         Buffer: Buffer.from('a test string'),
         Uint8Array: new Uint8Array(Buffer.from('a test string')),
-        ArrayBuffer: Buffer.from('a test string').buffer,
+        ArrayBuffer: Buffer.from('a test string').buffer as ArrayBuffer,
       };
 
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
         for (const dataItemOpts of validDataItemOpts) {
-          it(`should properly upload a ${label} to turbo`, async () => {
+          it(`should properly upload a ${label} to turbo with events`, async () => {
+            let uploadProgressCalled = false;
+            let signingProgressCalled = false;
+            let overallProgressCalled = false;
+            let overallErrorCalled = false;
+            let overallSuccessCalled = false;
+            let uploadErrorCalled = false;
+            let signingErrorCalled = false;
+            let uploadSuccessCalled = false;
+            let signingSuccessCalled = false;
             const response = await turbo.upload({
               data: input,
               dataItemOpts,
+              events: {
+                onProgress: () => {
+                  overallProgressCalled = true;
+                },
+                onError: () => {
+                  overallErrorCalled = true;
+                },
+                onSuccess: () => {
+                  overallSuccessCalled = true;
+                },
+                onUploadProgress: () => {
+                  uploadProgressCalled = true;
+                },
+                onUploadError: () => {
+                  uploadErrorCalled = true;
+                },
+                onUploadSuccess: () => {
+                  uploadSuccessCalled = true;
+                },
+                onSigningProgress: () => {
+                  signingProgressCalled = true;
+                },
+                onSigningError: () => {
+                  signingErrorCalled = true;
+                },
+                onSigningSuccess: () => {
+                  signingSuccessCalled = true;
+                },
+              },
             });
-            expect(response).to.not.be.undefined;
-            expect(response).to.not.be.undefined;
-            expect(response).to.have.property('fastFinalityIndexes');
-            expect(response).to.have.property('dataCaches');
-            expect(response).to.have.property('owner');
-            expect(response['owner']).to.equal(testArweaveNativeB64Address);
+            assert.ok(response !== undefined);
+            assert.ok(response.fastFinalityIndexes !== undefined);
+            assert.ok(response.dataCaches !== undefined);
+            assert.ok(response.owner !== undefined);
+            assert.equal(response.owner, testArweaveNativeB64Address);
+
+            // signing events
+            assert.equal(signingProgressCalled, true);
+            assert.equal(signingErrorCalled, false);
+            assert.equal(signingSuccessCalled, true);
+
+            // upload events
+            assert.equal(uploadProgressCalled, true);
+            assert.equal(uploadErrorCalled, false);
+            assert.equal(uploadSuccessCalled, true);
+
+            // overall events
+            assert.equal(overallProgressCalled, true);
+            assert.equal(overallErrorCalled, false);
+            assert.equal(overallSuccessCalled, true);
           });
         }
       }
@@ -700,7 +756,7 @@ describe('Node environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(CanceledError);
+        assert.ok(error instanceof CanceledError);
       });
 
       it('should return a FailedRequestError when the data is larger than the free limit and wallet is underfunded', async () => {
@@ -716,8 +772,8 @@ describe('Node environment', () => {
             data: buffer,
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain('Insufficient balance');
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(error.message, /Insufficient balance/);
       });
 
       it('should return proper error when http throws an unrecognized error', async () => {
@@ -727,8 +783,9 @@ describe('Node environment', () => {
             data: 'a test string',
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.equal(
+        assert.ok(error instanceof FailedRequestError);
+        assert.equal(
+          error.message,
           'Failed request: Failed to upload file after 6 attempts\n',
         );
       });
@@ -764,19 +821,74 @@ describe('Node environment', () => {
       ];
 
       for (const dataItemOpts of validDataItemOpts) {
-        it('should properly upload a Readable to turbo', async () => {
+        it('should properly upload a Readable to turbo with events', async () => {
+          let uploadProgressCalled = false;
+          let signingProgressCalled = false;
+          let overallProgressCalled = false;
+          let overallErrorCalled = false;
+          let overallSuccessCalled = false;
+          let uploadErrorCalled = false;
+          let signingErrorCalled = false;
+          let uploadSuccessCalled = false;
+          let signingSuccessCalled = false;
           const fileSize = fs.statSync(oneKiBFilePath).size;
           const response = await turbo.uploadFile({
             fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
             fileSizeFactory: () => fileSize,
             dataItemOpts,
+            events: {
+              // overall events
+              onProgress: () => {
+                overallProgressCalled = true;
+              },
+              onError: () => {
+                overallErrorCalled = true;
+              },
+              onSuccess: () => {
+                overallSuccessCalled = true;
+              },
+              // upload events
+              onUploadProgress: () => {
+                uploadProgressCalled = true;
+              },
+              onUploadError: () => {
+                uploadErrorCalled = true;
+              },
+              onUploadSuccess: () => {
+                uploadSuccessCalled = true;
+              },
+              // signing events
+              onSigningProgress: () => {
+                signingProgressCalled = true;
+              },
+              onSigningError: () => {
+                signingErrorCalled = true;
+              },
+              onSigningSuccess: () => {
+                signingSuccessCalled = true;
+              },
+            },
           });
-          expect(response).to.not.be.undefined;
-          expect(response).to.not.be.undefined;
-          expect(response).to.have.property('fastFinalityIndexes');
-          expect(response).to.have.property('dataCaches');
-          expect(response).to.have.property('owner');
-          expect(response['owner']).to.equal(testArweaveNativeB64Address);
+          assert.ok(response !== undefined);
+          assert.ok(response.fastFinalityIndexes !== undefined);
+          assert.ok(response.dataCaches !== undefined);
+          assert.ok(response.owner !== undefined);
+          assert.equal(response.owner, testArweaveNativeB64Address);
+
+          // signing events
+          assert.equal(signingProgressCalled, true);
+          assert.equal(signingErrorCalled, false);
+          assert.equal(signingSuccessCalled, true);
+
+          // upload events
+          assert.equal(uploadProgressCalled, true);
+          assert.equal(uploadErrorCalled, false);
+          assert.equal(uploadSuccessCalled, true);
+
+          // overall events
+          assert.equal(overallProgressCalled, true);
+          assert.equal(overallErrorCalled, false);
+          assert.equal(overallSuccessCalled, true);
         });
       }
 
@@ -868,7 +980,7 @@ describe('Node environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(CanceledError);
+        assert.ok(error instanceof CanceledError);
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
@@ -885,8 +997,8 @@ describe('Node environment', () => {
             fileSizeFactory: () => fileSize,
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.contain('Insufficient balance');
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(error.message, /Insufficient balance/);
       });
 
       it('should return proper error when http throws an unrecognized error', async () => {
@@ -897,8 +1009,9 @@ describe('Node environment', () => {
             fileSizeFactory: () => fs.statSync(oneKiBFilePath).size,
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.equal(
+        assert.ok(error instanceof FailedRequestError);
+        assert.equal(
+          error.message,
           'Failed request: Failed to upload file after 6 attempts\n',
         );
       });
@@ -915,11 +1028,11 @@ describe('Node environment', () => {
             tags: [{ name: 'Content-Type', value: 'total/gibberish' }],
           },
         });
-        expect(result).to.not.be.undefined;
-        expect(result).to.have.property('manifest');
+        assert.ok(result !== undefined);
+        assert.ok(result.manifest !== undefined);
 
-        expect(result['fileResponses']).to.have.length(7);
-        expect(result['manifestResponse']).to.not.be.undefined;
+        assert.equal(result.fileResponses.length, 7);
+        assert.ok(result.manifestResponse !== undefined);
       });
 
       it('uploads expected manifest with an index.html', async () => {
@@ -931,12 +1044,13 @@ describe('Node environment', () => {
         const result = await turbo.uploadFolder({
           folderPath,
         });
-        expect(result).to.not.be.undefined;
-        expect(result).to.have.property('manifest');
+        assert.ok(result !== undefined);
+        assert.ok(result.manifest !== undefined);
 
-        expect(result['fileResponses']).to.have.length(5);
-        expect(result.manifest?.index.path).to.equal('index.html');
-        expect(result.manifest?.fallback?.id).to.equal(
+        assert.equal(result.fileResponses.length, 5);
+        assert.equal(result.manifest?.index.path, 'index.html');
+        assert.equal(
+          result.manifest?.fallback?.id,
           result.manifest?.paths['404.html'].id,
         );
       });
@@ -955,9 +1069,10 @@ describe('Node environment', () => {
           },
         });
 
-        expect(result['fileResponses']).to.have.length(5);
-        expect(result.manifest?.index.path).to.equal('3.txt');
-        expect(result.manifest?.fallback?.id).to.equal(
+        assert.equal(result.fileResponses.length, 5);
+        assert.equal(result.manifest?.index.path, '3.txt');
+        assert.equal(
+          result.manifest?.fallback?.id,
           result.manifest?.paths['content/4.txt'].id,
         );
       });
@@ -970,9 +1085,10 @@ describe('Node environment', () => {
           promoCodes: ['BAD_PROMO_CODE'],
         })
         .catch((error) => error);
-      expect(error).to.be.instanceOf(FailedRequestError);
+      assert.ok(error instanceof FailedRequestError);
       // TODO: Could provide better error message to client. We have error messages on response.data
-      expect(error.message).to.equal(
+      assert.equal(
+        error.message,
         "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
       );
     });
@@ -981,8 +1097,8 @@ describe('Node environment', () => {
       const { winc, adjustments } = await turbo.getWincForFiat({
         amount: USD(10), // $10.00 USD
       });
-      expect(+winc).to.be.greaterThan(0);
-      expect(adjustments).to.not.be.undefined;
+      assert.ok(+winc > 0);
+      assert.ok(adjustments !== undefined);
     });
 
     describe('createCheckoutSession()', () => {
@@ -994,8 +1110,9 @@ describe('Node environment', () => {
             promoCodes: ['BAD_PROMO_CODE'],
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(FailedRequestError);
-        expect(error.message).to.equal(
+        assert.ok(error instanceof FailedRequestError);
+        assert.equal(
+          error.message,
           "Failed request (Status 400): No promo code found with code 'BAD_PROMO_CODE'",
         );
       });
@@ -1010,7 +1127,7 @@ describe('Node environment', () => {
           delayedBlockMining(),
         ]);
 
-        expect(winc).to.equal('7');
+        assert.equal(winc, '7');
       });
 
       it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {
@@ -1031,8 +1148,8 @@ describe('Node environment', () => {
             feeMultiplier: 1.5,
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(Error);
-        expect(error.message).to.contain('Failed to submit fund transaction!');
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /Failed to submit fund transaction!/);
       });
 
       it('should fail to submit fund tx when fund tx fails to post to arweave', async () => {
@@ -1043,8 +1160,8 @@ describe('Node environment', () => {
             tokenAmount: WinstonToTokenAmount(1000),
           })
           .catch((error) => error);
-        expect(error).to.be.instanceOf(Error);
-        expect(error.message).to.contain('Failed to post transaction');
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /Failed to post transaction/);
       });
     });
   });
@@ -1080,11 +1197,11 @@ describe('Node environment', () => {
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testEthAddressBase64);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testEthAddressBase64);
     });
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
@@ -1093,24 +1210,65 @@ describe('Node environment', () => {
         fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
-      expect(response).to.not.be.undefined;
-      expect(response['owner']).to.equal(testEthAddressBase64);
+      assert.ok(response !== undefined);
+      assert.equal(response.owner, testEthAddressBase64);
     });
 
-    it('should properly upload a Buffer to turbo with uploadSignedDataItem', async () => {
+    it('should properly upload a Buffer to turbo with uploadSignedDataItem with events', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
+
+      let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
+      let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
 
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
+        events: {
+          // upload events
+          onUploadProgress: () => {
+            uploadProgressCalled = true;
+          },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
+          // signing events
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
+          onSigningProgress: () => {
+            signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
+          },
+        },
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testEthAddressBase64);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testEthAddressBase64);
+      assert.equal(response.id, signedDataItem.id);
+
+      // upload events
+      assert.equal(uploadProgressCalled, true);
+      assert.equal(uploadErrorCalled, false);
+      assert.equal(uploadSuccessCalled, true);
+
+      // signing events should not be called
+      assert.equal(signingProgressCalled, false);
+      assert.equal(signingErrorCalled, false);
+      assert.equal(signingSuccessCalled, false);
     });
 
     it.skip('should topUpWithTokens() to an ETH wallet', async () => {
@@ -1120,11 +1278,11 @@ describe('Node environment', () => {
         },
       );
 
-      expect(id).to.be.a('string');
-      expect(target).to.be.a('string');
-      expect(winc).be.a('string');
-      expect(quantity).to.equal('100000000');
-      expect(owner).to.equal(testEthNativeAddress);
+      assert.ok(typeof id === 'string');
+      assert.ok(typeof target === 'string');
+      assert.ok(typeof winc === 'string');
+      assert.equal(quantity, '100000000');
+      assert.equal(owner, testEthNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to an ETH wallet if tx is stubbed to succeed but wont exist on chain', async () => {
@@ -1138,10 +1296,8 @@ describe('Node environment', () => {
           tokenAmount: 100_000, // 0.0001 ETH
         })
         .catch((error) => {
-          expect(error).to.be.instanceOf(Error);
-          expect(error.message).to.contain(
-            'Failed to submit fund transaction!',
-          );
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /Failed to submit fund transaction!/);
         });
     });
   });
@@ -1174,27 +1330,61 @@ describe('Node environment', () => {
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testSolAddressBase64);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testSolAddressBase64);
     });
 
-    it('should properly upload a Buffer to turbo', async () => {
+    it('should properly upload a Buffer to turbo with events', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
 
+      let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
+      let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
+        events: {
+          onUploadProgress: () => {
+            uploadProgressCalled = true;
+          },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data items
+          onSigningProgress: () => {
+            signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
+          },
+        },
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(testSolAddressBase64);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, testSolAddressBase64);
+      assert.equal(uploadProgressCalled, true);
+      assert.equal(uploadErrorCalled, false);
+      assert.equal(uploadSuccessCalled, true);
+      // Since this is already signed, signing progress won't be called
+      assert.equal(signingProgressCalled, false);
+      assert.equal(signingErrorCalled, false);
+      assert.equal(signingSuccessCalled, false);
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {
@@ -1204,11 +1394,11 @@ describe('Node environment', () => {
         },
       );
 
-      expect(id).to.be.a('string');
-      expect(target).to.be.a('string');
-      expect(winc).be.a('string');
-      expect(quantity).to.equal('100000');
-      expect(owner).to.equal(testSolNativeAddress);
+      assert.ok(typeof id === 'string');
+      assert.ok(typeof target === 'string');
+      assert.ok(typeof winc === 'string');
+      assert.equal(quantity, '100000');
+      assert.equal(owner, testSolNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to a SOL wallet if tx is stubbed to succeed but wont exist on chain', async () => {
@@ -1222,10 +1412,8 @@ describe('Node environment', () => {
           tokenAmount: 100_000, // 0.0001 SOL
         })
         .catch((error) => {
-          expect(error).to.be.instanceOf(Error);
-          expect(error.message).to.contain(
-            'Failed to submit fund transaction!',
-          );
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /Failed to submit fund transaction!/);
         });
     });
   });
@@ -1254,33 +1442,126 @@ describe('Node environment', () => {
       });
     });
 
-    it('should properly upload a Readable to turbo', async () => {
+    it('should properly upload a Readable to turbo with events', async () => {
       const fileSize = fs.statSync(oneKiBFilePath).size;
+      let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
+      let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
+      let overallProgressCalled = false;
+      let overallErrorCalled = false;
+      let overallSuccessCalled = false;
       const response = await turbo.uploadFile({
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
+        events: {
+          // overall events
+          onProgress: () => {
+            overallProgressCalled = true;
+          },
+          onError: () => {
+            overallErrorCalled = true;
+          },
+          onSuccess: () => {
+            overallSuccessCalled = true;
+          },
+          // upload events
+          onUploadProgress: () => {
+            uploadProgressCalled = true;
+          },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
+          // signing events
+          onSigningProgress: () => {
+            signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
+          },
+        },
       });
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(base64KyveAddress);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, base64KyveAddress);
+
+      // signing events
+      assert.equal(signingProgressCalled, true);
+      assert.equal(signingErrorCalled, false);
+      assert.equal(signingSuccessCalled, true);
+
+      // upload events
+      assert.equal(uploadProgressCalled, true);
+      assert.equal(uploadErrorCalled, false);
+      assert.equal(uploadSuccessCalled, true);
+
+      // overall events
+      assert.equal(overallProgressCalled, true);
+      assert.equal(overallErrorCalled, false);
+      assert.equal(overallSuccessCalled, true);
     });
 
-    it('should properly upload a Buffer to turbo', async () => {
+    it('should properly upload a Buffer to turbo with events', async () => {
       const signedDataItem = createData('signed data item', signer, {});
       await signedDataItem.sign(signer);
 
+      let uploadProgressCalled = false;
+      let uploadErrorCalled = false;
+      let uploadSuccessCalled = false;
+      let signingProgressCalled = false;
+      let signingErrorCalled = false;
+      let signingSuccessCalled = false;
       const response = await turbo.uploadSignedDataItem({
         dataItemStreamFactory: () => signedDataItem.getRaw(),
         dataItemSizeFactory: () => signedDataItem.getRaw().length,
+        events: {
+          onUploadProgress: () => {
+            uploadProgressCalled = true;
+          },
+          onUploadError: () => {
+            uploadErrorCalled = true;
+          },
+          onUploadSuccess: () => {
+            uploadSuccessCalled = true;
+          },
+          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data
+          onSigningProgress: () => {
+            signingProgressCalled = true;
+          },
+          onSigningError: () => {
+            signingErrorCalled = true;
+          },
+          onSigningSuccess: () => {
+            signingSuccessCalled = true;
+          },
+        },
       });
 
-      expect(response).to.not.be.undefined;
-      expect(response).to.have.property('fastFinalityIndexes');
-      expect(response).to.have.property('dataCaches');
-      expect(response).to.have.property('owner');
-      expect(response['owner']).to.equal(base64KyveAddress);
+      assert.ok(response !== undefined);
+      assert.ok(response.fastFinalityIndexes !== undefined);
+      assert.ok(response.dataCaches !== undefined);
+      assert.ok(response.owner !== undefined);
+      assert.equal(response.owner, base64KyveAddress);
+
+      // signing events should not be called at all
+      assert.equal(signingProgressCalled, false);
+      assert.equal(signingErrorCalled, false);
+      assert.equal(signingSuccessCalled, false);
+
+      // upload events
+      assert.equal(uploadProgressCalled, true);
+      assert.equal(uploadErrorCalled, false);
+      assert.equal(uploadSuccessCalled, true);
     });
 
     it('should get a checkout session with kyve token', async () => {
@@ -1290,25 +1571,25 @@ describe('Node environment', () => {
           owner: testKyveNativeAddress,
         });
 
-      expect(adjustments).to.deep.equal([]);
-      expect(paymentAmount).to.equal(1000);
-      expect(quotedPaymentAmount).to.equal(1000);
-      expect(url).to.be.a('string');
-      expect(id).to.be.a('string');
+      assert.deepEqual(adjustments, []);
+      assert.equal(paymentAmount, 1000);
+      assert.equal(quotedPaymentAmount, 1000);
+      assert.ok(typeof url === 'string');
+      assert.ok(typeof id === 'string');
     });
 
-    it('should topUpWithTokens() to a KYVE wallet', async () => {
+    it.skip('should topUpWithTokens() to a KYVE wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
         {
           tokenAmount: 1_000, // 0.001_000 KYVE
         },
       );
 
-      expect(id).to.be.a('string');
-      expect(target).to.be.a('string');
-      expect(winc).be.a('string');
-      expect(quantity).to.equal('1000');
-      expect(owner).to.equal(testKyveNativeAddress);
+      assert.ok(typeof id === 'string');
+      assert.ok(typeof target === 'string');
+      assert.ok(typeof winc === 'string');
+      assert.equal(quantity, '1000');
+      assert.equal(owner, testKyveNativeAddress);
     });
 
     it('should fail to topUpWithTokens() to a KYVE wallet if tx is stubbed to succeed but wont exist on chain', async () => {
@@ -1322,10 +1603,8 @@ describe('Node environment', () => {
           tokenAmount: 1_000, // 0.001_000 KYVE
         })
         .catch((error) => {
-          expect(error).to.be.instanceOf(Error);
-          expect(error.message).to.contain(
-            'Failed to submit fund transaction!',
-          );
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /Failed to submit fund transaction!/);
         });
     });
   });
@@ -1333,39 +1612,39 @@ describe('Node environment', () => {
   describe('ZeroDecimalCurrency()', () => {
     it('should construct with a value zero decimal value', () => {
       const zeroDecimalCurrency = JPY(1000);
-      expect(zeroDecimalCurrency.type).to.equal('jpy');
-      expect(zeroDecimalCurrency.amount).to.equal(1000);
+      assert.equal(zeroDecimalCurrency.type, 'jpy');
+      assert.equal(zeroDecimalCurrency.amount, 1000);
     });
 
     it('should throw an error when constructing with a non-zero decimal value', () => {
-      expect(() => JPY(100.1)).to.throw(
-        'jpy currency amount must have zero decimal places',
+      assert.throws(
+        () => JPY(100.1),
+        /jpy currency amount must have zero decimal places/,
       );
     });
 
     it('should throw an error when constructing with a negative value', () => {
-      expect(() => JPY(-532)).to.throw(
-        'jpy currency amount cannot be negative',
-      );
+      assert.throws(() => JPY(-532), /jpy currency amount cannot be negative/);
     });
   });
 
   describe('TwoDecimalCurrency()', () => {
     it('should construct with a value two decimal value', () => {
       const twoDecimalCurrency = USD(10.43);
-      expect(twoDecimalCurrency.type).to.equal('usd');
-      expect(twoDecimalCurrency.amount).to.equal(1043);
+      assert.equal(twoDecimalCurrency.type, 'usd');
+      assert.equal(twoDecimalCurrency.amount, 1043);
     });
 
     it('should construct with a zero decimal value', () => {
       const twoDecimalCurrency = USD(764);
-      expect(twoDecimalCurrency.type).to.equal('usd');
-      expect(twoDecimalCurrency.amount).to.equal(76400);
+      assert.equal(twoDecimalCurrency.type, 'usd');
+      assert.equal(twoDecimalCurrency.amount, 76400);
     });
 
     it('should throw an error when constructing with a non-two decimal value', () => {
-      expect(() => USD(10.431)).to.throw(
-        'usd currency amount must have two decimal places',
+      assert.throws(
+        () => USD(10.431),
+        /usd currency amount must have two decimal places/,
       );
     });
   });

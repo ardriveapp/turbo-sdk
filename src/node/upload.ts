@@ -37,7 +37,13 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     logger,
     token,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger, token, signer });
+    super({
+      url,
+      retryConfig,
+      logger,
+      token,
+      signer,
+    });
   }
 
   private async getAbsoluteFilePathsFromFolder(
