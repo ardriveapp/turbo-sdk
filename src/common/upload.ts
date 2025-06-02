@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DataItem } from '@dha-team/arbundles';
-import { CanceledError } from 'axios';
+import { DataItem } from '@dha-team/arbundles/build/node/esm/webIndex';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
@@ -44,7 +43,7 @@ import {
   WebFileStreamFactory,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
-import { isBlob, sleep } from '../utils/common.js';
+import { isBlob } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { readableStreamToBuffer } from '../utils/readableStream.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
@@ -122,12 +121,6 @@ export class TurboUnauthenticatedUploadService
         headers['x-paid-by'] = paidBy;
       }
     }
-
-    const buffer = await readableStreamToBuffer({
-      stream: dataItemStreamFactory() as ReadableStream<Uint8Array>,
-      size: dataItemSize,
-    });
-    console.log('valid data item', await DataItem.verify(buffer));
 
     // setup the post request using the stream with upload events
     const postPromise = this.httpService.post<TurboUploadDataItemResponse>({
@@ -214,13 +207,13 @@ export abstract class TurboAuthenticatedBaseUploadService
   }: TurboFileFactory &
     TurboAbortSignal &
     TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
-    let retries = 0;
-    const maxRetries = this.retryConfig.retries ?? 3;
-    const retryDelay =
-      this.retryConfig.retryDelay ??
-      ((retryNumber: number) => retryNumber * 1000);
-    let lastError: Error | undefined = undefined; // Store the last error for throwing
-    let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
+    // let retries = 0;
+    // const maxRetries = this.retryConfig.retries ?? 3;
+    // const retryDelay =
+    //   this.retryConfig.retryDelay ??
+    //   ((retryNumber: number) => retryNumber * 1000);
+    // let lastError: Error | undefined = undefined; // Store the last error for throwing
+    // let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
     const emitter = new TurboEventEmitter(events);
     // avoid duplicating signing on failures here - these errors will immediately be thrown
     // TODO: create a SigningError class and throw that instead of the generic Error
@@ -234,69 +227,72 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
-    while (retries < maxRetries) {
-      if (signal?.aborted) {
-        throw new CanceledError();
-      }
+    // while (retries < maxRetries) {
+    //   if (signal?.aborted) {
+    //     throw new CanceledError();
+    //   }
 
-      try {
-        // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
-        // which will create a new emitter with upload events. We await
-        // this result due to the wrapped retry logic of this method.
-        const response = await this.uploadSignedDataItem({
-          dataItemStreamFactory,
-          dataItemSizeFactory,
-          dataItemOpts,
-          signal,
-          events,
-        });
-
-        return response;
-      } catch (error) {
-        // Store the last encountered error and status for re-throwing after retries
-        lastError = error;
-        if (error instanceof FailedRequestError) {
-          lastStatusCode = error.status;
-        } else {
-          lastStatusCode = error.response?.status;
-        }
-
-        if (
-          lastStatusCode !== undefined &&
-          lastStatusCode >= 400 &&
-          lastStatusCode < 500
-        ) {
-          // Don't retry client error codes
-          break;
-        }
-
-        this.logger.debug(
-          `Upload failed on attempt ${retries + 1}/${maxRetries + 1}`,
-          { message: error instanceof Error ? error.message : error },
-          error,
-        );
-        retries++;
-        const abortEventPromise = new Promise<void>((resolve) => {
-          signal?.addEventListener('abort', () => {
-            resolve();
-          });
-        });
-        await Promise.race([
-          sleep(retryDelay(retries, error)),
-          abortEventPromise,
-        ]);
-      }
+    // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
+    // which will create a new emitter with upload events. We await
+    // this result due to the wrapped retry logic of this method.
+    try {
+      const response = await this.uploadSignedDataItem({
+        dataItemStreamFactory,
+        dataItemSizeFactory,
+        dataItemOpts,
+        signal,
+        events,
+      });
+      return response;
+    } catch (error) {
+      console.error('error', error);
+      throw new FailedRequestError(error.message, error.status);
     }
+    //   } catch (error) {
+    //     // Store the last encountered error and status for re-throwing after retries
+    //     lastError = error;
+    //     if (error instanceof FailedRequestError) {
+    //       lastStatusCode = error.status;
+    //     } else {
+    //       lastStatusCode = error.response?.status;
+    //     }
 
-    const msg = `Failed to upload file after ${maxRetries + 1} attempts\n${
-      lastError instanceof Error ? lastError.message : lastError
-    }`;
-    // After all retries, throw the last error for catching
-    if (lastError instanceof FailedRequestError) {
-      lastError.message = msg;
-      throw lastError;
-    }
-    throw new FailedRequestError(msg, lastStatusCode);
+    //     if (
+    //       lastStatusCode !== undefined &&
+    //       lastStatusCode >= 400 &&
+    //       lastStatusCode < 500
+    //     ) {
+    //       // Don't retry client error codes
+    //       break;
+    //     }
+
+    //     this.logger.debug(
+    //       `Upload failed on attempt ${retries + 1}/${maxRetries + 1}`,
+    //       { message: error instanceof Error ? error.message : error },
+    //       error,
+    //     );
+    //     retries++;
+    //     const abortEventPromise = new Promise<void>((resolve) => {
+    //       signal?.addEventListener('abort', () => {
+    //         resolve();
+    //       });
+    //     });
+    //     await Promise.race([
+    //       sleep(retryDelay(retries, error)),
+    //       abortEventPromise,
+    //     ]);
+    //   }
+    // }
+
+    // const msg = `Failed to upload file after ${maxRetries + 1} attempts\n${
+    //   lastError instanceof Error ? lastError.message : lastError
+    // }`;
+    // // After all retries, throw the last error for catching
+    // if (lastError instanceof FailedRequestError) {
+    //   lastError.message = msg;
+    //   throw lastError;
+    // }
+    // throw new FailedRequestError(msg, lastStatusCode);
   }
 
   protected async generateManifest({

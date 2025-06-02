@@ -88,9 +88,6 @@ function createReadableStreamWithEvents({
     async pull(controller) {
       try {
         const { value, done } = await reader.read();
-        console.log('value', value);
-        console.log('done', done);
-
         if (done) {
           emitter.emit(eventNamesMap['on-end']);
           controller.close();

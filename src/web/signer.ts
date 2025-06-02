@@ -21,11 +21,10 @@ import {
   HexSolanaSigner,
   InjectedEthereumSigner,
   Signer,
-  concatBuffers,
   createData,
+  deepHash,
   stringToBuffer,
 } from '@dha-team/arbundles';
-import { createHash } from 'crypto';
 
 import { TurboEventEmitter } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
@@ -74,38 +73,26 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     dataItemOpts,
     emitter,
   }: WebTurboFileFactory): Promise<TurboSignedDataItemFactory> {
-    await this.setPublicKey();
-
-    // Create signing emitter if events are provided
-    const fileSize = fileSizeFactory();
-
     try {
-      // start with 0 progress
-      emitter?.emit('signing-progress', {
-        processedBytes: 0,
-        totalBytes: fileSize,
-      });
+      await this.setPublicKey();
+
+      // Create signing emitter if events are provided
+      const fileSize = fileSizeFactory();
       this.logger.debug('Signing data item...');
 
-      // signing progress is handled by the streamSigner function internally
-      const { dataItemStreamFactory, size: dataItemSize } = await streamSigner(
-        {
-          streamFactory: fileStreamFactory as any,
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: fileStreamFactory as () => ReadableStream<Uint8Array>,
           signer: this.signer,
+          dataItemOpts,
           fileSize,
           emitter,
-        },
-        dataItemOpts,
-      );
+        });
 
       this.logger.debug('Successfully signed data item...');
       return {
-        // while this returns a Buffer - it needs to match our return type for uploading
-        dataItemStreamFactory,
-        dataItemSizeFactory: () => {
-          console.log('dataItemSizeFactory called, signDataItem', dataItemSize);
-          return dataItemSize;
-        },
+        dataItemStreamFactory: signedDataItemFactory,
+        dataItemSizeFactory: () => signedDataItemSize,
       };
     } catch (error) {
       // If we have a signing emitter, emit error
@@ -126,60 +113,48 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
   }
 }
 
-export async function streamSigner(
-  {
-    streamFactory,
-    signer,
-    fileSize,
-    emitter,
-  }: {
-    streamFactory: () => ReadableStream<Uint8Array>;
-    signer: Signer;
-    fileSize: number;
-    emitter?: TurboEventEmitter;
-  },
-  opts?: DataItemCreateOptions,
-): Promise<{
-  dataItemStreamFactory: () => ReadableStream<Uint8Array>;
-  size: number;
-}> {
-  const header = createData('', signer, opts);
-
-  const deepHashStream = streamFactory(); // Clone the input stream
-  console.log('deep hash stream', deepHashStream);
-  // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
-  let bytesProcessed = 0;
-  const s1Reader = deepHashStream.getReader();
-  const streamWithSigningEvents = new ReadableStream({
-    async pull(controller) {
-      try {
-        const { done, value } = await s1Reader.read();
-        console.log('signing value', value);
-        console.log('signing done', done);
-        if (done) {
-          emitter?.emit('signing-success');
-          controller.close();
-        } else {
-          bytesProcessed += value.byteLength;
-          emitter?.emit('signing-progress', {
-            totalBytes: fileSize,
-            processedBytes: bytesProcessed,
-          });
-          controller.enqueue(value);
-        }
-      } catch (error) {
-        emitter?.emit('signing-error', error);
-        controller.error(error);
+export const readableStreamToAsyncIterable = (
+  stream: ReadableStream<Uint8Array>,
+): AsyncIterable<Buffer> => ({
+  async *[Symbol.asyncIterator]() {
+    const reader = stream.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value !== undefined) yield Buffer.from(value);
       }
-    },
-    cancel(reason) {
-      emitter?.emit('signing-error', reason);
-      s1Reader.cancel(reason);
-    },
-  });
+    } finally {
+      reader.releaseLock();
+    }
+  },
+});
+
+export async function streamSignerReadableStream({
+  streamFactory,
+  signer,
+  dataItemOpts,
+  fileSize,
+  emitter,
+}: {
+  streamFactory: () => ReadableStream<Uint8Array>;
+  signer: Signer;
+  dataItemOpts?: DataItemCreateOptions;
+  fileSize: number;
+  emitter?: TurboEventEmitter;
+}): Promise<{
+  signedDataItemFactory: () => ReadableStream<Uint8Array>;
+  signedDataItemSize: number;
+}> {
+  const header = createData('', signer, dataItemOpts);
+
+  // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
+  const asyncIterableReadableStream = readableStreamToAsyncIterable(
+    streamFactory(),
+  );
 
   // provide that ReadableStream with events to deep hash, so as it pulls bytes through events get emitted
-  const parts: DeepHashChunk = [
+  const parts = [
     stringToBuffer('dataitem'),
     stringToBuffer('1'),
     stringToBuffer(header.signatureType.toString()),
@@ -187,7 +162,7 @@ export async function streamSigner(
     Uint8Array.from(header.rawTarget),
     Uint8Array.from(header.rawAnchor),
     Uint8Array.from(header.rawTags),
-    streamWithSigningEvents as unknown as DeepHashChunk,
+    asyncIterableReadableStream,
   ];
 
   const hash = await deepHash(parts);
@@ -195,23 +170,38 @@ export async function streamSigner(
   header.setSignature(sigBytes);
   const headerBytes = header.getRaw();
 
+  // header is already signed, so start with the header size
+  const totalDataItemSizeWithHeader = headerBytes.byteLength + fileSize;
   return {
-    dataItemStreamFactory: () => {
-      console.log('creating data item stream');
+    signedDataItemSize: totalDataItemSizeWithHeader,
+    signedDataItemFactory: () => {
+      let bytesProcessed = 0;
       const reader = streamFactory().getReader();
       return new ReadableStream<Uint8Array>({
         start(controller) {
           controller.enqueue(Uint8Array.from(headerBytes));
+          bytesProcessed += headerBytes.byteLength;
+          emitter?.emit('signing-progress', {
+            processedBytes: bytesProcessed,
+            totalBytes: totalDataItemSizeWithHeader,
+          });
         },
         async pull(controller) {
           try {
             const { done, value } = await reader.read();
             if (done) {
+              emitter?.emit('signing-success');
               controller.close();
               return;
             }
             controller.enqueue(value);
+            bytesProcessed += value.byteLength;
+            emitter?.emit('signing-progress', {
+              processedBytes: bytesProcessed,
+              totalBytes: totalDataItemSizeWithHeader,
+            });
           } catch (error) {
+            emitter?.emit('signing-error', error);
             controller.error(error);
           }
         },
@@ -220,80 +210,13 @@ export async function streamSigner(
         },
       });
     },
-    size: headerBytes.byteLength + fileSize,
   };
 }
 
-export async function deepHash(
-  data: DeepHashChunk | AsyncIterable<Uint8Array>,
-): Promise<Uint8Array> {
-  if (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isAsyncIterable(data: any): data is AsyncIterable<Uint8Array> {
+  return (
     typeof data[Symbol.asyncIterator as keyof AsyncIterable<Uint8Array>] ===
     'function'
-  ) {
-    const _data = data as AsyncIterable<Uint8Array>;
-
-    const context = createHash('sha384');
-
-    let bytesProcessed = 0;
-
-    for await (const chunk of _data) {
-      context.update(Uint8Array.from(chunk));
-      bytesProcessed += chunk.byteLength;
-    }
-
-    const digest = context.digest(); // Call digest() once and store result
-
-    const tag = concatBuffers([
-      stringToBuffer('blob'),
-      stringToBuffer(bytesProcessed.toString()),
-    ]);
-
-    const taggedHash = concatBuffers([
-      new Uint8Array(await crypto.subtle.digest('SHA-384', tag)),
-      new Uint8Array(digest), // Use the stored digest
-    ]);
-
-    return new Uint8Array(await crypto.subtle.digest('SHA-384', taggedHash));
-  } else if (Array.isArray(data)) {
-    const tag = concatBuffers([
-      stringToBuffer('list'),
-      stringToBuffer(data.length.toString()),
-    ]);
-
-    return await deepHashChunks(
-      data,
-      new Uint8Array(await crypto.subtle.digest('SHA-384', tag)),
-    );
-  }
-
-  const _data = data as Uint8Array;
-
-  const tag = concatBuffers([
-    stringToBuffer('blob'),
-    stringToBuffer(_data.byteLength.toString()),
-  ]);
-
-  const taggedHash = concatBuffers([
-    await crypto.subtle.digest('SHA-384', tag),
-    await crypto.subtle.digest('SHA-384', _data),
-  ]);
-
-  return new Uint8Array(await crypto.subtle.digest('SHA-384', taggedHash));
-}
-
-export async function deepHashChunks(
-  chunks: DeepHashChunks,
-  acc: Uint8Array,
-): Promise<Uint8Array> {
-  if (chunks.length < 1) {
-    return acc;
-  }
-
-  const hashPair = concatBuffers([acc, await deepHash(chunks[0])]);
-  const newAcc = new Uint8Array(
-    await crypto.subtle.digest('SHA-384', hashPair),
   );
-
-  return deepHashChunks(chunks.slice(1), newAcc);
 }

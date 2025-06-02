@@ -91,7 +91,6 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
   ): Promise<T> {
     try {
       const res = await request();
-      console.log('res', res);
       const { status, data, statusText } = res;
       if (!allowedStatuses.includes(status)) {
         throw new FailedRequestError(
@@ -102,7 +101,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       }
       return data;
     } catch (error) {
-      console.log('error', error);
+      this.logger.debug('Error in tryRequest', { error });
       if (
         error instanceof AxiosError &&
         error.code === AxiosError.ERR_CANCELED
