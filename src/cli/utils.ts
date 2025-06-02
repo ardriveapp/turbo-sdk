@@ -18,12 +18,15 @@ import { Command, OptionValues } from 'commander';
 import { readFileSync, statSync } from 'fs';
 
 import {
+  Currency,
   TokenType,
   TurboAuthenticatedClient,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
+  fiatCurrencyTypes,
+  isCurrency,
   isTokenType,
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
@@ -340,4 +343,22 @@ export function getTagsFromOptions(
   options: UploadOptions,
 ): { name: string; value: string }[] {
   return parseTags(options.tags);
+}
+
+export function currencyFromOptions<
+  O extends GlobalOptions & { currency?: string },
+>(options: O): Currency | undefined {
+  const currency = options.currency?.toLowerCase();
+
+  if (currency !== undefined && !isCurrency(currency)) {
+    throw new Error(
+      `Invalid fiat currency type ${currency}!\nPlease use one of these:\n${JSON.stringify(
+        fiatCurrencyTypes,
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  return currency;
 }

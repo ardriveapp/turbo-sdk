@@ -67,6 +67,10 @@ export type TokenPriceOptions = GlobalOptions & {
   byteCount: string | undefined;
 };
 
+export type FiatEstimateOptions = TokenPriceOptions & {
+  currency: string | undefined;
+};
+
 export type PriceOptions = TokenPriceOptions & {
   value: string | undefined;
   type: string | undefined;

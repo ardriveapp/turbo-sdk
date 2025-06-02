@@ -31,6 +31,7 @@ import {
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
+  TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
   TurboFundWithTokensParams,
   TurboInfoResponse,
@@ -289,6 +290,38 @@ export class TurboUnauthenticatedPaymentService
     return response;
   }
 
+  public async getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse> {
+    // get the price for 1 GiB
+    const wincPriceForOneGiB = await this.getUploadCosts({
+      bytes: [2 ** 30],
+    });
+    // get the winc price for one fiat unit
+    const wincPriceForOneFiatUnit = await this.getWincForFiat({
+      amount: { type: currency, amount: 1 },
+    });
+
+    // calculate the price for 1 GiB in fiat
+    const wincPriceForOneGiBInFiat = new BigNumber(
+      wincPriceForOneGiB[0].winc,
+    ).dividedBy(wincPriceForOneFiatUnit.winc);
+    // calculate the price for the requested byte count in fiat
+    const fiatPriceForBytes = wincPriceForOneGiBInFiat
+      .dividedBy(2 ** 30)
+      .times(byteCount)
+      .toNumber();
+
+    return {
+      byteCount,
+      fiatEstimate: fiatPriceForBytes,
+      currency,
+    };
+  }
   public async getTokenPriceForBytes({
     byteCount,
   }: {

@@ -20,6 +20,7 @@
 import { Command, program } from 'commander';
 
 import { version } from '../version.js';
+import { fiatEstimate } from './commands/fiatEstimate.js';
 import {
   balance,
   cryptoFund,
@@ -95,7 +96,7 @@ applyOptions(
     .description(
       'Get the current Credits estimate for byte, crypto, or fiat value',
     ),
-  [optionMap.value, optionMap.type],
+  [optionMap.value, optionMap.type, optionMap.currency],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, price);
 });
@@ -107,6 +108,15 @@ applyOptions(
   [optionMap.byteCount],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, tokenPrice);
+});
+
+applyOptions(
+  program
+    .command('fiat-estimate')
+    .description('Get the current token price for provided byte value'),
+  [optionMap.byteCount, optionMap.currency],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, fiatEstimate);
 });
 
 applyOptions(
