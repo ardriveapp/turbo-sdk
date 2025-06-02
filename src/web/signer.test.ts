@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ArweaveSigner, DataItem } from '@dha-team/arbundles/node';
+import { ArweaveSigner, DataItem } from '@dha-team/arbundles';
 import Arweave from 'arweave';
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
@@ -77,8 +77,11 @@ describe('streamSignerReadableStream', () => {
       size: signedDataItemSize,
     });
 
-    const signedDataItem = new DataItem(signedDataItemBuffer);
+    const dataItem = new DataItem(signedDataItemBuffer);
+    console.log('raw owner', dataItem.owner, dataItem.owner.length);
 
-    assert.equal(await signedDataItem.isValid(), true);
+    const isValidDataItem = await DataItem.verify(signedDataItemBuffer);
+
+    assert.equal(isValidDataItem, true);
   });
 });

@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { DataItem } from '@dha-team/arbundles/build/node/esm/webIndex';
 import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
@@ -45,7 +44,6 @@ import {
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
-import { readableStreamToBuffer } from '../utils/readableStream.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';

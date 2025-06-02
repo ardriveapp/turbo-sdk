@@ -16,6 +16,7 @@
 import {
   ArconnectSigner,
   ArweaveSigner,
+  DataItem,
   DataItemCreateOptions,
   EthereumSigner,
   HexSolanaSigner,
@@ -23,8 +24,10 @@ import {
   Signer,
   createData,
   deepHash,
+  getCryptoDriver,
   stringToBuffer,
 } from '@dha-team/arbundles';
+import { bufferTob64Url } from 'arweave/web/lib/utils.js';
 
 import { TurboEventEmitter } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
@@ -34,6 +37,7 @@ import {
   TurboSignedRequestHeaders,
   WebTurboFileFactory,
 } from '../types.js';
+import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 /**
  * Utility exports to avoid clients having to install arbundles
@@ -70,7 +74,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
   public async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-    dataItemOpts,
+    // dataItemOpts,
     emitter,
   }: WebTurboFileFactory): Promise<TurboSignedDataItemFactory> {
     try {
@@ -84,10 +88,39 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
         await streamSignerReadableStream({
           streamFactory: fileStreamFactory as () => ReadableStream<Uint8Array>,
           signer: this.signer,
-          dataItemOpts,
+          //  dataItemOpts,
           fileSize,
-          emitter,
+          // emitter,
         });
+
+      const bytes = await readableStreamToBuffer({
+        stream: signedDataItemFactory() as any,
+        size: signedDataItemSize,
+      });
+      const dataItem = new DataItem(bytes);
+      console.log('raw owner', dataItem.rawOwner, dataItem.rawOwner.length);
+
+      console.log('bytes', bytes.length);
+      console.log('dataItemSize', signedDataItemSize);
+
+      console.log(
+        'is valid data item',
+        await DataItem.verify(bytes).catch((e) => {
+          console.error('error verifying data item', e);
+          return false;
+        }),
+      );
+      const cryptoDriver = getCryptoDriver();
+      const stringPk = bufferTob64Url(Uint8Array.from(dataItem.rawOwner));
+      console.log('stringPk', stringPk, stringPk.length);
+      console.log(
+        'is valid data item manual',
+        await (cryptoDriver as any).verify(
+          stringPk,
+          await dataItem.getSignatureData(),
+          Uint8Array.from(dataItem.signature as any),
+        ),
+      );
 
       this.logger.debug('Successfully signed data item...');
       return {
@@ -148,10 +181,10 @@ export async function streamSignerReadableStream({
 }> {
   const header = createData('', signer, dataItemOpts);
 
+  const [stream1, stream2] = streamFactory().tee();
+
   // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
-  const asyncIterableReadableStream = readableStreamToAsyncIterable(
-    streamFactory(),
-  );
+  const asyncIterableReadableStream = readableStreamToAsyncIterable(stream1);
 
   // provide that ReadableStream with events to deep hash, so as it pulls bytes through events get emitted
   const parts = [
@@ -172,44 +205,50 @@ export async function streamSignerReadableStream({
 
   // header is already signed, so start with the header size
   const totalDataItemSizeWithHeader = headerBytes.byteLength + fileSize;
-  return {
-    signedDataItemSize: totalDataItemSizeWithHeader,
-    signedDataItemFactory: () => {
-      let bytesProcessed = 0;
-      const reader = streamFactory().getReader();
-      return new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(Uint8Array.from(headerBytes));
-          bytesProcessed += headerBytes.byteLength;
+
+  const signedDataItemFactory = () => {
+    let bytesProcessed = 0;
+    const reader = stream2.getReader();
+
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(Uint8Array.from(headerBytes));
+        bytesProcessed += headerBytes.byteLength;
+        emitter?.emit('signing-progress', {
+          processedBytes: bytesProcessed,
+          totalBytes: totalDataItemSizeWithHeader,
+        });
+      },
+      async pull(controller) {
+        try {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            emitter?.emit('signing-success');
+            controller.close();
+            return;
+          }
+          bytesProcessed += value.byteLength;
+          controller.enqueue(value);
+
           emitter?.emit('signing-progress', {
             processedBytes: bytesProcessed,
             totalBytes: totalDataItemSizeWithHeader,
           });
-        },
-        async pull(controller) {
-          try {
-            const { done, value } = await reader.read();
-            if (done) {
-              emitter?.emit('signing-success');
-              controller.close();
-              return;
-            }
-            controller.enqueue(value);
-            bytesProcessed += value.byteLength;
-            emitter?.emit('signing-progress', {
-              processedBytes: bytesProcessed,
-              totalBytes: totalDataItemSizeWithHeader,
-            });
-          } catch (error) {
-            emitter?.emit('signing-error', error);
-            controller.error(error);
-          }
-        },
-        cancel() {
-          reader.cancel();
-        },
-      });
-    },
+        } catch (error) {
+          emitter?.emit('signing-error', error);
+          controller.error(error);
+        }
+      },
+      cancel() {
+        reader.cancel();
+      },
+    });
+  };
+
+  return {
+    signedDataItemSize: totalDataItemSizeWithHeader,
+    signedDataItemFactory,
   };
 }
 
