@@ -301,20 +301,23 @@ export class TurboUnauthenticatedPaymentService
     const wincPriceForOneGiB = await this.getUploadCosts({
       bytes: [2 ** 30],
     });
-    // get the winc price for one fiat unit
-    const wincPriceForOneFiatUnit = await this.getWincForFiat({
-      amount: { type: currency, amount: 1 },
+    // get the winc price for one thousand fiat units (10 USD, or 1000 JPY, etc.)
+    const wincPriceForOneThousandFiatUnits = await this.getWincForFiat({
+      amount: { type: currency, amount: 1000 },
     });
 
-    // calculate the price for 1 GiB in fiat
-    const wincPriceForOneGiBInFiat = new BigNumber(
-      wincPriceForOneGiB[0].winc,
-    ).dividedBy(wincPriceForOneFiatUnit.winc);
-    // calculate the price for the requested byte count in fiat
-    const fiatPriceForBytes = wincPriceForOneGiBInFiat
-      .dividedBy(2 ** 30)
-      .times(byteCount)
-      .toNumber();
+    const wincPriceForGivenBytes = new BigNumber(wincPriceForOneGiB[0].winc)
+      .dividedBy(new BigNumber(2 ** 30))
+      .times(byteCount);
+
+    const wincPriceForOneFiatUnit = new BigNumber(
+      wincPriceForOneThousandFiatUnits.winc,
+    ).dividedBy(new BigNumber(10));
+
+    const fiatPriceForBytes = +wincPriceForGivenBytes
+      .dividedBy(wincPriceForOneFiatUnit)
+      .times(currency === 'jpy' ? 100 : 1) // Convert to zero decimal if currency is JPY
+      .toFixed(currency === 'jpy' ? 0 : 2); // Convert to string with 2 decimal places
 
     return {
       byteCount,

@@ -17,7 +17,6 @@ import { exec } from 'child_process';
 
 import { currencyMap } from '../../common/currency.js';
 import { TurboFactory } from '../../node/factory.js';
-import { fiatCurrencyTypes, isCurrency } from '../../types.js';
 import { sleep } from '../../utils/common.js';
 import { TopUpOptions } from '../types.js';
 import {

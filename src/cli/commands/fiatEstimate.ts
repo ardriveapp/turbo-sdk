@@ -31,7 +31,7 @@ export async function fiatEstimate(options: TokenPriceOptions) {
     );
   }
 
-  const currency = currencyFromOptions(options);
+  const currency = currencyFromOptions(options) ?? 'usd';
 
   const turbo = TurboFactory.unauthenticated(configFromOptions(options));
   const { fiatEstimate } = await turbo.getFiatEstimateForBytes({
