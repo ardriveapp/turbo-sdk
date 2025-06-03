@@ -83,9 +83,9 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
       const { signedDataItemFactory, signedDataItemSize } =
         await streamSignerReadableStream({
-          streamFactory: createUint8ArrayReadableStreamFactory(
-            fileStreamFactory(),
-          ),
+          streamFactory: createUint8ArrayReadableStreamFactory({
+            data: fileStreamFactory(),
+          }),
           signer: this.signer,
           dataItemOpts,
           fileSize,

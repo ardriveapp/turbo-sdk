@@ -36,7 +36,49 @@ export async function readableStreamToBuffer({
   return buffer;
 }
 
-export function createUint8ArrayReadableStreamFactory(
+export function ensureChunkedStream(
+  input: ReadableStream<Uint8Array>,
+  maxChunkSize = 64 * 1024,
+): ReadableStream<Uint8Array> {
+  const reader = input.getReader();
+  let leftover: Uint8Array | null = null;
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      // If we have leftover from a previous large chunk, continue slicing it
+      if (leftover) {
+        const chunk = leftover.subarray(0, maxChunkSize);
+        leftover = leftover.subarray(chunk.length);
+        if (leftover.length === 0) leftover = null;
+        controller.enqueue(chunk);
+        return;
+      }
+
+      const { value, done } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      if (!(value instanceof Uint8Array)) {
+        throw new TypeError('Expected Uint8Array from source stream');
+      }
+
+      if (value.byteLength <= maxChunkSize) {
+        controller.enqueue(value);
+      } else {
+        // Slice and enqueue one piece now, keep the rest
+        controller.enqueue(value.subarray(0, maxChunkSize));
+        leftover = value.subarray(maxChunkSize);
+      }
+    },
+  });
+}
+
+export function createUint8ArrayReadableStreamFactory({
+  data,
+  maxChunkSize = 64 * 1024,
+}: {
   data:
     | string
     | Uint8Array
@@ -44,8 +86,9 @@ export function createUint8ArrayReadableStreamFactory(
     | Buffer
     | SharedArrayBuffer
     | Blob
-    | ReadableStream,
-): () => ReadableStream<Uint8Array> {
+    | ReadableStream;
+  maxChunkSize?: number;
+}): () => ReadableStream<Uint8Array> {
   // Blob streams are already ReadableStream<Uint8Array>
   if (data instanceof Blob) {
     return () => data.stream();
@@ -55,7 +98,7 @@ export function createUint8ArrayReadableStreamFactory(
   if (data instanceof ReadableStream) {
     return () => {
       const reader = data.getReader();
-      return new ReadableStream<Uint8Array>({
+      const stream = new ReadableStream<Uint8Array>({
         async pull(controller) {
           const { value, done } = await reader.read();
           if (done) {
@@ -78,6 +121,7 @@ export function createUint8ArrayReadableStreamFactory(
           }
         },
       });
+      return ensureChunkedStream(stream, maxChunkSize);
     };
   }
 
@@ -99,11 +143,12 @@ export function createUint8ArrayReadableStreamFactory(
         'Unsupported input type for createBufferReadableStream',
       );
     }
-    return new ReadableStream<Uint8Array>({
+    const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(uint8);
         controller.close();
       },
     });
+    return ensureChunkedStream(stream, maxChunkSize);
   };
 }
