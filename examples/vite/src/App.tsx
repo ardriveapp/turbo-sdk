@@ -73,7 +73,7 @@ function App() {
           console.log('fileStreamFactory called');
           return new ReadableStream({
             start(controller) {
-              controller.enqueue(new Uint8Array(buffer));
+              controller.enqueue(buffer);
               controller.close();
             },
           });

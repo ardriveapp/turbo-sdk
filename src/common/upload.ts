@@ -39,7 +39,6 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
-  WebFileStreamFactory,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob } from '../utils/common.js';
@@ -169,7 +168,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       const streamFactory = () => data.stream();
       const sizeFactory = () => data.size;
       return this.uploadFile({
-        fileStreamFactory: streamFactory as WebFileStreamFactory,
+        fileStreamFactory: streamFactory,
         fileSizeFactory: sizeFactory,
         signal,
         dataItemOpts,
@@ -402,6 +401,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
       try {
         const result = await this.uploadFile({
+          // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fileStreamFactory: () => this.getFileStreamForFile(file) as any,
           fileSizeFactory: () => this.getFileSize(file),
@@ -455,6 +455,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const manifestBuffer = Buffer.from(JSON.stringify(manifest));
 
     const manifestResponse = await this.uploadFile({
+      // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
       fileSizeFactory: () => manifestBuffer.byteLength,

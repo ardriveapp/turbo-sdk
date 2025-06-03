@@ -34,6 +34,7 @@ import {
   TurboSignedRequestHeaders,
   WebTurboFileFactory,
 } from '../types.js';
+import { createUint8ArrayReadableStreamFactory } from '../utils/readableStream.js';
 
 /**
  * Utility exports to avoid clients having to install arbundles
@@ -82,7 +83,9 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
 
       const { signedDataItemFactory, signedDataItemSize } =
         await streamSignerReadableStream({
-          streamFactory: fileStreamFactory as () => ReadableStream<Uint8Array>,
+          streamFactory: createUint8ArrayReadableStreamFactory(
+            fileStreamFactory(),
+          ),
           signer: this.signer,
           dataItemOpts,
           fileSize,

@@ -35,3 +35,75 @@ export async function readableStreamToBuffer({
   }
   return buffer;
 }
+
+export function createUint8ArrayReadableStreamFactory(
+  data:
+    | string
+    | Uint8Array
+    | ArrayBuffer
+    | Buffer
+    | SharedArrayBuffer
+    | Blob
+    | ReadableStream,
+): () => ReadableStream<Uint8Array> {
+  // Blob streams are already ReadableStream<Uint8Array>
+  if (data instanceof Blob) {
+    return () => data.stream();
+  }
+  // We need to handle the case where the data is a ReadableStream that is not a Uint8Array
+  // This is to ensure downstream code can handle the data as a Uint8Array
+  if (data instanceof ReadableStream) {
+    return () => {
+      const reader = data.getReader();
+      return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          const { value, done } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
+          }
+
+          if (ArrayBuffer.isView(value)) {
+            // specifying offset and length is required to ensure chunks remain within their slice of the buffer
+            controller.enqueue(
+              new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+            );
+          } else if (
+            value instanceof ArrayBuffer ||
+            value instanceof SharedArrayBuffer
+          ) {
+            controller.enqueue(new Uint8Array(value));
+          } else {
+            throw new TypeError('Unsupported chunk type in ReadableStream');
+          }
+        },
+      });
+    };
+  }
+
+  return () => {
+    let uint8: Uint8Array;
+    if (typeof data === 'string') {
+      uint8 = new TextEncoder().encode(data);
+    } else if (ArrayBuffer.isView(data)) {
+      // In theory we could use the view directly, but that might allow other typed arrays like BigInt64Array to be used which could behave unexpectedly downstream
+      // specifying offset and length is required to ensure chunks remain within their slice of the buffer
+      uint8 = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    } else if (
+      data instanceof ArrayBuffer ||
+      data instanceof SharedArrayBuffer
+    ) {
+      uint8 = new Uint8Array(data);
+    } else {
+      throw new TypeError(
+        'Unsupported input type for createBufferReadableStream',
+      );
+    }
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(uint8);
+        controller.close();
+      },
+    });
+  };
+}
