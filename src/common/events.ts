@@ -72,16 +72,18 @@ function createReadableStreamWithEvents({
   const originalStream =
     data instanceof ReadableStream
       ? data
-      : new ReadableStream({
+      : new ReadableStream<Uint8Array>({
           start: (controller) => {
-            controller.enqueue(data);
+            controller.enqueue(
+              new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+            );
             controller.close();
           },
         });
 
   let processedBytes = 0;
   let reader;
-  const stream = new ReadableStream({
+  const stream = new ReadableStream<Uint8Array>({
     start() {
       reader = originalStream.getReader();
     },
