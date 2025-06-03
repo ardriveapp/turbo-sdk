@@ -74,35 +74,28 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     dataItemOpts,
     emitter,
   }: WebTurboFileFactory): Promise<TurboSignedDataItemFactory> {
-    try {
-      await this.setPublicKey();
+    await this.setPublicKey();
 
-      // Create signing emitter if events are provided
-      const fileSize = fileSizeFactory();
-      this.logger.debug('Signing data item...');
+    // Create signing emitter if events are provided
+    const fileSize = fileSizeFactory();
+    this.logger.debug('Signing data item...');
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: createUint8ArrayReadableStreamFactory({
-            data: fileStreamFactory(),
-          }),
-          signer: this.signer,
-          dataItemOpts,
-          fileSize,
-          emitter,
-        });
+    const { signedDataItemFactory, signedDataItemSize } =
+      await streamSignerReadableStream({
+        streamFactory: createUint8ArrayReadableStreamFactory({
+          data: fileStreamFactory(),
+        }),
+        signer: this.signer,
+        dataItemOpts,
+        fileSize,
+        emitter,
+      });
 
-      this.logger.debug('Successfully signed data item...');
-      return {
-        dataItemStreamFactory: signedDataItemFactory,
-        dataItemSizeFactory: () => signedDataItemSize,
-      };
-    } catch (error) {
-      // If we have a signing emitter, emit error
-      // TODO: create a SigningError class and throw that instead of the generic Error
-      emitter?.emit('signing-error', error);
-      throw error;
-    }
+    this.logger.debug('Successfully signed data item...');
+    return {
+      dataItemStreamFactory: signedDataItemFactory,
+      dataItemSizeFactory: () => signedDataItemSize,
+    };
   }
 
   public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {
@@ -149,20 +142,20 @@ export async function streamSignerReadableStream({
   signedDataItemFactory: () => ReadableStream<Uint8Array>;
   signedDataItemSize: number;
 }> {
-  const header = createData('', signer, dataItemOpts);
+  try {
+    const header = createData('', signer, dataItemOpts);
 
-  const totalDataItemSizeWithHeader =
-    fileSize +
-    header.getRaw().byteLength +
-    signer.signatureLength +
-    signer.ownerLength;
+    const totalDataItemSizeWithHeader =
+      fileSize +
+      header.getRaw().byteLength +
+      signer.signatureLength +
+      signer.ownerLength;
 
-  const [stream1, stream2] = streamFactory().tee();
-  const reader1 = stream1.getReader();
-  let bytesProcessed = 0;
-  const eventingStream = new ReadableStream({
-    async pull(controller) {
-      try {
+    const [stream1, stream2] = streamFactory().tee();
+    const reader1 = stream1.getReader();
+    let bytesProcessed = 0;
+    const eventingStream = new ReadableStream({
+      async pull(controller) {
         const { done, value } = await reader1.read();
         if (done) {
           controller.close();
@@ -175,70 +168,73 @@ export async function streamSignerReadableStream({
           processedBytes: bytesProcessed,
           totalBytes: totalDataItemSizeWithHeader,
         });
-      } catch (error) {
-        emitter?.emit('signing-error', error);
-        controller.error(error);
-      }
-    },
-  });
-
-  // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
-  const asyncIterableReadableStream =
-    readableStreamToAsyncIterable(eventingStream);
-
-  // provide that ReadableStream with events to deep hash, so as it pulls bytes through events get emitted
-  const parts = [
-    stringToBuffer('dataitem'),
-    stringToBuffer('1'),
-    stringToBuffer(header.signatureType.toString()),
-    Uint8Array.from(header.rawOwner),
-    Uint8Array.from(header.rawTarget),
-    Uint8Array.from(header.rawAnchor),
-    Uint8Array.from(header.rawTags),
-    asyncIterableReadableStream,
-  ];
-
-  const hash = await deepHash(parts);
-  const sigBytes = Buffer.from(await signer.sign(hash));
-  emitter?.emit('signing-success');
-  header.setSignature(sigBytes);
-  const headerBytes = header.getRaw();
-
-  const signedDataItemFactory = () => {
-    const reader = stream2.getReader();
-
-    return new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(Uint8Array.from(headerBytes));
-        bytesProcessed += headerBytes.byteLength;
-        emitter?.emit('signing-progress', {
-          processedBytes: bytesProcessed,
-          totalBytes: totalDataItemSizeWithHeader,
-        });
-      },
-      async pull(controller) {
-        try {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            controller.close();
-            return;
-          }
-          controller.enqueue(value);
-        } catch (error) {
-          controller.error(error);
-        }
-      },
-      cancel() {
-        reader.cancel();
       },
     });
-  };
 
-  return {
-    signedDataItemSize: totalDataItemSizeWithHeader,
-    signedDataItemFactory,
-  };
+    // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
+    const asyncIterableReadableStream =
+      readableStreamToAsyncIterable(eventingStream);
+
+    // provide that ReadableStream with events to deep hash, so as it pulls bytes through events get emitted
+    const parts = [
+      stringToBuffer('dataitem'),
+      stringToBuffer('1'),
+      stringToBuffer(header.signatureType.toString()),
+      Uint8Array.from(header.rawOwner),
+      Uint8Array.from(header.rawTarget),
+      Uint8Array.from(header.rawAnchor),
+      Uint8Array.from(header.rawTags),
+      asyncIterableReadableStream,
+    ];
+
+    const hash = await deepHash(parts);
+    const sig = await signer.sign(hash);
+    const sigBytes = Buffer.from(sig);
+    emitter?.emit('signing-success');
+    header.setSignature(sigBytes);
+    const headerBytes = header.getRaw();
+
+    const signedDataItemFactory = () => {
+      const reader = stream2.getReader();
+
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            new Uint8Array(
+              headerBytes.buffer,
+              headerBytes.byteOffset,
+              headerBytes.byteLength,
+            ),
+          );
+          bytesProcessed += headerBytes.byteLength;
+        },
+        async pull(controller) {
+          try {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              controller.close();
+              return;
+            }
+            controller.enqueue(value);
+          } catch (error) {
+            controller.error(error);
+          }
+        },
+        cancel() {
+          reader.cancel();
+        },
+      });
+    };
+
+    return {
+      signedDataItemSize: totalDataItemSizeWithHeader,
+      signedDataItemFactory,
+    };
+  } catch (error) {
+    emitter?.emit('signing-error', error);
+    throw error;
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
