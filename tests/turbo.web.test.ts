@@ -29,7 +29,7 @@ import {
   TurboFactory,
   TurboWebArweaveSigner,
   WinstonToTokenAmount,
-  streamSigner,
+  streamSignerReadableStream,
 } from '../src/web/index.js';
 import {
   delayedBlockMining,
@@ -1129,28 +1129,32 @@ describe('Browser environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const inputStream = createTestStream(testBuffer);
 
-      const { stream: signedStream, size } = await streamSigner({
-        input: inputStream,
-        signer,
-        fileSize: testBuffer.length,
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => inputStream,
+          signer,
+          fileSize: testBuffer.length,
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
-      assert.equal(size, signedBuffer.length);
+      assert.equal(signedDataItemSize, signedBuffer.length);
     });
 
     it('should sign a ReadableStream with ArweaveSigner and return a valid signed stream', async () => {
       const signer = new ArweaveSigner(testJwk);
       const inputStream = createTestStream(testBuffer);
 
-      const { stream: signedStream } = await streamSigner({
-        input: inputStream,
-        signer,
-        fileSize: testBuffer.length,
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => inputStream,
+          signer,
+          fileSize: testBuffer.length,
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
@@ -1160,12 +1164,14 @@ describe('Browser environment', () => {
       const signer = new EthereumSigner(testEthWallet);
       const inputStream = createTestStream(testBuffer);
 
-      const { stream: signedStream } = await streamSigner({
-        input: inputStream,
-        signer,
-        fileSize: testBuffer.length,
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => inputStream,
+          signer,
+          fileSize: testBuffer.length,
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
@@ -1175,12 +1181,14 @@ describe('Browser environment', () => {
       const signer = new HexSolanaSigner(testSolWallet);
       const inputStream = createTestStream(testBuffer);
 
-      const { stream: signedStream } = await streamSigner({
-        input: inputStream,
-        signer,
-        fileSize: testBuffer.length,
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => inputStream,
+          signer,
+          fileSize: testBuffer.length,
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
@@ -1194,15 +1202,14 @@ describe('Browser environment', () => {
         target: '43-character-stub-arweave-address-000000000',
       };
 
-      const { stream: signedStream } = await streamSigner(
-        {
-          input: inputStream,
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => inputStream,
           signer,
           fileSize: testBuffer.length,
-        },
-        customOptions,
-      );
-      const signedBuffer = await streamToBuffer(signedStream);
+          dataItemOpts: customOptions,
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       assert.ok(signedBuffer instanceof Buffer);
       assert.ok(signedBuffer.length > testBuffer.length);
@@ -1220,12 +1227,14 @@ describe('Browser environment', () => {
         },
       });
 
-      const { stream: signedStream } = await streamSigner({
-        input: emptyStream,
-        signer,
-        fileSize: 0,
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => emptyStream,
+          signer,
+          fileSize: 0,
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
@@ -1238,12 +1247,14 @@ describe('Browser environment', () => {
 
       const largeStream = createTestStream(largeData);
 
-      const { stream: signedStream } = await streamSigner({
-        input: largeStream,
-        signer,
-        fileSize: largeData.length,
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => largeStream,
+          signer,
+          fileSize: largeData.length,
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
@@ -1257,22 +1268,25 @@ describe('Browser environment', () => {
       const stream1 = createTestStream(data1);
       const stream2 = createTestStream(data2);
 
-      const [signedStream1, signedStream2] = await Promise.all([
-        streamSigner({
-          input: stream1,
-          signer,
-          fileSize: data1.length,
-        }),
-        streamSigner({
-          input: stream2,
-          signer,
-          fileSize: data2.length,
-        }),
-      ]);
+      const [signedDataItemFactory1, signedDataItemFactory2] =
+        await Promise.all([
+          streamSignerReadableStream({
+            streamFactory: () => stream1,
+            signer,
+            fileSize: data1.length,
+            dataItemOpts: {},
+          }),
+          streamSignerReadableStream({
+            streamFactory: () => stream2,
+            signer,
+            fileSize: data2.length,
+            dataItemOpts: {},
+          }),
+        ]);
 
       const [buffer1, buffer2] = await Promise.all([
-        streamToBuffer(signedStream1.stream),
-        streamToBuffer(signedStream2.stream),
+        streamToBuffer(signedDataItemFactory1.signedDataItemFactory()),
+        streamToBuffer(signedDataItemFactory2.signedDataItemFactory()),
       ]);
 
       assert.notDeepEqual(buffer1, buffer2);
@@ -1295,12 +1309,14 @@ describe('Browser environment', () => {
         },
       });
 
-      const { stream: signedStream } = await streamSigner({
-        input: chunkedStream,
-        signer,
-        fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
-      });
-      const signedBuffer = await streamToBuffer(signedStream);
+      const { signedDataItemFactory, signedDataItemSize } =
+        await streamSignerReadableStream({
+          streamFactory: () => chunkedStream,
+          signer,
+          fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
+          dataItemOpts: {},
+        });
+      const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
       assert.ok(isValidDataItem);
