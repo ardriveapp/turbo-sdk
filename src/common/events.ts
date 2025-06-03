@@ -74,7 +74,6 @@ function createReadableStreamWithEvents({
       ? data
       : new ReadableStream({
           start: (controller) => {
-            console.log('start');
             controller.enqueue(data);
             controller.close();
           },
@@ -84,19 +83,15 @@ function createReadableStreamWithEvents({
   let reader;
   const stream = new ReadableStream({
     start() {
-      console.log('start stream');
       reader = originalStream.getReader();
     },
     async pull(controller) {
-      console.log('pull stream');
       try {
         const { value, done } = await reader.read();
-        console.log('done', done);
-        console.log('value', value, value?.byteLength);
+
         if (done) {
           emitter.emit(eventNamesMap['on-end']);
           controller.close();
-          console.log('closing controller');
           return;
         }
 
@@ -108,7 +103,6 @@ function createReadableStreamWithEvents({
 
         controller.enqueue(new Uint8Array(value.buffer));
       } catch (error) {
-        console.log('error', error);
         emitter.emit(eventNamesMap['on-error'], error);
         controller.error(error);
       }
