@@ -151,10 +151,40 @@ export async function streamSignerReadableStream({
 }> {
   const header = createData('', signer, dataItemOpts);
 
+  const totalDataItemSizeWithHeader =
+    fileSize +
+    header.getRaw().byteLength +
+    signer.signatureLength +
+    signer.ownerLength;
+
   const [stream1, stream2] = streamFactory().tee();
+  const reader1 = stream1.getReader();
+  let bytesProcessed = 0;
+  const eventingStream = new ReadableStream({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader1.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        bytesProcessed += value.byteLength;
+        controller.enqueue(value);
+
+        emitter?.emit('signing-progress', {
+          processedBytes: bytesProcessed,
+          totalBytes: totalDataItemSizeWithHeader,
+        });
+      } catch (error) {
+        emitter?.emit('signing-error', error);
+        controller.error(error);
+      }
+    },
+  });
 
   // create a readable that emits signing events as bytes are pulled through using the first stream from .tee()
-  const asyncIterableReadableStream = readableStreamToAsyncIterable(stream1);
+  const asyncIterableReadableStream =
+    readableStreamToAsyncIterable(eventingStream);
 
   // provide that ReadableStream with events to deep hash, so as it pulls bytes through events get emitted
   const parts = [
@@ -170,14 +200,11 @@ export async function streamSignerReadableStream({
 
   const hash = await deepHash(parts);
   const sigBytes = Buffer.from(await signer.sign(hash));
+  emitter?.emit('signing-success');
   header.setSignature(sigBytes);
   const headerBytes = header.getRaw();
 
-  // header is already signed, so start with the header size
-  const totalDataItemSizeWithHeader = headerBytes.byteLength + fileSize;
-
   const signedDataItemFactory = () => {
-    let bytesProcessed = 0;
     const reader = stream2.getReader();
 
     return new ReadableStream<Uint8Array>({
@@ -194,19 +221,11 @@ export async function streamSignerReadableStream({
           const { done, value } = await reader.read();
 
           if (done) {
-            emitter?.emit('signing-success');
             controller.close();
             return;
           }
-          bytesProcessed += value.byteLength;
           controller.enqueue(value);
-
-          emitter?.emit('signing-progress', {
-            processedBytes: bytesProcessed,
-            totalBytes: totalDataItemSizeWithHeader,
-          });
         } catch (error) {
-          emitter?.emit('signing-error', error);
           controller.error(error);
         }
       },

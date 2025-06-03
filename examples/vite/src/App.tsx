@@ -71,12 +71,7 @@ function App() {
       const upload = await turbo.uploadFile({
         fileStreamFactory: () => {
           console.log('fileStreamFactory called');
-          return new ReadableStream({
-            start(controller) {
-              controller.enqueue(buffer);
-              controller.close();
-            },
-          });
+          return selectedFile.stream();
         },
         fileSizeFactory: () => selectedFile.size,
         events: {
