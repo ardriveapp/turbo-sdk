@@ -2,6 +2,7 @@ import {
   ArconnectSigner,
   ArweaveSigner,
   TurboAuthenticatedClient,
+  TurboEventEmitter,
   TurboFactory,
   streamSignerReadableStream,
 } from '@ardrive/turbo-sdk/web';
@@ -67,31 +68,12 @@ function App() {
 
       await signer.setPublicKey();
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => {
-            return new ReadableStream({
-              start(controller) {
-                controller.enqueue(new Uint8Array(buffer));
-                controller.close();
-              },
-            });
-          },
-          signer,
-          fileSize: selectedFile.size,
-        });
-
-      await turbo.uploadSignedDataItem({
-        dataItemStreamFactory: signedDataItemFactory,
-        dataItemSizeFactory: () => signedDataItemSize,
-      });
-
       const upload = await turbo.uploadFile({
         fileStreamFactory: () => {
           console.log('fileStreamFactory called');
           return new ReadableStream({
             start(controller) {
-              controller.enqueue(buffer);
+              controller.enqueue(new Uint8Array(buffer));
               controller.close();
             },
           });

@@ -16,7 +16,6 @@
 import {
   ArconnectSigner,
   ArweaveSigner,
-  DataItem,
   DataItemCreateOptions,
   EthereumSigner,
   HexSolanaSigner,
@@ -24,10 +23,8 @@ import {
   Signer,
   createData,
   deepHash,
-  getCryptoDriver,
   stringToBuffer,
 } from '@dha-team/arbundles';
-import { bufferTob64Url } from 'arweave/web/lib/utils.js';
 
 import { TurboEventEmitter } from '../common/events.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
@@ -37,7 +34,6 @@ import {
   TurboSignedRequestHeaders,
   WebTurboFileFactory,
 } from '../types.js';
-import { readableStreamToBuffer } from '../utils/readableStream.js';
 
 /**
  * Utility exports to avoid clients having to install arbundles
@@ -74,7 +70,7 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
   public async signDataItem({
     fileStreamFactory,
     fileSizeFactory,
-    // dataItemOpts,
+    dataItemOpts,
     emitter,
   }: WebTurboFileFactory): Promise<TurboSignedDataItemFactory> {
     try {
@@ -88,39 +84,10 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
         await streamSignerReadableStream({
           streamFactory: fileStreamFactory as () => ReadableStream<Uint8Array>,
           signer: this.signer,
-          //  dataItemOpts,
+          dataItemOpts,
           fileSize,
-          // emitter,
+          emitter,
         });
-
-      const bytes = await readableStreamToBuffer({
-        stream: signedDataItemFactory() as any,
-        size: signedDataItemSize,
-      });
-      const dataItem = new DataItem(bytes);
-      console.log('raw owner', dataItem.rawOwner, dataItem.rawOwner.length);
-
-      console.log('bytes', bytes.length);
-      console.log('dataItemSize', signedDataItemSize);
-
-      console.log(
-        'is valid data item',
-        await DataItem.verify(bytes).catch((e) => {
-          console.error('error verifying data item', e);
-          return false;
-        }),
-      );
-      const cryptoDriver = getCryptoDriver();
-      const stringPk = bufferTob64Url(Uint8Array.from(dataItem.rawOwner));
-      console.log('stringPk', stringPk, stringPk.length);
-      console.log(
-        'is valid data item manual',
-        await (cryptoDriver as any).verify(
-          stringPk,
-          await dataItem.getSignatureData(),
-          Uint8Array.from(dataItem.signature as any),
-        ),
-      );
 
       this.logger.debug('Successfully signed data item...');
       return {
