@@ -213,7 +213,8 @@ describe('createStreamWithUploadEvents', () => {
 
       // Create a ReadableStream that will throw an error
       const data = new ReadableStream({
-        pull() {
+        pull(controller) {
+          controller.error(testError);
           throw testError;
         },
       });
@@ -423,7 +424,8 @@ describe('createStreamWithSigningEvents', () => {
 
       // Create a ReadableStream that will throw an error
       const data = new ReadableStream({
-        pull() {
+        pull(controller) {
+          controller.error(testError);
           throw testError;
         },
       });
