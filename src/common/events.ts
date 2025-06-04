@@ -103,7 +103,9 @@ function createReadableStreamWithEvents({
           totalBytes: dataSize,
         });
 
-        controller.enqueue(new Uint8Array(value.buffer));
+        controller.enqueue(
+          new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+        );
       } catch (error) {
         emitter.emit(eventNamesMap['on-error'], error);
         controller.error(error);

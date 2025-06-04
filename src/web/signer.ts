@@ -145,11 +145,7 @@ export async function streamSignerReadableStream({
   try {
     const header = createData('', signer, dataItemOpts);
 
-    const totalDataItemSizeWithHeader =
-      fileSize +
-      header.getRaw().byteLength +
-      signer.signatureLength +
-      signer.ownerLength;
+    const totalDataItemSizeWithHeader = fileSize + header.getRaw().byteLength;
 
     const [stream1, stream2] = streamFactory().tee();
     const reader1 = stream1.getReader();
@@ -168,6 +164,9 @@ export async function streamSignerReadableStream({
           processedBytes: bytesProcessed,
           totalBytes: totalDataItemSizeWithHeader,
         });
+      },
+      cancel() {
+        reader1.cancel();
       },
     });
 
@@ -188,8 +187,7 @@ export async function streamSignerReadableStream({
     ];
 
     const hash = await deepHash(parts);
-    const sig = await signer.sign(hash);
-    const sigBytes = Buffer.from(sig);
+    const sigBytes = Buffer.from(await signer.sign(hash));
     emitter?.emit('signing-success');
     header.setSignature(sigBytes);
     const headerBytes = header.getRaw();
@@ -199,13 +197,7 @@ export async function streamSignerReadableStream({
 
       return new ReadableStream<Uint8Array>({
         start(controller) {
-          controller.enqueue(
-            new Uint8Array(
-              headerBytes.buffer,
-              headerBytes.byteOffset,
-              headerBytes.byteLength,
-            ),
-          );
+          controller.enqueue(Uint8Array.from(headerBytes));
           bytesProcessed += headerBytes.byteLength;
         },
         async pull(controller) {

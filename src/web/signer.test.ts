@@ -69,16 +69,13 @@ describe('streamSignerReadableStream', () => {
       await streamSignerReadableStream({
         streamFactory: () => testStream,
         signer,
-        fileSize: testData.length,
+        fileSize: testData.byteLength,
       });
 
     const signedDataItemBuffer = await readableStreamToBuffer({
       stream: signedDataItemFactory(),
       size: signedDataItemSize,
     });
-
-    const dataItem = new DataItem(signedDataItemBuffer);
-    console.log('raw owner', dataItem.owner, dataItem.owner.length);
 
     const isValidDataItem = await DataItem.verify(signedDataItemBuffer);
 
