@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ArweaveSigner, DataItem } from '@dha-team/arbundles';
-import Arweave from 'arweave';
+import {
+  ArweaveSigner,
+  DataItem,
+  EthereumSigner,
+  HexSolanaSigner,
+} from '@dha-team/arbundles';
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { readableStreamToBuffer } from '../utils/readableStream.js';
+import { testEthWallet, testJwk, testSolWallet } from '../../tests/helpers.js';
 import {
   readableStreamToAsyncIterable,
   streamSignerReadableStream,
 } from './signer.js';
-
-const arweave = Arweave.init({
-  host: 'arweave.net',
-  port: 443,
-  protocol: 'https',
-});
 
 describe('readableStreamToAsyncIterable', () => {
   it('should convert a ReadableStream to an AsyncIterable', async () => {
@@ -52,33 +50,232 @@ describe('readableStreamToAsyncIterable', () => {
   });
 });
 
-describe('streamSignerReadableStream', () => {
-  it('should sign a data item from a ReadableStream', async () => {
-    const testData = new Uint8Array([1, 2, 3, 4, 5]);
-    const testStream = new ReadableStream({
+describe('streamSignerReadableStream', async () => {
+  const testData = 'test data for stream signing';
+  const encoder = new TextEncoder();
+  const testBuffer = encoder.encode(testData);
+
+  function createTestStream(data: Uint8Array): ReadableStream<Uint8Array> {
+    return new ReadableStream({
       start(controller) {
-        controller.enqueue(testData);
+        controller.enqueue(data);
+        controller.close();
+      },
+    });
+  }
+
+  async function streamToBuffer(
+    stream: ReadableStream<Uint8Array>,
+  ): Promise<Buffer> {
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+    let done = false;
+
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
+      if (value) {
+        chunks.push(value);
+      }
+    }
+
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return Buffer.from(result);
+  }
+
+  it('should return matching size for the data item stream', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const inputStream = createTestStream(testBuffer);
+
+    const { signedDataItemFactory, signedDataItemSize } =
+      await streamSignerReadableStream({
+        streamFactory: () => inputStream,
+        signer,
+        fileSize: testBuffer.length,
+        dataItemOpts: {},
+      });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
+
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
+    assert.equal(signedDataItemSize, signedBuffer.length);
+  });
+
+  it('should sign a ReadableStream with ArweaveSigner and return a valid signed stream', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const inputStream = createTestStream(testBuffer);
+
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => inputStream,
+      signer,
+      fileSize: testBuffer.length,
+      dataItemOpts: {},
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
+
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
+  });
+
+  it('should sign a ReadableStream with EthereumSigner and return a valid signed stream', async () => {
+    const signer = new EthereumSigner(testEthWallet);
+    const inputStream = createTestStream(testBuffer);
+
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => inputStream,
+      signer,
+      fileSize: testBuffer.length,
+      dataItemOpts: {},
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
+
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
+  });
+
+  it('should sign a ReadableStream with HexSolanaSigner and return a valid signed stream', async () => {
+    const signer = new HexSolanaSigner(testSolWallet);
+    const inputStream = createTestStream(testBuffer);
+
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => inputStream,
+      signer,
+      fileSize: testBuffer.length,
+      dataItemOpts: {},
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
+
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
+  });
+
+  it('should sign a ReadableStream with custom DataItemCreateOptions', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const inputStream = createTestStream(testBuffer);
+    const customOptions = {
+      tags: [{ name: 'Content-Type', value: 'text/plain' }],
+      target: '43-character-stub-arweave-address-000000000',
+    };
+
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => inputStream,
+      signer,
+      fileSize: testBuffer.length,
+      dataItemOpts: customOptions,
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
+
+    assert.ok(signedBuffer instanceof Buffer);
+    assert.ok(signedBuffer.length > testBuffer.length);
+
+    // The signed stream should contain the original data
+    const originalDataIndex = signedBuffer.indexOf(testBuffer);
+    assert.ok(originalDataIndex > -1);
+  });
+
+  it('should handle empty stream input', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const emptyStream = new ReadableStream({
+      start(controller) {
         controller.close();
       },
     });
 
-    const wallet = await arweave.wallets.generate();
-    const signer = new ArweaveSigner(wallet);
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => emptyStream,
+      signer,
+      fileSize: 0,
+      dataItemOpts: {},
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
-    const { signedDataItemFactory, signedDataItemSize } =
-      await streamSignerReadableStream({
-        streamFactory: () => testStream,
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
+  });
+
+  it('should handle large stream input', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const largeData = new Uint8Array(1024 * 1024 * 51); // 51MB ~ ideally this tests metamask limits but because its not injected we can't
+    largeData.fill(65); // Fill with 'A' characters
+
+    const largeStream = createTestStream(largeData);
+
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => largeStream,
+      signer,
+      fileSize: largeData.length,
+      dataItemOpts: {},
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
+
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
+  });
+
+  it('should produce different signatures for different data', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const data1 = encoder.encode('first test data');
+    const data2 = encoder.encode('second test data');
+
+    const stream1 = createTestStream(data1);
+    const stream2 = createTestStream(data2);
+
+    const [signedDataItemFactory1, signedDataItemFactory2] = await Promise.all([
+      streamSignerReadableStream({
+        streamFactory: () => stream1,
         signer,
-        fileSize: testData.byteLength,
-      });
+        fileSize: data1.length,
+        dataItemOpts: {},
+      }),
+      streamSignerReadableStream({
+        streamFactory: () => stream2,
+        signer,
+        fileSize: data2.length,
+        dataItemOpts: {},
+      }),
+    ]);
 
-    const signedDataItemBuffer = await readableStreamToBuffer({
-      stream: signedDataItemFactory(),
-      size: signedDataItemSize,
+    const [buffer1, buffer2] = await Promise.all([
+      streamToBuffer(signedDataItemFactory1.signedDataItemFactory()),
+      streamToBuffer(signedDataItemFactory2.signedDataItemFactory()),
+    ]);
+
+    assert.notDeepEqual(buffer1, buffer2);
+    assert.ok(buffer1.indexOf(data1) > -1);
+    assert.ok(buffer2.indexOf(data2) > -1);
+  });
+
+  it('should work with chunked stream input', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const chunks = [
+      encoder.encode('chunk1'),
+      encoder.encode('chunk2'),
+      encoder.encode('chunk3'),
+    ];
+
+    const chunkedStream = new ReadableStream({
+      start(controller) {
+        chunks.forEach((chunk) => controller.enqueue(chunk));
+        controller.close();
+      },
     });
 
-    const isValidDataItem = await DataItem.verify(signedDataItemBuffer);
+    const { signedDataItemFactory } = await streamSignerReadableStream({
+      streamFactory: () => chunkedStream,
+      signer,
+      fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
+      dataItemOpts: {},
+    });
+    const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
-    assert.equal(isValidDataItem, true);
+    const isValidDataItem = await DataItem.verify(signedBuffer);
+    assert.ok(isValidDataItem);
   });
 });
