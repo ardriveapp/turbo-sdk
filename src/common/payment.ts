@@ -301,9 +301,9 @@ export class TurboUnauthenticatedPaymentService
     const wincPriceForOneGiB = await this.getUploadCosts({
       bytes: [2 ** 30],
     });
-    // get the winc price for one thousand fiat units (10 USD, or 1000 JPY, etc.)
+    // get the winc price for one thousand fiat units (1,000 USD, or 100,000 JPY, etc.)
     const wincPriceForOneThousandFiatUnits = await this.getWincForFiat({
-      amount: { type: currency, amount: 1000 },
+      amount: { type: currency, amount: 1_000_00 },
     });
 
     const wincPriceForGivenBytes = new BigNumber(wincPriceForOneGiB[0].winc)
@@ -312,12 +312,12 @@ export class TurboUnauthenticatedPaymentService
 
     const wincPriceForOneFiatUnit = new BigNumber(
       wincPriceForOneThousandFiatUnits.winc,
-    ).dividedBy(new BigNumber(10));
+    ).dividedBy(new BigNumber(1_000)); // convert back to 1 USD or 100 JPY
 
     const fiatPriceForBytes = +wincPriceForGivenBytes
       .dividedBy(wincPriceForOneFiatUnit)
       .times(currency === 'jpy' ? 100 : 1) // Convert to zero decimal if currency is JPY
-      .toFixed(currency === 'jpy' ? 0 : 2); // Convert to string with 2 decimal places
+      .toFixed(currency === 'jpy' ? 0 : 2); // Convert to string with 2 decimal places, when not zero decimal currency
 
     return {
       byteCount,
@@ -325,6 +325,7 @@ export class TurboUnauthenticatedPaymentService
       currency,
     };
   }
+
   public async getTokenPriceForBytes({
     byteCount,
   }: {

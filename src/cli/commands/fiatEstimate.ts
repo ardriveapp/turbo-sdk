@@ -26,9 +26,7 @@ export async function fiatEstimate(options: TokenPriceOptions) {
     isNaN(byteCount) ||
     !Number.isInteger(byteCount)
   ) {
-    throw new Error(
-      'Must provide a positive number for byte to get price.\nFor example, to get the SOL price for 100 MiB use the following:\nturbo token-price --token solana --byte-count 1048576000',
-    );
+    throw new Error('Must provide a positive number for byte to get price.');
   }
 
   const currency = currencyFromOptions(options) ?? 'usd';
