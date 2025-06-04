@@ -98,8 +98,13 @@ describe('createUint8ArrayReadableStreamFactory', () => {
       104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
     ]);
     const streamFactory = createUint8ArrayReadableStreamFactory({ data });
+    const stream = streamFactory();
+    assert(
+      stream instanceof ReadableStream,
+      'Expected stream to be a ReadableStream',
+    );
     const buffer = await readableStreamToBuffer({
-      stream: streamFactory(),
+      stream,
       size: data.length,
     });
 
@@ -117,6 +122,11 @@ describe('ensureChunkedStream', () => {
       },
     });
     const chunkedStream = ensureChunkedStream(stream, 1); // 1 byte chunks
+
+    assert(
+      chunkedStream instanceof ReadableStream,
+      'Expected chunked stream to be a ReadableStream',
+    );
 
     const reader = chunkedStream.getReader();
     let chunkSize = 0;

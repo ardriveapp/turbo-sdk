@@ -147,7 +147,7 @@ describe('createStreamWithUploadEvents', () => {
           onErrorCalled = true;
         },
       });
-      const data = new ReadableStream({
+      const data = new ReadableStream<Uint8Array>({
         start(controller) {
           controller.enqueue(Buffer.from('test test test test test'));
           controller.close();
@@ -212,7 +212,7 @@ describe('createStreamWithUploadEvents', () => {
       };
 
       // Create a ReadableStream that will throw an error
-      const data = new ReadableStream({
+      const data = new ReadableStream<Uint8Array>({
         pull(controller) {
           controller.error(testError);
           throw testError;
@@ -364,7 +364,7 @@ describe('createStreamWithSigningEvents', () => {
       let errorEventEmitted = false;
       let onSuccessCalled = false;
       let successEventEmitted = false;
-      const data = new ReadableStream({
+      const data = new ReadableStream<Uint8Array>({
         start(controller) {
           controller.enqueue(Buffer.from('test'));
           controller.close();
@@ -423,7 +423,7 @@ describe('createStreamWithSigningEvents', () => {
       const testError = new Error('Test error');
 
       // Create a ReadableStream that will throw an error
-      const data = new ReadableStream({
+      const data = new ReadableStream<Uint8Array>({
         pull(controller) {
           controller.error(testError);
           throw testError;
