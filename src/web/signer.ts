@@ -41,8 +41,8 @@ import { createUint8ArrayReadableStreamFactory } from '../utils/readableStream.j
  */
 export { ArconnectSigner, ArweaveSigner, EthereumSigner, HexSolanaSigner };
 
-export type DeepHashChunk = Uint8Array | AsyncIterable<Buffer> | DeepHashChunks;
-export type DeepHashChunks = DeepHashChunk[];
+type DeepHashChunk = Uint8Array | AsyncIterable<Buffer> | DeepHashChunks;
+type DeepHashChunks = DeepHashChunk[];
 
 /**
  * Web implementation of TurboDataItemSigner.
