@@ -321,7 +321,7 @@ export class TurboUnauthenticatedPaymentService
 
     return {
       byteCount,
-      fiatEstimate: fiatPriceForBytes,
+      amount: fiatPriceForBytes,
       currency,
     };
   }

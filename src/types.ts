@@ -119,7 +119,7 @@ export type TurboTokenPriceForBytesResponse = {
 
 export type TurboFiatEstimateForBytesResponse = {
   byteCount: number;
-  fiatEstimate: number;
+  amount: number;
   currency: Currency;
 };
 

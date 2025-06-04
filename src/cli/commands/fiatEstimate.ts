@@ -32,14 +32,13 @@ export async function fiatEstimate(options: TokenPriceOptions) {
   const currency = currencyFromOptions(options) ?? 'usd';
 
   const turbo = TurboFactory.unauthenticated(configFromOptions(options));
-  const { fiatEstimate } = await turbo.getFiatEstimateForBytes({
+  const result = await turbo.getFiatEstimateForBytes({
     byteCount,
     currency,
   });
   const output = {
-    fiatEstimate,
-    byteCount,
-    message: `The current price estimate for ${byteCount} bytes is ${fiatEstimate} ${currency}`,
+    ...result,
+    message: `The current price estimate for ${byteCount} bytes is ${result.amount} ${currency}`,
   };
   console.log(JSON.stringify(output, null, 2));
 }
