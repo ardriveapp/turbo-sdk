@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+export const DEFAULT_STREAM_CHUNK_SIZE = 20 * 1024 * 1024; // 20mb
+
 export async function readableStreamToBuffer({
   stream,
   size,
@@ -38,7 +41,7 @@ export async function readableStreamToBuffer({
 
 export function ensureChunkedStream(
   input: ReadableStream<Uint8Array>,
-  maxChunkSize = 64 * 1024,
+  maxChunkSize = DEFAULT_STREAM_CHUNK_SIZE,
 ): ReadableStream<Uint8Array> {
   const reader = input.getReader();
   let leftover: Uint8Array | null = null;
@@ -60,6 +63,7 @@ export function ensureChunkedStream(
         return;
       }
 
+      // Runtime check because ReadableStream defaults to <any> and can be abused
       if (!(value instanceof Uint8Array)) {
         throw new TypeError('Expected Uint8Array from source stream');
       }
@@ -68,6 +72,7 @@ export function ensureChunkedStream(
         controller.enqueue(value);
       } else {
         // Slice and enqueue one piece now, keep the rest
+        // subarray is the new view with the same buffer (not copy)
         controller.enqueue(value.subarray(0, maxChunkSize));
         leftover = value.subarray(maxChunkSize);
       }
@@ -77,7 +82,7 @@ export function ensureChunkedStream(
 
 export function createUint8ArrayReadableStreamFactory({
   data,
-  maxChunkSize = 64 * 1024,
+  maxChunkSize = DEFAULT_STREAM_CHUNK_SIZE,
 }: {
   data:
     | string
@@ -91,7 +96,7 @@ export function createUint8ArrayReadableStreamFactory({
 }): () => ReadableStream<Uint8Array> {
   // Blob streams are already ReadableStream<Uint8Array>
   if (data instanceof Blob) {
-    return () => data.stream();
+    return () => ensureChunkedStream(data.stream());
   }
   // We need to handle the case where the data is a ReadableStream that is not a Uint8Array
   // This is to ensure downstream code can handle the data as a Uint8Array
@@ -139,9 +144,7 @@ export function createUint8ArrayReadableStreamFactory({
     ) {
       uint8 = new Uint8Array(data);
     } else {
-      throw new TypeError(
-        'Unsupported input type for createBufferReadableStream',
-      );
+      throw new TypeError('Unsupported input type for stream');
     }
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
