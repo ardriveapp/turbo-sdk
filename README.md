@@ -352,6 +352,20 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   });
 ```
 
+#### `getFiatEstimateForBytes({ byteCount, currency })`
+
+Get the current price from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated();
+const { amount } = await turbo.getFiatEstimateForBytes({
+  byteCount: 1024 * 1024 * 100,
+  currency: 'usd', // specify the currency for the price
+});
+
+console.log(amount); // Estimated usd price for 100 MiB
+```
+
 #### `getTokenPriceForBytes({ byteCount })`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
@@ -994,6 +1008,7 @@ Command Options:
 
 - `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
 - `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
+- `--currency <currency>` - Currency to get the price for (e.g: 'usd', 'eur', 'gbp').
 
 e.g:
 
@@ -1007,6 +1022,21 @@ turbo price --value 1024 --type bytes
 
 ```shell
 turbo price --value 1.1 --type arweave
+```
+
+##### `fiat-estimate`
+
+Get the current fiat estimation from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+Command Options:
+
+- `--byte-count <byteCount>` - Byte value to get the token price for
+- `--currency <currency>` - Currency to get the fiat estimate for (e.g: 'usd', 'eur', 'gbp')
+
+e.g:
+
+```shell
+turbo fiat-estimate --byte-count 102400 --token solana
 ```
 
 ##### `token-price`
