@@ -23,6 +23,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 import { testEthWallet, testJwk, testSolWallet } from '../../tests/helpers.js';
+import { TurboEventEmitter } from '../common/events.js';
 import {
   readableStreamToAsyncIterable,
   streamSignerReadableStream,
@@ -277,5 +278,71 @@ describe('streamSignerReadableStream', async () => {
 
     const isValidDataItem = await DataItem.verify(signedBuffer);
     assert.ok(isValidDataItem);
+  });
+
+  it('should emit all progress events and success event', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    const inputStream = createTestStream(testBuffer);
+
+    const emitter = new TurboEventEmitter();
+
+    let signingProgress = 0;
+    let totalSigningBytes = 0;
+    let success = false;
+
+    emitter.on('signing-progress', ({ processedBytes, totalBytes }) => {
+      signingProgress = processedBytes;
+      totalSigningBytes = totalBytes;
+    });
+
+    emitter.on('signing-success', () => {
+      success = true;
+    });
+
+    await streamSignerReadableStream({
+      streamFactory: () => inputStream,
+      signer,
+      fileSize: testBuffer.length,
+      dataItemOpts: {},
+      emitter,
+    });
+
+    assert.equal(
+      signingProgress,
+      totalSigningBytes,
+      'Expected signing progress to match total signing bytes',
+    );
+    assert.ok(success);
+  });
+
+  it('should emit error event if signing fails', async () => {
+    const signer = new ArweaveSigner(testJwk);
+    signer.sign = () => {
+      throw new Error('Signing failed');
+    };
+    const inputStream = createTestStream(testBuffer);
+
+    const emitter = new TurboEventEmitter();
+
+    let error = undefined;
+    let success = false;
+
+    emitter.on('signing-error', (e) => {
+      error = e;
+    });
+    emitter.on('signing-success', () => {
+      success = true;
+    });
+
+    await streamSignerReadableStream({
+      streamFactory: () => inputStream,
+      signer,
+      fileSize: testBuffer.length,
+      dataItemOpts: {},
+      emitter,
+    }).catch(() => void 0);
+
+    assert.ok(error, 'Expected error to be defined');
+    assert.ok(!success, 'Expected success to be false');
   });
 });

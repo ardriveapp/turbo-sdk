@@ -144,13 +144,23 @@ export async function streamSignerReadableStream({
 }> {
   try {
     const header = createData('', signer, dataItemOpts);
+    const headerSize = header.getRaw().byteLength;
 
-    const totalDataItemSizeWithHeader = fileSize + header.getRaw().byteLength;
+    const totalDataItemSizeWithHeader = fileSize + headerSize;
 
     const [stream1, stream2] = streamFactory().tee();
     const reader1 = stream1.getReader();
     let bytesProcessed = 0;
+
     const eventingStream = new ReadableStream({
+      start() {
+        // technically this should be emitted after each DeepHashChunk be we cannot access that stage, so we emit it here instead
+        bytesProcessed = headerSize;
+        emitter?.emit('signing-progress', {
+          processedBytes: bytesProcessed,
+          totalBytes: totalDataItemSizeWithHeader,
+        });
+      },
       async pull(controller) {
         const { done, value } = await reader1.read();
         if (done) {
