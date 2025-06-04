@@ -1,4 +1,4 @@
-# [1.26.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.25.0...v1.26.0-alpha.1) (2025-05-29)
+# [1.26.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.25.0...v1.26.0) (2025-06-02)
 
 
 ### Bug Fixes
