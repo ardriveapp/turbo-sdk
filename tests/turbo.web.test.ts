@@ -1147,13 +1147,12 @@ describe('Browser environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const inputStream = createTestStream(testBuffer);
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => inputStream,
-          signer,
-          fileSize: testBuffer.length,
-          dataItemOpts: {},
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => inputStream,
+        signer,
+        fileSize: testBuffer.length,
+        dataItemOpts: {},
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
@@ -1164,13 +1163,12 @@ describe('Browser environment', () => {
       const signer = new EthereumSigner(testEthWallet);
       const inputStream = createTestStream(testBuffer);
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => inputStream,
-          signer,
-          fileSize: testBuffer.length,
-          dataItemOpts: {},
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => inputStream,
+        signer,
+        fileSize: testBuffer.length,
+        dataItemOpts: {},
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
@@ -1181,13 +1179,12 @@ describe('Browser environment', () => {
       const signer = new HexSolanaSigner(testSolWallet);
       const inputStream = createTestStream(testBuffer);
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => inputStream,
-          signer,
-          fileSize: testBuffer.length,
-          dataItemOpts: {},
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => inputStream,
+        signer,
+        fileSize: testBuffer.length,
+        dataItemOpts: {},
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
@@ -1202,13 +1199,12 @@ describe('Browser environment', () => {
         target: '43-character-stub-arweave-address-000000000',
       };
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => inputStream,
-          signer,
-          fileSize: testBuffer.length,
-          dataItemOpts: customOptions,
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => inputStream,
+        signer,
+        fileSize: testBuffer.length,
+        dataItemOpts: customOptions,
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       assert.ok(signedBuffer instanceof Buffer);
@@ -1227,13 +1223,12 @@ describe('Browser environment', () => {
         },
       });
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => emptyStream,
-          signer,
-          fileSize: 0,
-          dataItemOpts: {},
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => emptyStream,
+        signer,
+        fileSize: 0,
+        dataItemOpts: {},
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
@@ -1247,13 +1242,12 @@ describe('Browser environment', () => {
 
       const largeStream = createTestStream(largeData);
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => largeStream,
-          signer,
-          fileSize: largeData.length,
-          dataItemOpts: {},
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => largeStream,
+        signer,
+        fileSize: largeData.length,
+        dataItemOpts: {},
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
@@ -1309,13 +1303,12 @@ describe('Browser environment', () => {
         },
       });
 
-      const { signedDataItemFactory, signedDataItemSize } =
-        await streamSignerReadableStream({
-          streamFactory: () => chunkedStream,
-          signer,
-          fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
-          dataItemOpts: {},
-        });
+      const { signedDataItemFactory } = await streamSignerReadableStream({
+        streamFactory: () => chunkedStream,
+        signer,
+        fileSize: chunks.reduce((acc, chunk) => acc + chunk.length, 0),
+        dataItemOpts: {},
+      });
       const signedBuffer = await streamToBuffer(signedDataItemFactory());
 
       const isValidDataItem = await DataItem.verify(signedBuffer);
