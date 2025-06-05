@@ -1050,6 +1050,13 @@ describe('Node environment', () => {
         const response = await turbo.uploadFile({ file: filePath });
         assert.ok(response !== undefined);
       });
+
+      it('should throw an error on invalid params', async () => {
+        await expectAsyncErrorThrow({
+          promiseToError: turbo.uploadFile({} as any),
+          errorType: 'TypeError',
+        });
+      });
     });
 
     describe('uploadFolder()', () => {
