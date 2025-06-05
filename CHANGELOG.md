@@ -1,3 +1,49 @@
+# [1.27.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.26.0...v1.27.0-alpha.1) (2025-06-05)
+
+
+### Bug Fixes
+
+* **build:** ignore unit test in tsconfig ([598f7a7](https://github.com/ardriveapp/turbo-sdk/commit/598f7a7de4b041ac7b1ef43fb44f422ec6dd8120))
+* **diff:** reset http diff to alpha ([1dce920](https://github.com/ardriveapp/turbo-sdk/commit/1dce9201b51b8c5b80cefe031e773e6999d62e83))
+* **events:** fix signing events on stream signer ([58f1e8d](https://github.com/ardriveapp/turbo-sdk/commit/58f1e8da7cd2e2fcbda615e2a7284fd859e949ba))
+* **events:** remove logs from event stream ([f80aa4d](https://github.com/ardriveapp/turbo-sdk/commit/f80aa4dd5f1eab3441b3fb70d007032a4857b9e5))
+* **events:** use Uint8Array as generic on readable stream and specify byte length and offset on data ([2bb292d](https://github.com/ardriveapp/turbo-sdk/commit/2bb292d9be23861c06078f672a0f8cd05587b966))
+* **events:** wrap stream in trycatch and bubble up error ([465e438](https://github.com/ardriveapp/turbo-sdk/commit/465e438d80fd27d0ee96552ffc2d17225835bc48))
+* **imports:** pull in types from arbundles to avoid pathing issue ([8cce985](https://github.com/ardriveapp/turbo-sdk/commit/8cce985d60fe72d140a6ec2661a8d3f6e9220108))
+* **lint:** remove unused imports ([98a2691](https://github.com/ardriveapp/turbo-sdk/commit/98a26919d5f9714f286e38dd7c8971efabe76f1d))
+* **sig:** count processed bytes for block buffer ([b7956b6](https://github.com/ardriveapp/turbo-sdk/commit/b7956b6173ae6012cad28f6d77e5139debeb92b2))
+* **signDataItem:** use streamSigner for arconnect signer ([9c1c4fa](https://github.com/ardriveapp/turbo-sdk/commit/9c1c4fac2bca3096705f7bad5594bd86085ac162))
+* **signer:** update stramSignReadableStream return type, add test ([27bcbdf](https://github.com/ardriveapp/turbo-sdk/commit/27bcbdfebd2cbe4bb0f5180ced1f0149ca04f213))
+* **signer:** use returned stream and stream size in data item factory ([0210b0d](https://github.com/ardriveapp/turbo-sdk/commit/0210b0d81859aa7273395504ee5c0d19eda54047))
+* **signing:** check out issues with sign and upload ([2a15b32](https://github.com/ardriveapp/turbo-sdk/commit/2a15b328842304febac4912e4ce5d7a4febd0406))
+* **signing:** correct data item size ([3e9cc88](https://github.com/ardriveapp/turbo-sdk/commit/3e9cc88dc1df1cc88d3287f2d7a759d0a8a08bf4))
+* **signing:** fully working example of stream signer ([049c1ce](https://github.com/ardriveapp/turbo-sdk/commit/049c1cee2799470251633bb08ec89ec53c85f2fe))
+* **signing:** use stream with signing events ([c20fc3c](https://github.com/ardriveapp/turbo-sdk/commit/c20fc3c85725fa19e8d5bb7a0e0dedc559f40b37))
+* **stream signer:** fix progress emission and add event tests ([f48cc4c](https://github.com/ardriveapp/turbo-sdk/commit/f48cc4ccfb039555c4042b3643455d040a2ebfd4))
+* **stream:** idiot proof stream to ensure chunking of data ([d73f591](https://github.com/ardriveapp/turbo-sdk/commit/d73f5918c706cbef045efedace30ddd87ba6eace))
+* **streams:** bump default chunk size to 20mb and add comments ([70af352](https://github.com/ardriveapp/turbo-sdk/commit/70af3527eec8b41bef88c2d8ea2ce71d3f4bfc5e))
+* **style:** prefer not doing return await ([e825a78](https://github.com/ardriveapp/turbo-sdk/commit/e825a786de47ac75a852afe48c5360c455135bb1))
+* **test script:** use glob pattern for unit web and node instead of calling each ([bae822c](https://github.com/ardriveapp/turbo-sdk/commit/bae822ca585a8213aed2c3fc963c1210cbef879f))
+* **test:** coverage ([bba7e70](https://github.com/ardriveapp/turbo-sdk/commit/bba7e70b1eaa96816619984a88c2ab70950c1364))
+* **tests:** add unit tests for readable stream utils ([5957026](https://github.com/ardriveapp/turbo-sdk/commit/5957026514b92b9f3f17d77bdc4ccd12557aed4f))
+* **tests:** check correct size is returned for the data item ([a05ed64](https://github.com/ardriveapp/turbo-sdk/commit/a05ed64a6694926f5dca26d7524f5ff96feaad29))
+* **tests:** fix docker syntax ([1f4209f](https://github.com/ardriveapp/turbo-sdk/commit/1f4209f2bb59644d0c74a40b64ba60727ba61627))
+* **tests:** move stream signer readable test from integration to unit ([868ed61](https://github.com/ardriveapp/turbo-sdk/commit/868ed61bab8c07b7792106073388b31f6decdce5))
+* **tests:** revert commented out retries on uploadFile ([03855a0](https://github.com/ardriveapp/turbo-sdk/commit/03855a0f1f1964a2ba0bf4f90088a441eb651783))
+* **tests:** update stream signer tests ([fafce25](https://github.com/ardriveapp/turbo-sdk/commit/fafce257ec4f87a826cfee3008e25cd83d907ed8))
+* **test:** try removing stream sign test ([5d44889](https://github.com/ardriveapp/turbo-sdk/commit/5d448894d8ee668fcc09c42accb578464b3fc596))
+* **test:** update streamSigner tests to use node ([aaddcb1](https://github.com/ardriveapp/turbo-sdk/commit/aaddcb15eec85d074651b8d3d1eeeefd907020d9))
+* **test:** update web test ([41408b0](https://github.com/ardriveapp/turbo-sdk/commit/41408b0f4b7d50ca5b584bf72e4fa63f91a6b71a))
+* **test:** update web test to remove unused vars ([59d8420](https://github.com/ardriveapp/turbo-sdk/commit/59d842001f373b55604e10f61c3428b3f77015a0))
+* **test:** use existing readable to buffer ([85b2209](https://github.com/ardriveapp/turbo-sdk/commit/85b2209b105c7aef3d806efd5c982c9911b237f5))
+* **types:** dont export types for deep hash ([e56a666](https://github.com/ardriveapp/turbo-sdk/commit/e56a666a8980d6eb9ea4c110e3d909aa3d2a0c0c))
+* **types:** use uint8 stream factory in file factory to ensure uint8 stream types ([81b3cde](https://github.com/ardriveapp/turbo-sdk/commit/81b3cde299a1c0cd6e476b39e85348c5cd4aa4a1))
+
+
+### Features
+
+* **stream signer:** add web stream signer ([1cf2159](https://github.com/ardriveapp/turbo-sdk/commit/1cf2159cf82fa983e32c9f139e21a99f6124cebf))
+
 # [1.26.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.25.0...v1.26.0) (2025-06-02)
 
 
