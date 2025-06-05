@@ -1,3 +1,10 @@
+# [1.27.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0-alpha.1...v1.27.0-alpha.2) (2025-06-05)
+
+
+### Bug Fixes
+
+* **factory:** derive token type from signatureType over direct signer classes PE-8145 ([a9b4f1e](https://github.com/ardriveapp/turbo-sdk/commit/a9b4f1e9bf1801de90051178317e2d1ad6c7f483))
+
 # [1.27.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.26.0...v1.27.0-alpha.1) (2025-06-05)
 
 
