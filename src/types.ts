@@ -565,6 +565,19 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
+export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadAndSigningEmitterEvents;
+export type TurboUploadFileWithFileOrPathParams = {
+  file: File | string;
+  dataItemOpts?: DataItemOptions;
+} & TurboAbortSignal &
+  TurboUploadAndSigningEmitterEvents;
+
+export type TurboUploadFileParams =
+  | TurboUploadFileWithStreamFactoryParams
+  | TurboUploadFileWithFileOrPathParams;
+
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
 export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
