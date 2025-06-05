@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.26.0",
+  "version": "1.27.0-alpha.1",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -58,7 +58,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "test": "yarn test:unit && yarn test:web && yarn test:node",
+    "test": "c8 node --import=./register.mjs --test --enable-source-maps \"{src,tests}/**/*.{test,web.test,node.test}.ts\"",
     "test:unit": "c8 node --import=./register.mjs --test --enable-source-maps src/**/*.test.ts",
     "test:web": "c8 node --import=./register.mjs --test --enable-source-maps tests/**/*.web.test.ts",
     "test:node": "c8 node --import=./register.mjs --test --enable-source-maps tests/**/*.node.test.ts",

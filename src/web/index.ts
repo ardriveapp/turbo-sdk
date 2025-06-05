@@ -18,3 +18,4 @@ export * from './upload.js';
 export * from './signer.js';
 export * from '../common/index.js';
 export * from '../types.js';
+export * from '../common/events.js';

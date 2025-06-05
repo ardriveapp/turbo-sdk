@@ -40,7 +40,6 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
-  WebFileStreamFactory,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
@@ -91,7 +90,7 @@ export class TurboUnauthenticatedUploadService
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
-    const fileSize = dataItemSizeFactory();
+    const dataItemSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
 
     // create the tapped stream with events
@@ -101,13 +100,13 @@ export class TurboUnauthenticatedUploadService
     const { stream: streamWithUploadEvents, resume } =
       createStreamWithUploadEvents({
         data: dataItemStreamFactory(),
-        dataSize: fileSize,
+        dataSize: dataItemSize,
         emitter,
       });
 
     const headers = {
       'content-type': 'application/octet-stream',
-      'content-length': `${fileSize}`,
+      'content-length': `${dataItemSize}`,
     };
 
     if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
@@ -170,7 +169,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       const streamFactory = () => data.stream();
       const sizeFactory = () => data.size;
       return this.uploadFile({
-        fileStreamFactory: streamFactory as WebFileStreamFactory,
+        fileStreamFactory: streamFactory,
         fileSizeFactory: sizeFactory,
         signal,
         dataItemOpts,
@@ -231,12 +230,10 @@ export abstract class TurboAuthenticatedBaseUploadService
         throw new CanceledError();
       }
 
+      // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
+      // which will create a new emitter with upload events. We await
+      // this result due to the wrapped retry logic of this method.
       try {
-        this.logger.debug('Uploading signed data item...');
-
-        // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
-        // which will create a new emitter with upload events. We await
-        // this result due to the wrapped retry logic of this method.
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
@@ -244,7 +241,6 @@ export abstract class TurboAuthenticatedBaseUploadService
           signal,
           events,
         });
-
         return response;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
@@ -402,6 +398,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
       try {
         const result = await this.uploadFile({
+          // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fileStreamFactory: () => this.getFileStreamForFile(file) as any,
           fileSizeFactory: () => this.getFileSize(file),
@@ -455,6 +452,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const manifestBuffer = Buffer.from(JSON.stringify(manifest));
 
     const manifestResponse = await this.uploadFile({
+      // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
       fileSizeFactory: () => manifestBuffer.byteLength,
