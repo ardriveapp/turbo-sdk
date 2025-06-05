@@ -51,6 +51,10 @@ import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
+export type TurboUploadConfig = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;
+
 function isTurboUploadFileWithStreamFactoryParams(
   params: TurboUploadFileParams,
 ): params is TurboUploadFileWithStreamFactoryParams {
@@ -211,16 +215,9 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
-  async uploadFile(
-    params: TurboUploadFileParams,
-  ): Promise<TurboUploadDataItemResponse> {
-    // a `resolveConfig` util might be a good idea here
-    // eg const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } = resolveConfig(params);
-
-    const { signal, dataItemOpts, events } = params;
+  resolveUploadFileConfig(params: TurboUploadFileParams): TurboUploadConfig {
     let fileStreamFactory: TurboFileFactory['fileStreamFactory'];
     let fileSizeFactory: () => number;
-
     if (isTurboUploadFileWithStreamFactoryParams(params)) {
       fileStreamFactory = params.fileStreamFactory;
       fileSizeFactory = params.fileSizeFactory;
@@ -240,6 +237,18 @@ export abstract class TurboAuthenticatedBaseUploadService
         'Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams',
       );
     }
+    return {
+      fileStreamFactory,
+      fileSizeFactory,
+      ...params,
+    };
+  }
+
+  async uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
+      this.resolveUploadFileConfig(params);
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -392,6 +401,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
   /**
    * TODO: add events to the uploadFolder method
+   * TODO: create resolveUploadFolderConfig() function
    * could be a predicate with a resolveConfig() function, eg: events: ({...file ctx}) => ({
    *   onProgress: (progress) => {
    *     console.log('progress', progress);
