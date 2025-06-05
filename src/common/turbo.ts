@@ -33,7 +33,6 @@ import {
   TurboCurrenciesResponse,
   TurboDataItemSigner,
   TurboFiatToArResponse,
-  TurboFileFactory,
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
@@ -48,6 +47,7 @@ import {
   TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
+  TurboUploadFileParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   TurboWincForFiatParams,
@@ -293,22 +293,10 @@ export class TurboAuthenticatedClient
   /**
    * Signs and uploads raw file data to the Turbo Upload Service.
    */
-  uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-    signal,
-    dataItemOpts,
-    events,
-  }: TurboFileFactory &
-    TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadFile({
-      fileStreamFactory,
-      fileSizeFactory,
-      signal,
-      dataItemOpts,
-      events,
-    });
+  uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadFile(params);
   }
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse> {

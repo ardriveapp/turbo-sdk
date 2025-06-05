@@ -743,13 +743,9 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
-  uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-    events,
-  }: TurboFileFactory &
-    TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+  uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 

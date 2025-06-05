@@ -1044,6 +1044,12 @@ describe('Node environment', () => {
           'Failed request: Failed to upload file after 6 attempts\n',
         );
       });
+
+      it('should properly upload a file from file path', async () => {
+        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+        const response = await turbo.uploadFile({ file: filePath });
+        assert.ok(response !== undefined);
+      });
     });
 
     describe('uploadFolder()', () => {

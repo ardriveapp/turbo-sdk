@@ -729,6 +729,16 @@ describe('Browser environment', () => {
         assert.ok(error instanceof FailedRequestError);
         assert.match(error.message, /Insufficient balance/);
       });
+
+      it('should properly upload a file with File object', async () => {
+        const encoder = new TextEncoder();
+        const uint8Array = encoder.encode('test data');
+        const file = new File([uint8Array], 'stubFile.txt', {
+          type: 'text/plain',
+        });
+        const response = await turbo.uploadFile({ file });
+        assert.ok(response !== undefined);
+      });
     });
 
     describe('uploadFolder()', () => {
