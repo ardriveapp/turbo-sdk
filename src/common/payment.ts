@@ -315,14 +315,12 @@ export class TurboUnauthenticatedPaymentService
     // Step 4: Format and round up so the estimated cost is always enough to cover the upload
     const formattedFiatPrice =
       currency === 'jpy'
-        ? fiatPriceForGivenBytes.integerValue(BigNumber.ROUND_CEIL) // no decimals for JPY
-        : fiatPriceForGivenBytes.decimalPlaces(2, BigNumber.ROUND_CEIL); // 2 decimal precision
-
-    const fiatPriceForBytes = formattedFiatPrice.toString();
+        ? +fiatPriceForGivenBytes.integerValue(BigNumber.ROUND_CEIL) // no decimals for JPY
+        : +fiatPriceForGivenBytes.decimalPlaces(2, BigNumber.ROUND_CEIL); // 2 decimal precision
 
     return {
       byteCount,
-      amount: +fiatPriceForBytes, // ensure number output
+      amount: formattedFiatPrice, // ensure number output
       currency,
       winc: wincPriceForGivenBytes[0].winc,
     };

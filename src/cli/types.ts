@@ -73,6 +73,7 @@ export type FiatEstimateOptions = TokenPriceOptions & {
 
 export type PriceOptions = TokenPriceOptions & {
   value: string | undefined;
+  currency: string | undefined;
   type: string | undefined;
 };
 
