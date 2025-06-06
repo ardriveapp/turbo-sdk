@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 import { TurboFactory } from '../../node/index.js';
-import { TokenPriceOptions } from '../types.js';
+import { FiatEstimateOptions } from '../types.js';
 import { configFromOptions, currencyFromOptions } from '../utils.js';
 
-export async function fiatEstimate(options: TokenPriceOptions) {
+export async function fiatEstimate(options: FiatEstimateOptions) {
   const byteCount =
     options.byteCount !== undefined ? +options.byteCount : undefined;
   if (
