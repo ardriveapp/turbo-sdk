@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 import {
-  EthereumSigner,
   HexInjectedSolanaSigner,
-  HexSolanaSigner,
   InjectedEthereumSigner,
+  SignatureConfig,
 } from '@dha-team/arbundles';
 
 import {
@@ -113,15 +112,28 @@ export abstract class TurboBaseFactory {
     if (!token) {
       if (providedSigner) {
         // Derive token from signer if not provided
-        if (providedSigner instanceof EthereumSigner) {
-          token = 'ethereum';
-        } else if (providedSigner instanceof HexSolanaSigner) {
-          token = 'solana';
-        } else {
-          token = 'arweave';
+        switch (providedSigner.signatureType) {
+          case SignatureConfig.ETHEREUM:
+          case SignatureConfig.TYPEDETHEREUM:
+            token = 'ethereum';
+            break;
+
+          case SignatureConfig.SOLANA:
+          case SignatureConfig.ED25519:
+            token = 'solana';
+            break;
+
+          case SignatureConfig.ARWEAVE:
+            token = 'arweave';
+            break;
+
+          case SignatureConfig.KYVE:
+            token = 'kyve';
+            break;
+
+          default:
+            break;
         }
-      } else {
-        token = 'arweave';
       }
     }
     token ??= 'arweave'; // default to arweave if token is not provided

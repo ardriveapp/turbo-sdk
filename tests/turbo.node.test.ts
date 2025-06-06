@@ -2,6 +2,7 @@ import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
+  KyveSigner,
   createData,
 } from '@dha-team/arbundles';
 import { CanceledError } from 'axios';
@@ -125,6 +126,7 @@ describe('Node environment', () => {
         await turbo.signer.getNativeAddress(),
         testArweaveNativeB64Address,
       );
+      assert.equal(turbo['uploadService']['token'], 'arweave');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and an EthereumSigner', async () => {
@@ -134,6 +136,33 @@ describe('Node environment', () => {
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), testEthNativeAddress);
+      assert.equal(turbo['uploadService']['token'], 'ethereum');
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and a KyveSigner', async () => {
+      const turbo = TurboFactory.authenticated({
+        signer: new KyveSigner(testKyvePrivatekey),
+        ...turboDevelopmentConfigurations,
+      });
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(
+        await turbo.signer.getNativeAddress(),
+        testKyveNativeAddress,
+      );
+      assert.equal(turbo['uploadService']['token'], 'kyve');
+    });
+
+    it('should return a token of arweave when given an unrecognizable signatureType', async () => {
+      class UnrecognizedSigner extends KyveSigner {
+        signatureType = 9999;
+      }
+      const turbo = TurboFactory.authenticated({
+        signer: new UnrecognizedSigner(testKyvePrivatekey),
+        ...turboDevelopmentConfigurations,
+      });
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(await turbo.signer.getNativeAddress(), base64KyveAddress);
+      assert.equal(turbo['uploadService']['token'], 'arweave');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {

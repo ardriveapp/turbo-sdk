@@ -1,4 +1,11 @@
-import { TurboAuthenticatedClient, TurboFactory } from '@ardrive/turbo-sdk/web';
+import {
+  ArconnectSigner,
+  ArweaveSigner,
+  TurboAuthenticatedClient,
+  TurboEventEmitter,
+  TurboFactory,
+  streamSignerReadableStream,
+} from '@ardrive/turbo-sdk/web';
 import Arweave from 'arweave';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { useEffect, useState } from 'react';
@@ -15,7 +22,9 @@ const arweave = new Arweave({
 });
 
 function App() {
-  const [wallet, setWallet] = useState<JWKInterface | null>(null);
+  const [wallet, setWallet] = useState<
+    JWKInterface | Window['arweaveWallet'] | null
+  >(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [jwk, setJwk] = useState<string>('');
@@ -54,14 +63,21 @@ function App() {
     try {
       setUploadStatus('Uploading...');
       const buffer = await selectedFile.arrayBuffer();
+
+      const signer = new ArconnectSigner(window.arweaveWallet as any);
+
+      await signer.setPublicKey();
+
       const upload = await turbo.uploadFile({
-        fileStreamFactory: () =>
-          new ReadableStream({
+        fileStreamFactory: () => {
+          console.log('fileStreamFactory called');
+          return new ReadableStream({
             start(controller) {
               controller.enqueue(buffer);
               controller.close();
             },
-          }),
+          });
+        },
         fileSizeFactory: () => selectedFile.size,
         events: {
           onSigningProgress: ({
@@ -136,13 +152,21 @@ function App() {
   useEffect(() => {
     if (jwk) {
       setWallet(JSON.parse(jwk));
+    }
+  }, [jwk]);
+
+  useEffect(() => {
+    if (wallet) {
       setTurbo(
         TurboFactory.authenticated({
-          privateKey: JSON.parse(jwk),
+          signer: ('connect' in wallet
+            ? new ArconnectSigner(wallet)
+            : new ArweaveSigner(wallet)) as any,
+          token: 'arweave',
         }),
       );
     }
-  }, [jwk]);
+  }, [wallet]);
 
   return (
     <div
@@ -180,6 +204,44 @@ function App() {
               style={{ marginLeft: '10px', height: '20px' }}
             >
               Generate Random JWK
+            </button>
+            or
+            <button
+              style={{ marginLeft: '10px', height: '20px' }}
+              onClick={async () => {
+                try {
+                  if (window.arweaveWallet) {
+                    const requiredPermissions = [
+                      'ACCESS_ADDRESS',
+                      'ACCESS_PUBLIC_KEY',
+                      'SIGN_TRANSACTION',
+                    ];
+                    const permissions =
+                      await window.arweaveWallet.getPermissions();
+                    if (
+                      permissions.every((permission) =>
+                        requiredPermissions.includes(permission),
+                      )
+                    ) {
+                      setWallet(window.arweaveWallet);
+                    } else {
+                      await window.arweaveWallet.connect(
+                        requiredPermissions as any,
+                      );
+                      setWallet(window.arweaveWallet);
+                    }
+
+                    setShowJwkInput(false);
+                  } else {
+                  }
+                } catch (error) {
+                  setUploadStatus(
+                    error instanceof Error ? error.message : 'Unknown error',
+                  );
+                }
+              }}
+            >
+              Connect wallet
             </button>
           </div>
         ) : (
