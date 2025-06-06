@@ -290,6 +290,9 @@ export class TurboUnauthenticatedPaymentService
     return response;
   }
 
+  //   WINC of X bytes / WINC of 1 GiB = fraction of a GiB
+  //   Then multiply by fiat cost of 1 GiB to get fiat cost of X bytes
+
   public async getFiatEstimateForBytes({
     byteCount,
     currency,
@@ -297,32 +300,34 @@ export class TurboUnauthenticatedPaymentService
     byteCount: number;
     currency: Currency;
   }): Promise<TurboFiatEstimateForBytesResponse> {
-    // get the price for 1 GiB
-    const wincPriceForOneGiB = await this.getUploadCosts({
-      bytes: [2 ** 30],
-    });
-    // get the winc price for one thousand fiat units (1,000 USD, or 100,000 JPY, etc.)
-    const wincPriceForOneThousandFiatUnits = await this.getWincForFiat({
-      amount: { type: currency, amount: 1_000_00 },
+    // Step 1: Get the estimated winc cost for the given byte count -- W
+    const wincPriceForGivenBytes = await this.getUploadCosts({
+      bytes: [byteCount],
     });
 
-    const wincPriceForGivenBytes = new BigNumber(wincPriceForOneGiB[0].winc)
-      .dividedBy(new BigNumber(2 ** 30))
-      .times(byteCount);
+    // Step 2: Get the winc-to-fiat conversion rates for 1 GiB
+    const { winc: wincPriceForOneGiB, fiat: fiatPricesForOneGiB } =
+      await this.getFiatRates();
 
-    const wincPriceForOneFiatUnit = new BigNumber(
-      wincPriceForOneThousandFiatUnits.winc,
-    ).dividedBy(new BigNumber(1_000)); // convert back to 1 USD or 100 JPY
+    // Step 3: Convert the WINC cost of the given bytes into fiat:
+    //  (W / W1GiB) * Fiat1GiB = FiatCostForBytes
+    const fiatPriceForGivenBytes = new BigNumber(wincPriceForGivenBytes[0].winc)
+      .dividedBy(new BigNumber(wincPriceForOneGiB))
+      .times(fiatPricesForOneGiB[currency]);
 
-    const fiatPriceForBytes = +wincPriceForGivenBytes
-      .dividedBy(wincPriceForOneFiatUnit)
-      .times(currency === 'jpy' ? 100 : 1) // Convert to zero decimal if currency is JPY
-      .toFixed(currency === 'jpy' ? 0 : 2); // Convert to string with 2 decimal places, when not zero decimal currency
+    // Step 4: Format and round up so the estimated cost is always enough to cover the upload
+    const formattedFiatPrice =
+      currency === 'jpy'
+        ? fiatPriceForGivenBytes.integerValue(BigNumber.ROUND_CEIL) // no decimals for JPY
+        : fiatPriceForGivenBytes.decimalPlaces(2, BigNumber.ROUND_CEIL); // 2 decimal precision
+
+    const fiatPriceForBytes = formattedFiatPrice.toString();
 
     return {
       byteCount,
-      amount: fiatPriceForBytes,
+      amount: +fiatPriceForBytes, // ensure number output
       currency,
+      winc: wincPriceForGivenBytes[0].winc,
     };
   }
 

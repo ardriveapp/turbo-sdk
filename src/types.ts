@@ -120,6 +120,7 @@ export type TurboTokenPriceForBytesResponse = {
 export type TurboFiatEstimateForBytesResponse = {
   byteCount: number;
   amount: number;
+  winc: string;
   currency: Currency;
 };
 
