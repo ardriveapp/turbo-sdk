@@ -350,7 +350,7 @@ describe('Node environment', () => {
     });
     const oneHundredMiBInBytes = 1024 * 1024 * 100; // 100 MiB
 
-    describe.only('getFiatEstimateForBytes()', async () => {
+    describe('getFiatEstimateForBytes()', async () => {
       for (const fiat of fiatCurrencyTypes) {
         it(`should return the correct fiat estimate for ${fiat} for 100 MiB`, async () => {
           const { amount, byteCount: bytesResult } =
