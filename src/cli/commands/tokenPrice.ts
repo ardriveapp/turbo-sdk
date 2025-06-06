@@ -17,21 +17,10 @@ import { isTokenType } from '../../common/index.js';
 import { TurboFactory } from '../../node/factory.js';
 import { tokenTypes } from '../../types.js';
 import { TokenPriceOptions } from '../types.js';
-import { configFromOptions } from '../utils.js';
+import { configFromOptions, requiredByteCountFromOptions } from '../utils.js';
 
 export async function tokenPrice(options: TokenPriceOptions) {
-  const byteCount =
-    options.byteCount !== undefined ? +options.byteCount : undefined;
-  if (
-    byteCount === undefined ||
-    byteCount <= 0 ||
-    isNaN(byteCount) ||
-    !Number.isInteger(byteCount)
-  ) {
-    throw new Error(
-      'Must provide a positive number for byte to get price.\nFor example, to get the SOL price for 100 MiB use the following:\nturbo token-price --token solana --byte-count 1048576000',
-    );
-  }
+  const byteCount = requiredByteCountFromOptions(options);
   const token = options.token;
 
   if (!isTokenType(token)) {

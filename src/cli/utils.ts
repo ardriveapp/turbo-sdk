@@ -39,6 +39,7 @@ import { NoWalletProvidedError } from './errors.js';
 import {
   AddressOptions,
   GlobalOptions,
+  TokenPriceOptions,
   UploadFolderOptions,
   UploadOptions,
   WalletOptions,
@@ -361,4 +362,19 @@ export function currencyFromOptions<
   }
 
   return currency;
+}
+
+export function requiredByteCountFromOptions({
+  byteCount,
+}: TokenPriceOptions): number {
+  const byteCountValue = byteCount !== undefined ? +byteCount : undefined;
+  if (
+    byteCountValue === undefined ||
+    byteCountValue <= 0 ||
+    isNaN(byteCountValue) ||
+    !Number.isInteger(byteCountValue)
+  ) {
+    throw new Error('Must provide a positive number for byte count.');
+  }
+  return byteCountValue;
 }

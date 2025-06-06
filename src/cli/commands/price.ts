@@ -34,7 +34,7 @@ export async function price(options: PriceOptions) {
   if (currency !== undefined && type === 'bytes') {
     // User supplied --type bytes --currency <currency> --value <bytes>
     // This is a special case where we will provide a fiat estimate for the bytes value
-    return fiatEstimate(options);
+    return fiatEstimate({ ...options, byteCount: value });
   }
 
   const winc = await (async () => {

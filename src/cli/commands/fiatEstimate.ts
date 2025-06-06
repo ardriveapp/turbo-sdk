@@ -15,20 +15,14 @@
  */
 import { TurboFactory } from '../../node/index.js';
 import { FiatEstimateOptions } from '../types.js';
-import { configFromOptions, currencyFromOptions } from '../utils.js';
+import {
+  configFromOptions,
+  currencyFromOptions,
+  requiredByteCountFromOptions,
+} from '../utils.js';
 
 export async function fiatEstimate(options: FiatEstimateOptions) {
-  const byteCount =
-    options.byteCount !== undefined ? +options.byteCount : undefined;
-  if (
-    byteCount === undefined ||
-    byteCount <= 0 ||
-    isNaN(byteCount) ||
-    !Number.isInteger(byteCount)
-  ) {
-    throw new Error('Must provide a positive number for byte to get price.');
-  }
-
+  const byteCount = requiredByteCountFromOptions(options);
   const currency = currencyFromOptions(options) ?? 'usd';
 
   const turbo = TurboFactory.unauthenticated(configFromOptions(options));
