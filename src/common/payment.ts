@@ -290,9 +290,6 @@ export class TurboUnauthenticatedPaymentService
     return response;
   }
 
-  //   WINC of X bytes / WINC of 1 GiB = fraction of a GiB
-  //   Then multiply by fiat cost of 1 GiB to get fiat cost of X bytes
-
   public async getFiatEstimateForBytes({
     byteCount,
     currency,
