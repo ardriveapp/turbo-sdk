@@ -67,6 +67,37 @@ function isTurboUploadFileWithFileOrPathParams(
   return 'file' in params;
 }
 
+function resolveUploadFileConfig(
+  params: TurboUploadFileParams,
+): TurboUploadConfig {
+  let fileStreamFactory: TurboFileFactory['fileStreamFactory'];
+  let fileSizeFactory: () => number;
+  if (isTurboUploadFileWithStreamFactoryParams(params)) {
+    fileStreamFactory = params.fileStreamFactory;
+    fileSizeFactory = params.fileSizeFactory;
+  } else if (isTurboUploadFileWithFileOrPathParams(params)) {
+    const file = params.file;
+    /**
+     * this is pretty gross, but it's the only way to get the type inference to work without overhauling
+     * the abstract method to accept a generic, which we would need to perform a check on anyways.
+     */
+    fileStreamFactory =
+      file instanceof File
+        ? () => this.getFileStreamForFile(file) as ReadableStream
+        : () => this.getFileStreamForFile(file) as Readable;
+    fileSizeFactory = () => this.getFileSize(params.file);
+  } else {
+    throw new TypeError(
+      'Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams',
+    );
+  }
+  return {
+    fileStreamFactory,
+    fileSizeFactory,
+    ...params,
+  };
+}
+
 export const creditSharingTagNames = {
   shareCredits: 'x-approve-payment',
   sharedWincAmount: 'x-amount',
@@ -215,40 +246,11 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
-  resolveUploadFileConfig(params: TurboUploadFileParams): TurboUploadConfig {
-    let fileStreamFactory: TurboFileFactory['fileStreamFactory'];
-    let fileSizeFactory: () => number;
-    if (isTurboUploadFileWithStreamFactoryParams(params)) {
-      fileStreamFactory = params.fileStreamFactory;
-      fileSizeFactory = params.fileSizeFactory;
-    } else if (isTurboUploadFileWithFileOrPathParams(params)) {
-      const file = params.file;
-      /**
-       * this is pretty gross, but it's the only way to get the type inference to work without overhauling
-       * the abstract method to accept a generic, which we would need to perform a check on anyways.
-       */
-      fileStreamFactory =
-        file instanceof File
-          ? () => this.getFileStreamForFile(file) as ReadableStream
-          : () => this.getFileStreamForFile(file) as Readable;
-      fileSizeFactory = () => this.getFileSize(params.file);
-    } else {
-      throw new TypeError(
-        'Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams',
-      );
-    }
-    return {
-      fileStreamFactory,
-      fileSizeFactory,
-      ...params,
-    };
-  }
-
   async uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse> {
     const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
-      this.resolveUploadFileConfig(params);
+      resolveUploadFileConfig(params);
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
