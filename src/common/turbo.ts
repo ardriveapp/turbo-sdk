@@ -297,8 +297,11 @@ export class TurboAuthenticatedClient
    *
    * @example using a file or path
    * ```ts
+   * // web
+   * // the file is the file object from the input event onChange for a file input
+   * const selectedFile = e.target.files[0];
    * const response = await turbo.uploadFile({
-   *   file: new File([new Uint8Array([1, 2, 3])], 'test.txt'), // or a path to a file eg "/path/to/file.txt"
+   *   file: selectedFile,
    *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
    *   events: {
    *     onUploadProgress: ({ totalBytes, processedBytes }) => {
@@ -306,19 +309,34 @@ export class TurboAuthenticatedClient
    *     },
    *   },
    * });
+   *
+   * // node
+   * const response = await turbo.uploadFile({
+   *   file: 'test.txt',
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   * });
    * ```
    *
    * @example using a stream factory
    * ```ts
+   * // web
+   * const selectedFile = e.target.files[0];
    * const response = await turbo.uploadFile({
-   *   fileStreamFactory: () => new ReadableStream({ start: (controller) => { controller.enqueue(new Uint8Array([1, 2, 3])); controller.close(); } }),
-   *   fileSizeFactory: () => 3,
+   *   fileStreamFactory: () => file.stream(),
+   *   fileSizeFactory: () => file.size,
    *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
    *   events: {
    *     onUploadProgress: ({ totalBytes, processedBytes }) => {
    *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
    *     },
    *   },
+   * });
+   *
+   * // node
+   * const response = await turbo.uploadFile({
+   *   fileStreamFactory: () => fs.createReadStream('test.txt'),
+   *   fileSizeFactory: () => fs.statSync('test.txt').size,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
    * });
    * ```
    */
