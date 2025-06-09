@@ -351,7 +351,7 @@ export function currencyFromOptions<
 >(options: T): Currency | undefined {
   const currency = options.currency?.toLowerCase();
 
-  if (currency !== undefined && !isCurrency(currency)) {
+  if (!isCurrency(currency)) {
     throw new Error(
       `Invalid fiat currency type ${currency}!\nPlease use one of these:\n${JSON.stringify(
         fiatCurrencyTypes,
