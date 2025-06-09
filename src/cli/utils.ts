@@ -50,11 +50,11 @@ export function exitWithErrorLog(error: unknown) {
   process.exit(1);
 }
 
-export async function runCommand<O extends OptionValues>(
+export async function runCommand<T extends OptionValues>(
   command: Command,
-  action: (options: O) => Promise<void>,
+  action: (options: T) => Promise<void>,
 ) {
-  const options = command.optsWithGlobals<O>();
+  const options = command.optsWithGlobals<T>();
 
   try {
     await action(options);
@@ -347,8 +347,8 @@ export function getTagsFromOptions(
 }
 
 export function currencyFromOptions<
-  O extends GlobalOptions & { currency?: string },
->(options: O): Currency | undefined {
+  T extends GlobalOptions & { currency?: string },
+>(options: T): Currency | undefined {
   const currency = options.currency?.toLowerCase();
 
   if (currency !== undefined && !isCurrency(currency)) {
