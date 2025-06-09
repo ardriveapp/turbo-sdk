@@ -64,10 +64,6 @@ function App() {
       setUploadStatus('Uploading...');
       const buffer = await selectedFile.arrayBuffer();
 
-      const signer = new ArconnectSigner(window.arweaveWallet as any);
-
-      await signer.setPublicKey();
-
       const upload = await turbo.uploadFile({
         fileStreamFactory: () => {
           console.log('fileStreamFactory called');
@@ -215,12 +211,14 @@ function App() {
                       'ACCESS_ADDRESS',
                       'ACCESS_PUBLIC_KEY',
                       'SIGN_TRANSACTION',
+                      'SIGNATURE',
                     ];
                     const permissions =
                       await window.arweaveWallet.getPermissions();
+                    console.log('permissions', permissions);
                     if (
-                      permissions.every((permission) =>
-                        requiredPermissions.includes(permission),
+                      requiredPermissions.every((permission) =>
+                        permissions.includes(permission as any),
                       )
                     ) {
                       setWallet(window.arweaveWallet);
