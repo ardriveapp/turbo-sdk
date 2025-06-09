@@ -295,7 +295,7 @@ export class TurboAuthenticatedClient
   /**
    * Signs and uploads raw file data to the Turbo Upload Service.
    *
-   *    * @example using a file or path
+   * @example using a file or path
    * ```ts
    * const response = await turbo.uploadFile({
    *   file: new File([new Uint8Array([1, 2, 3])], 'test.txt'), // or a path to a file eg "/path/to/file.txt"
