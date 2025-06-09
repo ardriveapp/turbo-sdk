@@ -370,9 +370,9 @@ export function requiredByteCountFromOptions({
   const byteCountValue = byteCount !== undefined ? +byteCount : undefined;
   if (
     byteCountValue === undefined ||
-    byteCountValue <= 0 ||
     isNaN(byteCountValue) ||
-    !Number.isInteger(byteCountValue)
+    !Number.isInteger(byteCountValue) ||
+    byteCountValue <= 0
   ) {
     throw new Error('Must provide a positive number for byte count.');
   }
