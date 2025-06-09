@@ -48,6 +48,8 @@ import {
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
   TurboUploadFileParams,
+  TurboUploadFileWithFileOrPathParams,
+  TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   TurboWincForFiatParams,
@@ -292,7 +294,47 @@ export class TurboAuthenticatedClient
 
   /**
    * Signs and uploads raw file data to the Turbo Upload Service.
+   *
+   *    * @example using a file or path
+   * ```ts
+   * const response = await turbo.uploadFile({
+   *   file: new File([new Uint8Array([1, 2, 3])], 'test.txt'), // or a path to a file eg "/path/to/file.txt"
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   *   events: {
+   *     onUploadProgress: ({ totalBytes, processedBytes }) => {
+   *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
+   *     },
+   *   },
+   * });
+   * ```
+   *
+   * @example using a stream factory
+   * ```ts
+   * const response = await turbo.uploadFile({
+   *   fileStreamFactory: () => new ReadableStream({ start: (controller) => { controller.enqueue(new Uint8Array([1, 2, 3])); controller.close(); } }),
+   *   fileSizeFactory: () => 3,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   *   events: {
+   *     onUploadProgress: ({ totalBytes, processedBytes }) => {
+   *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
+   *     },
+   *   },
+   * });
+   * ```
    */
+  uploadFile({
+    file,
+    events,
+    dataItemOpts,
+    signal,
+  }: TurboUploadFileWithFileOrPathParams): Promise<TurboUploadDataItemResponse>;
+  uploadFile({
+    fileStreamFactory,
+    fileSizeFactory,
+    dataItemOpts,
+    signal,
+    events,
+  }: TurboUploadFileWithStreamFactoryParams): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse> {
