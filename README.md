@@ -359,12 +359,26 @@ Get the current price from the Turbo Payment Service, denominated in the specifi
 ```typescript
 const turbo = TurboFactory.unauthenticated();
 const { amount } = await turbo.getFiatEstimateForBytes({
-  byteCount: 1024 * 1024 * 100,
+  byteCount: 1024 * 1024 * 1024,
   currency: 'usd', // specify the currency for the price
 });
 
-console.log(amount); // Estimated usd price for 100 MiB
+console.log(amount); // Estimated usd price for 1 GiB
 ```
+
+<details>
+  <summary>Example Output</summary>
+
+```json
+{
+  "byteCount": 1073741824,
+  "amount": 20.58,
+  "currency": "usd",
+  "winc": "2402378997310"
+}
+```
+
+</details>
 
 #### `getTokenPriceForBytes({ byteCount })`
 
