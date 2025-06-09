@@ -34,6 +34,7 @@ import {
   NativeAddress,
   TokenType,
   TurboSigner,
+  fiatCurrencyTypes,
   tokenTypes,
 } from '../src/types.js';
 import { signerFromKyveMnemonic } from '../src/utils/common.js';
@@ -376,9 +377,24 @@ describe('Node environment', () => {
       assert.equal(equivalentWincTokenAmount, '100000');
       assert.equal(fees.length, 1);
     });
+    const oneHundredMiBInBytes = 1024 * 1024 * 100; // 100 MiB
+
+    describe('getFiatEstimateForBytes()', async () => {
+      for (const fiat of fiatCurrencyTypes) {
+        it(`should return the correct fiat estimate for ${fiat} for 100 MiB`, async () => {
+          const { amount, byteCount: bytesResult } =
+            await turbo.getFiatEstimateForBytes({
+              byteCount: oneHundredMiBInBytes,
+              currency: fiat,
+            });
+          assert.ok(amount !== undefined);
+          assert.equal(bytesResult, oneHundredMiBInBytes);
+          assert.ok(typeof +amount === 'number');
+        });
+      }
+    });
 
     describe('getTokenPriceForBytes()', async () => {
-      const bytes = 1024 * 1024 * 100; // 100 MiB
       for (const token of tokenTypes) {
         it(`should return the correct token price for the given bytes for ${token}`, async () => {
           const { tokenPrice, byteCount: bytesResult } =
@@ -386,10 +402,10 @@ describe('Node environment', () => {
               ...turboTestEnvConfigurations,
               token,
             }).getTokenPriceForBytes({
-              byteCount: bytes,
+              byteCount: oneHundredMiBInBytes,
             });
           assert.ok(tokenPrice !== undefined);
-          assert.equal(bytesResult, bytes);
+          assert.equal(bytesResult, oneHundredMiBInBytes);
           assert.ok(typeof +tokenPrice === 'number');
         });
       }

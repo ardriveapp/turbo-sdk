@@ -1,3 +1,10 @@
+# [1.27.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0-alpha.2...v1.27.0-alpha.3) (2025-06-09)
+
+
+### Features
+
+* **bytes-to-usd:** init fiat-estimate command and bytes --currency special case PE-8142 ([ffe0573](https://github.com/ardriveapp/turbo-sdk/commit/ffe0573d121ea21513fff6e1c468309346631275))
+
 # [1.27.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0-alpha.1...v1.27.0-alpha.2) (2025-06-05)
 
 

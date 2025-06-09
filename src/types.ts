@@ -52,7 +52,7 @@ export const fiatCurrencyTypes = [
   'brl',
 ] as const;
 export type Currency = (typeof fiatCurrencyTypes)[number];
-export function isCurrency(currency: string): currency is Currency {
+export function isCurrency(currency: unknown): currency is Currency {
   return fiatCurrencyTypes.includes(currency as Currency);
 }
 
@@ -115,6 +115,13 @@ export type TurboTokenPriceForBytesResponse = {
   tokenPrice: string;
   byteCount: number;
   token: TokenType;
+};
+
+export type TurboFiatEstimateForBytesResponse = {
+  byteCount: number;
+  amount: number;
+  winc: string;
+  currency: Currency;
 };
 
 export type TurboWincForFiatParams = {
@@ -687,6 +694,13 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getWincForToken(
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse>;
+  getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse>;
   getTokenPriceForBytes({
     byteCount,
   }: {
