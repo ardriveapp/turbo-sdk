@@ -352,6 +352,34 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   });
 ```
 
+#### `getFiatEstimateForBytes({ byteCount, currency })`
+
+Get the current price from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated();
+const { amount } = await turbo.getFiatEstimateForBytes({
+  byteCount: 1024 * 1024 * 1024,
+  currency: 'usd', // specify the currency for the price
+});
+
+console.log(amount); // Estimated usd price for 1 GiB
+```
+
+<details>
+  <summary>Example Output</summary>
+
+```json
+{
+  "byteCount": 1073741824,
+  "amount": 20.58,
+  "currency": "usd",
+  "winc": "2402378997310"
+}
+```
+
+</details>
+
 #### `getTokenPriceForBytes({ byteCount })`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
@@ -994,6 +1022,7 @@ Command Options:
 
 - `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
 - `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp').
 
 e.g:
 
@@ -1009,13 +1038,28 @@ turbo price --value 1024 --type bytes
 turbo price --value 1.1 --type arweave
 ```
 
+##### `fiat-estimate`
+
+Get the current fiat estimation from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+Command Options:
+
+- `--byte-count <byteCount>` - Byte count of data to get the fiat estimate for
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp')
+
+e.g:
+
+```shell
+turbo fiat-estimate --byte-count 102400 --currency usd
+```
+
 ##### `token-price`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
 Command Options:
 
-- `--byte-count <byteCount>` - Byte value to get the token price for
+- `--byte-count <byteCount>` - Byte count of data to get the token price for
 
 e.g:
 

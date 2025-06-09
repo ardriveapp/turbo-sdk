@@ -32,6 +32,7 @@ import {
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
+  TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
   TurboFileFactory,
   TurboFundWithTokensParams,
@@ -171,6 +172,22 @@ export class TurboUnauthenticatedClient
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse> {
     return this.paymentService.getWincForToken(params);
+  }
+
+  /**
+   * Determines the fiat estimate for a given byte count in a specific currency, including all Turbo cost adjustments and fees.
+   */
+  getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse> {
+    return this.paymentService.getFiatEstimateForBytes({
+      byteCount,
+      currency,
+    });
   }
 
   /**

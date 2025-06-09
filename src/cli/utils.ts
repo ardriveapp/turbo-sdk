@@ -18,12 +18,15 @@ import { Command, OptionValues } from 'commander';
 import { readFileSync, statSync } from 'fs';
 
 import {
+  Currency,
   TokenType,
   TurboAuthenticatedClient,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
+  fiatCurrencyTypes,
+  isCurrency,
   isTokenType,
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
@@ -36,6 +39,7 @@ import { NoWalletProvidedError } from './errors.js';
 import {
   AddressOptions,
   GlobalOptions,
+  TokenPriceOptions,
   UploadFolderOptions,
   UploadOptions,
   WalletOptions,
@@ -46,11 +50,11 @@ export function exitWithErrorLog(error: unknown) {
   process.exit(1);
 }
 
-export async function runCommand<O extends OptionValues>(
+export async function runCommand<T extends OptionValues>(
   command: Command,
-  action: (options: O) => Promise<void>,
+  action: (options: T) => Promise<void>,
 ) {
-  const options = command.optsWithGlobals<O>();
+  const options = command.optsWithGlobals<T>();
 
   try {
     await action(options);
@@ -340,4 +344,37 @@ export function getTagsFromOptions(
   options: UploadOptions,
 ): { name: string; value: string }[] {
   return parseTags(options.tags);
+}
+
+export function currencyFromOptions<
+  T extends GlobalOptions & { currency?: string },
+>(options: T): Currency | undefined {
+  const currency = options.currency?.toLowerCase();
+
+  if (!isCurrency(currency)) {
+    throw new Error(
+      `Invalid fiat currency type ${currency}!\nPlease use one of these:\n${JSON.stringify(
+        fiatCurrencyTypes,
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  return currency;
+}
+
+export function requiredByteCountFromOptions({
+  byteCount,
+}: TokenPriceOptions): number {
+  const byteCountValue = byteCount !== undefined ? +byteCount : undefined;
+  if (
+    byteCountValue === undefined ||
+    isNaN(byteCountValue) ||
+    !Number.isInteger(byteCountValue) ||
+    byteCountValue <= 0
+  ) {
+    throw new Error('Must provide a positive number for byte count.');
+  }
+  return byteCountValue;
 }
