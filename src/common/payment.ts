@@ -320,7 +320,7 @@ export class TurboUnauthenticatedPaymentService
 
     return {
       byteCount,
-      amount: formattedFiatPrice, // ensure number output
+      amount: formattedFiatPrice,
       currency,
       winc: wincPriceForGivenBytes[0].winc,
     };
