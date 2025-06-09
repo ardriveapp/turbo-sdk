@@ -104,7 +104,7 @@ applyOptions(
 applyOptions(
   program
     .command('token-price')
-    .description('Get the current token price for provided byte value'),
+    .description('Get the current token price for provided byte count'),
   [optionMap.byteCount],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, tokenPrice);
@@ -113,7 +113,7 @@ applyOptions(
 applyOptions(
   program
     .command('fiat-estimate')
-    .description('Get the current token price for provided byte value'),
+    .description('Get the current token price for provided byte count'),
   [optionMap.byteCount, optionMap.currency],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, fiatEstimate);

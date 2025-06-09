@@ -1022,7 +1022,7 @@ Command Options:
 
 - `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
 - `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
-- `--currency <currency>` - Currency to get the price for (e.g: 'usd', 'eur', 'gbp').
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp').
 
 e.g:
 
@@ -1044,13 +1044,13 @@ Get the current fiat estimation from the Turbo Payment Service, denominated in t
 
 Command Options:
 
-- `--byte-count <byteCount>` - Byte value to get the token price for
-- `--currency <currency>` - Currency to get the fiat estimate for (e.g: 'usd', 'eur', 'gbp')
+- `--byte-count <byteCount>` - Byte count of data to get the fiat estimate for
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp')
 
 e.g:
 
 ```shell
-turbo fiat-estimate --byte-count 102400 --token solana
+turbo fiat-estimate --byte-count 102400 --currency usd
 ```
 
 ##### `token-price`
@@ -1059,7 +1059,7 @@ Get the current price from the Turbo Payment Service, denominated in the specifi
 
 Command Options:
 
-- `--byte-count <byteCount>` - Byte value to get the token price for
+- `--byte-count <byteCount>` - Byte count of data to get the token price for
 
 e.g:
 
