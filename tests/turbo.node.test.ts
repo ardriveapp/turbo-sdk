@@ -2,6 +2,7 @@ import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
+  KyveSigner,
   createData,
 } from '@dha-team/arbundles';
 import { CanceledError } from 'axios';
@@ -33,6 +34,7 @@ import {
   NativeAddress,
   TokenType,
   TurboSigner,
+  fiatCurrencyTypes,
   tokenTypes,
 } from '../src/types.js';
 import { signerFromKyveMnemonic } from '../src/utils/common.js';
@@ -124,6 +126,7 @@ describe('Node environment', () => {
         await turbo.signer.getNativeAddress(),
         testArweaveNativeB64Address,
       );
+      assert.equal(turbo['uploadService']['token'], 'arweave');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and an EthereumSigner', async () => {
@@ -133,6 +136,33 @@ describe('Node environment', () => {
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), testEthNativeAddress);
+      assert.equal(turbo['uploadService']['token'], 'ethereum');
+    });
+
+    it('should return a TurboAuthenticatedClient when running in Node environment and a KyveSigner', async () => {
+      const turbo = TurboFactory.authenticated({
+        signer: new KyveSigner(testKyvePrivatekey),
+        ...turboDevelopmentConfigurations,
+      });
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(
+        await turbo.signer.getNativeAddress(),
+        testKyveNativeAddress,
+      );
+      assert.equal(turbo['uploadService']['token'], 'kyve');
+    });
+
+    it('should return a token of arweave when given an unrecognizable signatureType', async () => {
+      class UnrecognizedSigner extends KyveSigner {
+        signatureType = 9999;
+      }
+      const turbo = TurboFactory.authenticated({
+        signer: new UnrecognizedSigner(testKyvePrivatekey),
+        ...turboDevelopmentConfigurations,
+      });
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(await turbo.signer.getNativeAddress(), base64KyveAddress);
+      assert.equal(turbo['uploadService']['token'], 'arweave');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
@@ -347,9 +377,24 @@ describe('Node environment', () => {
       assert.equal(equivalentWincTokenAmount, '100000');
       assert.equal(fees.length, 1);
     });
+    const oneHundredMiBInBytes = 1024 * 1024 * 100; // 100 MiB
+
+    describe('getFiatEstimateForBytes()', async () => {
+      for (const fiat of fiatCurrencyTypes) {
+        it(`should return the correct fiat estimate for ${fiat} for 100 MiB`, async () => {
+          const { amount, byteCount: bytesResult } =
+            await turbo.getFiatEstimateForBytes({
+              byteCount: oneHundredMiBInBytes,
+              currency: fiat,
+            });
+          assert.ok(amount !== undefined);
+          assert.equal(bytesResult, oneHundredMiBInBytes);
+          assert.ok(typeof +amount === 'number');
+        });
+      }
+    });
 
     describe('getTokenPriceForBytes()', async () => {
-      const bytes = 1024 * 1024 * 100; // 100 MiB
       for (const token of tokenTypes) {
         it(`should return the correct token price for the given bytes for ${token}`, async () => {
           const { tokenPrice, byteCount: bytesResult } =
@@ -357,10 +402,10 @@ describe('Node environment', () => {
               ...turboTestEnvConfigurations,
               token,
             }).getTokenPriceForBytes({
-              byteCount: bytes,
+              byteCount: oneHundredMiBInBytes,
             });
           assert.ok(tokenPrice !== undefined);
-          assert.equal(bytesResult, bytes);
+          assert.equal(bytesResult, oneHundredMiBInBytes);
           assert.ok(typeof +tokenPrice === 'number');
         });
       }
@@ -1014,6 +1059,19 @@ describe('Node environment', () => {
           error.message,
           'Failed request: Failed to upload file after 6 attempts\n',
         );
+      });
+
+      it('should properly upload a file from file path', async () => {
+        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+        const response = await turbo.uploadFile({ file: filePath });
+        assert.ok(response !== undefined);
+      });
+
+      it('should throw an error on invalid params', async () => {
+        await expectAsyncErrorThrow({
+          promiseToError: turbo.uploadFile({} as any),
+          errorType: 'TypeError',
+        });
       });
     });
 

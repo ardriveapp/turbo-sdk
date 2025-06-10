@@ -37,10 +37,12 @@ import {
   TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
+  TurboUploadFileParams,
+  TurboUploadFileWithFileOrPathParams,
+  TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
-  WebFileStreamFactory,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
@@ -48,6 +50,22 @@ import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export type TurboUploadConfig = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;
+
+function isTurboUploadFileWithStreamFactoryParams(
+  params: TurboUploadFileParams,
+): params is TurboUploadFileWithStreamFactoryParams {
+  return 'fileStreamFactory' in params;
+}
+
+function isTurboUploadFileWithFileOrPathParams(
+  params: TurboUploadFileParams,
+): params is TurboUploadFileWithFileOrPathParams {
+  return 'file' in params;
+}
 
 export const creditSharingTagNames = {
   shareCredits: 'x-approve-payment',
@@ -91,7 +109,7 @@ export class TurboUnauthenticatedUploadService
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
-    const fileSize = dataItemSizeFactory();
+    const dataItemSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
 
     // create the tapped stream with events
@@ -101,13 +119,13 @@ export class TurboUnauthenticatedUploadService
     const { stream: streamWithUploadEvents, resume } =
       createStreamWithUploadEvents({
         data: dataItemStreamFactory(),
-        dataSize: fileSize,
+        dataSize: dataItemSize,
         emitter,
       });
 
     const headers = {
       'content-type': 'application/octet-stream',
-      'content-length': `${fileSize}`,
+      'content-length': `${dataItemSize}`,
     };
 
     if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
@@ -170,7 +188,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       const streamFactory = () => data.stream();
       const sizeFactory = () => data.size;
       return this.uploadFile({
-        fileStreamFactory: streamFactory as WebFileStreamFactory,
+        fileStreamFactory: streamFactory,
         fileSizeFactory: sizeFactory,
         signal,
         dataItemOpts,
@@ -197,15 +215,43 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
-  async uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-    signal,
-    dataItemOpts,
-    events = {},
-  }: TurboFileFactory &
-    TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
+  private resolveUploadFileConfig(
+    params: TurboUploadFileParams,
+  ): TurboUploadConfig {
+    let fileStreamFactory: TurboFileFactory['fileStreamFactory'];
+    let fileSizeFactory: () => number;
+    if (isTurboUploadFileWithStreamFactoryParams(params)) {
+      fileStreamFactory = params.fileStreamFactory;
+      fileSizeFactory = params.fileSizeFactory;
+    } else if (isTurboUploadFileWithFileOrPathParams(params)) {
+      const file = params.file;
+      /**
+       * this is pretty gross, but it's the only way to get the type inference to work without overhauling
+       * the abstract method to accept a generic, which we would need to perform a check on anyways.
+       */
+      fileStreamFactory =
+        file instanceof File
+          ? () => this.getFileStreamForFile(file) as ReadableStream
+          : () => this.getFileStreamForFile(file) as Readable;
+      fileSizeFactory = () => this.getFileSize(params.file);
+    } else {
+      throw new TypeError(
+        'Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams',
+      );
+    }
+    return {
+      fileStreamFactory,
+      fileSizeFactory,
+      ...params,
+    };
+  }
+
+  async uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
+      this.resolveUploadFileConfig(params);
+
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -231,12 +277,10 @@ export abstract class TurboAuthenticatedBaseUploadService
         throw new CanceledError();
       }
 
+      // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
+      // which will create a new emitter with upload events. We await
+      // this result due to the wrapped retry logic of this method.
       try {
-        this.logger.debug('Uploading signed data item...');
-
-        // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
-        // which will create a new emitter with upload events. We await
-        // this result due to the wrapped retry logic of this method.
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
@@ -244,7 +288,6 @@ export abstract class TurboAuthenticatedBaseUploadService
           signal,
           events,
         });
-
         return response;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
@@ -360,6 +403,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
   /**
    * TODO: add events to the uploadFolder method
+   * TODO: create resolveUploadFolderConfig() function
    * could be a predicate with a resolveConfig() function, eg: events: ({...file ctx}) => ({
    *   onProgress: (progress) => {
    *     console.log('progress', progress);
@@ -402,6 +446,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
       try {
         const result = await this.uploadFile({
+          // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fileStreamFactory: () => this.getFileStreamForFile(file) as any,
           fileSizeFactory: () => this.getFileSize(file),
@@ -455,6 +500,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const manifestBuffer = Buffer.from(JSON.stringify(manifest));
 
     const manifestResponse = await this.uploadFile({
+      // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
       fileSizeFactory: () => manifestBuffer.byteLength,

@@ -19,7 +19,8 @@ import { TurboFactory } from '../../node/factory.js';
 import { fiatCurrencyTypes, isCurrency, tokenTypes } from '../../types.js';
 import { wincPerCredit } from '../constants.js';
 import { PriceOptions } from '../types.js';
-import { configFromOptions } from '../utils.js';
+import { configFromOptions, currencyFromOptions } from '../utils.js';
+import { fiatEstimate } from './fiatEstimate.js';
 
 export async function price(options: PriceOptions) {
   const value = options.value;
@@ -28,6 +29,13 @@ export async function price(options: PriceOptions) {
   }
 
   const type = options.type ?? 'bytes';
+
+  const currency = currencyFromOptions(options);
+  if (currency !== undefined && type === 'bytes') {
+    // User supplied --type bytes --currency <currency> --value <bytes>
+    // This is a special case where we will provide a fiat estimate for the bytes value
+    return fiatEstimate({ ...options, byteCount: value });
+  }
 
   const winc = await (async () => {
     if (isTokenType(type)) {

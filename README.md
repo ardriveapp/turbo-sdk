@@ -352,6 +352,34 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   });
 ```
 
+#### `getFiatEstimateForBytes({ byteCount, currency })`
+
+Get the current price from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated();
+const { amount } = await turbo.getFiatEstimateForBytes({
+  byteCount: 1024 * 1024 * 1024,
+  currency: 'usd', // specify the currency for the price
+});
+
+console.log(amount); // Estimated usd price for 1 GiB
+```
+
+<details>
+  <summary>Example Output</summary>
+
+```json
+{
+  "byteCount": 1073741824,
+  "amount": 20.58,
+  "currency": "usd",
+  "winc": "2402378997310"
+}
+```
+
+</details>
+
 #### `getTokenPriceForBytes({ byteCount })`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
@@ -539,32 +567,25 @@ const uploadResult = await turbo.upload({
 });
 ```
 
-#### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts, events })`
+#### `uploadFile({ ...fileOrStreamFactoryOpts, signal, dataItemOpts, events })`
 
-Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+Signs and uploads a raw file. There are two ways to provide the file to the SDK:
+
+1. Using a `file` parameter
+2. Using a `fileStreamFactory` and `fileSizeFactory`
+
+##### Using `file`
+
+In Web with a file input:
 
 ```typescript
-const filePath = path.join(__dirname, './my-unsigned-file.txt');
-const fileSize = fs.stateSync(filePath).size;
+const selectedFile = e.target.files[0];
 const uploadResult = await turbo.uploadFile({
-  fileStreamFactory: () => fs.createReadStream(filePath),
-  fileSizeFactory: () => fileSize,
+  file: selectedFile,
   dataItemOpts: {
-    // optional
-    tags: [
-      {
-        name: 'Content-Type',
-        value: 'text/plain',
-      },
-      {
-        name: 'My-Custom-Tag',
-        value: 'my-custom-value',
-      },
-    ],
-    // no timeout or AbortSignal provided
+    tags: [{ name: 'Content-Type', value: 'text/plain' }],
   },
   events: {
-    // upload events
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
@@ -574,8 +595,33 @@ const uploadResult = await turbo.uploadFile({
     onUploadSuccess: () => {
       console.log('Upload success!');
     },
-    // add any other events you want to listen to (see `Events` section for more details)
   },
+});
+```
+
+In NodeJS with a file path:
+
+```typescript
+const filePath = path.join(__dirname, './my-unsigned-file.txt');
+const fileSize = fs.stateSync(filePath).size;
+const uploadResult = await turbo.uploadFile({
+  file: filePath,
+  dataItemOpts: {
+    tags: [{ name: 'Content-Type', value: 'text/plain' }],
+  },
+});
+```
+
+##### Using `fileStreamFactory` and `fileSizeFactory`
+
+Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+
+```typescript
+const filePath = path.join(__dirname, './my-unsigned-file.txt');
+const fileSize = fs.stateSync(filePath).size;
+const uploadResult = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(filePath),
+  fileSizeFactory: () => fileSize,
 });
 ```
 
@@ -994,6 +1040,7 @@ Command Options:
 
 - `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
 - `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp').
 
 e.g:
 
@@ -1009,13 +1056,28 @@ turbo price --value 1024 --type bytes
 turbo price --value 1.1 --type arweave
 ```
 
+##### `fiat-estimate`
+
+Get the current fiat estimation from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+Command Options:
+
+- `--byte-count <byteCount>` - Byte count of data to get the fiat estimate for
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp')
+
+e.g:
+
+```shell
+turbo fiat-estimate --byte-count 102400 --currency usd
+```
+
 ##### `token-price`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
 Command Options:
 
-- `--byte-count <byteCount>` - Byte value to get the token price for
+- `--byte-count <byteCount>` - Byte count of data to get the token price for
 
 e.g:
 

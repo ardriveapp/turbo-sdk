@@ -52,7 +52,7 @@ export const fiatCurrencyTypes = [
   'brl',
 ] as const;
 export type Currency = (typeof fiatCurrencyTypes)[number];
-export function isCurrency(currency: string): currency is Currency {
+export function isCurrency(currency: unknown): currency is Currency {
   return fiatCurrencyTypes.includes(currency as Currency);
 }
 
@@ -115,6 +115,13 @@ export type TurboTokenPriceForBytesResponse = {
   tokenPrice: string;
   byteCount: number;
   token: TokenType;
+};
+
+export type TurboFiatEstimateForBytesResponse = {
+  byteCount: number;
+  amount: number;
+  winc: string;
+  currency: Currency;
 };
 
 export type TurboWincForFiatParams = {
@@ -565,6 +572,19 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
+export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadAndSigningEmitterEvents;
+export type TurboUploadFileWithFileOrPathParams = {
+  file: File | string;
+  dataItemOpts?: DataItemOptions;
+} & TurboAbortSignal &
+  TurboUploadAndSigningEmitterEvents;
+
+export type TurboUploadFileParams =
+  | TurboUploadFileWithStreamFactoryParams
+  | TurboUploadFileWithFileOrPathParams;
+
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
 export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
@@ -674,6 +694,13 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getWincForToken(
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse>;
+  getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse>;
   getTokenPriceForBytes({
     byteCount,
   }: {
@@ -730,13 +757,9 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
-  uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-    events,
-  }: TurboFileFactory &
-    TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+  uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 

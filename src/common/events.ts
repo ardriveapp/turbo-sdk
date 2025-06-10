@@ -72,16 +72,18 @@ function createReadableStreamWithEvents({
   const originalStream =
     data instanceof ReadableStream
       ? data
-      : new ReadableStream({
+      : new ReadableStream<Uint8Array>({
           start: (controller) => {
-            controller.enqueue(data);
+            controller.enqueue(
+              new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+            );
             controller.close();
           },
         });
 
   let processedBytes = 0;
   let reader;
-  const stream = new ReadableStream({
+  const stream = new ReadableStream<Uint8Array>({
     start() {
       reader = originalStream.getReader();
     },
@@ -95,13 +97,15 @@ function createReadableStreamWithEvents({
           return;
         }
 
-        processedBytes += value.length;
+        processedBytes += value.byteLength;
         emitter.emit(eventNamesMap['on-progress'], {
           processedBytes,
           totalBytes: dataSize,
         });
 
-        controller.enqueue(value);
+        controller.enqueue(
+          new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+        );
       } catch (error) {
         emitter.emit(eventNamesMap['on-error'], error);
         controller.error(error);
@@ -183,7 +187,7 @@ function createReadableWithEvents({
   let processedBytes = 0;
   existingStream.on('data', (chunk) => {
     eventingStream.write(chunk);
-    processedBytes += chunk.length;
+    processedBytes += chunk.byteLength;
     emitter.emit(eventNamesMap['on-progress'], {
       processedBytes,
       totalBytes: dataSize,

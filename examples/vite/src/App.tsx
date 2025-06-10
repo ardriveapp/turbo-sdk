@@ -1,4 +1,11 @@
-import { TurboAuthenticatedClient, TurboFactory } from '@ardrive/turbo-sdk/web';
+import {
+  ArconnectSigner,
+  ArweaveSigner,
+  TurboAuthenticatedClient,
+  TurboEventEmitter,
+  TurboFactory,
+  streamSignerReadableStream,
+} from '@ardrive/turbo-sdk/web';
 import Arweave from 'arweave';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { useEffect, useState } from 'react';
@@ -15,7 +22,9 @@ const arweave = new Arweave({
 });
 
 function App() {
-  const [wallet, setWallet] = useState<JWKInterface | null>(null);
+  const [wallet, setWallet] = useState<
+    JWKInterface | Window['arweaveWallet'] | null
+  >(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [jwk, setJwk] = useState<string>('');
@@ -53,15 +62,9 @@ function App() {
 
     try {
       setUploadStatus('Uploading...');
-      const buffer = await selectedFile.arrayBuffer();
+
       const upload = await turbo.uploadFile({
-        fileStreamFactory: () =>
-          new ReadableStream({
-            start(controller) {
-              controller.enqueue(buffer);
-              controller.close();
-            },
-          }),
+        fileStreamFactory: () => selectedFile.stream(),
         fileSizeFactory: () => selectedFile.size,
         events: {
           onSigningProgress: ({
@@ -78,9 +81,15 @@ function App() {
           },
           onSigningError: (error: Error) => {
             console.log('Signing error:', { error });
+            setUploadStatus(
+              `Signing error: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+            );
           },
           onSigningSuccess: () => {
             console.log('Signing success!');
+            setUploadStatus('Signing success!');
           },
           onUploadProgress: ({
             totalBytes,
@@ -93,16 +102,30 @@ function App() {
               totalBytes,
               processedBytes,
             });
+            setUploadStatus(
+              `Upload progress: ${Math.round(
+                (processedBytes / totalBytes) * 100,
+              )}%`,
+            );
           },
           onUploadError: (error: Error) => {
             console.log('Upload error:', { error });
+            setUploadStatus(
+              `Upload error: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+            );
           },
           onUploadSuccess: () => {
             console.log('Upload success!');
+            setUploadStatus('Upload success!');
           },
         },
       });
-      setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
+
+      setUploadStatus(
+        `Upload successful! JSON: ${JSON.stringify(upload, null, 2)}`,
+      );
     } catch (error) {
       setUploadStatus(
         `Upload failed: ${
@@ -136,13 +159,21 @@ function App() {
   useEffect(() => {
     if (jwk) {
       setWallet(JSON.parse(jwk));
+    }
+  }, [jwk]);
+
+  useEffect(() => {
+    if (wallet) {
       setTurbo(
         TurboFactory.authenticated({
-          privateKey: JSON.parse(jwk),
+          signer: ('connect' in wallet
+            ? new ArconnectSigner(wallet)
+            : new ArweaveSigner(wallet)) as any,
+          token: 'arweave',
         }),
       );
     }
-  }, [jwk]);
+  }, [wallet]);
 
   return (
     <div
@@ -180,6 +211,46 @@ function App() {
               style={{ marginLeft: '10px', height: '20px' }}
             >
               Generate Random JWK
+            </button>
+            or
+            <button
+              style={{ marginLeft: '10px', height: '20px' }}
+              onClick={async () => {
+                try {
+                  if (window.arweaveWallet) {
+                    const requiredPermissions = [
+                      'ACCESS_ADDRESS',
+                      'ACCESS_PUBLIC_KEY',
+                      'SIGN_TRANSACTION',
+                      'SIGNATURE',
+                    ];
+                    const permissions =
+                      await window.arweaveWallet.getPermissions();
+                    console.log('permissions', permissions);
+                    if (
+                      requiredPermissions.every((permission) =>
+                        permissions.includes(permission as any),
+                      )
+                    ) {
+                      setWallet(window.arweaveWallet);
+                    } else {
+                      await window.arweaveWallet.connect(
+                        requiredPermissions as any,
+                      );
+                      setWallet(window.arweaveWallet);
+                    }
+
+                    setShowJwkInput(false);
+                  } else {
+                  }
+                } catch (error) {
+                  setUploadStatus(
+                    error instanceof Error ? error.message : 'Unknown error',
+                  );
+                }
+              }}
+            >
+              Connect wallet
             </button>
           </div>
         ) : (
