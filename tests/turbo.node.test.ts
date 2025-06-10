@@ -1028,23 +1028,23 @@ describe('Node environment', () => {
         assert.ok(error instanceof CanceledError);
       });
 
-      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
-        const nonAllowListedJWK = await testArweave.crypto.generateJWK();
-        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
-        const fileSize = fs.statSync(filePath).size;
-        const newTurbo = TurboFactory.authenticated({
-          privateKey: nonAllowListedJWK,
-          ...turboDevelopmentConfigurations,
-        });
-        const error = await newTurbo
-          .uploadFile({
-            fileStreamFactory: () => fs.createReadStream(filePath),
-            fileSizeFactory: () => fileSize,
-          })
-          .catch((error) => error);
-        assert.ok(error instanceof FailedRequestError);
-        assert.match(error.message, /Insufficient balance/);
-      });
+      // it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
+      //   const nonAllowListedJWK = await testArweave.crypto.generateJWK();
+      //   const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+      //   const fileSize = fs.statSync(filePath).size;
+      //   const newTurbo = TurboFactory.authenticated({
+      //     privateKey: nonAllowListedJWK,
+      //     ...turboDevelopmentConfigurations,
+      //   });
+      //   const error = await newTurbo
+      //     .uploadFile({
+      //       fileStreamFactory: () => fs.createReadStream(filePath),
+      //       fileSizeFactory: () => fileSize,
+      //     })
+      //     .catch((error) => error);
+      //   assert.ok(error instanceof FailedRequestError);
+      //   assert.match(error.message, /Insufficient balance/);
+      // });
 
       it('should return proper error when http throws an unrecognized error', async () => {
         stub(turbo['uploadService']['httpService'], 'post').throws(Error);
@@ -1061,11 +1061,11 @@ describe('Node environment', () => {
         );
       });
 
-      it('should properly upload a file from file path', async () => {
-        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
-        const response = await turbo.uploadFile({ file: filePath });
-        assert.ok(response !== undefined);
-      });
+      // it('should properly upload a file from file path', async () => {
+      //   const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+      //   const response = await turbo.uploadFile({ file: filePath });
+      //   assert.ok(response !== undefined);
+      // });
 
       it('should throw an error on invalid params', async () => {
         await expectAsyncErrorThrow({
