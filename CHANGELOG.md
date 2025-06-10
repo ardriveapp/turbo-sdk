@@ -1,3 +1,25 @@
+# [1.27.0-alpha.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0-alpha.3...v1.27.0-alpha.4) (2025-06-10)
+
+
+### Bug Fixes
+
+* **example:** remove unnecessary setPublicKey call and add signature permission ([004345e](https://github.com/ardriveapp/turbo-sdk/commit/004345e4b65b6d03eca84954f1be93dbfcf1e54a))
+* **example:** spacing ([f038b11](https://github.com/ardriveapp/turbo-sdk/commit/f038b11b8f46fbd3b0dea1e3e6cd837affff408d))
+* **examples:** use closer to real world examples ([1f56e01](https://github.com/ardriveapp/turbo-sdk/commit/1f56e01833de23ea914ca17e80a405986aea6ee8))
+* **node v:** bump node to 21.2.0 ([ea6476c](https://github.com/ardriveapp/turbo-sdk/commit/ea6476c09e2f6468f2239bc941561f5621faa122))
+* **resolveConfig:** move config to a local util to avoid exposing the method ([8e2a321](https://github.com/ardriveapp/turbo-sdk/commit/8e2a32151748f8f7e02f7d7ac032f6f92f9e07c6))
+* **resolveConfig:** use private method to get config ([2cb2bf5](https://github.com/ardriveapp/turbo-sdk/commit/2cb2bf57c4a7e2a38c169dfaf0733788c908a7f0))
+* **tests:** add 5min timeout to tests ([ce5af24](https://github.com/ardriveapp/turbo-sdk/commit/ce5af24dce5e973d7a57c8c221c1642d66bb4b1e))
+* **tests:** add branch coverage for throwing on invalid params ([9b89976](https://github.com/ardriveapp/turbo-sdk/commit/9b89976cd5793fb699d84eca9d5d9ac6f3c513ee))
+* **tests:** fix test ([96eb54d](https://github.com/ardriveapp/turbo-sdk/commit/96eb54dafae82b670513c26534e30155ef6fa09e))
+* **test:** test if test is testing ([6aa5218](https://github.com/ardriveapp/turbo-sdk/commit/6aa52185efa728a848536c92e8ac36ae106b67f3))
+* **uploadFIle:** add overloads and jsdoc ([24ffca3](https://github.com/ardriveapp/turbo-sdk/commit/24ffca3019626c55abfc710e8c0451f594c1fab1))
+
+
+### Features
+
+* **turbo uploadFile:** extend uploadFile interface to accept a file param for File or filePath ([f70c3be](https://github.com/ardriveapp/turbo-sdk/commit/f70c3be852b93d2c1c6482a2065f9624657f842f))
+
 # [1.27.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0-alpha.2...v1.27.0-alpha.3) (2025-06-09)
 
 
