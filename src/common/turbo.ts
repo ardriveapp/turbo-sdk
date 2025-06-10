@@ -34,7 +34,6 @@ import {
   TurboDataItemSigner,
   TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
-  TurboFileFactory,
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
@@ -49,6 +48,9 @@ import {
   TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
+  TurboUploadFileParams,
+  TurboUploadFileWithFileOrPathParams,
+  TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   TurboWincForFiatParams,
@@ -309,23 +311,69 @@ export class TurboAuthenticatedClient
 
   /**
    * Signs and uploads raw file data to the Turbo Upload Service.
+   *
+   * @example using a file or path
+   * ```ts
+   * // web
+   * // the file is the file object from the input event onChange for a file input
+   * const selectedFile = e.target.files[0];
+   * const response = await turbo.uploadFile({
+   *   file: selectedFile,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   *   events: {
+   *     onUploadProgress: ({ totalBytes, processedBytes }) => {
+   *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
+   *     },
+   *   },
+   * });
+   *
+   * // node
+   * const response = await turbo.uploadFile({
+   *   file: 'test.txt',
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   * });
+   * ```
+   *
+   * @example using a stream factory
+   * ```ts
+   * // web
+   * const selectedFile = e.target.files[0];
+   * const response = await turbo.uploadFile({
+   *   fileStreamFactory: () => file.stream(),
+   *   fileSizeFactory: () => file.size,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   *   events: {
+   *     onUploadProgress: ({ totalBytes, processedBytes }) => {
+   *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
+   *     },
+   *   },
+   * });
+   *
+   * // node
+   * const response = await turbo.uploadFile({
+   *   fileStreamFactory: () => fs.createReadStream('test.txt'),
+   *   fileSizeFactory: () => fs.statSync('test.txt').size,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   * });
+   * ```
    */
+  uploadFile({
+    file,
+    events,
+    dataItemOpts,
+    signal,
+  }: TurboUploadFileWithFileOrPathParams): Promise<TurboUploadDataItemResponse>;
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
-    signal,
     dataItemOpts,
+    signal,
     events,
-  }: TurboFileFactory &
-    TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadFile({
-      fileStreamFactory,
-      fileSizeFactory,
-      signal,
-      dataItemOpts,
-      events,
-    });
+  }: TurboUploadFileWithStreamFactoryParams): Promise<TurboUploadDataItemResponse>;
+  uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadFile(params);
   }
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse> {

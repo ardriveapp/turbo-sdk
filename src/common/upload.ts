@@ -37,6 +37,9 @@ import {
   TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
   TurboUploadEmitterEvents,
+  TurboUploadFileParams,
+  TurboUploadFileWithFileOrPathParams,
+  TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
@@ -47,6 +50,22 @@ import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export type TurboUploadConfig = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;
+
+function isTurboUploadFileWithStreamFactoryParams(
+  params: TurboUploadFileParams,
+): params is TurboUploadFileWithStreamFactoryParams {
+  return 'fileStreamFactory' in params;
+}
+
+function isTurboUploadFileWithFileOrPathParams(
+  params: TurboUploadFileParams,
+): params is TurboUploadFileWithFileOrPathParams {
+  return 'file' in params;
+}
 
 export const creditSharingTagNames = {
   shareCredits: 'x-approve-payment',
@@ -196,15 +215,43 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
-  async uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-    signal,
-    dataItemOpts,
-    events = {},
-  }: TurboFileFactory &
-    TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
+  private resolveUploadFileConfig(
+    params: TurboUploadFileParams,
+  ): TurboUploadConfig {
+    let fileStreamFactory: TurboFileFactory['fileStreamFactory'];
+    let fileSizeFactory: () => number;
+    if (isTurboUploadFileWithStreamFactoryParams(params)) {
+      fileStreamFactory = params.fileStreamFactory;
+      fileSizeFactory = params.fileSizeFactory;
+    } else if (isTurboUploadFileWithFileOrPathParams(params)) {
+      const file = params.file;
+      /**
+       * this is pretty gross, but it's the only way to get the type inference to work without overhauling
+       * the abstract method to accept a generic, which we would need to perform a check on anyways.
+       */
+      fileStreamFactory =
+        file instanceof File
+          ? () => this.getFileStreamForFile(file) as ReadableStream
+          : () => this.getFileStreamForFile(file) as Readable;
+      fileSizeFactory = () => this.getFileSize(params.file);
+    } else {
+      throw new TypeError(
+        'Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams',
+      );
+    }
+    return {
+      fileStreamFactory,
+      fileSizeFactory,
+      ...params,
+    };
+  }
+
+  async uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
+      this.resolveUploadFileConfig(params);
+
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -356,6 +403,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
   /**
    * TODO: add events to the uploadFolder method
+   * TODO: create resolveUploadFolderConfig() function
    * could be a predicate with a resolveConfig() function, eg: events: ({...file ctx}) => ({
    *   onProgress: (progress) => {
    *     console.log('progress', progress);
