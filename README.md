@@ -567,32 +567,25 @@ const uploadResult = await turbo.upload({
 });
 ```
 
-#### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts, events })`
+#### `uploadFile({ ...fileOrStreamFactoryOpts, signal, dataItemOpts, events })`
 
-Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+Signs and uploads a raw file. There are two ways to provide the file to the SDK:
+
+1. Using a `file` parameter
+2. Using a `fileStreamFactory` and `fileSizeFactory`
+
+##### Using `file`
+
+In Web with a file input:
 
 ```typescript
-const filePath = path.join(__dirname, './my-unsigned-file.txt');
-const fileSize = fs.stateSync(filePath).size;
+const selectedFile = e.target.files[0];
 const uploadResult = await turbo.uploadFile({
-  fileStreamFactory: () => fs.createReadStream(filePath),
-  fileSizeFactory: () => fileSize,
+  file: selectedFile,
   dataItemOpts: {
-    // optional
-    tags: [
-      {
-        name: 'Content-Type',
-        value: 'text/plain',
-      },
-      {
-        name: 'My-Custom-Tag',
-        value: 'my-custom-value',
-      },
-    ],
-    // no timeout or AbortSignal provided
+    tags: [{ name: 'Content-Type', value: 'text/plain' }],
   },
   events: {
-    // upload events
     onUploadProgress: ({ totalBytes, processedBytes }) => {
       console.log('Upload progress:', { totalBytes, processedBytes });
     },
@@ -602,8 +595,33 @@ const uploadResult = await turbo.uploadFile({
     onUploadSuccess: () => {
       console.log('Upload success!');
     },
-    // add any other events you want to listen to (see `Events` section for more details)
   },
+});
+```
+
+In NodeJS with a file path:
+
+```typescript
+const filePath = path.join(__dirname, './my-unsigned-file.txt');
+const fileSize = fs.stateSync(filePath).size;
+const uploadResult = await turbo.uploadFile({
+  file: filePath,
+  dataItemOpts: {
+    tags: [{ name: 'Content-Type', value: 'text/plain' }],
+  },
+});
+```
+
+##### Using `fileStreamFactory` and `fileSizeFactory`
+
+Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+
+```typescript
+const filePath = path.join(__dirname, './my-unsigned-file.txt');
+const fileSize = fs.stateSync(filePath).size;
+const uploadResult = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(filePath),
+  fileSizeFactory: () => fileSize,
 });
 ```
 
