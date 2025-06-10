@@ -62,18 +62,9 @@ function App() {
 
     try {
       setUploadStatus('Uploading...');
-      const buffer = await selectedFile.arrayBuffer();
 
       const upload = await turbo.uploadFile({
-        fileStreamFactory: () => {
-          console.log('fileStreamFactory called');
-          return new ReadableStream({
-            start(controller) {
-              controller.enqueue(buffer);
-              controller.close();
-            },
-          });
-        },
+        fileStreamFactory: () => selectedFile.stream(),
         fileSizeFactory: () => selectedFile.size,
         events: {
           onSigningProgress: ({
@@ -90,9 +81,15 @@ function App() {
           },
           onSigningError: (error: Error) => {
             console.log('Signing error:', { error });
+            setUploadStatus(
+              `Signing error: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+            );
           },
           onSigningSuccess: () => {
             console.log('Signing success!');
+            setUploadStatus('Signing success!');
           },
           onUploadProgress: ({
             totalBytes,
@@ -105,16 +102,30 @@ function App() {
               totalBytes,
               processedBytes,
             });
+            setUploadStatus(
+              `Upload progress: ${Math.round(
+                (processedBytes / totalBytes) * 100,
+              )}%`,
+            );
           },
           onUploadError: (error: Error) => {
             console.log('Upload error:', { error });
+            setUploadStatus(
+              `Upload error: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+            );
           },
           onUploadSuccess: () => {
             console.log('Upload success!');
+            setUploadStatus('Upload success!');
           },
         },
       });
-      setUploadStatus(`Upload successful! ${JSON.stringify(upload, null, 2)}`);
+
+      setUploadStatus(
+        `Upload successful! JSON: ${JSON.stringify(upload, null, 2)}`,
+      );
     } catch (error) {
       setUploadStatus(
         `Upload failed: ${
