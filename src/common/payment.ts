@@ -197,7 +197,9 @@ export class TurboUnauthenticatedPaymentService
     const queryParams = new URLSearchParams();
     queryParams.append('uiMode', uiMode);
     queryParams.append('token', this.token);
-    queryParams.append('promoCode', promoCodes.join(','));
+    if (promoCodes.length > 0) {
+        queryParams.append('promoCode', promoCodes.join(','));
+    }
     if ('successUrl' in callbackUrls && callbackUrls.successUrl !== undefined) {
       queryParams.append('successUrl', callbackUrls.successUrl);
     }
