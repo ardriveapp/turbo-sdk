@@ -25,8 +25,6 @@ import {
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
   TurboBalanceResponse,
-  TurboCheckoutSessionEmbeddedParams,
-  TurboCheckoutSessionHostedParams,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
@@ -182,17 +180,6 @@ export class TurboUnauthenticatedPaymentService
     });
 
     return addresses;
-  }
-
-  protected appendCallbackUrlsToQuery(
-    callbackUrls:
-      | TurboCheckoutSessionHostedParams
-      | TurboCheckoutSessionEmbeddedParams,
-  ): string {
-    return Object.entries(callbackUrls)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-      .join('&');
   }
 
   protected async getCheckout(
