@@ -134,10 +134,21 @@ export type TurboWincForTokenParams = {
   tokenAmount: BigNumber.Value;
 };
 
+// @deprecated use TurboCheckoutSessionHostedParams or TurboCheckoutSessionEmbeddedParams instead
 export type UiMode = 'embedded' | 'hosted';
 export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
   owner: PublicArweaveAddress;
-  uiMode?: UiMode;
+} & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+
+export type TurboCheckoutSessionHostedParams = {
+  uiMode?: 'hosted';
+  successUrl?: string;
+  cancelUrl?: string;
+};
+
+export type TurboCheckoutSessionEmbeddedParams = {
+  uiMode?: 'embedded';
+  returnUrl?: string;
 };
 
 export type TopUpRawResponse = {
