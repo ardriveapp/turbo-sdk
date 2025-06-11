@@ -195,10 +195,12 @@ export class TurboUnauthenticatedPaymentService
     const { amount: paymentAmount, type: currencyType } = amount;
 
     const queryParams = new URLSearchParams();
-    queryParams.append('uiMode', uiMode);
     queryParams.append('token', this.token);
+    if (uiMode) {
+      queryParams.append('uiMode', uiMode);
+    }
     if (promoCodes.length > 0) {
-        queryParams.append('promoCode', promoCodes.join(','));
+      queryParams.append('promoCode', promoCodes.join(','));
     }
     if ('successUrl' in callbackUrls && callbackUrls.successUrl !== undefined) {
       queryParams.append('successUrl', callbackUrls.successUrl);
