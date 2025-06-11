@@ -25,6 +25,8 @@ import {
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
   TurboBalanceResponse,
+  TurboCheckoutSessionEmbeddedParams,
+  TurboCheckoutSessionHostedParams,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
   TurboCountriesResponse,
@@ -182,22 +184,44 @@ export class TurboUnauthenticatedPaymentService
     return addresses;
   }
 
+  protected appendCallbackUrlsToQuery(
+    callbackUrls:
+      | TurboCheckoutSessionHostedParams
+      | TurboCheckoutSessionEmbeddedParams,
+  ): string {
+    return Object.entries(callbackUrls)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join('&');
+  }
+
   protected async getCheckout(
     {
       amount,
       owner,
       promoCodes = [],
       uiMode = 'hosted',
+      ...callbackUrls
     }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
   ): Promise<TurboCheckoutSessionResponse> {
     const { amount: paymentAmount, type: currencyType } = amount;
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?uiMode=${uiMode}${
-      promoCodes.length > 0
-        ? `&${this.appendPromoCodesToQuery(promoCodes)}`
-        : ''
-    }&token=${this.token}`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('uiMode', uiMode);
+    queryParams.append('token', this.token);
+    queryParams.append('promoCode', promoCodes.join(','));
+    if ('successUrl' in callbackUrls && callbackUrls.successUrl !== undefined) {
+      queryParams.append('successUrl', callbackUrls.successUrl);
+    }
+    if ('cancelUrl' in callbackUrls && callbackUrls.cancelUrl !== undefined) {
+      queryParams.append('cancelUrl', callbackUrls.cancelUrl);
+    }
+    if ('returnUrl' in callbackUrls && callbackUrls.returnUrl !== undefined) {
+      queryParams.append('returnUrl', callbackUrls.returnUrl);
+    }
+
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
 
     const { adjustments, paymentSession, topUpQuote, fees } =
       await this.httpService.get<TopUpRawResponse>({
