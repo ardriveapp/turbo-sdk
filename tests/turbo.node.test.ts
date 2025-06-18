@@ -524,7 +524,6 @@ describe('Node environment', () => {
           adjustments,
           paymentAmount,
           quotedPaymentAmount,
-          url,
           id,
           client_secret,
           winc,
