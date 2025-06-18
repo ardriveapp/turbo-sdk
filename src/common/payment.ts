@@ -188,16 +188,31 @@ export class TurboUnauthenticatedPaymentService
       owner,
       promoCodes = [],
       uiMode = 'hosted',
+      ...callbackUrls
     }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
   ): Promise<TurboCheckoutSessionResponse> {
     const { amount: paymentAmount, type: currencyType } = amount;
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?uiMode=${uiMode}${
-      promoCodes.length > 0
-        ? `&${this.appendPromoCodesToQuery(promoCodes)}`
-        : ''
-    }&token=${this.token}`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('token', this.token);
+    if (uiMode) {
+      queryParams.append('uiMode', uiMode);
+    }
+    if (promoCodes.length > 0) {
+      queryParams.append('promoCode', promoCodes.join(','));
+    }
+    if ('successUrl' in callbackUrls && callbackUrls.successUrl !== undefined) {
+      queryParams.append('successUrl', callbackUrls.successUrl);
+    }
+    if ('cancelUrl' in callbackUrls && callbackUrls.cancelUrl !== undefined) {
+      queryParams.append('cancelUrl', callbackUrls.cancelUrl);
+    }
+    if ('returnUrl' in callbackUrls && callbackUrls.returnUrl !== undefined) {
+      queryParams.append('returnUrl', callbackUrls.returnUrl);
+    }
+
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
 
     const { adjustments, paymentSession, topUpQuote, fees } =
       await this.httpService.get<TopUpRawResponse>({

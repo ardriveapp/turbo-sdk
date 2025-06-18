@@ -494,7 +494,7 @@ describe('Node environment', () => {
         assert.ok(typeof winc === 'string');
       });
 
-      it('should properly get a checkout session with a embedded ui mode', async () => {
+      it('should properly get a checkout session with a hosted ui mode and custom success and cancel urls', async () => {
         const {
           adjustments,
           paymentAmount,
@@ -506,12 +506,36 @@ describe('Node environment', () => {
         } = await turbo.createCheckoutSession({
           amount: USD(20),
           owner: '43-character-stub-arweave-address-000000000',
-          uiMode: 'embedded',
+          uiMode: 'hosted',
+          successUrl: 'https://example.com/success',
+          cancelUrl: 'https://example.com/cancel',
         });
         assert.deepEqual(adjustments, []);
         assert.equal(paymentAmount, 2000);
         assert.equal(quotedPaymentAmount, 2000);
-        assert.equal(url, undefined);
+        assert.ok(typeof url === 'string');
+        assert.ok(typeof id === 'string');
+        assert.equal(client_secret, undefined);
+        assert.ok(typeof winc === 'string');
+      });
+
+      it('should properly get a checkout session with a embedded ui mode and custom return url', async () => {
+        const {
+          adjustments,
+          paymentAmount,
+          quotedPaymentAmount,
+          id,
+          client_secret,
+          winc,
+        } = await turbo.createCheckoutSession({
+          amount: USD(20),
+          owner: '43-character-stub-arweave-address-000000000',
+          uiMode: 'embedded',
+          returnUrl: 'https://example.com/return',
+        });
+        assert.deepEqual(adjustments, []);
+        assert.equal(paymentAmount, 2000);
+        assert.equal(quotedPaymentAmount, 2000);
         assert.ok(typeof id === 'string');
         assert.ok(typeof client_secret === 'string');
         assert.ok(typeof winc === 'string');
