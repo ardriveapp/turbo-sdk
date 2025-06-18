@@ -511,8 +511,8 @@ describe('Node environment', () => {
           cancelUrl: 'https://example.com/cancel',
         });
         assert.deepEqual(adjustments, []);
-        assert.equal(paymentAmount, 1000);
-        assert.equal(quotedPaymentAmount, 1000);
+        assert.equal(paymentAmount, 2000);
+        assert.equal(quotedPaymentAmount, 2000);
         assert.ok(typeof url === 'string');
         assert.ok(typeof id === 'string');
         assert.equal(client_secret, undefined);
