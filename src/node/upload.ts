@@ -15,7 +15,7 @@
  */
 import { createReadStream, promises, statSync } from 'fs';
 import { lookup } from 'mime-types';
-import { join } from 'path';
+import { join, normalize } from 'path';
 import { Readable } from 'stream';
 
 import {
@@ -97,8 +97,7 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     if (folderPath.startsWith('./')) {
       folderPath = folderPath.slice(2);
     }
-
-    const relativePath = file.replace(folderPath + '/', '');
+    const relativePath = file.replace(normalize(folderPath + '/'), '');
     return relativePath;
   }
 
