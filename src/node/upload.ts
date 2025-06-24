@@ -97,7 +97,6 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     if (folderPath.startsWith('./')) {
       folderPath = folderPath.slice(2);
     }
-
     const relativePath = file.replace(normalize(folderPath + '/'), '');
     return relativePath;
   }
