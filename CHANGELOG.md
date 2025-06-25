@@ -1,3 +1,10 @@
+## [1.28.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.0...v1.28.1) (2025-06-24)
+
+
+### Bug Fixes
+
+* use normalized getReleativePath ([5eca997](https://github.com/ardriveapp/turbo-sdk/commit/5eca997b98181dd5f1f17a0033175f9cc0b95cb2))
+
 # [1.28.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0...v1.28.0) (2025-06-18)
 
 
