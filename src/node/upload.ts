@@ -100,7 +100,7 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
       folderPath = folderPath.slice(2);
     }
     let relativePath = file.replace(join(folderPath + '/'), '');
-    relativePath = relativePath.replace(/\\/g, '/'); //only needed for windows sub-folders
+    relativePath = relativePath.replace(/\\/g, '/'); // only needed for windows sub-folders
     return relativePath;
   }
 
