@@ -56,8 +56,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     for (const file of files) {
       if (file === '.DS_Store') {
         continue;
-      } else if (file.includes('\\')){
-        throw('Files/Sub-folders with backslashes are not supported');
+      } else if (file.includes('\\')) {
+        throw Error('Files/Sub-folders with backslashes are not supported');
       }
       const absoluteFilePath = join(folderPath, file);
       const stat = await promises.stat(absoluteFilePath);
@@ -100,7 +100,7 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
       folderPath = folderPath.slice(2);
     }
     let relativePath = file.replace(join(folderPath + '/'), '');
-    relativePath = relativePath.replace(/\\/g,'/'); //only needed for windows sub-folders
+    relativePath = relativePath.replace(/\\/g, '/'); //only needed for windows sub-folders
     return relativePath;
   }
 
