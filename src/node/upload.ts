@@ -15,7 +15,7 @@
  */
 import { createReadStream, promises, statSync } from 'fs';
 import { lookup } from 'mime-types';
-import { join, normalize } from 'path';
+import { join } from 'path';
 import { Readable } from 'stream';
 
 import {
@@ -56,6 +56,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     for (const file of files) {
       if (file === '.DS_Store') {
         continue;
+      } else if (file.includes('\\')){
+        throw('Files/Sub-folders with backslashes are not supported');
       }
       const absoluteFilePath = join(folderPath, file);
       const stat = await promises.stat(absoluteFilePath);
@@ -97,7 +99,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     if (folderPath.startsWith('./')) {
       folderPath = folderPath.slice(2);
     }
-    const relativePath = file.replace(normalize(folderPath + '/'), '');
+    let relativePath = file.replace(join(folderPath + '/'), '');
+    relativePath = relativePath.replace(/\\/g,'/'); //only needed for windows sub-folders
     return relativePath;
   }
 
