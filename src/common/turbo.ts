@@ -32,8 +32,8 @@ import {
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
+  TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
-  TurboFileFactory,
   TurboFundWithTokensParams,
   TurboPriceResponse,
   TurboRatesResponse,
@@ -45,13 +45,19 @@ import {
   TurboUnauthenticatedClientInterface,
   TurboUnauthenticatedPaymentServiceInterface,
   TurboUnauthenticatedUploadServiceInterface,
+  TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
+  TurboUploadEmitterEvents,
+  TurboUploadFileParams,
+  TurboUploadFileWithFileOrPathParams,
+  TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   TurboWincForFiatParams,
   TurboWincForFiatResponse,
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
+  UploadDataInput,
 } from '../types.js';
 import {
   TurboUnauthenticatedPaymentService,
@@ -171,6 +177,22 @@ export class TurboUnauthenticatedClient
   }
 
   /**
+   * Determines the fiat estimate for a given byte count in a specific currency, including all Turbo cost adjustments and fees.
+   */
+  getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse> {
+    return this.paymentService.getFiatEstimateForBytes({
+      byteCount,
+      currency,
+    });
+  }
+
+  /**
    * Determines the price in the instantiated token to upload one data item of a specific size in bytes, including all Turbo cost adjustments and fees.
    */
   getTokenPriceForBytes({
@@ -188,12 +210,15 @@ export class TurboUnauthenticatedClient
     dataItemStreamFactory,
     dataItemSizeFactory,
     signal,
+    events,
   }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadSignedDataItem({
       dataItemStreamFactory,
       dataItemSizeFactory,
       signal,
+      events,
     });
   }
 
@@ -273,19 +298,82 @@ export class TurboAuthenticatedClient
   /**
    * Signs and uploads raw data to the Turbo Upload Service.
    */
+  upload({
+    data,
+    dataItemOpts,
+    signal,
+    events,
+  }: UploadDataInput &
+    TurboAbortSignal &
+    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.upload({ data, dataItemOpts, signal, events });
+  }
+
+  /**
+   * Signs and uploads raw file data to the Turbo Upload Service.
+   *
+   * @example using a file or path
+   * ```ts
+   * // web
+   * // the file is the file object from the input event onChange for a file input
+   * const selectedFile = e.target.files[0];
+   * const response = await turbo.uploadFile({
+   *   file: selectedFile,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   *   events: {
+   *     onUploadProgress: ({ totalBytes, processedBytes }) => {
+   *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
+   *     },
+   *   },
+   * });
+   *
+   * // node
+   * const response = await turbo.uploadFile({
+   *   file: 'test.txt',
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   * });
+   * ```
+   *
+   * @example using a stream factory
+   * ```ts
+   * // web
+   * const selectedFile = e.target.files[0];
+   * const response = await turbo.uploadFile({
+   *   fileStreamFactory: () => file.stream(),
+   *   fileSizeFactory: () => file.size,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   *   events: {
+   *     onUploadProgress: ({ totalBytes, processedBytes }) => {
+   *       console.log(`Uploaded ${processedBytes} of ${totalBytes} bytes`);
+   *     },
+   *   },
+   * });
+   *
+   * // node
+   * const response = await turbo.uploadFile({
+   *   fileStreamFactory: () => fs.createReadStream('test.txt'),
+   *   fileSizeFactory: () => fs.statSync('test.txt').size,
+   *   dataItemOpts: { tags: [{ name: 'Content-Type', value: 'text/plain' }] },
+   * });
+   * ```
+   */
+  uploadFile({
+    file,
+    events,
+    dataItemOpts,
+    signal,
+  }: TurboUploadFileWithFileOrPathParams): Promise<TurboUploadDataItemResponse>;
   uploadFile({
     fileStreamFactory,
     fileSizeFactory,
-    signal,
     dataItemOpts,
-  }: TurboFileFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.uploadFile({
-      fileStreamFactory,
-      fileSizeFactory,
-      signal,
-      dataItemOpts,
-    });
+    signal,
+    events,
+  }: TurboUploadFileWithStreamFactoryParams): Promise<TurboUploadDataItemResponse>;
+  uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadFile(params);
   }
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse> {

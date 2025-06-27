@@ -13,79 +13,18 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Web](#web)
-    - [Bundlers (Webpack, Rollup, ESbuild, etc.)](#bundlers-webpack-rollup-esbuild-etc)
-    - [Browser](#browser)
   - [NodeJS](#nodejs)
-    - [CommonJS](#commonjs)
-    - [ESM](#esm)
   - [Typescript](#typescript)
   - [Examples](#examples)
-- [Logging](#logging)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
-    - [`unauthenticated()`](#unauthenticated)
-    - [`authenticated()`](#authenticated)
-      - [Arweave JWK](#arweave-jwk)
-      - [ArweaveSigner](#arweavesigner)
-      - [ArconnectSigner](#arconnectsigner)
-      - [EthereumSigner](#ethereumsigner)
-      - [Ethereum Private Key](#ethereum-private-key)
-      - [POL (MATIC) Private Key](#pol-matic-private-key)
-      - [HexSolanaSigner](#hexsolanasigner)
-      - [Solana Secret Key](#solana-secret-key)
-      - [KYVE Private Key](#kyve-private-key)
-      - [KYVE Mnemonic](#kyve-mnemonic)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
-    - [`getSupportedCurrencies()`](#getsupportedcurrencies)
-    - [`getSupportedCountries()`](#getsupportedcountries)
-    - [`getFiatToAR({ currency })`](#getfiattoar-currency-)
-    - [`getFiatRates()`](#getfiatrates)
-    - [`getWincForFiat({ amount })`](#getwincforfiat-amount-)
-    - [`getWincForToken({ tokenAmount })`](#getwincfortoken-tokenamount-)
-    - [`getTokenPriceForBytes({ byteCount })`](#gettokenpriceforbytes-bytecount-)
-    - [`getUploadCosts({ bytes })`](#getuploadcosts-bytes-)
-    - [`uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`](#uploadsigneddataitem-dataitemstreamfactory-dataitemsizefactory-signal-)
-    - [`createCheckoutSession({ amount, owner })`](#createcheckoutsession-amount-owner-)
-      - [Arweave (AR) Fiat Top Up](#arweave-ar-fiat-top-up)
-      - [Ethereum (ETH) Fiat Top Up](#ethereum-eth-fiat-top-up)
-      - [Solana (SOL) Fiat Top Up](#solana-sol-fiat-top-up)
-      - [Polygon (POL / MATIC) Fiat Top Up](#polygon-pol--matic-fiat-top-up)
-      - [KYVE Fiat Top Up](#kyve-fiat-top-up)
-    - [`submitFundTransaction({ txId })`](#submitfundtransaction-txid-)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
-    - [`getBalance()`](#getbalance)
-    - [`signer.getNativeAddress()`](#signergetnativeaddress)
-    - [`getWincForFiat({ amount, promoCodes })`](#getwincforfiat-amount-promocodes-)
-    - [`createCheckoutSession({ amount, owner, promoCodes })`](#createcheckoutsession-amount-owner-promocodes-)
-    - [`uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`](#uploadfile-filestreamfactory-filesizefactory-signal-dataitemopts-)
-    - [`uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`](#uploadfolder-folderpath-files-dataitemopts-signal-maxconcurrentuploads-throwonfailure-manifestoptions-)
-      - [NodeJS Upload Folder](#nodejs-upload-folder)
-      - [Browser Upload Folder](#browser-upload-folder)
-    - [`topUpWithTokens({ tokenAmount, feeMultiplier })`](#topupwithtokens-tokenamount-feemultiplier-)
-      - [Arweave (AR) Crypto Top Up](#arweave-ar-crypto-top-up)
-      - [Ethereum (ETH) Crypto Top Up](#ethereum-eth-crypto-top-up)
-      - [Polygon (POL / MATIC) Crypto Top Up](#polygon-pol--matic-crypto-top-up)
-      - [Eth on Base Network Crypto Top Up](#eth-on-base-network-crypto-top-up)
-      - [Solana (SOL) Crypto Top Up](#solana-sol-crypto-top-up)
-      - [KYVE Crypto Top Up](#kyve-crypto-top-up)
-    - [`shareCredits({ approvedAddress, approvedWincAmount, expiresBySeconds })`](#sharecredits-approvedaddress-approvedwincamount-expiresbyseconds-)
-    - [`revokeCredits({ approvedAddress })`](#revokecredits-approvedaddress-)
-    - [`getCreditShareApprovals({ userAddress })`](#getcreditshareapprovals-useraddress-)
+- [Events](#events)
+- [Logging](#logging)
 - [CLI](#cli)
-  - [Install CLI](#install-cli)
-  - [CLI Usage](#cli-usage)
-    - [Options](#options)
-    - [Commands](#commands)
-      - [`balance`](#balance)
-      - [`top-up`](#top-up)
-      - [`crypto-fund`](#crypto-fund)
-      - [`upload-folder`](#upload-folder)
-      - [`upload-file`](#upload-file)
-      - [`price`](#price)
-      - [`token-price`](#token-price)
-      - [`share-credits`](#share-credits)
-      - [`revoke-credits`](#revoke-credits)
-      - [`list-shares`](#list-shares)
+  - [Installation](#installation-1)
+  - [Usage](#usage-1)
 - [Turbo Credit Sharing](#turbo-credit-sharing)
 - [Developers](#developers)
   - [Requirements](#requirements)
@@ -111,55 +50,80 @@ yarn add @ardrive/turbo-sdk
 ## Quick Start
 
 ```typescript
-import { TurboFactory, ArweaveSigner } from '@ardrive/turbo-sdk';
+import { ArweaveSigner, TurboFactory } from '@ardrive/turbo-sdk';
+import Arweave from 'arweave';
+import fs from 'fs';
+import open from 'open';
+import path from 'path';
 
-// load your JWK directly to authenticate
-const jwk = fs.readFileSync('./my-jwk.json');
-const address = arweave.wallets.jwkToAddress(jwk);
-const turbo = TurboFactory.authenticated({ privateKey: jwk });
+async function uploadWithTurbo() {
+  const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
+  const signer = new ArweaveSigner(jwk);
+  const turbo = TurboFactory.authenticated({ signer });
 
-// or provide your own signer
-const signer = new ArweaveSigner(jwk);
-const turbo = TurboFactory.authenticated({ signer });
+  try {
+    // upload some simple data - log upload progress events
+    const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.upload({
+      data: 'Hello, world!',
+      events: {
+        // overall events (includes signing and upload events)
+        onProgress: ({ totalBytes, processedBytes, step }) => {
+          console.log('Overall progress:', { totalBytes, processedBytes, step });
+        },
+        onError: ({ error, step }) => {
+          console.log('Overall error:', { error, step });
+        },
+      },
+    });
 
-// get the wallet balance
-const { winc: balance } = await turbo.getBalance();
-
-// prep file for upload
-const filePath = path.join(__dirname, './my-image.png');
-const fileSize = fs.statSync(filePath).size;
-
-// get the cost of uploading the file
-const [{ winc: fileSizeCost }] = await turbo.getUploadCosts({
-  bytes: [fileSize],
-});
-
-// check if balance greater than upload cost
-if (balance < fileSizeCost) {
-  const { url } = await turbo.createCheckoutSession({
-    amount: fileSizeCost,
-    owner: address,
-    // add a promo code if you have one
-  });
-  // open the URL to top-up, continue when done
-  open(url);
-  return;
-}
-
-// upload the file
-try {
-  const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.uploadFile(() => {
-    fileStreamFactory => () => fs.createReadStream(filePath),
-    fileSizeFactory => () => fileSize,
-  });
-  // upload complete!
-  console.log('Successfully upload data item!', { id, owner, dataCaches, fastFinalityIndexes });
-} catch (error) {
-  // upload failed
-  console.error('Failed to upload data item!', error);
-} finally {
-  const { winc: newBalance } = await turbo.getBalance();
-  console.log('New balance:', newBalance);
+    // upload a file - log signing and upload progress events
+    const filePath = path.join(__dirname, './my-image.png');
+    const fileSize = fs.statSync(filePath).size;
+    const { id, owner, dataCaches, fastFinalityIndexes } =
+      await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+        events: {
+          // overall events (includes signing and upload events)
+          onProgress: ({ totalBytes, processedBytes, step }) => {
+            console.log('Overall progress:', { totalBytes, processedBytes, step });
+          },
+          onError: ({ error, step }) => {
+            console.log('Overall error:', { error, step });
+          },
+          // signing events
+          onSigningProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Signing progress:', { totalBytes, processedBytes });
+          },
+          onSigningError: (error) => {
+            console.log('Signing error:', { error });
+          },
+          onSigningSuccess: () => {
+            console.log('Signing success!');
+          },
+          // upload events
+          onUploadProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Upload progress:', { totalBytes, processedBytes });
+          },
+          onUploadError: (error) => {
+            console.log('Upload error:', { error });
+          },
+          onUploadSuccess: () => {
+            console.log('Upload success!');
+          },
+        },
+      });
+    // upload complete!
+    console.log('Successfully upload data item!', {
+      id,
+      owner,
+      dataCaches,
+      fastFinalityIndexes,
+    });
+  } catch (error) {
+    // upload failed
+    console.error('Failed to upload data item!', error);
+  }
 }
 ```
 
@@ -169,24 +133,13 @@ The SDK is provided in both CommonJS and ESM formats, and it's compatible with b
 
 ### Web
 
-#### Bundlers (Webpack, Rollup, ESbuild, etc.)
-
-CommonJS:
-
-```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk';
-
-const turbo = TurboFactory.unauthenticated();
-const rates = await turbo.getFiatRates();
-```
-
 > [!WARNING]
 > Polyfills are not provided by default for bundled web projects (Vite, ESBuild, Webpack, Rollup, etc.) . Depending on your apps bundler configuration and plugins, you will need to provide polyfills for various imports including `crypto`, `process`, `fs` and `buffer`. Refer to your bundler's documentation for how to provide the necessary polyfills.
 
-ESM:
+#### Bundlers (Webpack, Rollup, ESbuild, etc.)
 
-```javascript
-import { TurboFactory } from '@ardrive/turbo-sdk/<node/web>';
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
 
 const turbo = TurboFactory.unauthenticated();
 const rates = await turbo.getFiatRates();
@@ -207,11 +160,25 @@ const rates = await turbo.getFiatRates();
 
 #### CommonJS
 
-Example available in the [examples/typescript/cjs].
+Full example available in the [examples/typescript/cjs].
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
 
 #### ESM
 
-Example available in the [examples/typescript/esm].
+Full example available in the [examples/typescript/esm].
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/node';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
 
 ### Typescript
 
@@ -230,14 +197,6 @@ Examples are available in the [examples] directory. To run examples:
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
 - `yarn example:esm` - runs example ESM node script
-
-## Logging
-
-The SDK uses winston for logging. You can set the log level using the `setLogLevel` method.
-
-```typescript
-TurboFactory.setLogLevel('debug');
-```
 
 ## APIs
 
@@ -393,6 +352,34 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   });
 ```
 
+#### `getFiatEstimateForBytes({ byteCount, currency })`
+
+Get the current price from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated();
+const { amount } = await turbo.getFiatEstimateForBytes({
+  byteCount: 1024 * 1024 * 1024,
+  currency: 'usd', // specify the currency for the price
+});
+
+console.log(amount); // Estimated usd price for 1 GiB
+```
+
+<details>
+  <summary>Example Output</summary>
+
+```json
+{
+  "byteCount": 1073741824,
+  "amount": 20.58,
+  "currency": "usd",
+  "winc": "2402378997310"
+}
+```
+
+</details>
+
 #### `getTokenPriceForBytes({ byteCount })`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
@@ -415,9 +402,9 @@ const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
 const { winc, adjustments } = uploadCostForFile;
 ```
 
-#### `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal })`
+#### `uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, signal, events })`
 
-Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request.
+Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `events` parameter is an optional object that can be used to listen to upload progress, errors, and success (refer to the [Events] section for more details).
 
 ```typescript
 const filePath = path.join(__dirname, './my-signed-data-item');
@@ -426,6 +413,18 @@ const uploadResponse = await turbo.uploadSignedDataItem({
   dataItemStreamFactory: () => fs.createReadStream(filePath),
   dataItemSizeFactory: () => dataItemSize,
   signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  events: {
+    // track upload events only
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+  },
 });
 ```
 
@@ -444,21 +443,12 @@ const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
   });
 
 // Open checkout session in a browser
-if (process.platform === 'darwin') {
-  // macOS
-  exec(`open ${url}`);
-} else if (process.platform === 'win32') {
-  // Windows
-  exec(`start "" "${url}"`, { shell: true });
-} else {
-  // Linux/Unix
-  open(url);
-}
+window.open(url, '_blank');
 ```
 
 ##### Ethereum (ETH) Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'ethereum' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -469,7 +459,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 ##### Solana (SOL) Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'solana' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -480,7 +470,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 ##### Polygon (POL / MATIC) Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'pol' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -491,7 +481,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 
 ##### KYVE Fiat Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
 
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
@@ -556,22 +546,75 @@ const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
     promoCodes: ['MY_PROMO_CODE'], // promo codes require an authenticated client
   });
 
-// Open checkout session in a browser
-if (process.platform === 'darwin') {
-  // macOS
-  exec(`open ${url}`);
-} else if (process.platform === 'win32') {
-  // Windows
-  exec(`start "" "${url}"`, { shell: true });
-} else {
-  // Linux/Unix
-  open(url);
-}
+// open checkout session in a browser
+window.open(url, '_blank');
 ```
 
-#### `uploadFile({ fileStreamFactory, fileSizeFactory, signal, dataItemOpts })`
+#### `upload({ data, signal, dataItemOpts, events })`
 
-Signs and uploads a raw file. The provided `fileStreamFactory` should produce a NEW file data stream each time is it invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+The easiest way to upload data to Turbo. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+
+```typescript
+const uploadResult = await turbo.upload({
+  data: 'The contents of my file!',
+  signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  dataItemOpts: {
+    // optional
+  },
+  events: {
+    // optional
+  },
+});
+```
+
+#### `uploadFile({ ...fileOrStreamFactoryOpts, signal, dataItemOpts, events })`
+
+Signs and uploads a raw file. There are two ways to provide the file to the SDK:
+
+1. Using a `file` parameter
+2. Using a `fileStreamFactory` and `fileSizeFactory`
+
+##### Using `file`
+
+In Web with a file input:
+
+```typescript
+const selectedFile = e.target.files[0];
+const uploadResult = await turbo.uploadFile({
+  file: selectedFile,
+  dataItemOpts: {
+    tags: [{ name: 'Content-Type', value: 'text/plain' }],
+  },
+  events: {
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+  },
+});
+```
+
+In NodeJS with a file path:
+
+```typescript
+const filePath = path.join(__dirname, './my-unsigned-file.txt');
+const fileSize = fs.stateSync(filePath).size;
+const uploadResult = await turbo.uploadFile({
+  file: filePath,
+  dataItemOpts: {
+    tags: [{ name: 'Content-Type', value: 'text/plain' }],
+  },
+});
+```
+
+##### Using `fileStreamFactory` and `fileSizeFactory`
+
+Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
 ```typescript
 const filePath = path.join(__dirname, './my-unsigned-file.txt');
@@ -579,20 +622,6 @@ const fileSize = fs.stateSync(filePath).size;
 const uploadResult = await turbo.uploadFile({
   fileStreamFactory: () => fs.createReadStream(filePath),
   fileSizeFactory: () => fileSize,
-  dataItemOpts: {
-    // optional
-    tags: [
-      {
-        name: 'Content-Type',
-        value: 'text/plain',
-      },
-      {
-        name: 'My-Custom-Tag',
-        value: 'my-custom-value',
-      },
-    ],
-    // no timeout or AbortSignal provided
-  },
 });
 ```
 
@@ -669,9 +698,19 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
+##### AR.IO Network (ARIO) Crypto Top Up
+
+```typescript
+const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
+
+const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
+  tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
+});
+```
+
 ##### Ethereum (ETH) Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'ethereum' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -681,7 +720,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Polygon (POL / MATIC) Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'pol' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -691,7 +730,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Eth on Base Network Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'base-eth' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -701,7 +740,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### Solana (SOL) Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -711,7 +750,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### KYVE Crypto Top Up
 
-```ts
+```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
@@ -752,9 +791,81 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
+## Events
+
+The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, and `uploadSignedDataItem` methods.
+
+- `onProgress` - emitted when the overall progress changes (includes both upload and signing). Each event consists of the total bytes, processed bytes, and the step (upload or signing)
+- `onError` - emitted when the overall upload or signing fails (includes both upload and signing)
+- `onSuccess` - emitted when the overall upload or signing succeeds (includes both upload and signing) - this is the last event emitted for the upload or signing process
+- `onSigningProgress` - emitted when the signing progress changes.
+- `onSigningError` - emitted when the signing fails.
+- `onSigningSuccess` - emitted when the signing succeeds
+- `onUploadProgress` - emitted when the upload progress changes
+- `onUploadError` - emitted when the upload fails
+- `onUploadSuccess` - emitted when the upload succeeds
+
+```typescript
+const uploadResult = await turbo.upload({
+  data: 'The contents of my file!',
+  signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  dataItemOpts: {
+    // optional
+  },
+  events: {
+    // overall events (includes signing and upload events)
+    onProgress: ({ totalBytes, processedBytes, step }) => {
+      const percentComplete = (processedBytes / totalBytes) * 100;
+      console.log('Overall progress:', {
+        totalBytes,
+        processedBytes,
+        step,
+        percentComplete: percentComplete.toFixed(2) + '%', // eg 50.68%
+      });
+    },
+    onError: (error) => {
+      console.log('Overall error:', { error });
+    },
+    onSuccess: () => {
+      console.log('Signed and upload data item!');
+    },
+    // upload events
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+    // signing events
+    onSigningProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Signing progress:', { totalBytes, processedBytes });
+    },
+    onSigningError: (error) => {
+      console.log('Signing error:', { error });
+    },
+    onSigningSuccess: () => {
+      console.log('Signing success!');
+    },
+  },
+});
+```
+
+## Logging
+
+The SDK uses winston for logging. You can set the log level using the `setLogLevel` method.
+
+```typescript
+TurboFactory.setLogLevel('debug');
+```
+
 ## CLI
 
-### Install CLI
+<!-- markdownlint-disable MD024 -->
+
+### Installation
 
 Global installation:
 
@@ -780,7 +891,9 @@ or
 yarn add -D @ardrive/turbo-sdk
 ```
 
-### CLI Usage
+<!-- markdownlint-disable MD024 -->
+
+### Usage
 
 ```shell
 turbo --help
@@ -806,6 +919,8 @@ Global options:
 - `-g, --gateway <url>` - Set a custom crypto gateway URL
 - `--upload-url <url>` - Set a custom upload service URL
 - `--payment-url <url>` - Set a custom payment service URL
+- `--cu-url <url>` - Set a custom AO compute unit URL
+- `--process-id <id>` - Set a custom target process ID for AO action
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
 
 Wallet options:
@@ -876,6 +991,15 @@ turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
 ```
 
+```shell
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json
+```
+
+```shell
+# Use a custom AO process ID and compute unit:
+turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
+```
+
 ##### `upload-folder`
 
 Upload a folder of files and create and upload a manifest file for the folder upload to the Turbo Upload Service.
@@ -916,6 +1040,7 @@ Command Options:
 
 - `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
 - `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp').
 
 e.g:
 
@@ -931,13 +1056,28 @@ turbo price --value 1024 --type bytes
 turbo price --value 1.1 --type arweave
 ```
 
+##### `fiat-estimate`
+
+Get the current fiat estimation from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+Command Options:
+
+- `--byte-count <byteCount>` - Byte count of data to get the fiat estimate for
+- `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp')
+
+e.g:
+
+```shell
+turbo fiat-estimate --byte-count 102400 --currency usd
+```
+
 ##### `token-price`
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
 Command Options:
 
-- `--byte-count <byteCount>` - Byte value to get the token price for
+- `--byte-count <byteCount>` - Byte count of data to get the token price for
 
 e.g:
 
@@ -1062,3 +1202,4 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 [AbortSignal]: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
 [docs/native-address]: https://docs.ar.io/glossary.html#native-address
+[Events]: #events

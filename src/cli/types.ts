@@ -24,6 +24,8 @@ export type GlobalOptions = {
   token: string;
   paymentUrl: string | undefined;
   uploadUrl: string | undefined;
+  processId: string | undefined;
+  cuUrl: string | undefined;
 };
 
 export type WalletOptions = GlobalOptions & {
@@ -65,8 +67,13 @@ export type TokenPriceOptions = GlobalOptions & {
   byteCount: string | undefined;
 };
 
+export type FiatEstimateOptions = TokenPriceOptions & {
+  currency: string | undefined;
+};
+
 export type PriceOptions = TokenPriceOptions & {
   value: string | undefined;
+  currency: string | undefined;
   type: string | undefined;
 };
 

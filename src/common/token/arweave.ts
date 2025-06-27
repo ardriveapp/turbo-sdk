@@ -138,23 +138,29 @@ export class ArweaveToken implements TokenTools {
       attempts++;
 
       try {
-        const response = await this.arweave.api.post('/graphql', {
-          query: `
+        const gqlQuery = `
           query {
-            transaction(id: "${txId}") {
-              recipient
-              owner {
-                address
-              }
-              quantity {
-                winston
+            transactions(ids: ["${txId}"]) {
+              edges {
+                node {
+                  recipient
+                  owner {
+                    address
+                  }
+                  quantity {
+                    winston
+                  }
+                }
               }
             }
           }
-          `,
+        `;
+
+        const response = await this.arweave.api.post(`/graphql`, {
+          query: gqlQuery,
         });
 
-        transaction = response?.data?.data?.transaction;
+        transaction = response?.data?.data?.transactions?.edges[0]?.node;
       } catch (err) {
         // Continue retries when request errors
         this.logger.debug('Failed to poll for transaction...', { err });

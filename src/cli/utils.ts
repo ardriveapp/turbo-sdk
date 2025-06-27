@@ -18,19 +18,28 @@ import { Command, OptionValues } from 'commander';
 import { readFileSync, statSync } from 'fs';
 
 import {
+  Currency,
   TokenType,
   TurboAuthenticatedClient,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
+  fiatCurrencyTypes,
+  isCurrency,
   isTokenType,
   privateKeyFromKyveMnemonic,
 } from '../node/index.js';
+import {
+  defaultProdAoConfigs,
+  tokenToDevAoConfigMap,
+  tokenToDevGatewayMap,
+} from '../utils/common.js';
 import { NoWalletProvidedError } from './errors.js';
 import {
   AddressOptions,
   GlobalOptions,
+  TokenPriceOptions,
   UploadFolderOptions,
   UploadOptions,
   WalletOptions,
@@ -41,11 +50,11 @@ export function exitWithErrorLog(error: unknown) {
   process.exit(1);
 }
 
-export async function runCommand<O extends OptionValues>(
+export async function runCommand<T extends OptionValues>(
   command: Command,
-  action: (options: O) => Promise<void>,
+  action: (options: T) => Promise<void>,
 ) {
-  const options = command.optsWithGlobals<O>();
+  const options = command.optsWithGlobals<T>();
 
   try {
     await action(options);
@@ -162,16 +171,6 @@ export async function privateKeyFromOptions({
   throw new NoWalletProvidedError();
 }
 
-const tokenToDevGatewayMap: Record<TokenType, string> = {
-  arweave: 'https://arweave.net', // No arweave test net
-  solana: 'https://api.devnet.solana.com',
-  ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
-  'base-eth': 'https://sepolia.base.org',
-  kyve: 'https://api.korellia.kyve.network',
-  matic: 'https://rpc-amoy.polygon.technology',
-  pol: 'https://rpc-amoy.polygon.technology',
-};
-
 export function configFromOptions(
   options: GlobalOptions,
 ): TurboUnauthenticatedConfiguration {
@@ -180,6 +179,8 @@ export function configFromOptions(
   let paymentUrl: string | undefined = undefined;
   let uploadUrl: string | undefined = undefined;
   let gatewayUrl: string | undefined = undefined;
+  let processId: string | undefined = undefined;
+  let cuUrl: string | undefined = undefined;
 
   if (options.local && options.dev) {
     throw new Error('Cannot use both --local and --dev flags');
@@ -190,6 +191,11 @@ export function configFromOptions(
     paymentUrl = developmentTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = developmentTurboConfiguration.uploadServiceConfig.url;
     gatewayUrl = tokenToDevGatewayMap[token];
+
+    if (options.token === 'ario') {
+      processId = tokenToDevAoConfigMap[token].processId;
+      cuUrl = tokenToDevAoConfigMap[token].cuUrl;
+    }
   } else if (options.local) {
     // Use local endpoints
     paymentUrl = 'http://localhost:4000';
@@ -199,6 +205,10 @@ export function configFromOptions(
     // Use default endpoints
     paymentUrl = defaultTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = defaultTurboConfiguration.uploadServiceConfig.url;
+    if (options.token === 'ario') {
+      processId = defaultProdAoConfigs[token].processId;
+      cuUrl = defaultProdAoConfigs[token].cuUrl;
+    }
   }
 
   // Override gateway, payment, and upload service default endpoints if provided
@@ -211,12 +221,20 @@ export function configFromOptions(
   if (options.uploadUrl !== undefined) {
     uploadUrl = options.uploadUrl;
   }
+  if (options.cuUrl !== undefined) {
+    cuUrl = options.cuUrl;
+  }
+  if (options.processId !== undefined) {
+    processId = options.processId;
+  }
 
   const config = {
     paymentServiceConfig: { url: paymentUrl },
     uploadServiceConfig: { url: uploadUrl },
     gatewayUrl,
     token,
+    processId,
+    cuUrl,
   };
 
   return config;
@@ -333,4 +351,37 @@ export function getTagsFromOptions(
   options: UploadOptions,
 ): { name: string; value: string }[] {
   return parseTags(options.tags);
+}
+
+export function currencyFromOptions<
+  T extends GlobalOptions & { currency?: string },
+>(options: T): Currency | undefined {
+  const currency = options.currency?.toLowerCase();
+
+  if (!isCurrency(currency)) {
+    throw new Error(
+      `Invalid fiat currency type ${currency}!\nPlease use one of these:\n${JSON.stringify(
+        fiatCurrencyTypes,
+        null,
+        2,
+      )}`,
+    );
+  }
+
+  return currency;
+}
+
+export function requiredByteCountFromOptions({
+  byteCount,
+}: TokenPriceOptions): number {
+  const byteCountValue = byteCount !== undefined ? +byteCount : undefined;
+  if (
+    byteCountValue === undefined ||
+    isNaN(byteCountValue) ||
+    !Number.isInteger(byteCountValue) ||
+    byteCountValue <= 0
+  ) {
+    throw new Error('Must provide a positive number for byte count.');
+  }
+  return byteCountValue;
 }

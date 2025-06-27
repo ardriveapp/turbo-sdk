@@ -59,10 +59,13 @@ export const createAxiosInstance = ({
       ...axiosConfig.headers,
       ...defaultRequestHeaders,
     },
+    adapter: 'fetch',
     validateStatus: () => true, // don't throw on non-200 status codes
   });
 
   if (retryConfig.retries !== undefined && retryConfig.retries > 0) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     axiosRetry(axiosInstance, retryConfig);
   }
 

@@ -1,15 +1,76 @@
-## [1.23.4-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.4-alpha.1...v1.23.4-alpha.2) (2025-04-08)
+## [1.28.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.1...v1.28.2) (2025-06-27)
+
+
+### Bug Fixes
+
+* use windows OS compatible manifest ([b192596](https://github.com/ardriveapp/turbo-sdk/commit/b192596f6e1308565f85411f4fca57d5bafcf12e))
+
+## [1.28.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.0...v1.28.1) (2025-06-24)
+
+
+### Bug Fixes
+
+* use normalized getReleativePath ([5eca997](https://github.com/ardriveapp/turbo-sdk/commit/5eca997b98181dd5f1f17a0033175f9cc0b95cb2))
+
+# [1.28.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.27.0...v1.28.0) (2025-06-18)
+
+
+### Bug Fixes
+
+* **payment:** only append promo codes if provided ([7afef05](https://github.com/ardriveapp/turbo-sdk/commit/7afef0525a3f956975983ee63c5b4518da704071))
+
+
+### Features
+
+* **topup:** add support for callback urls in createCheckoutSession ([a98a277](https://github.com/ardriveapp/turbo-sdk/commit/a98a27726bf224b2c69ec817f6acd4a5da2d375c))
+
+# [1.27.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.26.0...v1.27.0) (2025-06-10)
+
+### Features
+
+* **bytes-to-usd:** init fiat-estimate command and bytes --currency special case PE-8142 ([ffe0573](https://github.com/ardriveapp/turbo-sdk/commit/ffe0573d121ea21513fff6e1c468309346631275))
+* **stream signer:** add web stream signer ([1cf2159](https://github.com/ardriveapp/turbo-sdk/commit/1cf2159cf82fa983e32c9f139e21a99f6124cebf))
+* **turbo uploadFile:** extend uploadFile interface to accept a file param for File or filePath ([f70c3be](https://github.com/ardriveapp/turbo-sdk/commit/f70c3be852b93d2c1c6482a2065f9624657f842f))
+
+# [1.26.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.25.0...v1.26.0) (2025-06-02)
+
+
+### Features
+
+* **emitter:** use a global TurboEventEmitter that submits all requests and manages progress internally ([f01645e](https://github.com/ardriveapp/turbo-sdk/commit/f01645e452402a7f65613ec28e2d26c131a38b21))
+* **events:** add signing-success and upload-success events ([c837540](https://github.com/ardriveapp/turbo-sdk/commit/c837540e380af92981d4179a26ddaac574cd7fde))
+* **events:** add SigningEmitter that emits events for signing ([4330ca9](https://github.com/ardriveapp/turbo-sdk/commit/4330ca90de5a8df8370a04f812e7d1c2d1e4a060))
+
+# [1.25.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.24.0...v1.25.0) (2025-05-02)
+
+
+### Features
+
+* **uploadData:** add uploadData api for web and node PE-8042 ([2ff41e8](https://github.com/ardriveapp/turbo-sdk/commit/2ff41e840bd1a360bf528bef6992f44f6668aef3))
+* **uploadData:** rely on Buffer polyfill PE-8042 ([4cef4be](https://github.com/ardriveapp/turbo-sdk/commit/4cef4befc8a85f7988804e8600e9f992a14cfe2c))
+* **uploadData:** simplify by just using a buffer when possible PE-8042 ([da903a2](https://github.com/ardriveapp/turbo-sdk/commit/da903a242542c9fc30a3091e4085ee002c18f145))
+* **upload:** rename uploadData to upload and update README PE-8042 ([a8124e1](https://github.com/ardriveapp/turbo-sdk/commit/a8124e1ff77a4bf6da408c703d948dc730e86273))
+
+# [1.24.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.5...v1.24.0) (2025-05-02)
+
+
+### Features
+
+* **ario:** extend crypto fund for $ARIO payments PE-8005 ([457eb85](https://github.com/ardriveapp/turbo-sdk/commit/457eb85b7dda11a159ac39c5971a6f003a42aa05))
+
+## [1.23.5](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.4...v1.23.5) (2025-04-16)
+
+
+### Bug Fixes
+
+* **arweave fund:** use a working GQL query PE-7980 ([848afdc](https://github.com/ardriveapp/turbo-sdk/commit/848afdc6493ba1149ee6b90ba8fdcb8c3eb27b1c))
+
+## [1.23.4](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.3...v1.23.4) (2025-04-09)
 
 
 ### Bug Fixes
 
 * **deps:** include bitcoinjs-lib as a dependency ([794748b](https://github.com/ardriveapp/turbo-sdk/commit/794748b045a58b8de9b9ac7f329845b061cc0610))
-
-## [1.23.4-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.3...v1.23.4-alpha.1) (2025-04-08)
-
-
-### Bug Fixes
-
 * **types:** avoid using node: imports as they are only available in node environments ([37e5706](https://github.com/ardriveapp/turbo-sdk/commit/37e5706c6a95484ad49208ca2c88c45f2dfa79ca))
 
 ## [1.23.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.23.2...v1.23.3) (2025-04-07)

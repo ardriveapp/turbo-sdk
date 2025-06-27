@@ -15,8 +15,7 @@
  */
 import { AxiosError, AxiosInstance, AxiosResponse, CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
-import { Readable } from 'stream';
-import { ReadableStream } from 'stream/web';
+import { Readable } from 'node:stream';
 
 import {
   TurboHTTPServiceInterface,
@@ -44,16 +43,6 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       axiosConfig: {
         baseURL: url,
         maxRedirects: 0, // prevents backpressure issues when uploading larger streams via https
-        onUploadProgress: (progressEvent) => {
-          this.logger.debug(`Uploading...`, {
-            percent: Math.floor((progressEvent.progress ?? 0) * 100),
-            loaded: `${progressEvent.loaded} bytes`,
-            total: `${progressEvent.total} bytes`,
-          });
-          if (progressEvent.progress === 1) {
-            this.logger.debug(`Upload complete!`);
-          }
-        },
       },
       retryConfig,
       logger: this.logger,
@@ -111,10 +100,12 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       }
       return data;
     } catch (error) {
-      if (error instanceof CanceledError) {
-        throw error;
-      }
-      if (error instanceof AxiosError) {
+      if (
+        error instanceof AxiosError &&
+        error.code === AxiosError.ERR_CANCELED
+      ) {
+        throw new CanceledError();
+      } else if (error instanceof AxiosError) {
         throw new FailedRequestError(error.code ?? error.message, error.status);
       }
       throw error;

@@ -25,10 +25,10 @@ import {
 import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
-import { Readable } from 'stream';
-import { ReadableStream } from 'stream/web';
+import { Readable } from 'node:stream';
 
 import { CurrencyMap } from './common/currency.js';
+import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
 
@@ -52,7 +52,7 @@ export const fiatCurrencyTypes = [
   'brl',
 ] as const;
 export type Currency = (typeof fiatCurrencyTypes)[number];
-export function isCurrency(currency: string): currency is Currency {
+export function isCurrency(currency: unknown): currency is Currency {
   return fiatCurrencyTypes.includes(currency as Currency);
 }
 
@@ -60,6 +60,7 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 
 export const tokenTypes = [
   'arweave',
+  'ario',
   'solana',
   'ethereum',
   'kyve',
@@ -80,7 +81,7 @@ export type Adjustment = {
 export type CurrencyLimit = {
   minimumPaymentAmount: number;
   maximumPaymentAmount: number;
-  suggestedPaymentAmount: number[];
+  suggestedPaymentAmounts: number[];
   zeroDecimalCurrency: boolean;
 };
 
@@ -116,6 +117,13 @@ export type TurboTokenPriceForBytesResponse = {
   token: TokenType;
 };
 
+export type TurboFiatEstimateForBytesResponse = {
+  byteCount: number;
+  amount: number;
+  winc: string;
+  currency: Currency;
+};
+
 export type TurboWincForFiatParams = {
   amount: CurrencyMap;
   nativeAddress?: NativeAddress;
@@ -126,10 +134,21 @@ export type TurboWincForTokenParams = {
   tokenAmount: BigNumber.Value;
 };
 
+// @deprecated use TurboCheckoutSessionHostedParams or TurboCheckoutSessionEmbeddedParams instead
 export type UiMode = 'embedded' | 'hosted';
 export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
   owner: PublicArweaveAddress;
-  uiMode?: UiMode;
+} & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+
+export type TurboCheckoutSessionHostedParams = {
+  uiMode?: 'hosted';
+  successUrl?: string;
+  cancelUrl?: string;
+};
+
+export type TurboCheckoutSessionEmbeddedParams = {
+  uiMode?: 'embedded';
+  returnUrl?: string;
 };
 
 export type TopUpRawResponse = {
@@ -376,6 +395,77 @@ type TurboServiceConfiguration = {
   token?: TokenType;
 };
 
+export type TurboUploadEventsAndPayloads = {
+  'upload-progress': {
+    totalBytes: number;
+    processedBytes: number;
+  };
+  'upload-error': Error; // TODO: replace with FailedRequestError
+  'upload-success': never[];
+};
+
+export type TurboSigningEventsAndPayloads = {
+  'signing-progress': {
+    totalBytes: number;
+    processedBytes: number;
+  };
+  'signing-error': Error; // TODO: replace with SigningError
+  'signing-success': never[];
+};
+
+export type TurboTotalEventsAndPayloads = {
+  'overall-progress': {
+    totalBytes: number;
+    processedBytes: number;
+    step: 'signing' | 'upload';
+  };
+  'overall-error': Error; // TODO: replace with union of FailedRequestError and SigningError
+  'overall-success': never[];
+};
+
+export type TurboUploadEmitterEventArgs = {
+  onUploadProgress?: (
+    event: TurboUploadEventsAndPayloads['upload-progress'],
+  ) => void;
+  onUploadError?: (event: TurboUploadEventsAndPayloads['upload-error']) => void;
+  onUploadSuccess?: (
+    event: TurboUploadEventsAndPayloads['upload-success'],
+  ) => void;
+};
+
+export type TurboSigningEmitterEventArgs = {
+  onSigningProgress?: (
+    event: TurboSigningEventsAndPayloads['signing-progress'],
+  ) => void;
+  onSigningError?: (
+    event: TurboSigningEventsAndPayloads['signing-error'],
+  ) => void;
+  onSigningSuccess?: (
+    event: TurboSigningEventsAndPayloads['signing-success'],
+  ) => void;
+};
+
+export type TurboTotalEmitterEventArgs = {
+  onProgress?: (event: TurboTotalEventsAndPayloads['overall-progress']) => void;
+  onError?: (event: TurboTotalEventsAndPayloads['overall-error']) => void;
+  onSuccess?: (event: TurboTotalEventsAndPayloads['overall-success']) => void;
+};
+
+export type TurboTotalEmitterEvents = {
+  events?: TurboTotalEmitterEventArgs;
+};
+
+export type TurboUploadEmitterEvents = {
+  events?: TurboUploadEmitterEventArgs;
+};
+
+export type TurboSigningEmitterEvents = {
+  events?: TurboSigningEmitterEventArgs;
+};
+export type TurboUploadAndSigningEmitterEvents = TurboUploadEmitterEvents &
+  TurboSigningEmitterEvents &
+  TurboTotalEmitterEvents;
+
 export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
 export type TurboAuthenticatedUploadServiceConfiguration =
@@ -394,6 +484,8 @@ export type TurboUnauthenticatedConfiguration = {
   uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
   token?: TokenType;
   gatewayUrl?: string;
+  processId?: string;
+  cuUrl?: string;
 };
 
 export interface TurboLogger {
@@ -483,6 +575,27 @@ export type TurboAuthenticatedClientConfiguration = {
   signer: TurboDataItemSigner;
 };
 
+export type UploadDataType = string | Uint8Array | ArrayBuffer | Buffer | Blob;
+
+export type UploadDataInput = {
+  data: UploadDataType;
+  dataItemOpts?: DataItemOptions;
+  signal?: AbortSignal;
+};
+
+export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadAndSigningEmitterEvents;
+export type TurboUploadFileWithFileOrPathParams = {
+  file: File | string;
+  dataItemOpts?: DataItemOptions;
+} & TurboAbortSignal &
+  TurboUploadAndSigningEmitterEvents;
+
+export type TurboUploadFileParams =
+  | TurboUploadFileWithStreamFactoryParams
+  | TurboUploadFileWithFileOrPathParams;
+
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
 export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
@@ -495,7 +608,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileStreamFactory: T; // TODO: allow multiple files
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
-
+  emitter?: TurboEventEmitter;
   // bundle?: boolean; // TODO: add bundling into BDIs
 };
 
@@ -504,6 +617,7 @@ export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
   dataItemSizeFactory: StreamSizeFactory;
+  dataItemOpts?: DataItemOptions;
 };
 
 export type TurboAbortSignal = {
@@ -562,12 +676,16 @@ export interface TurboDataItemSigner {
     fileStreamFactory,
     fileSizeFactory,
     dataItemOpts,
-  }: TurboFileFactory): Promise<TurboSignedDataItemFactory>;
+    emitter,
+  }: TurboFileFactory & {
+    emitter?: TurboEventEmitter;
+  }): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
   getPublicKey(): Promise<Buffer>;
   getNativeAddress(): Promise<string>;
+  signer: TurboSigner;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -587,6 +705,13 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getWincForToken(
     params: TurboWincForTokenParams,
   ): Promise<TurboWincForTokenResponse>;
+  getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse>;
   getTokenPriceForBytes({
     byteCount,
   }: {
@@ -626,17 +751,26 @@ export interface TurboAuthenticatedPaymentServiceInterface
 export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
+    dataItemSizeFactory,
+    dataItemOpts,
     signal,
+    events,
   }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
   extends TurboUnauthenticatedUploadServiceInterface {
-  uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-  }: TurboFileFactory & TurboAbortSignal): Promise<TurboUploadDataItemResponse>;
+  upload({
+    data,
+    events,
+  }: UploadDataInput &
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+  uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse>;
 
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
 
@@ -672,12 +806,21 @@ export interface TokenTools {
 }
 
 export type TokenConfig = {
-  gatewayUrl?: string;
   logger?: TurboLogger;
+  gatewayUrl?: string;
   pollingOptions?: TokenPollingOptions;
+};
+
+export type AoProcessConfig = {
+  logger?: TurboLogger;
+  processId?: string;
+  cuUrl?: string;
 };
 
 /** @deprecated -- This type was provided as a parameter in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl`  directly in the Factory constructor. This type will be removed in a v2 release  */
 export type TokenMap = { arweave: TokenTools };
 
-export type TokenFactory = Record<string, (config: TokenConfig) => TokenTools>;
+export type TokenFactory = Record<
+  string,
+  (config: TokenConfig | AoProcessConfig) => TokenTools
+>;

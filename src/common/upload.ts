@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { AxiosError, CanceledError } from 'axios';
+import { CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
+import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
-import { Readable } from 'stream';
 
 import {
   ArweaveManifest,
@@ -34,15 +34,38 @@ import {
   TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
+  TurboUploadAndSigningEmitterEvents,
   TurboUploadDataItemResponse,
+  TurboUploadEmitterEvents,
+  TurboUploadFileParams,
+  TurboUploadFileWithFileOrPathParams,
+  TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
+  UploadDataInput,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
-import { sleep } from '../utils/common.js';
+import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
+import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
+
+export type TurboUploadConfig = TurboFileFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;
+
+function isTurboUploadFileWithStreamFactoryParams(
+  params: TurboUploadFileParams,
+): params is TurboUploadFileWithStreamFactoryParams {
+  return 'fileStreamFactory' in params;
+}
+
+function isTurboUploadFileWithFileOrPathParams(
+  params: TurboUploadFileParams,
+): params is TurboUploadFileWithFileOrPathParams {
+  return 'file' in params;
+}
 
 export const creditSharingTagNames = {
   shareCredits: 'x-approve-payment',
@@ -61,7 +84,6 @@ export class TurboUnauthenticatedUploadService
   protected logger: TurboLogger;
   protected token: TokenType;
   protected retryConfig: IAxiosRetryConfig;
-
   constructor({
     url = defaultUploadServiceURL,
     logger = TurboWinstonLogger.default,
@@ -81,21 +103,54 @@ export class TurboUnauthenticatedUploadService
   async uploadSignedDataItem({
     dataItemStreamFactory,
     dataItemSizeFactory,
+    dataItemOpts,
     signal,
+    events = {},
   }: TurboSignedDataItemFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
-    const fileSize = dataItemSizeFactory();
+    TurboAbortSignal &
+    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    const dataItemSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
-    // TODO: add p-limit constraint or replace with separate upload class
-    return this.httpService.post<TurboUploadDataItemResponse>({
+
+    // create the tapped stream with events
+    const emitter = new TurboEventEmitter(events);
+
+    // create the stream with upload events
+    const { stream: streamWithUploadEvents, resume } =
+      createStreamWithUploadEvents({
+        data: dataItemStreamFactory(),
+        dataSize: dataItemSize,
+        emitter,
+      });
+
+    const headers = {
+      'content-type': 'application/octet-stream',
+      'content-length': `${dataItemSize}`,
+    };
+
+    if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+      const paidBy = Array.isArray(dataItemOpts.paidBy)
+        ? dataItemOpts.paidBy
+        : [dataItemOpts.paidBy];
+
+      // TODO: these should be comma separated values vs. an array of headers
+      if (dataItemOpts.paidBy.length > 0) {
+        headers['x-paid-by'] = paidBy;
+      }
+    }
+
+    // setup the post request using the stream with upload events
+    const postPromise = this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
       signal,
-      data: dataItemStreamFactory(),
-      headers: {
-        'content-type': 'application/octet-stream',
-        'content-length': `${fileSize}`,
-      },
+      data: streamWithUploadEvents,
+      headers,
     });
+
+    // resume the stream so events start flowing to the post
+    resume();
+
+    return postPromise;
   }
 }
 
@@ -117,13 +172,86 @@ export abstract class TurboAuthenticatedBaseUploadService
     this.signer = signer;
   }
 
-  async uploadFile({
-    fileStreamFactory,
-    fileSizeFactory,
-    signal,
+  /**
+   * Signs and uploads raw data to the Turbo Upload Service.
+   */
+  upload({
+    data,
     dataItemOpts,
-  }: TurboFileFactory &
-    TurboAbortSignal): Promise<TurboUploadDataItemResponse> {
+    signal,
+    events,
+  }: UploadDataInput &
+    TurboAbortSignal &
+    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    // This function is intended to be usable in both Node and browser environments.
+    if (isBlob(data)) {
+      const streamFactory = () => data.stream();
+      const sizeFactory = () => data.size;
+      return this.uploadFile({
+        fileStreamFactory: streamFactory,
+        fileSizeFactory: sizeFactory,
+        signal,
+        dataItemOpts,
+        events,
+      });
+    }
+
+    const dataBuffer: Buffer = (() => {
+      if (Buffer.isBuffer(data)) return data;
+      // Need type narrowing to ensure the correct Buffer.from overload is used
+      if (typeof data === 'string' || data instanceof Uint8Array) {
+        return Buffer.from(data);
+      }
+
+      return Buffer.from(data); // Only other option is ArrayBuffer
+    })();
+
+    return this.uploadFile({
+      fileStreamFactory: () => dataBuffer,
+      fileSizeFactory: () => dataBuffer.byteLength,
+      signal,
+      dataItemOpts,
+      events,
+    });
+  }
+
+  private resolveUploadFileConfig(
+    params: TurboUploadFileParams,
+  ): TurboUploadConfig {
+    let fileStreamFactory: TurboFileFactory['fileStreamFactory'];
+    let fileSizeFactory: () => number;
+    if (isTurboUploadFileWithStreamFactoryParams(params)) {
+      fileStreamFactory = params.fileStreamFactory;
+      fileSizeFactory = params.fileSizeFactory;
+    } else if (isTurboUploadFileWithFileOrPathParams(params)) {
+      const file = params.file;
+      /**
+       * this is pretty gross, but it's the only way to get the type inference to work without overhauling
+       * the abstract method to accept a generic, which we would need to perform a check on anyways.
+       */
+      fileStreamFactory =
+        file instanceof File
+          ? () => this.getFileStreamForFile(file) as ReadableStream
+          : () => this.getFileStreamForFile(file) as Readable;
+      fileSizeFactory = () => this.getFileSize(params.file);
+    } else {
+      throw new TypeError(
+        'Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams',
+      );
+    }
+    return {
+      fileStreamFactory,
+      fileSizeFactory,
+      ...params,
+    };
+  }
+
+  async uploadFile(
+    params: TurboUploadFileParams,
+  ): Promise<TurboUploadDataItemResponse> {
+    const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
+      this.resolveUploadFileConfig(params);
+
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -131,50 +259,43 @@ export abstract class TurboAuthenticatedBaseUploadService
       ((retryNumber: number) => retryNumber * 1000);
     let lastError: Error | undefined = undefined; // Store the last error for throwing
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
+    const emitter = new TurboEventEmitter(events);
+    // avoid duplicating signing on failures here - these errors will immediately be thrown
+    // TODO: create a SigningError class and throw that instead of the generic Error
+    const { dataItemStreamFactory, dataItemSizeFactory } =
+      await this.signer.signDataItem({
+        fileStreamFactory,
+        fileSizeFactory,
+        dataItemOpts,
+        emitter,
+      });
+
+    // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
     while (retries < maxRetries) {
       if (signal?.aborted) {
         throw new CanceledError();
       }
 
-      const { dataItemStreamFactory, dataItemSizeFactory } =
-        await this.signer.signDataItem({
-          fileStreamFactory,
-          fileSizeFactory,
-          dataItemOpts,
-        });
-
+      // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
+      // which will create a new emitter with upload events. We await
+      // this result due to the wrapped retry logic of this method.
       try {
-        this.logger.debug('Uploading signed data item...');
-        // TODO: add p-limit constraint or replace with separate upload class
-
-        const headers = {
-          'content-type': 'application/octet-stream',
-          'content-length': `${dataItemSizeFactory()}`,
-        };
-        if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
-          const paidBy = Array.isArray(dataItemOpts.paidBy)
-            ? dataItemOpts.paidBy
-            : [dataItemOpts.paidBy];
-
-          if (dataItemOpts.paidBy.length > 0) {
-            headers['x-paid-by'] = paidBy;
-          }
-        }
-        const data = await this.httpService.post<TurboUploadDataItemResponse>({
-          endpoint: `/tx/${this.token}`,
+        const response = await this.uploadSignedDataItem({
+          dataItemStreamFactory,
+          dataItemSizeFactory,
+          dataItemOpts,
           signal,
-          data: dataItemStreamFactory(),
-          headers,
+          events,
         });
-        return data;
+        return response;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
-        if (error instanceof AxiosError) {
-          lastStatusCode = error.response?.status;
-        } else if (error instanceof FailedRequestError) {
+        if (error instanceof FailedRequestError) {
           lastStatusCode = error.status;
+        } else {
+          lastStatusCode = error.response?.status;
         }
 
         if (
@@ -280,6 +401,15 @@ export abstract class TurboAuthenticatedBaseUploadService
     return this.contentTypeFromFile(file);
   }
 
+  /**
+   * TODO: add events to the uploadFolder method
+   * TODO: create resolveUploadFolderConfig() function
+   * could be a predicate with a resolveConfig() function, eg: events: ({...file ctx}) => ({
+   *   onProgress: (progress) => {
+   *     console.log('progress', progress);
+   *   },
+   * })
+   */
   async uploadFolder(
     params: TurboUploadFolderParams,
   ): Promise<TurboUploadFolderResponse> {
@@ -316,6 +446,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
       try {
         const result = await this.uploadFile({
+          // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fileStreamFactory: () => this.getFileStreamForFile(file) as any,
           fileSizeFactory: () => this.getFileSize(file),
@@ -369,6 +500,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const manifestBuffer = Buffer.from(JSON.stringify(manifest));
 
     const manifestResponse = await this.uploadFile({
+      // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
       fileSizeFactory: () => manifestBuffer.byteLength,

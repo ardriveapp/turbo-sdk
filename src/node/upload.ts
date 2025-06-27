@@ -37,7 +37,13 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     logger,
     token,
   }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger, token, signer });
+    super({
+      url,
+      retryConfig,
+      logger,
+      token,
+      signer,
+    });
   }
 
   private async getAbsoluteFilePathsFromFolder(
@@ -50,6 +56,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     for (const file of files) {
       if (file === '.DS_Store') {
         continue;
+      } else if (file.includes('\\')) {
+        throw Error('Files/Sub-folders with backslashes are not supported');
       }
       const absoluteFilePath = join(folderPath, file);
       const stat = await promises.stat(absoluteFilePath);
@@ -91,8 +99,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     if (folderPath.startsWith('./')) {
       folderPath = folderPath.slice(2);
     }
-
-    const relativePath = file.replace(folderPath + '/', '');
+    let relativePath = file.replace(join(folderPath + '/'), '');
+    relativePath = relativePath.replace(/\\/g, '/'); // only needed for windows sub-folders
     return relativePath;
   }
 

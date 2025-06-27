@@ -13,31 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isTokenType } from '../../common/index.js';
-import { TurboFactory } from '../../node/factory.js';
-import { tokenTypes } from '../../types.js';
-import { TokenPriceOptions } from '../types.js';
-import { configFromOptions, requiredByteCountFromOptions } from '../utils.js';
+import { TurboFactory } from '../../node/index.js';
+import { FiatEstimateOptions } from '../types.js';
+import {
+  configFromOptions,
+  currencyFromOptions,
+  requiredByteCountFromOptions,
+} from '../utils.js';
 
-export async function tokenPrice(options: TokenPriceOptions) {
+export async function fiatEstimate(options: FiatEstimateOptions) {
   const byteCount = requiredByteCountFromOptions(options);
-  const token = options.token;
-
-  if (!isTokenType(token)) {
-    throw new Error(
-      `Invalid token type ${token}. Must be one of ${tokenTypes.join(', ')}`,
-    );
-  }
+  const currency = currencyFromOptions(options) ?? 'usd';
 
   const turbo = TurboFactory.unauthenticated(configFromOptions(options));
-  const { tokenPrice } = await turbo.getTokenPriceForBytes({
-    byteCount: +byteCount,
-  });
-
-  const output = {
-    tokenPrice,
+  const result = await turbo.getFiatEstimateForBytes({
     byteCount,
-    message: `The current price estimate for ${byteCount} bytes is ${tokenPrice} ${token}`,
+    currency,
+  });
+  const output = {
+    ...result,
+    message: `The current price estimate for ${byteCount} bytes is ${result.amount} ${currency}`,
   };
   console.log(JSON.stringify(output, null, 2));
 }

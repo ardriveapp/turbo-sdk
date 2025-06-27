@@ -17,10 +17,13 @@ import { exec } from 'child_process';
 
 import { currencyMap } from '../../common/currency.js';
 import { TurboFactory } from '../../node/factory.js';
-import { fiatCurrencyTypes, isCurrency } from '../../types.js';
 import { sleep } from '../../utils/common.js';
 import { TopUpOptions } from '../types.js';
-import { addressOrPrivateKeyFromOptions, configFromOptions } from '../utils.js';
+import {
+  addressOrPrivateKeyFromOptions,
+  configFromOptions,
+  currencyFromOptions,
+} from '../utils.js';
 
 function openUrl(url: string) {
   if (process.platform === 'darwin') {
@@ -45,17 +48,7 @@ export async function topUp(options: TopUpOptions) {
     throw new Error('Must provide a --value to top up');
   }
 
-  const currency = (options.currency ?? 'usd').toLowerCase();
-
-  if (!isCurrency(currency)) {
-    throw new Error(
-      `Invalid fiat currency type ${currency}!\nPlease use one of these:\n${JSON.stringify(
-        fiatCurrencyTypes,
-        null,
-        2,
-      )}`,
-    );
-  }
+  const currency = currencyFromOptions(options) ?? 'usd';
 
   // TODO: Pay in CLI prompts via --cli options
 

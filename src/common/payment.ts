@@ -31,6 +31,7 @@ import {
   TurboCryptoFundResponse,
   TurboCurrenciesResponse,
   TurboDataItemSigner,
+  TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
   TurboFundWithTokensParams,
   TurboInfoResponse,
@@ -187,16 +188,31 @@ export class TurboUnauthenticatedPaymentService
       owner,
       promoCodes = [],
       uiMode = 'hosted',
+      ...callbackUrls
     }: TurboCheckoutSessionParams,
     headers?: TurboSignedRequestHeaders,
   ): Promise<TurboCheckoutSessionResponse> {
     const { amount: paymentAmount, type: currencyType } = amount;
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?uiMode=${uiMode}${
-      promoCodes.length > 0
-        ? `&${this.appendPromoCodesToQuery(promoCodes)}`
-        : ''
-    }&token=${this.token}`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('token', this.token);
+    if (uiMode) {
+      queryParams.append('uiMode', uiMode);
+    }
+    if (promoCodes.length > 0) {
+      queryParams.append('promoCode', promoCodes.join(','));
+    }
+    if ('successUrl' in callbackUrls && callbackUrls.successUrl !== undefined) {
+      queryParams.append('successUrl', callbackUrls.successUrl);
+    }
+    if ('cancelUrl' in callbackUrls && callbackUrls.cancelUrl !== undefined) {
+      queryParams.append('cancelUrl', callbackUrls.cancelUrl);
+    }
+    if ('returnUrl' in callbackUrls && callbackUrls.returnUrl !== undefined) {
+      queryParams.append('returnUrl', callbackUrls.returnUrl);
+    }
+
+    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
 
     const { adjustments, paymentSession, topUpQuote, fees } =
       await this.httpService.get<TopUpRawResponse>({
@@ -287,6 +303,42 @@ export class TurboUnauthenticatedPaymentService
       };
     }
     return response;
+  }
+
+  public async getFiatEstimateForBytes({
+    byteCount,
+    currency,
+  }: {
+    byteCount: number;
+    currency: Currency;
+  }): Promise<TurboFiatEstimateForBytesResponse> {
+    // Step 1: Get the estimated winc cost for the given byte count -- W
+    const wincPriceForGivenBytes = await this.getUploadCosts({
+      bytes: [byteCount],
+    });
+
+    // Step 2: Get the winc-to-fiat conversion rates for 1 GiB
+    const { winc: wincPriceForOneGiB, fiat: fiatPricesForOneGiB } =
+      await this.getFiatRates();
+
+    // Step 3: Convert the WINC cost of the given bytes into fiat:
+    //  (W / W1GiB) * Fiat1GiB = FiatCostForBytes
+    const fiatPriceForGivenBytes = new BigNumber(wincPriceForGivenBytes[0].winc)
+      .dividedBy(new BigNumber(wincPriceForOneGiB))
+      .times(fiatPricesForOneGiB[currency]);
+
+    // Step 4: Format and round up so the estimated cost is always enough to cover the upload
+    const formattedFiatPrice =
+      currency === 'jpy'
+        ? +fiatPriceForGivenBytes.integerValue(BigNumber.ROUND_CEIL) // no decimals for JPY
+        : +fiatPriceForGivenBytes.decimalPlaces(2, BigNumber.ROUND_CEIL); // 2 decimal precision
+
+    return {
+      byteCount,
+      amount: formattedFiatPrice,
+      currency,
+      winc: wincPriceForGivenBytes[0].winc,
+    };
   }
 
   public async getTokenPriceForBytes({
