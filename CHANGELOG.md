@@ -1,3 +1,10 @@
+## [1.28.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.1...v1.28.2) (2025-06-27)
+
+
+### Bug Fixes
+
+* use windows OS compatible manifest ([b192596](https://github.com/ardriveapp/turbo-sdk/commit/b192596f6e1308565f85411f4fca57d5bafcf12e))
+
 ## [1.28.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.0...v1.28.1) (2025-06-24)
 
 
