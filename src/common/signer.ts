@@ -18,7 +18,6 @@ import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
 import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
-import { KyveSDK } from '@kyvejs/sdk/dist/sdk.js';
 import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
@@ -162,27 +161,6 @@ export abstract class TurboDataItemAbstractSigner
     const keyAsStringFromUint8Array = Buffer.from(this.signer.key).toString(
       'hex',
     );
-
-    if (this.token === 'kyve') {
-      const chainId = gatewayUrl.includes('kaon')
-        ? 'kaon-1'
-        : gatewayUrl.includes('korellia')
-        ? 'korellia-2'
-        : 'kyve-1';
-
-      // TODO: KYVE Web wallet tx signing/sending
-      const client = await new KyveSDK(chainId).fromPrivateKey(
-        keyAsStringFromUint8Array,
-      );
-
-      const tx = await client.cosmos.bank.v1beta1.transfer(
-        target,
-        amount.toString(),
-      );
-      await tx.execute();
-
-      return tx.txHash;
-    }
 
     const provider = new ethers.JsonRpcProvider(gatewayUrl);
     const ethWalletAndProvider = new EthereumWallet(
