@@ -99,13 +99,11 @@ export const optionMap = {
     default: false,
   },
   debug: {
-    // TODO: Implement
     alias: '--debug',
     description: 'Enable verbose logging',
     default: false,
   },
   quiet: {
-    // TODO: Implement
     alias: '--quiet',
     description: 'Disable logging',
     default: false,
