@@ -1,3 +1,10 @@
+## [1.28.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.2...v1.28.3) (2025-07-03)
+
+
+### Bug Fixes
+
+* **kyve:** use native node kyve signing implementation ([01a738f](https://github.com/ardriveapp/turbo-sdk/commit/01a738f4382f9cb3f64780e8125aa857d3e6b4e4))
+
 ## [1.28.3-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.2...v1.28.3-alpha.1) (2025-06-27)
 
 
