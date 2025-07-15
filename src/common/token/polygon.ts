@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import { TokenConfig } from '../../types.js';
+import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 

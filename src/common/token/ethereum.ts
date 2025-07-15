@@ -16,7 +16,6 @@
 import { BigNumber } from 'bignumber.js';
 import { ethers } from 'ethers';
 
-import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import {
   TokenConfig,
   TokenCreateTxParams,
@@ -24,6 +23,7 @@ import {
   TokenTools,
   TurboLogger,
 } from '../../types.js';
+import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
 
 export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
