@@ -109,6 +109,15 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       }
       return res.json() as Promise<T>;
     } catch (error) {
+      if (error instanceof FailedRequestError) {
+        throw error; // rethrow FailedRequestError
+      }
+      // Handle CanceledError specifically
+      if (error.message.includes('The operation was aborted')) {
+        throw new CanceledError();
+      }
+
+      // Log the error and throw a FailedRequestError
       this.logger.error('Error posting data', { endpoint, error });
       throw new FailedRequestError(
         error instanceof Error ? error.message : 'Unknown error',
