@@ -100,7 +100,12 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       });
 
       if (!allowedStatuses.includes(res.status)) {
-        throw new Error(`Unexpected status ${res.status}`);
+        const errorText = await res.text();
+        throw new FailedRequestError(
+          // Return error message from server if available
+          errorText || res.statusText,
+          res.status,
+        );
       }
       return res.json() as Promise<T>;
     } catch (error) {
