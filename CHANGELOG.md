@@ -1,3 +1,15 @@
+# [1.29.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.3...v1.29.0-alpha.1) (2025-07-16)
+
+
+### Bug Fixes
+
+* **imports:** remove CLI imports from common ([d0b9e4f](https://github.com/ardriveapp/turbo-sdk/commit/d0b9e4fd98c89e5349ab2c1ff3086fee6d9de1a2))
+
+
+### Features
+
+* add cli util that checks a folder of data items for validity ([447cc23](https://github.com/ardriveapp/turbo-sdk/commit/447cc2341f7653bd21f4fc9165ead73147882d07))
+
 ## [1.28.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.2...v1.28.3) (2025-07-03)
 
 
