@@ -90,18 +90,26 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     // Browser ReadableStream → use fetch with progressive enhancement
     const { body, duplex } = await toFetchBody(data);
 
-    const res = await fetch(this.axios.defaults.baseURL + endpoint, {
-      method: 'POST',
-      headers,
-      body,
-      signal,
-      ...(duplex ? { duplex } : {}), // only where streams are working
-    });
+    try {
+      const res = await fetch(this.axios.defaults.baseURL + endpoint, {
+        method: 'POST',
+        headers,
+        body,
+        signal,
+        ...(duplex ? { duplex } : {}), // only where streams are working
+      });
 
-    if (!allowedStatuses.includes(res.status)) {
-      throw new Error(`Unexpected status ${res.status}`);
+      if (!allowedStatuses.includes(res.status)) {
+        throw new Error(`Unexpected status ${res.status}`);
+      }
+      return res.json() as Promise<T>;
+    } catch (error) {
+      this.logger.error('Error posting data', { endpoint, error });
+      throw new FailedRequestError(
+        error instanceof Error ? error.message : 'Unknown error',
+        error.response?.status,
+      );
     }
-    return res.json() as Promise<T>;
   }
 
   private async tryRequest<T>(
