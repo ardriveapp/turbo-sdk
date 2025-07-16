@@ -132,30 +132,13 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
   }
 }
 
-function supportsRequestStreams(): boolean {
-  try {
-    // fails (throws TypeError) in browsers that lack upload streams
-    new Request('', {
-      method: 'POST',
-      body: new ReadableStream(),
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore -- `duplex` is not a standard option, but used by some libraries
-      duplex: 'half',
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function toFetchBody(
   data: ReadableStream<Uint8Array>,
 ): Promise<{ body: BodyInit; duplex?: 'half' }> {
   // Browser ReadableStream
   if (
     !navigator.userAgent.includes('Firefox') &&
-    !navigator.userAgent.includes('Safari') &&
-    supportsRequestStreams()
+    !navigator.userAgent.includes('Safari')
   ) {
     return { body: data, duplex: 'half' }; // Chrome / Edge / Opera
   }
