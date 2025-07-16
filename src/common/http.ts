@@ -79,10 +79,29 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream;
   }): Promise<T> {
-    return this.tryRequest(
-      () => this.axios.post<T>(endpoint, data, { headers, signal }),
-      allowedStatuses,
-    );
+    // Buffer and Readable → keep Axios (streams work fine there)
+    if (!(data instanceof ReadableStream)) {
+      return this.tryRequest(
+        () => this.axios.post<T>(endpoint, data, { headers, signal }),
+        allowedStatuses,
+      );
+    }
+
+    // Browser ReadableStream → use fetch with progressive enhancement
+    const { body, duplex } = await toFetchBody(data);
+
+    const res = await fetch(this.axios.defaults.baseURL + endpoint, {
+      method: 'POST',
+      headers,
+      body,
+      signal,
+      ...(duplex ? { duplex } : {}), // only where streams are working
+    });
+
+    if (!allowedStatuses.includes(res.status)) {
+      throw new Error(`Unexpected status ${res.status}`);
+    }
+    return res.json() as Promise<T>;
   }
 
   private async tryRequest<T>(
@@ -111,4 +130,36 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       throw error;
     }
   }
+}
+
+function supportsRequestStreams(): boolean {
+  try {
+    // fails (throws TypeError) in browsers that lack upload streams
+    new Request('', {
+      method: 'POST',
+      body: new ReadableStream(),
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore -- `duplex` is not a standard option, but used by some libraries
+      duplex: 'half',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function toFetchBody(
+  data: ReadableStream<Uint8Array>,
+): Promise<{ body: BodyInit; duplex?: 'half' }> {
+  // Browser ReadableStream
+  if (
+    !navigator.userAgent.includes('Firefox') &&
+    !navigator.userAgent.includes('Safari') &&
+    supportsRequestStreams()
+  ) {
+    return { body: data, duplex: 'half' }; // Chrome / Edge / Opera
+  }
+  // Firefox / Safari fallback: stream → Blob (still streams off-disk)
+  const blob = await new Response(data).blob();
+  return { body: blob }; // browser sets length
 }
