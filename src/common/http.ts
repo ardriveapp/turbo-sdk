@@ -87,7 +87,10 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       );
     }
 
-    // Browser ReadableStream → use fetch with progressive enhancement
+    // Browser ReadableStream → use fetch with progressive enhancement of duplex
+    // Note: fetch does not support streams in Safari and Firefox, so we convert to Blob
+    // and use the `duplex` option only in browsers that support it (Chrome, Edge, Opera).
+    // See: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API#body
     const { body, duplex } = await toFetchBody(data);
 
     try {
@@ -96,7 +99,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         headers,
         body,
         signal,
-        ...(duplex ? { duplex } : {}), // only where streams are working
+        ...(duplex ? { duplex } : {}), // Use duplex only where streams are working
       });
 
       if (!allowedStatuses.includes(res.status)) {
@@ -157,14 +160,13 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
 async function toFetchBody(
   data: ReadableStream<Uint8Array>,
 ): Promise<{ body: BodyInit; duplex?: 'half' }> {
-  // Browser ReadableStream
   if (
     !navigator.userAgent.includes('Firefox') &&
     !navigator.userAgent.includes('Safari')
   ) {
     return { body: data, duplex: 'half' }; // Chrome / Edge / Opera
   }
-  // Firefox / Safari fallback: stream → Blob (still streams off-disk)
+  // Firefox / Safari fallback: stream → Blob
   const blob = await new Response(data).blob();
   return { body: blob }; // browser sets length
 }
