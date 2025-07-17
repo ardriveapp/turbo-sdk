@@ -227,7 +227,7 @@ export default function Home() {
               style={{ marginLeft: '10px', height: '20px' }}
               onClick={async () => {
                 try {
-                  if (window.arweaveWallet) {
+                  if (window['arweaveWallet']) {
                     const requiredPermissions = [
                       'ACCESS_ADDRESS',
                       'ACCESS_PUBLIC_KEY',
@@ -235,19 +235,19 @@ export default function Home() {
                       'SIGNATURE',
                     ];
                     const permissions =
-                      await window.arweaveWallet.getPermissions();
+                      await window['arweaveWallet'].getPermissions();
                     console.log('permissions', permissions);
                     if (
                       requiredPermissions.every((permission) =>
                         permissions.includes(permission as any),
                       )
                     ) {
-                      setWallet(window.arweaveWallet);
+                      setWallet(window['arweaveWallet']);
                     } else {
-                      await window.arweaveWallet.connect(
+                      await window['arweaveWallet'].connect(
                         requiredPermissions as any,
                       );
-                      setWallet(window.arweaveWallet);
+                      setWallet(window['arweaveWallet']);
                     }
 
                     setShowJwkInput(false);
