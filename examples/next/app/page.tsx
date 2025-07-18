@@ -1,3 +1,5 @@
+'use client';
+
 import {
   ArconnectSigner,
   ArweaveSigner,
@@ -8,7 +10,7 @@ import Arweave from 'arweave';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { useEffect, useState } from 'react';
 
-import './App.css';
+import './globals.css';
 
 // enable debug logs
 TurboFactory.setLogLevel('debug');
@@ -19,7 +21,7 @@ const arweave = new Arweave({
   protocol: 'https',
 });
 
-function App() {
+export default function Home() {
   const [wallet, setWallet] = useState<
     JWKInterface | Window['arweaveWallet'] | null
   >(null);
@@ -70,7 +72,7 @@ function App() {
               name: 'Content-Type',
               value: selectedFile.type || 'application/octet-stream',
             },
-            { name: 'App-Name', value: 'Turbo-SDK-Vite-Example' },
+            { name: 'App-Name', value: 'Turbo-SDK-Next-Example' },
             { name: 'File-Name', value: selectedFile.name },
           ],
         },
@@ -225,7 +227,7 @@ function App() {
               style={{ marginLeft: '10px', height: '20px' }}
               onClick={async () => {
                 try {
-                  if (window.arweaveWallet) {
+                  if (window['arweaveWallet']) {
                     const requiredPermissions = [
                       'ACCESS_ADDRESS',
                       'ACCESS_PUBLIC_KEY',
@@ -233,19 +235,19 @@ function App() {
                       'SIGNATURE',
                     ];
                     const permissions =
-                      await window.arweaveWallet.getPermissions();
+                      await window['arweaveWallet'].getPermissions();
                     console.log('permissions', permissions);
                     if (
                       requiredPermissions.every((permission) =>
                         permissions.includes(permission as any),
                       )
                     ) {
-                      setWallet(window.arweaveWallet);
+                      setWallet(window['arweaveWallet']);
                     } else {
-                      await window.arweaveWallet.connect(
+                      await window['arweaveWallet'].connect(
                         requiredPermissions as any,
                       );
-                      setWallet(window.arweaveWallet);
+                      setWallet(window['arweaveWallet']);
                     }
 
                     setShowJwkInput(false);
@@ -314,5 +316,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
