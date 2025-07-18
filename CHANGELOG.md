@@ -1,3 +1,10 @@
+# [1.29.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.29.0-alpha.1...v1.29.0-alpha.2) (2025-07-18)
+
+
+### Bug Fixes
+
+* convert to blob on Firefox and Safari PE-8313 ([30a7cc4](https://github.com/ardriveapp/turbo-sdk/commit/30a7cc497233efbafad9bbb904ebafaef2edb55e))
+
 # [1.29.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.3...v1.29.0-alpha.1) (2025-07-16)
 
 
