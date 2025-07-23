@@ -1,0 +1,38 @@
+name: "Feature Request"
+description: "For feature requests. Please search for existing issues first. Also see CONTRIBUTING."
+title: "[Feature]: "
+labels: ["enhancement"]
+
+body:
+
+  - type: markdown
+    attributes:
+      value: |
+        **Please search for existing issues before submitting a new feature request.**
+
+        Also see our [CONTRIBUTING](https://github.com/ardriveapp/turbo-sdk/blob/main/CONTRIBUTING.md) guidelines if applicable.
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: Problem to be solved
+      description: Please present a concise description of the problem to be addressed by this feature request. Be clear about what parts of the problem are considered in-scope and out-of-scope.
+      placeholder: Describe the problem to be solved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution-suggestion
+    attributes:
+      label: (Optional) Suggest a solution
+      description: |
+        A concise description of your preferred solution. Things to address include:
+        - Details of the technical implementation
+        - Tradeoffs made in design decisions
+        - Caveats and considerations for the future
+        - Dependencies on other work or upgrades
+
+        If there are multiple solutions, please present each one separately. Save comparisons for the very end.
+      placeholder: Suggest a solution (optional)
+    validations:
+      required: false
