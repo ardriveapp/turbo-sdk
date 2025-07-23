@@ -1,0 +1,89 @@
+name: 'Bug Report'
+description: 'Create a report to help us improve'
+title: '[Bug]: '
+labels: ['bug']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Thank you for taking the time to fill out this bug report!**
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: e.g. When I try to upload a file, I get an unexpected error message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: e.g. The file should upload successfully and return a transaction ID.
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: List the steps here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: If you have a workaround for the bug, please explain it here.
+      placeholder: List the workaround here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or stack traces (logs)
+      description: If applicable, add screenshots or stack traces(logs) to help us understand what happened.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: e.g. node, browser
+
+  - type: input
+    id: sdk-version
+    attributes:
+      label: SDK Version
+      description: e.g. 22
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node Version
+      description: e.g. 10.16.3
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: e.g. chrome, safari
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+
+  - type: input
+    id: public-code-link
+    attributes:
+      label: Public code repository link
+      description: If possible, provide a link to any publicly available code base that can be used to recreate the issue (e.g., GitHub, GitLab, etc.).
+      placeholder: https://github.com/example/repo
