@@ -1,3 +1,16 @@
+# [1.29.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.3...v1.29.0) (2025-07-23)
+
+
+### Bug Fixes
+
+* convert to blob on Firefox and Safari PE-8313 ([30a7cc4](https://github.com/ardriveapp/turbo-sdk/commit/30a7cc497233efbafad9bbb904ebafaef2edb55e))
+* **imports:** remove CLI imports from common ([d0b9e4f](https://github.com/ardriveapp/turbo-sdk/commit/d0b9e4fd98c89e5349ab2c1ff3086fee6d9de1a2))
+
+
+### Features
+
+* add cli util that checks a folder of data items for validity ([447cc23](https://github.com/ardriveapp/turbo-sdk/commit/447cc2341f7653bd21f4fc9165ead73147882d07))
+
 ## [1.28.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.2...v1.28.3) (2025-07-03)
 
 
