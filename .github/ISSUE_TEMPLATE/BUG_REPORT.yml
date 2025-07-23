@@ -1,10 +1,9 @@
-name: "Bug Report"
-description: "Create a report to help us improve"
-title: "[Bug]: "
-labels: ["bug"]
+name: 'Bug Report'
+description: 'Create a report to help us improve'
+title: '[Bug]: '
+labels: ['bug']
 
 body:
-
   - type: markdown
     attributes:
       value: |
@@ -26,13 +25,13 @@ body:
       description: A clear and concise description of what you expected to happen.
       placeholder: e.g. The file should upload successfully and return a transaction ID.
     validations:
-      required: false      
+      required: false
 
   - type: textarea
     id: steps-to-reproduce
     attributes:
       label: To Reproduce
-      description: Steps to reproduce the behavior. 
+      description: Steps to reproduce the behavior.
       placeholder: List the steps here.
     validations:
       required: false

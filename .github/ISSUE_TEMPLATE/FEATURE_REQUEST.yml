@@ -1,10 +1,9 @@
-name: "Feature Request"
-description: "For feature requests. Please search for existing issues first. Also see CONTRIBUTING."
-title: "[Feature]: "
-labels: ["enhancement"]
+name: 'Feature Request'
+description: 'For feature requests. Please search for existing issues first. Also see CONTRIBUTING.'
+title: '[Feature]: '
+labels: ['enhancement']
 
 body:
-
   - type: markdown
     attributes:
       value: |
