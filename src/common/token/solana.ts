@@ -24,7 +24,6 @@ import {
 import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
 
-import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import {
   TokenConfig,
   TokenCreateTxParams,
@@ -32,6 +31,7 @@ import {
   TokenTools,
   TurboLogger,
 } from '../../types.js';
+import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { sleep } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
 

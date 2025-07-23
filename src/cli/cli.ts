@@ -17,7 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 // eslint-disable-next-line header/header -- This is a CLI file
+import { DataItem } from '@dha-team/arbundles';
 import { Command, program } from 'commander';
+import { readFileSync, readdirSync } from 'fs';
 
 import { version } from '../version.js';
 import { fiatEstimate } from './commands/fiatEstimate.js';
@@ -146,6 +148,75 @@ applyOptions(
   listSharesOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, listShares);
+});
+
+applyOptions(
+  program
+    .command('inspect-data-items')
+    .description(
+      'Lists all given or received Turbo credit share approvals for specified address or connected wallet',
+    ),
+  [optionMap.folderPath],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, async (options) => {
+    const folderPath = options.folderPath ?? './maybe-broke';
+
+    // read directory /maybe-broken-data-items and check all files within to see if can read
+    const dir = readdirSync(folderPath);
+
+    // const data = await axios.get('https://arweave.net/raw/' + options.txId); // TODO: Gateway that gives raw data items
+
+    const validDataItemStats: {
+      id: string;
+      size: number;
+      dataStart: number;
+      signatureType: number;
+    }[] = [];
+    const invalidDataItemIds: string[] = [];
+
+    for (const file of dir) {
+      const data = readFileSync('./maybe-broke/' + file);
+
+      try {
+        const dataItem = new DataItem(data);
+
+        const id = dataItem.id;
+        console.log('id', id);
+        const isValid = await dataItem.isValid().catch((e) => {
+          console.log('error', e);
+        });
+
+        if (!isValid) {
+          invalidDataItemIds.push(id);
+          continue;
+        }
+
+        const size = dataItem.getRaw().byteLength;
+        const dataStart = dataItem.getStartOfData();
+
+        validDataItemStats.push({
+          id,
+          size,
+          dataStart,
+          signatureType: dataItem.signatureType,
+        });
+      } catch (e) {
+        console.log('error', e);
+      }
+    }
+
+    console.log(
+      JSON.stringify(
+        {
+          validDataItemStats,
+          invalidDataItemIds,
+          validDataItemIds: validDataItemStats.map((item) => item.id),
+        },
+        null,
+        2,
+      ),
+    );
+  });
 });
 
 if (

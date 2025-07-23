@@ -26,7 +26,6 @@ import { EthereumSigner } from '@dha-team/arbundles';
 import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 
-import { defaultProdGatewayUrls } from '../../cli/constants.js';
 import {
   TokenConfig,
   TokenCreateTxParams,
@@ -36,6 +35,7 @@ import {
   TurboSigner,
 } from '../../types.js';
 import { createAxiosInstance } from '../../utils/axiosClient.js';
+import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { sleep } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
 

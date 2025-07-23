@@ -79,10 +79,54 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream;
   }): Promise<T> {
-    return this.tryRequest(
-      () => this.axios.post<T>(endpoint, data, { headers, signal }),
-      allowedStatuses,
-    );
+    // Buffer and Readable → keep Axios (streams work fine there)
+    if (!(data instanceof ReadableStream)) {
+      return this.tryRequest(
+        () => this.axios.post<T>(endpoint, data, { headers, signal }),
+        allowedStatuses,
+      );
+    }
+
+    // Browser ReadableStream → use fetch with progressive enhancement of duplex
+    // Note: fetch does not support streams in Safari and Firefox, so we convert to Blob
+    // and use the `duplex` option only in browsers that support it (Chrome, Edge, Opera).
+    // See: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API#body
+    const { body, duplex } = await toFetchBody(data);
+
+    try {
+      const res = await fetch(this.axios.defaults.baseURL + endpoint, {
+        method: 'POST',
+        headers,
+        body,
+        signal,
+        ...(duplex ? { duplex } : {}), // Use duplex only where streams are working
+      });
+
+      if (!allowedStatuses.includes(res.status)) {
+        const errorText = await res.text();
+        throw new FailedRequestError(
+          // Return error message from server if available
+          errorText || res.statusText,
+          res.status,
+        );
+      }
+      return res.json() as Promise<T>;
+    } catch (error) {
+      if (error instanceof FailedRequestError) {
+        throw error; // rethrow FailedRequestError
+      }
+      // Handle CanceledError specifically
+      if (error.message.includes('The operation was aborted')) {
+        throw new CanceledError();
+      }
+
+      // Log the error and throw a FailedRequestError
+      this.logger.error('Error posting data', { endpoint, error });
+      throw new FailedRequestError(
+        error instanceof Error ? error.message : 'Unknown error',
+        error.response?.status,
+      );
+    }
   }
 
   private async tryRequest<T>(
@@ -111,4 +155,18 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       throw error;
     }
   }
+}
+
+async function toFetchBody(
+  data: ReadableStream<Uint8Array>,
+): Promise<{ body: BodyInit; duplex?: 'half' }> {
+  if (
+    !navigator.userAgent.includes('Firefox') &&
+    !navigator.userAgent.includes('Safari')
+  ) {
+    return { body: data, duplex: 'half' }; // Chrome / Edge / Opera
+  }
+  // Firefox / Safari fallback: stream → Blob
+  const blob = await new Response(data).blob();
+  return { body: blob }; // browser sets length
 }
