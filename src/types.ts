@@ -23,7 +23,6 @@ import {
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
-import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
 
@@ -134,11 +133,14 @@ export type TurboWincForTokenParams = {
   tokenAmount: BigNumber.Value;
 };
 
+export type TurboPaymentIntentParams = TurboWincForFiatParams & {
+  owner: PublicArweaveAddress;
+};
+
 // @deprecated use TurboCheckoutSessionHostedParams or TurboCheckoutSessionEmbeddedParams instead
 export type UiMode = 'embedded' | 'hosted';
-export type TurboCheckoutSessionParams = TurboWincForFiatParams & {
-  owner: PublicArweaveAddress;
-} & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+export type TurboCheckoutSessionParams = TurboPaymentIntentParams &
+  (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
 
 export type TurboCheckoutSessionHostedParams = {
   uiMode?: 'hosted';
@@ -171,6 +173,11 @@ export type TopUpRawResponse = {
   };
   adjustments: Adjustment[];
   fees: Adjustment[];
+};
+
+export type TurboPaymentIntentResponse = TurboWincForFiatResponse & {
+  id: string;
+  client_secret: string;
 };
 
 export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
@@ -721,6 +728,9 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   createCheckoutSession(
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse>;
+  createPaymentIntent(
+    params: TurboPaymentIntentParams,
+  ): Promise<TurboPaymentIntentResponse>;
   submitFundTransaction(p: {
     txId: string;
   }): Promise<TurboSubmitFundTxResponse>;
