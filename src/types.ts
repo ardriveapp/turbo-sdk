@@ -23,6 +23,7 @@ import {
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
 import { IAxiosRetryConfig } from 'axios-retry';
+import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
 
