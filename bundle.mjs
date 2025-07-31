@@ -20,7 +20,7 @@ const bundle = () => {
         },
       }),
     ],
-    external: ['commander', 'stripe'],
+    external: ['commander'],
     tsconfig: './tsconfig.web.json',
     outfile: './bundles/web.bundle.min.js',
   })

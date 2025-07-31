@@ -41,7 +41,6 @@ export type AddressOptions = WalletOptions & {
 export type TopUpOptions = AddressOptions & {
   value: string | undefined;
   currency: string | undefined;
-  payInCli: boolean;
 };
 
 export type UploadOptions = WalletOptions & {

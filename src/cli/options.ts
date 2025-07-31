@@ -164,12 +164,6 @@ export const optionMap = {
     alias: '--byte-count <byteCount>',
     description: 'Number of bytes to use for the action',
   },
-  payInCli: {
-    alias: '--pay-in-cli, --cli',
-    description:
-      'Pay for the action in the CLI instead of using a web checkout',
-    default: false,
-  },
 } as const;
 
 export const walletOptions = [
