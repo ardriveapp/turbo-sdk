@@ -133,7 +133,10 @@ export type TurboWincForTokenParams = {
   tokenAmount: BigNumber.Value;
 };
 
-export type TurboPaymentIntentParams = TurboWincForFiatParams & {
+export type TurboPaymentIntentParams = Omit<
+  TurboWincForFiatParams,
+  'nativeAddress'
+> & {
   owner: PublicArweaveAddress;
 };
 

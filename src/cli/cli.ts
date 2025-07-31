@@ -66,7 +66,13 @@ applyOptions(
 
 applyOptions(
   program.command('top-up').description('Top up a Turbo address with Fiat'),
-  [...walletOptions, optionMap.address, optionMap.value, optionMap.currency],
+  [
+    ...walletOptions,
+    optionMap.address,
+    optionMap.value,
+    optionMap.currency,
+    optionMap.payInCli,
+  ],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand<TopUpOptions>(command, topUp);
 });
