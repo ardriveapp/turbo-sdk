@@ -1,3 +1,10 @@
+# [1.30.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.29.0...v1.30.0-alpha.1) (2025-08-04)
+
+
+### Features
+
+* **top-up:** add payment-intent SDK method PE-8003 ([403d0b4](https://github.com/ardriveapp/turbo-sdk/commit/403d0b428ad82cf718574c4cbf74814629110492))
+
 # [1.29.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.28.3...v1.29.0) (2025-07-23)
 
 
