@@ -542,7 +542,7 @@ describe('Node environment', () => {
       });
     });
 
-    describe.only('createPaymentIntent()', () => {
+    describe('createPaymentIntent()', () => {
       it('should properly create a payment intent', async () => {
         const { id, client_secret, winc } = await turbo.createPaymentIntent({
           amount: USD(10),
