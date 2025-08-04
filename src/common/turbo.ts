@@ -35,6 +35,8 @@ import {
   TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
   TurboFundWithTokensParams,
+  TurboPaymentIntentParams,
+  TurboPaymentIntentResponse,
   TurboPriceResponse,
   TurboRatesResponse,
   TurboRevokeCreditsParams,
@@ -229,6 +231,17 @@ export class TurboUnauthenticatedClient
     params: TurboCheckoutSessionParams,
   ): Promise<TurboCheckoutSessionResponse> {
     return this.paymentService.createCheckoutSession(params);
+  }
+
+  /**
+   * Returns the payment intent for a given amount and currency.
+   * This is used to create a payment intent, gather payment method
+   * on client side, and complete via Stripe SDK or API.
+   */
+  createPaymentIntent(
+    params: TurboPaymentIntentParams,
+  ): Promise<TurboPaymentIntentResponse> {
+    return this.paymentService.createPaymentIntent(params);
   }
 
   /**
