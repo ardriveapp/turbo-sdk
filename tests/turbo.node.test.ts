@@ -542,6 +542,18 @@ describe('Node environment', () => {
       });
     });
 
+    describe('createPaymentIntent()', () => {
+      it('should properly create a payment intent', async () => {
+        const { id, client_secret, winc } = await turbo.createPaymentIntent({
+          amount: USD(10),
+          owner: '43-character-stub-arweave-address-000000000',
+        });
+        assert.ok(typeof id === 'string');
+        assert.ok(typeof client_secret === 'string');
+        assert.ok(typeof winc === 'string');
+      });
+    });
+
     describe('submitFundTransaction()', () => {
       before(async () => {
         await fundArLocalWalletAddress(testArweaveNativeB64Address);

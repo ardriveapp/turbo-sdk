@@ -36,6 +36,8 @@ import {
   TurboFundWithTokensParams,
   TurboInfoResponse,
   TurboLogger,
+  TurboPaymentIntentParams,
+  TurboPaymentIntentResponse,
   TurboPostBalanceResponse,
   TurboPriceResponse,
   TurboRatesResponse,
@@ -190,6 +192,7 @@ export class TurboUnauthenticatedPaymentService
       uiMode = 'hosted',
       ...callbackUrls
     }: TurboCheckoutSessionParams,
+    type: 'checkout-session' | 'payment-intent' = 'checkout-session',
     headers?: TurboSignedRequestHeaders,
   ): Promise<TurboCheckoutSessionResponse> {
     const { amount: paymentAmount, type: currencyType } = amount;
@@ -212,7 +215,7 @@ export class TurboUnauthenticatedPaymentService
       queryParams.append('returnUrl', callbackUrls.returnUrl);
     }
 
-    const endpoint = `/top-up/checkout-session/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
+    const endpoint = `/top-up/${type}/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
 
     const { adjustments, paymentSession, topUpQuote, fees } =
       await this.httpService.get<TopUpRawResponse>({
@@ -366,6 +369,15 @@ export class TurboUnauthenticatedPaymentService
       .toFixed(exponentMap[this.token]);
 
     return { byteCount, tokenPrice: tokenPriceForBytes, token: this.token };
+  }
+
+  public async createPaymentIntent(
+    params: TurboPaymentIntentParams,
+  ): Promise<TurboPaymentIntentResponse> {
+    return this.getCheckout(
+      params,
+      'payment-intent',
+    ) as Promise<TurboPaymentIntentResponse>;
   }
 }
 // NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
