@@ -33,11 +33,17 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
   const paidBy = await paidByFromOptions(options, turbo);
   const customTags = getTagsFromOptions(options);
   const fileSize = statSync(filePath).size;
+  const chunkSize = +(options.chunkSize ?? 5 * 1024 * 1024); // 5 MiB
+  const batchSize = +(options.batchSize ?? 5); // 5 concurrent chunk uploads
 
   const result = await turbo.uploadFile({
-    fileStreamFactory: () => createReadStream(filePath),
+    fileStreamFactory: () =>
+      createReadStream(filePath, { highWaterMark: chunkSize }),
     fileSizeFactory: () => fileSize,
     dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
+    batchSize,
+    chunkSize,
+    forceChunking: options.forceChunking ?? false,
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

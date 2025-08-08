@@ -31,7 +31,6 @@ import {
   TurboFileFactory,
   TurboLogger,
   TurboRevokeCreditsParams,
-  TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadAndSigningEmitterEvents,
@@ -43,10 +42,12 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
+  UploadSignedDataItemParams,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
+import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -93,7 +94,7 @@ export class TurboUnauthenticatedUploadService
     this.token = token;
     this.logger = logger;
     this.httpService = new TurboHTTPService({
-      url: `${url}/v1`,
+      url: `${url}`, // `${url/v1}`, TODO: Enable /v1/chunks endpoints and re-add v1 to the URL
       retryConfig,
       logger: this.logger,
     });
@@ -106,9 +107,7 @@ export class TurboUnauthenticatedUploadService
     dataItemOpts,
     signal,
     events = {},
-  }: TurboSignedDataItemFactory &
-    TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+  }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
     const dataItemSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
 
@@ -160,6 +159,8 @@ export abstract class TurboAuthenticatedBaseUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
   protected signer: TurboDataItemSigner;
+  protected chunkSize = 5 * 1024 * 1024; // 5 MiB
+  protected batchSize = 5; // 5 concurrent chunk uploads
 
   constructor({
     url = defaultUploadServiceURL,
@@ -215,6 +216,40 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
+  public async uploadChunked(
+    params: UploadSignedDataItemParams & {
+      chunkSize?: number;
+      batchSize?: number;
+    },
+  ): Promise<TurboUploadDataItemResponse> {
+    const { batchSize, chunkSize, dataItemSizeFactory, events } = params;
+    const totalBytes = dataItemSizeFactory();
+    const uploader = new ChunkedUploader({
+      http: this.httpService,
+      token: this.token,
+      batchSize,
+      chunkSize,
+      logger: this.logger,
+    });
+    if (events !== undefined) {
+      if (events.onUploadProgress) {
+        uploader.on(
+          'chunkUpload',
+          ({ totalUploaded }) =>
+            events.onUploadProgress?.({
+              processedBytes: totalUploaded,
+              totalBytes,
+            }),
+        );
+      }
+      if (events.onUploadError) {
+        uploader.on('chunkError', ({ res }) => events.onUploadError?.(res));
+      }
+    }
+
+    return uploader.upload(params);
+  }
+
   private resolveUploadFileConfig(
     params: TurboUploadFileParams,
   ): TurboUploadConfig {
@@ -252,6 +287,8 @@ export abstract class TurboAuthenticatedBaseUploadService
     const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
       this.resolveUploadFileConfig(params);
 
+    const { chunkSize = 5 * 1024 * 1024, batchSize, forceChunking } = params;
+
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -272,6 +309,8 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
+    const totalSize = dataItemSizeFactory();
+
     while (retries < maxRetries) {
       if (signal?.aborted) {
         throw new CanceledError();
@@ -281,14 +320,26 @@ export abstract class TurboAuthenticatedBaseUploadService
       // which will create a new emitter with upload events. We await
       // this result due to the wrapped retry logic of this method.
       try {
-        const response = await this.uploadSignedDataItem({
+        const twoChunksOfData = chunkSize * 2;
+
+        if (forceChunking || totalSize > twoChunksOfData) {
+          return this.uploadChunked({
+            dataItemStreamFactory,
+            dataItemSizeFactory,
+            dataItemOpts,
+            signal,
+            events,
+            batchSize,
+            chunkSize,
+          });
+        }
+        return this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
           dataItemOpts,
           signal,
           events,
         });
-        return response;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
@@ -377,7 +428,10 @@ export abstract class TurboAuthenticatedBaseUploadService
     params: TurboUploadFolderParams,
   ): Promise<(File | string)[]>;
   abstract contentTypeFromFile(file: File | string): string;
-  abstract getFileStreamForFile(file: string | File): Readable | ReadableStream;
+  abstract getFileStreamForFile(
+    file: string | File,
+    chunkSize?: number,
+  ): Readable | ReadableStream;
   abstract getFileSize(file: string | File): number;
   abstract getRelativePath(
     file: string | File,
@@ -421,6 +475,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifestOptions = {},
       maxConcurrentUploads = 1,
       throwOnFailure = true,
+      batchSize,
+      chunkSize,
+      forceChunking,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -447,11 +504,15 @@ export abstract class TurboAuthenticatedBaseUploadService
       try {
         const result = await this.uploadFile({
           // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fileStreamFactory: () => this.getFileStreamForFile(file) as any,
+          fileStreamFactory: () =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.getFileStreamForFile(file, chunkSize) as any,
           fileSizeFactory: () => this.getFileSize(file),
           signal,
           dataItemOpts: dataItemOptsWithContentType,
+          chunkSize,
+          batchSize,
+          forceChunking,
         });
 
         const relativePath = this.getRelativePath(file, params);
@@ -506,6 +567,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
+      chunkSize,
+      batchSize,
+      forceChunking,
     });
 
     return {
