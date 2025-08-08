@@ -901,6 +901,25 @@ describe('Node environment', () => {
         },
       ];
 
+      it('should properly upload a Readable with forcedChunking enabled', async () => {
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkSize: 1024,
+          batchSize: 5,
+          forceChunking: true,
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
       for (const dataItemOpts of validDataItemOpts) {
         it('should properly upload a Readable to turbo with events', async () => {
           let uploadProgressCalled = false;

@@ -254,7 +254,8 @@ type UploadFolderParams = {
     fallbackFile?: string;
     indexFile?: string;
   };
-} & TurboAbortSignal;
+} & TurboAbortSignal &
+  TurboChunkingParams;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -591,18 +592,27 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
+export type TurboChunkingParams = {
+  chunkSize?: number;
+  batchSize?: number;
+  forceChunking?: boolean;
+};
+
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
   TurboAbortSignal &
-  TurboUploadAndSigningEmitterEvents;
+  TurboUploadAndSigningEmitterEvents &
+  TurboChunkingParams;
 export type TurboUploadFileWithFileOrPathParams = {
   file: File | string;
   dataItemOpts?: DataItemOptions;
 } & TurboAbortSignal &
   TurboUploadAndSigningEmitterEvents;
 
-export type TurboUploadFileParams =
+export type TurboUploadFileParams = (
   | TurboUploadFileWithStreamFactoryParams
-  | TurboUploadFileWithFileOrPathParams;
+  | TurboUploadFileWithFileOrPathParams
+) &
+  TurboChunkingParams;
 
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
@@ -835,3 +845,7 @@ export type TokenFactory = Record<
   string,
   (config: TokenConfig | AoProcessConfig) => TokenTools
 >;
+
+export type UploadSignedDataItemParams = TurboSignedDataItemFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;

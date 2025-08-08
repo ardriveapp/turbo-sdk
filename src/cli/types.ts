@@ -48,6 +48,9 @@ export type UploadOptions = WalletOptions & {
   ignoreApprovals: boolean;
   useSignerBalanceFirst: boolean;
   tags: string[] | undefined;
+  batchSize: string | undefined;
+  chunkSize: string | undefined;
+  forceChunking: boolean;
 };
 
 export type UploadFolderOptions = UploadOptions & {
