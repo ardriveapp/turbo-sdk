@@ -21,7 +21,6 @@ import type {
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
 } from '../types.js';
-import { readableStreamToBuffer } from '../utils/readableStream.js';
 import { TurboEventEmitter } from './events.js';
 import { TurboHTTPService } from './http.js';
 
@@ -145,12 +144,13 @@ export class ChunkedUploader {
 
     if (stream instanceof ReadableStream) {
       // TODO: Dont do this, keep as stream for chunked upload
-      stream = await readableStreamToBuffer({ stream, size });
+      // stream = await readableStreamToBuffer({ stream, size });
+      stream = Readable.fromWeb(stream as any); // TODO: test this conversion
     }
 
     // build your stream (from Buffer, or whatever):
     if (stream instanceof Buffer) {
-      stream = Readable.from(stream, { highWaterMark: this.chunkSize });
+      stream = Readable.from(stream);
     }
 
     // Validate stream
@@ -241,6 +241,7 @@ export class ChunkedUploader {
  * Yield Buffers of up to `chunkSize`, coalescing whatever small pieces
  * the source produces into proper slices.
  */
+
 export async function* splitIntoChunks(
   source: Readable,
   chunkSize: number,
@@ -248,16 +249,15 @@ export async function* splitIntoChunks(
   let acc = Buffer.alloc(0);
 
   for await (const piece of source) {
-    const buf = piece;
-    acc = Buffer.concat([acc, buf]);
+    acc = Buffer.concat([acc, piece]);
 
     while (acc.length >= chunkSize) {
-      yield acc.slice(0, chunkSize);
-      acc = acc.slice(chunkSize);
+      yield acc.subarray(0, chunkSize);
+      acc = acc.subarray(chunkSize);
     }
   }
 
-  // final tail
+  // yield the final piece
   if (acc.length > 0) {
     yield acc;
   }

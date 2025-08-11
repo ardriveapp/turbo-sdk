@@ -80,8 +80,8 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     return this.getAbsoluteFilePathsFromFolder(params.folderPath);
   }
 
-  getFileStreamForFile(file: string, chunkSize?: number): Readable {
-    return createReadStream(file, { highWaterMark: chunkSize });
+  getFileStreamForFile(file: string): Readable {
+    return createReadStream(file);
   }
 
   getFileSize(file: string): number {

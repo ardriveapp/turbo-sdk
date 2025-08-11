@@ -159,8 +159,6 @@ export abstract class TurboAuthenticatedBaseUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
   protected signer: TurboDataItemSigner;
-  protected chunkSize = 5 * 1024 * 1024; // 5 MiB
-  protected batchSize = 5; // 5 concurrent chunk uploads
 
   constructor({
     url = defaultUploadServiceURL,
@@ -323,7 +321,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         const twoChunksOfData = chunkSize * 2;
 
         if (forceChunking || totalSize > twoChunksOfData) {
-          return this.uploadChunked({
+          const response = await this.uploadChunked({
             dataItemStreamFactory,
             dataItemSizeFactory,
             dataItemOpts,
@@ -332,14 +330,16 @@ export abstract class TurboAuthenticatedBaseUploadService
             batchSize,
             chunkSize,
           });
+          return response;
         }
-        return this.uploadSignedDataItem({
+        const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
           dataItemOpts,
           signal,
           events,
         });
+        return response;
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
@@ -428,10 +428,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     params: TurboUploadFolderParams,
   ): Promise<(File | string)[]>;
   abstract contentTypeFromFile(file: File | string): string;
-  abstract getFileStreamForFile(
-    file: string | File,
-    chunkSize?: number,
-  ): Readable | ReadableStream;
+  abstract getFileStreamForFile(file: string | File): Readable | ReadableStream;
   abstract getFileSize(file: string | File): number;
   abstract getRelativePath(
     file: string | File,
@@ -506,7 +503,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
           fileStreamFactory: () =>
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.getFileStreamForFile(file, chunkSize) as any,
+            this.getFileStreamForFile(file) as any,
           fileSizeFactory: () => this.getFileSize(file),
           signal,
           dataItemOpts: dataItemOptsWithContentType,

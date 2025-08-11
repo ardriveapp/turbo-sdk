@@ -600,19 +600,17 @@ export type TurboChunkingParams = {
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
   TurboAbortSignal &
-  TurboUploadAndSigningEmitterEvents &
-  TurboChunkingParams;
+  TurboUploadAndSigningEmitterEvents;
 export type TurboUploadFileWithFileOrPathParams = {
   file: File | string;
   dataItemOpts?: DataItemOptions;
 } & TurboAbortSignal &
-  TurboUploadAndSigningEmitterEvents;
-
-export type TurboUploadFileParams = (
-  | TurboUploadFileWithStreamFactoryParams
-  | TurboUploadFileWithFileOrPathParams
-) &
+  TurboUploadAndSigningEmitterEvents &
   TurboChunkingParams;
+
+export type TurboUploadFileParams =
+  | TurboUploadFileWithStreamFactoryParams
+  | TurboUploadFileWithFileOrPathParams;
 
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
@@ -628,7 +626,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
   // bundle?: boolean; // TODO: add bundling into BDIs
-};
+} & TurboChunkingParams;
 
 export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
