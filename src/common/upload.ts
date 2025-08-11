@@ -94,7 +94,7 @@ export class TurboUnauthenticatedUploadService
     this.token = token;
     this.logger = logger;
     this.httpService = new TurboHTTPService({
-      url: `${url}`, // `${url/v1}`, TODO: Enable /v1/chunks endpoints and re-add v1 to the URL
+      url: `${url}/v1`,
       retryConfig,
       logger: this.logger,
     });
