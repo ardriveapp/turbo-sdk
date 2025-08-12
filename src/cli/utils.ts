@@ -297,6 +297,9 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   fallbackFile: string | undefined;
   disableManifest: boolean;
   maxConcurrentUploads: number;
+  maxChunkConcurrency?: number;
+  chunkSize?: number;
+  enableChunking?: boolean | 'auto';
 } {
   if (options.folderPath === undefined) {
     throw new Error('--folder-path is required');
@@ -308,6 +311,7 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
     fallbackFile: options.fallbackFile,
     disableManifest: !options.manifest,
     maxConcurrentUploads: +(options.maxConcurrency ?? 1),
+    ...getChunkingOptions(options),
   };
 }
 
@@ -384,4 +388,36 @@ export function requiredByteCountFromOptions({
     throw new Error('Must provide a positive number for byte count.');
   }
   return byteCountValue;
+}
+
+export function getChunkingOptions<O extends UploadOptions>(
+  options: O,
+): {
+  enableChunking?: boolean | 'auto';
+  chunkSize?: number;
+  maxChunkConcurrency?: number;
+} {
+  let enableChunking: boolean | 'auto' | undefined;
+
+  if (options.chunkingMode !== undefined) {
+    if (options.chunkingMode === 'force') {
+      enableChunking = true;
+    } else if (options.chunkingMode === 'disable') {
+      enableChunking = false;
+    } else if (options.chunkingMode === 'auto') {
+      enableChunking = 'auto';
+    } else {
+      throw new Error(
+        `Invalid chunking mode: ${options.chunkingMode}. Must be one of "auto", "force", or "disable".`,
+      );
+    }
+  }
+
+  return {
+    enableChunking,
+    chunkSize: options.chunkSize ? +options.chunkSize : undefined,
+    maxChunkConcurrency: options.maxChunkConcurrency
+      ? +options.maxChunkConcurrency
+      : undefined,
+  };
 }

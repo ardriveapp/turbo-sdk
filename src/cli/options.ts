@@ -137,7 +137,7 @@ export const optionMap = {
   },
   maxConcurrency: {
     alias: '--max-concurrency <maxConcurrency>',
-    description: 'Maximum number of concurrent uploads',
+    description: 'Maximum number of concurrent file uploads',
   },
   paidBy: {
     alias: '--paid-by <paidBy...>',
@@ -163,6 +163,20 @@ export const optionMap = {
   byteCount: {
     alias: '--byte-count <byteCount>',
     description: 'Number of bytes to use for the action',
+  },
+  maxChunkConcurrency: {
+    alias: '--max-chunk-concurrency <maxChunkConcurrency>',
+    description: 'Maximum number of concurrent chunks to upload per file',
+  },
+  chunkSize: {
+    alias: '--chunk-size <chunkSize>',
+    description: 'Size of each chunk in bytes',
+  },
+  chunkingMode: {
+    alias: '--chunking-mode <chunkingMode>',
+    description:
+      'Chunking mode to use for the upload. Can be "auto", "force" or "disable". Defaults to "auto".',
+    default: 'auto',
   },
 } as const;
 
@@ -190,6 +204,9 @@ export const uploadOptions = [
   optionMap.ignoreApprovals,
   optionMap.useSignerBalanceFirst,
   optionMap.tags,
+  optionMap.maxChunkConcurrency,
+  optionMap.chunkSize,
+  optionMap.chunkingMode,
 ];
 
 export const uploadFolderOptions = [
