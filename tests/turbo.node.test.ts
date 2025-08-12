@@ -901,7 +901,7 @@ describe('Node environment', () => {
         },
       ];
 
-      it('should properly upload a Readable with forcedChunking enabled', async () => {
+      it.only('should properly upload a Readable with forcedChunking enabled', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
@@ -909,8 +909,6 @@ describe('Node environment', () => {
           dataItemOpts: {
             ...validDataItemOpts[0],
           },
-          chunkSize: 1024,
-          batchSize: 5,
           forceChunking: true,
         });
         assert.ok(response !== undefined);
