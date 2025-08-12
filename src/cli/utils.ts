@@ -415,9 +415,10 @@ export function getChunkingOptions<O extends UploadOptions>(
 
   return {
     enableChunking,
-    chunkSize: options.chunkSize ? +options.chunkSize : undefined,
-    maxChunkConcurrency: options.maxChunkConcurrency
-      ? +options.maxChunkConcurrency
-      : undefined,
+    chunkSize: options.chunkSize !== undefined ? +options.chunkSize : undefined,
+    maxChunkConcurrency:
+      options.maxChunkConcurrency !== undefined
+        ? +options.maxChunkConcurrency
+        : undefined,
   };
 }

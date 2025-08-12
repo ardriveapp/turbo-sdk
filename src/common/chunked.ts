@@ -24,6 +24,8 @@ import type {
 import { TurboEventEmitter } from './events.js';
 import { TurboHTTPService } from './http.js';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Events emitted during chunked upload.
  */
@@ -71,7 +73,7 @@ export class ChunkedUploader {
     chunkSize,
     logger,
   }: ChunkedUploaderParams) {
-    this.chunkSize = chunkSize ?? 5 * 1024 * 1024 + 1; // 5 MiB
+    this.chunkSize = chunkSize ?? 5 * 1024 * 1024; // 5 MiB
     this.maxChunkConcurrency = maxChunkConcurrency ?? 5;
     this.http = http;
     this.token = token;
@@ -145,25 +147,8 @@ export class ChunkedUploader {
           : typeof stream,
     });
 
-    if (stream instanceof ReadableStream) {
-      // TODO: Dont do this, keep as stream for chunked upload
-      // stream = await readableStreamToBuffer({ stream, size });
-      stream = Readable.fromWeb(stream as any); // TODO: test this conversion
-    }
-
-    // build your stream (from Buffer, or whatever):
     if (stream instanceof Buffer) {
       stream = Readable.from(stream);
-    }
-
-    // Validate stream
-    if (!(stream instanceof Readable)) {
-      throw new Error('Data item stream must be a Readable stream or Buffer');
-    }
-
-    // Validate size
-    if (size <= 0) {
-      throw new Error('Data item size must be greater than 0');
     }
 
     const limit = pLimit(this.maxChunkConcurrency);
@@ -171,10 +156,7 @@ export class ChunkedUploader {
     let chunkId = 0;
     const tasks: Promise<any>[] = [];
 
-    const chunks =
-      stream.readableHighWaterMark === this.chunkSize
-        ? stream
-        : splitIntoChunks(stream, this.chunkSize);
+    const chunks = splitIntoChunks(stream, this.chunkSize);
 
     for await (const chunk of chunks) {
       const id = ++chunkId;
@@ -227,7 +209,7 @@ export class ChunkedUploader {
 
     // TODO: Async Finalize
     // Finalize and reconstruct server-side
-    const finish = await this.http.post<TurboUploadDataItemResponse>({
+    const finalizeResponse = await this.http.post<TurboUploadDataItemResponse>({
       endpoint: `/chunks/${this.token}/${uploadId}/-1`,
       data: Buffer.alloc(0),
       headers: {
@@ -238,15 +220,28 @@ export class ChunkedUploader {
       signal,
     });
 
-    return finish;
+    return finalizeResponse;
   }
 }
+
 /**
  * Yield Buffers of up to `chunkSize`, coalescing whatever small pieces
  * the source produces into proper slices.
  */
-
 export async function* splitIntoChunks(
+  source: Readable | ReadableStream<Uint8Array>,
+  chunkSize: number,
+): AsyncGenerator<Buffer, void, unknown> {
+  if (source instanceof Readable) {
+    yield* splitReadableIntoChunks(source, chunkSize);
+  } else if (source instanceof ReadableStream) {
+    yield* splitReadableStreamIntoChunks(source, chunkSize);
+  } else {
+    throw new Error('Unsupported source type for chunking');
+  }
+}
+
+export async function* splitReadableIntoChunks(
   source: Readable,
   chunkSize: number,
 ): AsyncGenerator<Buffer, void, unknown> {
@@ -264,5 +259,39 @@ export async function* splitIntoChunks(
   // yield the final piece
   if (acc.length > 0) {
     yield acc;
+  }
+}
+
+export async function* splitReadableStreamIntoChunks(
+  source: ReadableStream<Uint8Array>,
+  chunkSize: number,
+): AsyncGenerator<Buffer, void, unknown> {
+  const reader = source.getReader();
+  let acc = new Uint8Array(0);
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      // Append to accumulator
+      const merged = new Uint8Array(acc.length + value.length);
+      merged.set(acc);
+      merged.set(value, acc.length);
+      acc = merged;
+
+      // Yield full chunks
+      while (acc.length >= chunkSize) {
+        yield Buffer.from(acc.subarray(0, chunkSize));
+        acc = acc.subarray(chunkSize);
+      }
+    }
+
+    // Yield the remainder
+    if (acc.length > 0) {
+      yield Buffer.from(acc);
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
