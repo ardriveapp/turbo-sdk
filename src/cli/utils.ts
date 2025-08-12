@@ -21,6 +21,7 @@ import {
   Currency,
   TokenType,
   TurboAuthenticatedClient,
+  TurboChunkingMode,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
@@ -299,7 +300,7 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   maxConcurrentUploads: number;
   maxChunkConcurrency?: number;
   chunkSize?: number;
-  chunkingMode?: 'auto' | 'force' | 'disabled';
+  chunkingMode?: TurboChunkingMode;
 } {
   if (options.folderPath === undefined) {
     throw new Error('--folder-path is required');
@@ -393,11 +394,11 @@ export function requiredByteCountFromOptions({
 export function getChunkingOptions<O extends UploadOptions>(
   options: O,
 ): {
-  chunkingMode?: 'force' | 'disabled' | 'auto';
+  chunkingMode?: TurboChunkingMode;
   chunkSize?: number;
   maxChunkConcurrency?: number;
 } {
-  let chunkingMode: 'force' | 'disabled' | 'auto' | undefined;
+  let chunkingMode: TurboChunkingMode | undefined;
 
   if (options.chunkingMode !== undefined) {
     if (options.chunkingMode === 'force') {

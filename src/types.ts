@@ -592,13 +592,15 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
+export type TurboChunkingMode = 'force' | 'disabled' | 'auto';
+
 export type TurboChunkingParams = {
   /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
   chunkSize?: number;
   /** Number of chunks to send up concurrently */
   maxChunkConcurrency?: number;
   /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkSizes */
-  chunkingMode?: 'force' | 'disabled' | 'auto';
+  chunkingMode?: TurboChunkingMode;
 };
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
