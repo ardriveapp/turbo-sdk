@@ -127,7 +127,7 @@ export class ChunkedUploader {
     dataItemStreamFactory,
     dataItemOpts,
     signal,
-    events, // TODO: use events within this class context to emit progress
+    events,
   }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
     const uploadId = await this.initUpload();
     const size = dataItemSizeFactory();

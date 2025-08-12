@@ -488,9 +488,8 @@ export abstract class TurboAuthenticatedBaseUploadService
       try {
         const result = await this.uploadFile({
           // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
-          fileStreamFactory: () =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.getFileStreamForFile(file) as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fileStreamFactory: () => this.getFileStreamForFile(file) as any,
           fileSizeFactory: () => this.getFileSize(file),
           signal,
           dataItemOpts: dataItemOptsWithContentType,
