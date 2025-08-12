@@ -76,7 +76,6 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
       });
 
     try {
-      console.log('dataItemOpts', dataItemOpts);
       const signedDataItemPromise = streamSigner(
         streamWithSigningEvents as unknown as Readable, // TODO: use generics to avoid this cast
         stream2,

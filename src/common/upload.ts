@@ -337,8 +337,6 @@ export abstract class TurboAuthenticatedBaseUploadService
 
         const twoChunksOfData = chunkSize * 2;
 
-        console.log('totalSize', totalSize);
-        console.log('twoChunksOfData', twoChunksOfData);
         if (
           enableChunking === true ||
           (enableChunking === 'auto' && totalSize > twoChunksOfData)

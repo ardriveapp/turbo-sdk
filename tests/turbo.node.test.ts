@@ -9,6 +9,7 @@ import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import fs from 'fs';
 import { strict as assert } from 'node:assert';
+import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
@@ -901,7 +902,7 @@ describe('Node environment', () => {
         },
       ];
 
-      it('should properly upload a Readable with forcedChunking enabled', async () => {
+      it('should properly upload a Readable with chunking forced', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
@@ -913,6 +914,23 @@ describe('Node environment', () => {
         });
         assert.ok(response !== undefined);
         // TODO: Uncomment when fastFinalityIndexes and dataCaches and owner are implemented for multipart
+        // assert.ok(response.fastFinalityIndexes !== undefined);
+        // assert.ok(response.dataCaches !== undefined);
+        // assert.ok(response.owner !== undefined);
+        // assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      it.only('should properly upload a Readable with 11 MiB of random data', async () => {
+        const fileSize = 11 * 1024 * 1024; // 11 MiB
+        const randomData = randomBytes(fileSize);
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => Readable.from(randomData), // create a Readable stream from random bytes
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+        });
+        assert.ok(response !== undefined);
         // assert.ok(response.fastFinalityIndexes !== undefined);
         // assert.ok(response.dataCaches !== undefined);
         // assert.ok(response.owner !== undefined);
@@ -1058,13 +1076,6 @@ describe('Node environment', () => {
       } of invalidDataItemOpts) {
         it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
           const fileSize = fs.statSync(oneKiBFilePath).size;
-          console.log('fileSize', fileSize);
-          const res = await turbo.uploadFile({
-            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
-            fileSizeFactory: () => fileSize,
-            dataItemOpts,
-          });
-          console.log('res ..', res);
           await expectAsyncErrorThrow({
             promiseToError: turbo.uploadFile({
               fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),

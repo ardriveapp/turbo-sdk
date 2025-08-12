@@ -64,6 +64,7 @@
     "test:web": "c8 node --import=./register.mjs --test --test-timeout=300000 --enable-source-maps tests/**/*.web.test.ts",
     "test:node": "c8 node --import=./register.mjs --test --test-only --test-timeout=300000 --enable-source-maps tests/**/*.node.test.ts",
     "test:docker": "./run-tests.sh",
+    "test:docker:only": "./run-tests.sh --only",
     "prepare": "husky install",
     "examples": "yarn example:esm & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
     "example:vite": "cd examples/vite && yarn && yarn start",
