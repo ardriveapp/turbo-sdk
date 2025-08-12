@@ -38,9 +38,12 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
     fileStreamFactory: () => createReadStream(filePath),
     fileSizeFactory: () => fileSize,
     dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
-    batchSize: options.batchSize === undefined ? undefined : +options.batchSize,
+    maxChunkConcurrency:
+      options.maxChunkConcurrency === undefined
+        ? undefined
+        : +options.maxChunkConcurrency,
     chunkSize: options.chunkSize === undefined ? undefined : +options.chunkSize,
-    forceChunking: options.forceChunking ?? false,
+    enableChunking: options.enableChunking ?? false,
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

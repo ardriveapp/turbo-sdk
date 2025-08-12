@@ -217,15 +217,16 @@ export abstract class TurboAuthenticatedBaseUploadService
   public async uploadChunked(
     params: UploadSignedDataItemParams & {
       chunkSize?: number;
-      batchSize?: number;
+      maxChunkConcurrency?: number;
     },
   ): Promise<TurboUploadDataItemResponse> {
-    const { batchSize, chunkSize, dataItemSizeFactory, events } = params;
+    const { maxChunkConcurrency, chunkSize, dataItemSizeFactory, events } =
+      params;
     const totalBytes = dataItemSizeFactory();
     const uploader = new ChunkedUploader({
       http: this.httpService,
       token: this.token,
-      batchSize,
+      maxChunkConcurrency,
       chunkSize,
       logger: this.logger,
     });
@@ -285,7 +286,14 @@ export abstract class TurboAuthenticatedBaseUploadService
     const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
       this.resolveUploadFileConfig(params);
 
-    const { chunkSize = 5 * 1024 * 1024, batchSize, forceChunking } = params;
+    const {
+      chunkSize = 5 * 1024 * 1024,
+      maxChunkConcurrency: maxChunkConcurrency,
+      enableChunking = 'auto',
+    } = params;
+    if (chunkSize < 5242880 || chunkSize > 524288000) {
+      throw new Error('Invalid chunk size. Must be between 5 MiB and 500 MiB.');
+    }
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -320,14 +328,17 @@ export abstract class TurboAuthenticatedBaseUploadService
       try {
         const twoChunksOfData = chunkSize * 2;
 
-        if (forceChunking || totalSize > twoChunksOfData) {
+        if (
+          enableChunking === true ||
+          (enableChunking === 'auto' && totalSize > twoChunksOfData)
+        ) {
           const response = await this.uploadChunked({
             dataItemStreamFactory,
             dataItemSizeFactory,
             dataItemOpts,
             signal,
             events,
-            batchSize,
+            maxChunkConcurrency,
             chunkSize,
           });
           return response;
@@ -472,9 +483,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifestOptions = {},
       maxConcurrentUploads = 1,
       throwOnFailure = true,
-      batchSize,
+      maxChunkConcurrency: maxChunkConcurrency,
       chunkSize,
-      forceChunking,
+      enableChunking,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -508,8 +519,8 @@ export abstract class TurboAuthenticatedBaseUploadService
           signal,
           dataItemOpts: dataItemOptsWithContentType,
           chunkSize,
-          batchSize,
-          forceChunking,
+          maxChunkConcurrency: maxChunkConcurrency,
+          enableChunking,
         });
 
         const relativePath = this.getRelativePath(file, params);
@@ -565,8 +576,8 @@ export abstract class TurboAuthenticatedBaseUploadService
       signal,
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
       chunkSize,
-      batchSize,
-      forceChunking,
+      maxChunkConcurrency: maxChunkConcurrency,
+      enableChunking,
     });
 
     return {

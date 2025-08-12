@@ -49,7 +49,7 @@ export type ChunkedUploaderParams = {
   token: string;
   logger: TurboLogger;
   chunkSize?: number;
-  batchSize?: number;
+  maxChunkConcurrency?: number;
 };
 
 /**
@@ -59,7 +59,7 @@ export type ChunkedUploaderParams = {
 export class ChunkedUploader {
   private readonly emitter = new TurboEventEmitter();
   private readonly chunkSize: number;
-  private readonly batchSize: number;
+  private readonly maxChunkConcurrency: number;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
@@ -67,12 +67,12 @@ export class ChunkedUploader {
   constructor({
     http,
     token,
-    batchSize,
+    maxChunkConcurrency,
     chunkSize,
     logger,
   }: ChunkedUploaderParams) {
-    this.chunkSize = chunkSize ?? 5 * 1024 * 1024; // 5 MiB
-    this.batchSize = batchSize ?? 5;
+    this.chunkSize = chunkSize ?? 5 * 1024 * 1024 + 1; // 5 MiB
+    this.maxChunkConcurrency = maxChunkConcurrency ?? 5;
     this.http = http;
     this.token = token;
     this.logger = logger;
@@ -131,7 +131,7 @@ export class ChunkedUploader {
       uploadId,
       totalSize: size,
       chunkSize: this.chunkSize,
-      batchSize: this.batchSize,
+      maxChunkConcurrency: this.maxChunkConcurrency,
       inputStreamType:
         stream instanceof ReadableStream
           ? 'ReadableStream'
@@ -163,7 +163,7 @@ export class ChunkedUploader {
       throw new Error('Data item size must be greater than 0');
     }
 
-    const limit = pLimit(this.batchSize);
+    const limit = pLimit(this.maxChunkConcurrency);
     let offset = 0;
     let chunkId = 0;
     const tasks: Promise<any>[] = [];
@@ -222,6 +222,7 @@ export class ChunkedUploader {
         : dataItemOpts.paidBy;
     }
 
+    // TODO: Async Finalize
     // Finalize and reconstruct server-side
     const finish = await this.http.post<TurboUploadDataItemResponse>({
       endpoint: `/chunks/${this.token}/${uploadId}/-1`,
