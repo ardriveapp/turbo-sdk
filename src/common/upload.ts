@@ -219,41 +219,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 
-  public async uploadChunked(
-    params: UploadSignedDataItemParams & {
-      chunkSize?: number;
-      maxChunkConcurrency?: number;
-    },
-  ): Promise<TurboUploadDataItemResponse> {
-    const { maxChunkConcurrency, chunkSize, dataItemSizeFactory, events } =
-      params;
-    const totalBytes = dataItemSizeFactory();
-    const uploader = new ChunkedUploader({
-      http: this.httpService,
-      token: this.token,
-      maxChunkConcurrency,
-      chunkSize,
-      logger: this.logger,
-    });
-    if (events !== undefined) {
-      if (events.onUploadProgress) {
-        uploader.on(
-          'chunkUpload',
-          ({ totalUploaded }) =>
-            events.onUploadProgress?.({
-              processedBytes: totalUploaded,
-              totalBytes,
-            }),
-        );
-      }
-      if (events.onUploadError) {
-        uploader.on('chunkError', ({ res }) => events.onUploadError?.(res));
-      }
-    }
-
-    return uploader.upload({ ...params, dataItemSizeFactory });
-  }
-
   private resolveUploadFileConfig(
     params: TurboUploadFileParams,
   ): TurboUploadConfig {
@@ -339,14 +304,18 @@ export abstract class TurboAuthenticatedBaseUploadService
           enableChunking === true ||
           (enableChunking === 'auto' && totalSize > twoChunksOfData)
         ) {
-          const response = await this.uploadChunked({
+          const response = await new ChunkedUploader({
+            http: this.httpService,
+            token: this.token,
+            maxChunkConcurrency,
+            chunkSize,
+            logger: this.logger,
+          }).upload({
             dataItemStreamFactory,
             dataItemSizeFactory,
             dataItemOpts,
             signal,
             events,
-            maxChunkConcurrency,
-            chunkSize,
           });
           return response;
         }
