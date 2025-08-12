@@ -593,6 +593,7 @@ export type UploadDataInput = {
 };
 
 export type TurboChunkingParams = {
+  /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
   chunkSize?: number;
   /** Number of chunks to send up concurrently */
   maxChunkConcurrency?: number;
@@ -634,7 +635,7 @@ export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
-  dataItemSizeFactory: StreamSizeFactory;
+  dataItemSizeFactory: StreamSizeFactory | number;
   dataItemOpts?: DataItemOptions;
 };
 

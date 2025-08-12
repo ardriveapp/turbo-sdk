@@ -108,7 +108,10 @@ export class TurboUnauthenticatedUploadService
     signal,
     events = {},
   }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
-    const dataItemSize = dataItemSizeFactory();
+    const dataItemSize =
+      typeof dataItemSizeFactory === 'number'
+        ? dataItemSizeFactory
+        : dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
 
     // create the tapped stream with events
@@ -222,7 +225,10 @@ export abstract class TurboAuthenticatedBaseUploadService
   ): Promise<TurboUploadDataItemResponse> {
     const { maxChunkConcurrency, chunkSize, dataItemSizeFactory, events } =
       params;
-    const totalBytes = dataItemSizeFactory();
+    const totalBytes =
+      typeof dataItemSizeFactory === 'number'
+        ? dataItemSizeFactory
+        : dataItemSizeFactory();
     const uploader = new ChunkedUploader({
       http: this.httpService,
       token: this.token,
@@ -246,7 +252,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     }
 
-    return uploader.upload(params);
+    return uploader.upload({ ...params, dataItemSizeFactory: totalBytes });
   }
 
   private resolveUploadFileConfig(
@@ -315,8 +321,6 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
-    const totalSize = dataItemSizeFactory();
-
     while (retries < maxRetries) {
       if (signal?.aborted) {
         throw new CanceledError();
@@ -326,15 +330,22 @@ export abstract class TurboAuthenticatedBaseUploadService
       // which will create a new emitter with upload events. We await
       // this result due to the wrapped retry logic of this method.
       try {
+        const totalSize =
+          typeof dataItemSizeFactory === 'number'
+            ? dataItemSizeFactory
+            : dataItemSizeFactory();
+
         const twoChunksOfData = chunkSize * 2;
 
+        console.log('totalSize', totalSize);
+        console.log('twoChunksOfData', twoChunksOfData);
         if (
           enableChunking === true ||
           (enableChunking === 'auto' && totalSize > twoChunksOfData)
         ) {
           const response = await this.uploadChunked({
             dataItemStreamFactory,
-            dataItemSizeFactory,
+            dataItemSizeFactory: totalSize,
             dataItemOpts,
             signal,
             events,
@@ -345,7 +356,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         }
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
-          dataItemSizeFactory,
+          dataItemSizeFactory: totalSize,
           dataItemOpts,
           signal,
           events,
