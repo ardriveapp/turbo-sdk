@@ -24,6 +24,10 @@ import type {
 import { TurboEventEmitter } from './events.js';
 import { TurboHTTPService } from './http.js';
 
+export const fiveMiB = 5 * 1024 * 1024; // 5 MiB
+export const fiveHundredMiB = fiveMiB * 100; // 500 MiB
+export const defaultChunkSize = fiveMiB; // Default chunk size for uploads
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
@@ -73,7 +77,7 @@ export class ChunkedUploader {
     chunkSize,
     logger,
   }: ChunkedUploaderParams) {
-    this.chunkSize = chunkSize ?? 5 * 1024 * 1024; // 5 MiB
+    this.chunkSize = chunkSize ?? defaultChunkSize;
     this.maxChunkConcurrency = maxChunkConcurrency ?? 5;
     this.http = http;
     this.token = token;

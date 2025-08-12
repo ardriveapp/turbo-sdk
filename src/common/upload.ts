@@ -47,7 +47,12 @@ import {
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
-import { ChunkedUploader } from './chunked.js';
+import {
+  ChunkedUploader,
+  defaultChunkSize,
+  fiveHundredMiB,
+  fiveMiB,
+} from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -287,11 +292,14 @@ export abstract class TurboAuthenticatedBaseUploadService
       this.resolveUploadFileConfig(params);
 
     const {
-      chunkSize = 5 * 1024 * 1024,
+      chunkSize = defaultChunkSize,
       maxChunkConcurrency: maxChunkConcurrency,
       enableChunking = 'auto',
     } = params;
-    if (chunkSize < 5242880 || chunkSize > 524288000) {
+    if (
+      chunkSize !== undefined &&
+      (chunkSize < fiveMiB || chunkSize > fiveHundredMiB)
+    ) {
       throw new Error('Invalid chunk size. Must be between 5 MiB and 500 MiB.');
     }
 
