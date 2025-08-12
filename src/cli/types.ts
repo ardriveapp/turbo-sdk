@@ -50,7 +50,7 @@ export type UploadOptions = WalletOptions & {
   tags: string[] | undefined;
   maxChunkConcurrency: string | undefined;
   chunkSize: string | undefined;
-  chunkingMode: 'auto' | 'force' | 'disable' | undefined;
+  chunkingMode: 'auto' | 'force' | 'disabled' | undefined;
 };
 
 export type UploadFolderOptions = UploadOptions & {

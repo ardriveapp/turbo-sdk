@@ -259,7 +259,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const {
       chunkSize = defaultChunkSize,
       maxChunkConcurrency: maxChunkConcurrency,
-      enableChunking = 'auto',
+      chunkingMode = 'auto',
     } = params;
     if (
       chunkSize !== undefined &&
@@ -301,8 +301,9 @@ export abstract class TurboAuthenticatedBaseUploadService
         const twoChunksOfData = chunkSize * 2;
 
         if (
-          enableChunking === true ||
-          (enableChunking === 'auto' && totalSize > twoChunksOfData)
+          chunkingMode !== 'disabled' &&
+          (chunkingMode === 'force' ||
+            (chunkingMode === 'auto' && totalSize > twoChunksOfData))
         ) {
           const response = await new ChunkedUploader({
             http: this.httpService,
@@ -461,7 +462,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       throwOnFailure = true,
       maxChunkConcurrency: maxChunkConcurrency,
       chunkSize,
-      enableChunking,
+      chunkingMode,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -495,7 +496,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           dataItemOpts: dataItemOptsWithContentType,
           chunkSize,
           maxChunkConcurrency: maxChunkConcurrency,
-          enableChunking,
+          chunkingMode,
         });
 
         const relativePath = this.getRelativePath(file, params);
@@ -552,7 +553,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
       chunkSize,
       maxChunkConcurrency: maxChunkConcurrency,
-      enableChunking,
+      chunkingMode,
     });
 
     return {

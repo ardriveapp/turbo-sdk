@@ -597,8 +597,8 @@ export type TurboChunkingParams = {
   chunkSize?: number;
   /** Number of chunks to send up concurrently */
   maxChunkConcurrency?: number;
-  /** Enable chunking for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkSizes */
-  enableChunking?: boolean | 'auto';
+  /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkSizes */
+  chunkingMode?: 'force' | 'disabled' | 'auto';
 };
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &

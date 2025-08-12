@@ -299,7 +299,7 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   maxConcurrentUploads: number;
   maxChunkConcurrency?: number;
   chunkSize?: number;
-  enableChunking?: boolean | 'auto';
+  chunkingMode?: 'auto' | 'force' | 'disabled';
 } {
   if (options.folderPath === undefined) {
     throw new Error('--folder-path is required');
@@ -393,28 +393,28 @@ export function requiredByteCountFromOptions({
 export function getChunkingOptions<O extends UploadOptions>(
   options: O,
 ): {
-  enableChunking?: boolean | 'auto';
+  chunkingMode?: 'force' | 'disabled' | 'auto';
   chunkSize?: number;
   maxChunkConcurrency?: number;
 } {
-  let enableChunking: boolean | 'auto' | undefined;
+  let chunkingMode: 'force' | 'disabled' | 'auto' | undefined;
 
   if (options.chunkingMode !== undefined) {
     if (options.chunkingMode === 'force') {
-      enableChunking = true;
-    } else if (options.chunkingMode === 'disable') {
-      enableChunking = false;
+      chunkingMode = 'force';
+    } else if (options.chunkingMode === 'disabled') {
+      chunkingMode = 'disabled';
     } else if (options.chunkingMode === 'auto') {
-      enableChunking = 'auto';
+      chunkingMode = 'auto';
     } else {
       throw new Error(
-        `Invalid chunking mode: ${options.chunkingMode}. Must be one of "auto", "force", or "disable".`,
+        `Invalid chunking mode: ${options.chunkingMode}. Must be one of "auto", "force", or "disabled".`,
       );
     }
   }
 
   return {
-    enableChunking,
+    chunkingMode,
     chunkSize: options.chunkSize !== undefined ? +options.chunkSize : undefined,
     maxChunkConcurrency:
       options.maxChunkConcurrency !== undefined
