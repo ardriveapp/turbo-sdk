@@ -920,7 +920,7 @@ describe('Node environment', () => {
         // assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it.only('should properly upload a Readable with 11 MiB of random data', async () => {
+      it('should properly upload a Readable with 11 MiB of random data', async () => {
         const fileSize = 11 * 1024 * 1024; // 11 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
