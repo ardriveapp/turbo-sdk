@@ -650,6 +650,94 @@ describe('Node environment', () => {
       });
     });
 
+    const validDataItemOpts = [
+      {
+        target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
+        anchor: 'anchorMustBeThirtyTwoBytesLong!!',
+        tags: [
+          {
+            name: '', // empty name
+            value: '', // empty val
+          },
+        ],
+      },
+      {
+        // cspell:disable
+        target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
+        anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
+        tags: [
+          {
+            name: 'test',
+            value: 'test',
+          },
+          {
+            name: 'test2',
+            value: 'test2',
+          },
+        ],
+      },
+    ];
+
+    const invalidDataItemOpts = [
+      // TODO: These too long test broke when changing to upload service latest image -- check on this
+      // {
+      //   testName: 'tag name too long',
+      //   errorType: 'FailedRequestError',
+      //   errorMessage:
+      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+      //   dataItemOpts: {
+      //     tags: [
+      //       {
+      //         name: Array(1025).fill('a').join(''),
+      //         value: 'test',
+      //       },
+      //     ],
+      //   },
+      // },
+      // {
+      //   testName: 'tag value too long',
+      //   errorType: 'FailedRequestError',
+      //   errorMessage:
+      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+      //   dataItemOpts: {
+      //     tags: [
+      //       {
+      //         name: 'test',
+      //         value: Array(3073).fill('a').join(''),
+      //       },
+      //     ],
+      //   },
+      // },
+      {
+        testName: 'target Too Short',
+        errorMessage: 'Target must be 32 bytes but was incorrectly 10',
+        dataItemOpts: {
+          target: 'target Too Short',
+        },
+      },
+      {
+        testName: 'anchor Too Short',
+        errorMessage: 'Anchor must be 32 bytes',
+        dataItemOpts: {
+          anchor: 'anchor Too Short',
+        },
+      },
+      {
+        testName: 'target Too Long',
+        errorMessage: 'Target must be 32 bytes but was incorrectly 33',
+        dataItemOpts: {
+          target: 'target Too Long This is 33 Bytes one two three four five',
+        },
+      },
+      {
+        testName: 'anchor Too Long',
+        errorMessage: 'Anchor must be 32 bytes',
+        dataItemOpts: {
+          anchor: 'anchor Too Long This is 33 Bytes one two three four five',
+        },
+      },
+    ];
+
     describe('upload()', () => {
       const uploadDataTypeInputsMap = {
         string: 'a test string',
@@ -787,93 +875,6 @@ describe('Node environment', () => {
       });
     });
 
-    const validDataItemOpts = [
-      {
-        target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
-        anchor: 'anchorMustBeThirtyTwoBytesLong!!',
-        tags: [
-          {
-            name: '', // empty name
-            value: '', // empty val
-          },
-        ],
-      },
-      {
-        // cspell:disable
-        target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
-        anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
-        tags: [
-          {
-            name: 'test',
-            value: 'test',
-          },
-          {
-            name: 'test2',
-            value: 'test2',
-          },
-        ],
-      },
-    ];
-
-    const invalidDataItemOpts = [
-      // TODO: These too long test broke when changing to upload service latest image -- check on this
-      // {
-      //   testName: 'tag name too long',
-      //   errorType: 'FailedRequestError',
-      //   errorMessage:
-      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
-      //   dataItemOpts: {
-      //     tags: [
-      //       {
-      //         name: Array(1025).fill('a').join(''),
-      //         value: 'test',
-      //       },
-      //     ],
-      //   },
-      // },
-      // {
-      //   testName: 'tag value too long',
-      //   errorType: 'FailedRequestError',
-      //   errorMessage:
-      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
-      //   dataItemOpts: {
-      //     tags: [
-      //       {
-      //         name: 'test',
-      //         value: Array(3073).fill('a').join(''),
-      //       },
-      //     ],
-      //   },
-      // },
-      {
-        testName: 'target Too Short',
-        errorMessage: 'Target must be 32 bytes but was incorrectly 10',
-        dataItemOpts: {
-          target: 'target Too Short',
-        },
-      },
-      {
-        testName: 'anchor Too Short',
-        errorMessage: 'Anchor must be 32 bytes',
-        dataItemOpts: {
-          anchor: 'anchor Too Short',
-        },
-      },
-      {
-        testName: 'target Too Long',
-        errorMessage: 'Target must be 32 bytes but was incorrectly 33',
-        dataItemOpts: {
-          target: 'target Too Long This is 33 Bytes one two three four five',
-        },
-      },
-      {
-        testName: 'anchor Too Long',
-        errorMessage: 'Anchor must be 32 bytes',
-        dataItemOpts: {
-          anchor: 'anchor Too Long This is 33 Bytes one two three four five',
-        },
-      },
-    ];
     describe('uploadFile()', () => {
       it('should properly upload a Readable with chunking forced', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
@@ -883,7 +884,7 @@ describe('Node environment', () => {
           dataItemOpts: {
             ...validDataItemOpts[0],
           },
-          enableChunking: true,
+          chunkingMode: 'force',
         });
         assert.ok(response !== undefined);
         // TODO: Uncomment when fastFinalityIndexes and dataCaches and owner are implemented for multipart
