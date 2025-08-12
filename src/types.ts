@@ -635,7 +635,7 @@ export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
 export type TurboSignedDataItemFactory = {
   dataItemStreamFactory: SignedDataStreamFactory; // TODO: allow multiple data items
-  dataItemSizeFactory: StreamSizeFactory | number;
+  dataItemSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
 };
 
