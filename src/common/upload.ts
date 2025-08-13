@@ -451,7 +451,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifestOptions = {},
       maxConcurrentUploads = 1,
       throwOnFailure = true,
-      maxChunkConcurrency: maxChunkConcurrency,
+      maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
     } = params;
@@ -486,7 +486,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           signal,
           dataItemOpts: dataItemOptsWithContentType,
           chunkByteCount,
-          maxChunkConcurrency: maxChunkConcurrency,
+          maxChunkConcurrency,
           chunkingMode,
         });
 
@@ -543,7 +543,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       signal,
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
       chunkByteCount,
-      maxChunkConcurrency: maxChunkConcurrency,
+      maxChunkConcurrency,
       chunkingMode,
     });
 
