@@ -168,8 +168,8 @@ export const optionMap = {
     alias: '--max-chunk-concurrency <maxChunkConcurrency>',
     description: 'Maximum number of concurrent chunks to upload per file',
   },
-  chunkSize: {
-    alias: '--chunk-size <chunkSize>',
+  chunkByteCount: {
+    alias: '--chunk-byte-count <chunkByteCount>',
     description: 'Size of each chunk in bytes',
   },
   chunkingMode: {
@@ -205,7 +205,7 @@ export const uploadOptions = [
   optionMap.useSignerBalanceFirst,
   optionMap.tags,
   optionMap.maxChunkConcurrency,
-  optionMap.chunkSize,
+  optionMap.chunkByteCount,
   optionMap.chunkingMode,
 ];
 

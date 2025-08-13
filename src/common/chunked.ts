@@ -54,7 +54,7 @@ export type ChunkedUploaderParams = {
   http: TurboHTTPService;
   token: string;
   logger: TurboLogger;
-  chunkSize?: number;
+  chunkByteCount?: number;
   maxChunkConcurrency?: number;
 };
 
@@ -64,7 +64,7 @@ export type ChunkedUploaderParams = {
  */
 export class ChunkedUploader {
   private readonly emitter = new TurboEventEmitter();
-  private readonly chunkSize: number;
+  private readonly chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
   private readonly http: TurboHTTPService;
   private readonly token: string;
@@ -74,10 +74,10 @@ export class ChunkedUploader {
     http,
     token,
     maxChunkConcurrency,
-    chunkSize,
+    chunkByteCount,
     logger,
   }: ChunkedUploaderParams) {
-    this.chunkSize = chunkSize ?? defaultChunkSize;
+    this.chunkByteCount = chunkByteCount ?? defaultChunkSize;
     this.maxChunkConcurrency = maxChunkConcurrency ?? 5;
     this.http = http;
     this.token = token;
@@ -153,7 +153,7 @@ export class ChunkedUploader {
       token: this.token,
       uploadId,
       totalSize: size,
-      chunkSize: this.chunkSize,
+      chunkByteCount: this.chunkByteCount,
       maxChunkConcurrency: this.maxChunkConcurrency,
       inputStreamType:
         stream instanceof ReadableStream
@@ -174,7 +174,7 @@ export class ChunkedUploader {
     let chunkId = 0;
     const tasks: Promise<any>[] = [];
 
-    const chunks = splitIntoChunks(stream, this.chunkSize);
+    const chunks = splitIntoChunks(stream, this.chunkByteCount);
 
     for await (const chunk of chunks) {
       const id = ++chunkId;
@@ -243,17 +243,17 @@ export class ChunkedUploader {
 }
 
 /**
- * Yield Buffers of up to `chunkSize`, coalescing whatever small pieces
+ * Yield Buffers of up to `chunkByteCount`, coalescing whatever small pieces
  * the source produces into proper slices.
  */
 export async function* splitIntoChunks(
   source: Readable | ReadableStream<Uint8Array>,
-  chunkSize: number,
+  chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
   if (source instanceof Readable) {
-    yield* splitReadableIntoChunks(source, chunkSize);
+    yield* splitReadableIntoChunks(source, chunkByteCount);
   } else if (source instanceof ReadableStream) {
-    yield* splitReadableStreamIntoChunks(source, chunkSize);
+    yield* splitReadableStreamIntoChunks(source, chunkByteCount);
   } else {
     throw new Error('Unsupported source type for chunking');
   }
@@ -261,16 +261,16 @@ export async function* splitIntoChunks(
 
 export async function* splitReadableIntoChunks(
   source: Readable,
-  chunkSize: number,
+  chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
   let acc = Buffer.alloc(0);
 
   for await (const piece of source) {
     acc = Buffer.concat([acc, piece]);
 
-    while (acc.length >= chunkSize) {
-      yield acc.subarray(0, chunkSize);
-      acc = acc.subarray(chunkSize);
+    while (acc.length >= chunkByteCount) {
+      yield acc.subarray(0, chunkByteCount);
+      acc = acc.subarray(chunkByteCount);
     }
   }
 
@@ -282,7 +282,7 @@ export async function* splitReadableIntoChunks(
 
 export async function* splitReadableStreamIntoChunks(
   source: ReadableStream<Uint8Array>,
-  chunkSize: number,
+  chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
   const reader = source.getReader();
   let acc = new Uint8Array(0);
@@ -299,9 +299,9 @@ export async function* splitReadableStreamIntoChunks(
       acc = merged;
 
       // Yield full chunks
-      while (acc.length >= chunkSize) {
-        yield Buffer.from(acc.subarray(0, chunkSize));
-        acc = acc.subarray(chunkSize);
+      while (acc.length >= chunkByteCount) {
+        yield Buffer.from(acc.subarray(0, chunkByteCount));
+        acc = acc.subarray(chunkByteCount);
       }
     }
 

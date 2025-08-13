@@ -299,7 +299,7 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   disableManifest: boolean;
   maxConcurrentUploads: number;
   maxChunkConcurrency?: number;
-  chunkSize?: number;
+  chunkByteCount?: number;
   chunkingMode?: TurboChunkingMode;
 } {
   if (options.folderPath === undefined) {
@@ -395,7 +395,7 @@ export function getChunkingOptions<O extends UploadOptions>(
   options: O,
 ): {
   chunkingMode?: TurboChunkingMode;
-  chunkSize?: number;
+  chunkByteCount?: number;
   maxChunkConcurrency?: number;
 } {
   let chunkingMode: TurboChunkingMode | undefined;
@@ -416,7 +416,10 @@ export function getChunkingOptions<O extends UploadOptions>(
 
   return {
     chunkingMode,
-    chunkSize: options.chunkSize !== undefined ? +options.chunkSize : undefined,
+    chunkByteCount:
+      options.chunkByteCount !== undefined
+        ? +options.chunkByteCount
+        : undefined,
     maxChunkConcurrency:
       options.maxChunkConcurrency !== undefined
         ? +options.maxChunkConcurrency

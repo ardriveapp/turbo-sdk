@@ -596,10 +596,10 @@ export type TurboChunkingMode = 'force' | 'disabled' | 'auto';
 
 export type TurboChunkingParams = {
   /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
-  chunkSize?: number;
+  chunkByteCount?: number;
   /** Number of chunks to send up concurrently */
   maxChunkConcurrency?: number;
-  /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkSizes */
+  /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
   chunkingMode?: TurboChunkingMode;
 };
 

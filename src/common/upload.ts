@@ -257,13 +257,13 @@ export abstract class TurboAuthenticatedBaseUploadService
       this.resolveUploadFileConfig(params);
 
     const {
-      chunkSize = defaultChunkSize,
+      chunkByteCount = defaultChunkSize,
       maxChunkConcurrency: maxChunkConcurrency,
       chunkingMode = 'auto',
     } = params;
     if (
-      chunkSize !== undefined &&
-      (chunkSize < fiveMiB || chunkSize > fiveHundredMiB)
+      chunkByteCount !== undefined &&
+      (chunkByteCount < fiveMiB || chunkByteCount > fiveHundredMiB)
     ) {
       throw new Error('Invalid chunk size. Must be between 5 MiB and 500 MiB.');
     }
@@ -298,7 +298,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       // this result due to the wrapped retry logic of this method.
       try {
         const totalSize = dataItemSizeFactory();
-        const twoChunksOfData = chunkSize * 2;
+        const twoChunksOfData = chunkByteCount * 2;
 
         if (
           chunkingMode !== 'disabled' &&
@@ -309,7 +309,7 @@ export abstract class TurboAuthenticatedBaseUploadService
             http: this.httpService,
             token: this.token,
             maxChunkConcurrency,
-            chunkSize,
+            chunkByteCount,
             logger: this.logger,
           }).upload({
             dataItemStreamFactory,
@@ -461,7 +461,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxConcurrentUploads = 1,
       throwOnFailure = true,
       maxChunkConcurrency: maxChunkConcurrency,
-      chunkSize,
+      chunkByteCount,
       chunkingMode,
     } = params;
 
@@ -494,7 +494,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           fileSizeFactory: () => this.getFileSize(file),
           signal,
           dataItemOpts: dataItemOptsWithContentType,
-          chunkSize,
+          chunkByteCount,
           maxChunkConcurrency: maxChunkConcurrency,
           chunkingMode,
         });
@@ -551,7 +551,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
-      chunkSize,
+      chunkByteCount,
       maxChunkConcurrency: maxChunkConcurrency,
       chunkingMode,
     });
