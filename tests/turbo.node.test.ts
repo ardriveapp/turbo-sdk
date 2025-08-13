@@ -771,6 +771,7 @@ describe('Node environment', () => {
             const response = await turbo.upload({
               data: input,
               dataItemOpts,
+              chunkingMode: 'disabled',
               events: {
                 onProgress: () => {
                   overallProgressCalled = true;

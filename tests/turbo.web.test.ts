@@ -10,6 +10,7 @@ import { BigNumber } from 'bignumber.js';
 import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
 import { strict as assert } from 'node:assert';
+import { randomBytes } from 'node:crypto';
 import { after, afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
@@ -709,7 +710,9 @@ describe('Browser environment', () => {
 
       it('should properly upload a ReadableStream with chunking forced', async () => {
         const encoder = new TextEncoder();
-        const uint8Array = encoder.encode('test data');
+        const fileSize = 99 * 1024 * 1024; // 18 MiB
+        const randomData = randomBytes(fileSize).toString();
+        const uint8Array = encoder.encode(randomData);
         const readableStream = new ReadableStream({
           start(controller) {
             controller.enqueue(uint8Array);
