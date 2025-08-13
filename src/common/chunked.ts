@@ -24,7 +24,7 @@ import {
   UploadSignedDataItemParams,
   validChunkingModes,
 } from '../types.js';
-import { TurboEventEmitter } from './events.js';
+import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 
@@ -209,27 +209,27 @@ export class ChunkedUploader {
   }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
     const uploadId = await this.initUpload();
     const dataItemByteCount = dataItemSizeFactory();
-    let stream = dataItemStreamFactory();
 
-    if (events !== undefined) {
-      if (events.onUploadProgress) {
-        this.on('onChunkUploaded', ({ totalBytesUploaded }) => {
-          events.onUploadProgress?.({
-            processedBytes: totalBytesUploaded,
-            totalBytes: dataItemByteCount,
-          });
-          if (
-            totalBytesUploaded === dataItemByteCount &&
-            events.onUploadSuccess
-          ) {
-            events.onUploadSuccess([]);
-          }
-        });
+    // create the tapped stream with events
+    const emitter = new TurboEventEmitter(events);
+
+    // create the stream with upload events
+    const { stream, resume } = createStreamWithUploadEvents({
+      data: dataItemStreamFactory(),
+      dataSize: dataItemByteCount,
+      emitter,
+    });
+
+    this.on('onChunkUploaded', ({ totalBytesUploaded }) => {
+      emitter.emit('upload-progress', {
+        processedBytes: totalBytesUploaded,
+        totalBytes: dataItemByteCount,
+      });
+      if (totalBytesUploaded === dataItemByteCount) {
+        emitter.emit('upload-success');
       }
-      if (events.onUploadError) {
-        this.on('onChunkError', ({ res }) => events.onUploadError?.(res));
-      }
-    }
+    });
+    this.on('onChunkError', ({ res }) => emitter.emit('upload-error', res));
 
     this.logger.debug(`Starting chunked upload`, {
       token: this.token,
@@ -242,14 +242,8 @@ export class ChunkedUploader {
           ? 'ReadableStream'
           : stream instanceof Readable
           ? 'Readable'
-          : stream instanceof Buffer
-          ? 'Buffer'
           : typeof stream,
     });
-
-    if (stream instanceof Buffer) {
-      stream = Readable.from(stream);
-    }
 
     const limit = pLimit(this.maxChunkConcurrency);
     let offset = 0;
@@ -258,6 +252,7 @@ export class ChunkedUploader {
 
     const chunks = splitIntoChunks(stream, this.chunkByteCount);
 
+    resume();
     for await (const chunk of chunks) {
       const id = ++chunkId;
       const len = chunk.length;
