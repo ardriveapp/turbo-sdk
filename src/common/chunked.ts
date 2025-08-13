@@ -192,8 +192,9 @@ export class ChunkedUploader {
       id: string;
       min: number;
       max: number;
+      chunkSize: number;
     }>({
-      endpoint: `/chunks/${this.token}/-1/-1`,
+      endpoint: `/chunks/${this.token}/-1/-1?chunkSize=${this.chunkByteCount}`,
       headers: this.chunkingVersionHeader,
     });
     return res.id;
