@@ -14,6 +14,13 @@ import { Readable } from 'node:stream';
 import { afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
+import {
+  ChunkedUploader,
+  defaultChunkByteCount,
+  defaultMaxChunkConcurrency,
+  maxChunkByteCount,
+  minChunkByteCount,
+} from '../src/common/chunked.js';
 import { JPY, USD } from '../src/common/currency.js';
 import { TurboWinstonLogger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
@@ -34,9 +41,11 @@ import { TurboNodeSigner } from '../src/node/signer.js';
 import {
   NativeAddress,
   TokenType,
+  TurboChunkingMode,
   TurboSigner,
   fiatCurrencyTypes,
   tokenTypes,
+  validChunkingModes,
 } from '../src/types.js';
 import { signerFromKyveMnemonic } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
@@ -894,7 +903,7 @@ describe('Node environment', () => {
         // assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it.only('should properly upload a Readable with 11 MiB of random data', async () => {
+      it('should properly upload a Readable with 11 MiB of random data', async () => {
         const fileSize = 11 * 1024 * 1024; // 11 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
@@ -912,7 +921,7 @@ describe('Node environment', () => {
         // assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it.only('should properly upload a Readable with 99 MiB of random data with 6 MiB Chunk Size', async () => {
+      it('should properly upload a Readable with 99 MiB of random data with 6 MiB Chunk Size', async () => {
         const fileSize = 99 * 1024 * 1024; // 18 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
@@ -920,6 +929,7 @@ describe('Node environment', () => {
           fileSizeFactory: () => fileSize,
           dataItemOpts: {
             ...validDataItemOpts[0],
+            paidBy: testArweaveNativeB64Address,
           },
           chunkingMode: 'force',
           chunkByteCount: 19 * 1024 * 1024, // 19 MiB
@@ -932,7 +942,7 @@ describe('Node environment', () => {
         // assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it.only('should properly upload a Buffer with chunking forced', async () => {
+      it('should properly upload a Buffer with chunking forced', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
@@ -948,6 +958,94 @@ describe('Node environment', () => {
         // assert.ok(response.dataCaches !== undefined);
         // assert.ok(response.owner !== undefined);
         // assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      describe('shouldUseChunkedUpload', () => {
+        const invalidChunkByteCounts = [
+          0,
+          -1,
+          1.5,
+          'string',
+          null,
+          undefined,
+          maxChunkByteCount + 1,
+          minChunkByteCount - 1,
+        ] as unknown as number[];
+        for (const chunkByteCount of invalidChunkByteCounts) {
+          it(
+            'asserts chunk size invalid value ' +
+              JSON.stringify(chunkByteCount),
+            () => {
+              try {
+                ChunkedUploader.shouldUseChunkedUpload({
+                  dataItemByteCount: 10000,
+                  chunkByteCount,
+                });
+              } catch (err) {
+                assert.ok(err instanceof Error);
+                assert.equal(
+                  err.message,
+                  'Invalid chunk size. Must be an integer between 5 MiB and 500 MiB.',
+                );
+              }
+            },
+          );
+        }
+
+        it('asserts valid chunk size', () => {
+          const result = ChunkedUploader.shouldUseChunkedUpload({
+            dataItemByteCount: 10000000000,
+            chunkByteCount: defaultChunkByteCount,
+            maxChunkConcurrency: defaultMaxChunkConcurrency,
+          });
+          assert.ok(result);
+        });
+
+        const invalidMaxChunkConcurrencies = [
+          0,
+          -1,
+          1.5,
+          'string',
+          null,
+          undefined,
+        ] as unknown as number[];
+        for (const maxChunkConcurrency of invalidMaxChunkConcurrencies) {
+          it(
+            'asserts chunk concurrency invalid value ' +
+              JSON.stringify(maxChunkConcurrency),
+            () => {
+              try {
+                ChunkedUploader.shouldUseChunkedUpload({
+                  dataItemByteCount: 10000,
+                  maxChunkConcurrency,
+                });
+              } catch (err) {
+                assert.ok(err instanceof Error);
+                assert.equal(
+                  err.message,
+                  'Invalid max chunk concurrency. Must be an integer of at least 1.',
+                );
+              }
+            },
+          );
+        }
+
+        it('asserts invalid chunking mode', () => {
+          try {
+            ChunkedUploader.shouldUseChunkedUpload({
+              dataItemByteCount: 10000,
+              chunkingMode: 'invalid' as TurboChunkingMode,
+            });
+          } catch (err) {
+            assert.ok(err instanceof Error);
+            assert.equal(
+              err.message,
+              `Invalid chunking mode. Must be one of: ${validChunkingModes.join(
+                ', ',
+              )}`,
+            );
+          }
+        });
       });
 
       for (const dataItemOpts of validDataItemOpts) {
@@ -966,6 +1064,77 @@ describe('Node environment', () => {
             fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
             fileSizeFactory: () => fileSize,
             dataItemOpts,
+            events: {
+              // overall events
+              onProgress: () => {
+                overallProgressCalled = true;
+              },
+              onError: () => {
+                overallErrorCalled = true;
+              },
+              onSuccess: () => {
+                overallSuccessCalled = true;
+              },
+              // upload events
+              onUploadProgress: () => {
+                uploadProgressCalled = true;
+              },
+              onUploadError: () => {
+                uploadErrorCalled = true;
+              },
+              onUploadSuccess: () => {
+                uploadSuccessCalled = true;
+              },
+              // signing events
+              onSigningProgress: () => {
+                signingProgressCalled = true;
+              },
+              onSigningError: () => {
+                signingErrorCalled = true;
+              },
+              onSigningSuccess: () => {
+                signingSuccessCalled = true;
+              },
+            },
+          });
+          assert.ok(response !== undefined);
+          assert.ok(response.fastFinalityIndexes !== undefined);
+          assert.ok(response.dataCaches !== undefined);
+          assert.ok(response.owner !== undefined);
+          assert.equal(response.owner, testArweaveNativeB64Address);
+
+          // signing events
+          assert.equal(signingProgressCalled, true);
+          assert.equal(signingErrorCalled, false);
+          assert.equal(signingSuccessCalled, true);
+
+          // upload events
+          assert.equal(uploadProgressCalled, true);
+          assert.equal(uploadErrorCalled, false);
+          assert.equal(uploadSuccessCalled, true);
+
+          // overall events
+          assert.equal(overallProgressCalled, true);
+          assert.equal(overallErrorCalled, false);
+          assert.equal(overallSuccessCalled, true);
+        });
+
+        it('should properly upload a Readable to turbo with events with chunking forced', async () => {
+          let uploadProgressCalled = false;
+          let signingProgressCalled = false;
+          let overallProgressCalled = false;
+          let overallErrorCalled = false;
+          let overallSuccessCalled = false;
+          let uploadErrorCalled = false;
+          let signingErrorCalled = false;
+          let uploadSuccessCalled = false;
+          let signingSuccessCalled = false;
+          const fileSize = fs.statSync(oneKiBFilePath).size;
+          const response = await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+            fileSizeFactory: () => fileSize,
+            dataItemOpts,
+            chunkingMode: 'force',
             events: {
               // overall events
               onProgress: () => {

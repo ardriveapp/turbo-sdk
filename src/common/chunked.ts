@@ -17,19 +17,24 @@ import { pLimit } from 'plimit-lit';
 import { Readable } from 'stream';
 
 import {
-  type TurboChunkingMode,
-  type TurboLogger,
-  type TurboUploadDataItemResponse,
-  type UploadSignedDataItemParams,
+  ByteCount,
+  TurboChunkingMode,
+  TurboLogger,
+  TurboUploadDataItemResponse,
+  UploadSignedDataItemParams,
   validChunkingModes,
 } from '../types.js';
 import { TurboEventEmitter } from './events.js';
 import { TurboHTTPService } from './http.js';
+import { TurboWinstonLogger } from './logger.js';
 
-export const fiveMiB = 5 * 1024 * 1024; // 5 MiB
-export const fiveHundredMiB = fiveMiB * 100; // 500 MiB
-export const defaultChunkSize = fiveMiB; // Default chunk size for uploads
+const fiveMiB = 5 * 1024 * 1024; // 5 MiB
+const fiveHundredMiB = fiveMiB * 100; // 500 MiB
 export const defaultMaxChunkConcurrency = 5; // Default max chunk concurrency
+
+export const maxChunkByteCount = fiveHundredMiB;
+export const minChunkByteCount = fiveMiB;
+export const defaultChunkByteCount = minChunkByteCount; // Default chunk size for uploads
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -68,9 +73,9 @@ export class ChunkedUploader {
   constructor({
     http,
     token,
-    maxChunkConcurrency,
-    chunkByteCount,
-    logger,
+    maxChunkConcurrency = defaultMaxChunkConcurrency,
+    chunkByteCount = defaultChunkByteCount,
+    logger = TurboWinstonLogger.default,
   }: {
     http: TurboHTTPService;
     token: string;
@@ -78,7 +83,7 @@ export class ChunkedUploader {
     chunkByteCount?: number;
     maxChunkConcurrency?: number;
   }) {
-    this.chunkByteCount = chunkByteCount ?? defaultChunkSize;
+    this.chunkByteCount = chunkByteCount ?? defaultChunkByteCount;
     this.maxChunkConcurrency =
       maxChunkConcurrency ?? defaultMaxChunkConcurrency;
     this.http = http;
@@ -87,15 +92,15 @@ export class ChunkedUploader {
   }
 
   static shouldUseChunkedUpload({
-    chunkByteCount = defaultChunkSize,
+    chunkByteCount = defaultChunkByteCount,
     chunkingMode = 'auto',
     dataItemByteCount,
     maxChunkConcurrency = defaultMaxChunkConcurrency,
   }: {
-    chunkByteCount: number | undefined;
-    chunkingMode: TurboChunkingMode | undefined;
-    dataItemByteCount: number;
-    maxChunkConcurrency: number | undefined;
+    chunkByteCount?: ByteCount;
+    chunkingMode?: TurboChunkingMode;
+    dataItemByteCount: ByteCount;
+    maxChunkConcurrency?: number;
   }): boolean {
     this.assertChunkParams({
       chunkByteCount,
@@ -123,15 +128,31 @@ export class ChunkedUploader {
     chunkingMode: TurboChunkingMode;
     maxChunkConcurrency: number;
   }): void {
-    if (maxChunkConcurrency < 1) {
-      throw new Error('Invalid max chunk concurrency. Must be at least 1.');
+    if (
+      Number.isNaN(maxChunkConcurrency) ||
+      !Number.isInteger(maxChunkConcurrency) ||
+      maxChunkConcurrency < 1
+    ) {
+      throw new Error(
+        'Invalid max chunk concurrency. Must be an integer of at least 1.',
+      );
     }
 
-    if (chunkByteCount < fiveMiB || chunkByteCount > fiveHundredMiB) {
-      throw new Error('Invalid chunk size. Must be between 5 MiB and 500 MiB.');
+    if (
+      Number.isNaN(maxChunkConcurrency) ||
+      !Number.isInteger(maxChunkConcurrency) ||
+      chunkByteCount < fiveMiB ||
+      chunkByteCount > fiveHundredMiB
+    ) {
+      throw new Error(
+        'Invalid chunk size. Must be an integer between 5 MiB and 500 MiB.',
+      );
     }
 
-    if (!validChunkingModes.includes(chunkingMode)) {
+    if (
+      typeof chunkingMode !== 'string' ||
+      !validChunkingModes.includes(chunkingMode)
+    ) {
       throw new Error(
         `Invalid chunking mode. Must be one of: ${validChunkingModes.join(
           ', ',

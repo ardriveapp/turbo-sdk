@@ -35,6 +35,8 @@ import { TurboWinstonLogger } from './common/logger.js';
 export type Base64String = string;
 export type NativeAddress = string;
 
+export type ByteCount = number;
+
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
