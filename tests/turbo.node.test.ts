@@ -930,7 +930,7 @@ describe('Node environment', () => {
           fileSizeFactory: () => fileSize,
           dataItemOpts: {
             ...validDataItemOpts[0],
-            paidBy: testArweaveNativeB64Address,
+            paidBy: [testArweaveNativeB64Address, testEthNativeAddress],
           },
           chunkingMode: 'force',
           chunkByteCount: 19 * 1024 * 1024, // 19 MiB
