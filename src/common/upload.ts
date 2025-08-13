@@ -256,18 +256,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
       this.resolveUploadFileConfig(params);
 
-    const {
-      chunkByteCount = defaultChunkSize,
-      maxChunkConcurrency: maxChunkConcurrency,
-      chunkingMode = 'auto',
-    } = params;
-    if (
-      chunkByteCount !== undefined &&
-      (chunkByteCount < fiveMiB || chunkByteCount > fiveHundredMiB)
-    ) {
-      throw new Error('Invalid chunk size. Must be between 5 MiB and 500 MiB.');
-    }
-
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
@@ -297,14 +285,14 @@ export abstract class TurboAuthenticatedBaseUploadService
       // which will create a new emitter with upload events. We await
       // this result due to the wrapped retry logic of this method.
       try {
-        const totalSize = dataItemSizeFactory();
-        const twoChunksOfData = chunkByteCount * 2;
-
-        if (
-          chunkingMode !== 'disabled' &&
-          (chunkingMode === 'force' ||
-            (chunkingMode === 'auto' && totalSize > twoChunksOfData))
-        ) {
+        const { chunkByteCount, maxChunkConcurrency } = params;
+        const shouldUseChunkedUpload = ChunkedUploader.shouldUseChunkedUpload({
+          chunkByteCount: params.chunkByteCount,
+          chunkingMode: params.chunkingMode,
+          dataItemByteCount: dataItemSizeFactory(),
+          maxChunkConcurrency: params.maxChunkConcurrency,
+        });
+        if (shouldUseChunkedUpload) {
           const response = await new ChunkedUploader({
             http: this.httpService,
             token: this.token,

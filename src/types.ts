@@ -593,6 +593,11 @@ export type UploadDataInput = {
 };
 
 export type TurboChunkingMode = 'force' | 'disabled' | 'auto';
+export const validChunkingModes: TurboChunkingMode[] = [
+  'force',
+  'disabled',
+  'auto',
+];
 
 export type TurboChunkingParams = {
   /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */

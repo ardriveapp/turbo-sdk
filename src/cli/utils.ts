@@ -398,24 +398,8 @@ export function getChunkingOptions<O extends UploadOptions>(
   chunkByteCount?: number;
   maxChunkConcurrency?: number;
 } {
-  let chunkingMode: TurboChunkingMode | undefined;
-
-  if (options.chunkingMode !== undefined) {
-    const validChunkingModes: TurboChunkingMode[] = [
-      'auto',
-      'force',
-      'disabled',
-    ];
-    if (!validChunkingModes.includes(options.chunkingMode)) {
-      throw new Error(
-        `Invalid chunking mode: ${options.chunkingMode}. Must be one of "auto", "force", or "disabled".`,
-      );
-    }
-    chunkingMode = options.chunkingMode;
-  }
-
   return {
-    chunkingMode,
+    chunkingMode: options.chunkingMode,
     chunkByteCount:
       options.chunkByteCount !== undefined
         ? +options.chunkByteCount
