@@ -707,7 +707,7 @@ describe('Browser environment', () => {
         assert.ok(error instanceof CanceledError);
       });
 
-      it.only('should properly upload a ReadableStream with chunking forced', async () => {
+      it('should properly upload a ReadableStream with chunking forced', async () => {
         const encoder = new TextEncoder();
         const uint8Array = encoder.encode('test data');
         const readableStream = new ReadableStream({
