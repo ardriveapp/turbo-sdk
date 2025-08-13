@@ -794,7 +794,8 @@ export interface TurboAuthenticatedUploadServiceInterface
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+    TurboUploadEmitterEvents &
+    TurboChunkingParams): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse>;

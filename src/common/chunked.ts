@@ -83,9 +83,8 @@ export class ChunkedUploader {
     chunkByteCount?: number;
     maxChunkConcurrency?: number;
   }) {
-    this.chunkByteCount = chunkByteCount ?? defaultChunkByteCount;
-    this.maxChunkConcurrency =
-      maxChunkConcurrency ?? defaultMaxChunkConcurrency;
+    this.chunkByteCount = chunkByteCount;
+    this.maxChunkConcurrency = maxChunkConcurrency;
     this.http = http;
     this.token = token;
     this.logger = logger;
@@ -238,11 +237,7 @@ export class ChunkedUploader {
       chunkByteCount: this.chunkByteCount,
       maxChunkConcurrency: this.maxChunkConcurrency,
       inputStreamType:
-        stream instanceof ReadableStream
-          ? 'ReadableStream'
-          : stream instanceof Readable
-          ? 'Readable'
-          : typeof stream,
+        stream instanceof ReadableStream ? 'ReadableStream' : 'Readable',
     });
 
     const limit = pLimit(this.maxChunkConcurrency);

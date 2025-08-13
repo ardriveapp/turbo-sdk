@@ -26,6 +26,7 @@ import {
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
+  TurboChunkingParams,
   TurboCreateCreditShareApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
@@ -179,9 +180,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     dataItemOpts,
     signal,
     events,
+    chunkByteCount,
+    chunkingMode,
+    maxChunkConcurrency,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadAndSigningEmitterEvents &
+    TurboChunkingParams): Promise<TurboUploadDataItemResponse> {
     // This function is intended to be usable in both Node and browser environments.
     if (isBlob(data)) {
       const streamFactory = () => data.stream();
@@ -211,6 +216,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       signal,
       dataItemOpts,
       events,
+      chunkByteCount,
+      chunkingMode,
+      maxChunkConcurrency,
     });
   }
 
