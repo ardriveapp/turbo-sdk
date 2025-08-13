@@ -47,7 +47,7 @@ import {
   tokenTypes,
   validChunkingModes,
 } from '../src/types.js';
-import { signerFromKyveMnemonic } from '../src/utils/common.js';
+import { signerFromKyveMnemonic, sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   base64KyveAddress,
@@ -599,10 +599,11 @@ describe('Node environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
+        await sleep(250); // wait to offset balance checks, this test can race condition with web suite
         const balanceBefore = await getRawBalance(testArweaveNativeB64Address);
 
         const txId = await sendFundTransaction(1000);
-        await mineArLocalBlock(minConfirmations);
+        await mineArLocalBlock(minConfirmations + 1);
 
         const { id, winc, owner, token, status } =
           await turbo.submitFundTransaction({
@@ -1175,19 +1176,51 @@ describe('Node environment', () => {
           assert.equal(response.owner, testArweaveNativeB64Address);
 
           // signing events
-          assert.equal(signingProgressCalled, true);
-          assert.equal(signingErrorCalled, false);
-          assert.equal(signingSuccessCalled, true);
+          assert.equal(
+            signingProgressCalled,
+            true,
+            'Signing progress event not called!',
+          );
+          assert.equal(
+            signingErrorCalled,
+            false,
+            'Signing error event called!',
+          );
+          assert.equal(
+            signingSuccessCalled,
+            true,
+            'Signing success event not called!',
+          );
 
           // upload events
-          assert.equal(uploadProgressCalled, true);
-          assert.equal(uploadErrorCalled, false);
-          assert.equal(uploadSuccessCalled, true);
+          assert.equal(
+            uploadProgressCalled,
+            true,
+            'Upload progress event not called!',
+          );
+          assert.equal(uploadErrorCalled, false, 'Upload error event called!');
+          assert.equal(
+            uploadSuccessCalled,
+            true,
+            'Upload success event not called!',
+          );
 
           // overall events
-          assert.equal(overallProgressCalled, true);
-          assert.equal(overallErrorCalled, false);
-          assert.equal(overallSuccessCalled, true);
+          assert.equal(
+            overallProgressCalled,
+            true,
+            'Overall progress event not called!',
+          );
+          assert.equal(
+            overallErrorCalled,
+            false,
+            'Overall error event called!',
+          );
+          assert.equal(
+            overallSuccessCalled,
+            true,
+            'Overall success event not called!',
+          );
         });
       }
 

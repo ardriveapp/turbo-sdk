@@ -207,19 +207,23 @@ export class ChunkedUploader {
     events,
   }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
     const uploadId = await this.initUpload();
-    const size = dataItemSizeFactory();
+    const dataItemByteCount = dataItemSizeFactory();
     let stream = dataItemStreamFactory();
 
     if (events !== undefined) {
       if (events.onUploadProgress) {
-        this.on(
-          'onChunkUploaded',
-          ({ totalBytesUploaded }) =>
-            events.onUploadProgress?.({
-              processedBytes: totalBytesUploaded,
-              totalBytes: size,
-            }),
-        );
+        this.on('onChunkUploaded', ({ totalBytesUploaded }) => {
+          events.onUploadProgress?.({
+            processedBytes: totalBytesUploaded,
+            totalBytes: dataItemByteCount,
+          });
+          if (
+            totalBytesUploaded === dataItemByteCount &&
+            events.onUploadSuccess
+          ) {
+            events.onUploadSuccess([]);
+          }
+        });
       }
       if (events.onUploadError) {
         this.on('onChunkError', ({ res }) => events.onUploadError?.(res));
@@ -229,7 +233,7 @@ export class ChunkedUploader {
     this.logger.debug(`Starting chunked upload`, {
       token: this.token,
       uploadId,
-      totalSize: size,
+      totalSize: dataItemByteCount,
       chunkByteCount: this.chunkByteCount,
       maxChunkConcurrency: this.maxChunkConcurrency,
       inputStreamType:
