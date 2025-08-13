@@ -138,8 +138,8 @@ export class ChunkedUploader {
     }
 
     if (
-      Number.isNaN(maxChunkConcurrency) ||
-      !Number.isInteger(maxChunkConcurrency) ||
+      Number.isNaN(chunkByteCount) ||
+      !Number.isInteger(chunkByteCount) ||
       chunkByteCount < fiveMiB ||
       chunkByteCount > fiveHundredMiB
     ) {
