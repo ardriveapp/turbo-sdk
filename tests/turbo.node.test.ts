@@ -923,7 +923,7 @@ describe('Node environment', () => {
       });
 
       it('should properly upload a Readable with 99 MiB of random data with 6 MiB Chunk Size', async () => {
-        const fileSize = 99 * 1024 * 1024; // 18 MiB
+        const fileSize = 99 * 1024 * 1024; // 99 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
           fileStreamFactory: () => Readable.from(randomData),

@@ -710,7 +710,7 @@ describe('Browser environment', () => {
 
       it('should properly upload a ReadableStream with chunking forced', async () => {
         const encoder = new TextEncoder();
-        const fileSize = 99 * 1024 * 1024; // 18 MiB
+        const fileSize = 99 * 1024 * 1024; // 99 MiB
         const randomData = randomBytes(fileSize).toString();
         const uint8Array = encoder.encode(randomData);
         const readableStream = new ReadableStream({
