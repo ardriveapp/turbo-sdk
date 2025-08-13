@@ -592,12 +592,8 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
-export type TurboChunkingMode = 'force' | 'disabled' | 'auto';
-export const validChunkingModes: TurboChunkingMode[] = [
-  'force',
-  'disabled',
-  'auto',
-];
+export const validChunkingModes = ['force', 'disabled', 'auto'] as const;
+export type TurboChunkingMode = (typeof validChunkingModes)[number];
 
 export type TurboChunkingParams = {
   /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
