@@ -44,17 +44,17 @@ export const defaultChunkByteCount = minChunkByteCount; // Default chunk size fo
 export interface ChunkingEvents {
   /** Fired after each successful chunk upload */
   onChunkUploaded: (info: {
-    id: number;
-    offset: number;
-    size: number;
+    chunkPartNumber: number;
+    chunkOffset: number;
+    chunkByteCount: number;
     totalBytesUploaded: number;
   }) => void;
   /** Fired when a chunk upload fails */
   onChunkError: (info: {
-    id: number;
-    offset: number;
-    size: number;
-    res: any;
+    chunkPartNumber: number;
+    chunkOffset: number;
+    chunkByteCount: number;
+    error: any;
   }) => void;
 }
 
@@ -228,7 +228,7 @@ export class ChunkedUploader {
         emitter.emit('upload-success');
       }
     });
-    this.on('onChunkError', ({ res }) => emitter.emit('upload-error', res));
+    this.on('onChunkError', ({ error }) => emitter.emit('upload-error', error));
 
     this.logger.debug(`Starting chunked upload`, {
       token: this.token,
@@ -249,18 +249,27 @@ export class ChunkedUploader {
 
     resume();
     for await (const chunk of chunks) {
-      const id = ++chunkId;
-      const len = chunk.length;
-      const off = offset;
-      offset += len;
+      const chunkPartNumber = ++chunkId;
+      const chunkByteCount = chunk.length;
+      const chunkOffset = offset;
+      const newOffset = offset + chunkByteCount;
+      offset = newOffset;
 
-      this.logger.debug('Queueing chunk', { id, offset: off, size: len });
+      this.logger.debug('Queueing chunk', {
+        chunkPartNumber,
+        chunkOffset,
+        chunkByteCount,
+      });
 
       tasks.push(
         limit(async () => {
-          this.logger.debug('Uploading chunk', { id, offset: off, size: len });
+          this.logger.debug('Uploading chunk', {
+            chunkPartNumber,
+            chunkOffset,
+            chunkByteCount,
+          });
           await this.http.post({
-            endpoint: `/chunks/${this.token}/${uploadId}/${off}`,
+            endpoint: `/chunks/${this.token}/${uploadId}/${chunkOffset}`,
             data: chunk,
             headers: {
               'Content-Type': 'application/octet-stream',
@@ -268,21 +277,30 @@ export class ChunkedUploader {
             },
             signal,
           });
-          this.logger.debug('Chunk uploaded', { id, offset: off, size: len });
+          this.logger.debug('Chunk uploaded', {
+            chunkPartNumber,
+            chunkOffset,
+            chunkByteCount,
+          });
           this.emit('onChunkUploaded', {
-            id,
-            offset: off,
-            size: len,
-            totalBytesUploaded: offset,
+            chunkPartNumber,
+            chunkOffset,
+            chunkByteCount,
+            totalBytesUploaded: newOffset,
           });
         }).catch((err) => {
           this.logger.error('Chunk upload failed', {
-            id,
-            offset: off,
-            size: len,
+            id: chunkPartNumber,
+            offset: chunkOffset,
+            size: chunkByteCount,
             err,
           });
-          this.emit('onChunkError', { id, offset: off, size: len, res: err });
+          this.emit('onChunkError', {
+            chunkPartNumber,
+            chunkOffset,
+            chunkByteCount,
+            error: err,
+          });
           throw err;
         }),
       );
