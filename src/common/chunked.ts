@@ -53,14 +53,6 @@ export interface ChunkingEvents {
   }) => void;
 }
 
-export type ChunkedUploaderParams = {
-  http: TurboHTTPService;
-  token: string;
-  logger: TurboLogger;
-  chunkByteCount?: number;
-  maxChunkConcurrency?: number;
-};
-
 /**
  * Performs a chunked upload by splitting the stream into fixed-size buffers,
  * uploading them in parallel, and emitting progress/error events.
@@ -79,7 +71,13 @@ export class ChunkedUploader {
     maxChunkConcurrency,
     chunkByteCount,
     logger,
-  }: ChunkedUploaderParams) {
+  }: {
+    http: TurboHTTPService;
+    token: string;
+    logger: TurboLogger;
+    chunkByteCount?: number;
+    maxChunkConcurrency?: number;
+  }) {
     this.chunkByteCount = chunkByteCount ?? defaultChunkSize;
     this.maxChunkConcurrency =
       maxChunkConcurrency ?? defaultMaxChunkConcurrency;
