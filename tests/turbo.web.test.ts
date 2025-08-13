@@ -725,10 +725,11 @@ describe('Browser environment', () => {
           chunkingMode: 'force',
         });
         assert.ok(response !== undefined);
-        // assert.ok(response.fastFinalityIndexes !== undefined);
-        // assert.ok(response.dataCaches !== undefined);
-        // assert.ok(response.owner !== undefined);
-        // assert.equal(response.owner, testArweaveNativeB64Address);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+        assert.ok(response.winc !== undefined);
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
