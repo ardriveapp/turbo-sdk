@@ -39,7 +39,7 @@ export interface ChunkingEvents {
     id: number;
     offset: number;
     size: number;
-    totalUploaded: number;
+    totalBytesUploaded: number;
   }) => void;
   /** Fired when a chunk upload fails */
   onChunkError: (info: {
@@ -137,9 +137,9 @@ export class ChunkedUploader {
       if (events.onUploadProgress) {
         this.on(
           'onChunkUploaded',
-          ({ totalUploaded }) =>
+          ({ totalBytesUploaded }) =>
             events.onUploadProgress?.({
-              processedBytes: totalUploaded,
+              processedBytes: totalBytesUploaded,
               totalBytes: size,
             }),
         );
@@ -201,7 +201,7 @@ export class ChunkedUploader {
             id,
             offset: off,
             size: len,
-            totalUploaded: offset,
+            totalBytesUploaded: offset,
           });
         }).catch((err) => {
           this.logger.error('Chunk upload failed', {
