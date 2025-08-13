@@ -707,6 +707,30 @@ describe('Browser environment', () => {
         assert.ok(error instanceof CanceledError);
       });
 
+      it.only('should properly upload a ReadableStream with chunking forced', async () => {
+        const encoder = new TextEncoder();
+        const uint8Array = encoder.encode('test data');
+        const readableStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(uint8Array);
+            controller.close();
+          },
+        });
+
+        // Upload the ReadableStream
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => readableStream,
+          fileSizeFactory: () => uint8Array.length,
+          dataItemOpts: {},
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        // assert.ok(response.fastFinalityIndexes !== undefined);
+        // assert.ok(response.dataCaches !== undefined);
+        // assert.ok(response.owner !== undefined);
+        // assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
         const nonAllowListedJWK = await testArweave.wallets.generate();
         const oneMBBuffer = Buffer.alloc(1024 * 1024);

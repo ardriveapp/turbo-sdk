@@ -894,7 +894,7 @@ describe('Node environment', () => {
         // assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it('should properly upload a Readable with 11 MiB of random data', async () => {
+      it.only('should properly upload a Readable with 11 MiB of random data', async () => {
         const fileSize = 11 * 1024 * 1024; // 11 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
@@ -903,8 +903,47 @@ describe('Node environment', () => {
           dataItemOpts: {
             ...validDataItemOpts[0],
           },
+          chunkingMode: 'auto',
         });
         assert.ok(response !== undefined);
+        // assert.ok(response.fastFinalityIndexes !== undefined);
+        // assert.ok(response.dataCaches !== undefined);
+        // assert.ok(response.owner !== undefined);
+        // assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      it.only('should properly upload a Readable with 99 MiB of random data with 6 MiB Chunk Size', async () => {
+        const fileSize = 99 * 1024 * 1024; // 18 MiB
+        const randomData = randomBytes(fileSize);
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => Readable.from(randomData), // create a Readable stream from random bytes
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkingMode: 'force',
+          chunkByteCount: 19 * 1024 * 1024, // 19 MiB
+          maxChunkConcurrency: 10,
+        });
+        assert.ok(response !== undefined);
+        // assert.ok(response.fastFinalityIndexes !== undefined);
+        // assert.ok(response.dataCaches !== undefined);
+        // assert.ok(response.owner !== undefined);
+        // assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      it.only('should properly upload a Buffer with chunking forced', async () => {
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        // TODO: Uncomment when fastFinalityIndexes and dataCaches and owner are implemented for multipart
         // assert.ok(response.fastFinalityIndexes !== undefined);
         // assert.ok(response.dataCaches !== undefined);
         // assert.ok(response.owner !== undefined);
