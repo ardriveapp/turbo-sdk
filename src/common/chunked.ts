@@ -35,14 +35,14 @@ export const defaultChunkSize = fiveMiB; // Default chunk size for uploads
  */
 export interface ChunkingEvents {
   /** Fired after each successful chunk upload */
-  chunkUpload: (info: {
+  onChunkUploaded: (info: {
     id: number;
     offset: number;
     size: number;
     totalUploaded: number;
   }) => void;
   /** Fired when a chunk upload fails */
-  chunkError: (info: {
+  onChunkError: (info: {
     id: number;
     offset: number;
     size: number;
@@ -136,7 +136,7 @@ export class ChunkedUploader {
     if (events !== undefined) {
       if (events.onUploadProgress) {
         this.on(
-          'chunkUpload',
+          'onChunkUploaded',
           ({ totalUploaded }) =>
             events.onUploadProgress?.({
               processedBytes: totalUploaded,
@@ -145,7 +145,7 @@ export class ChunkedUploader {
         );
       }
       if (events.onUploadError) {
-        this.on('chunkError', ({ res }) => events.onUploadError?.(res));
+        this.on('onChunkError', ({ res }) => events.onUploadError?.(res));
       }
     }
 
@@ -197,7 +197,7 @@ export class ChunkedUploader {
             signal,
           });
           this.logger.debug('Chunk uploaded', { id, offset: off, size: len });
-          this.emit('chunkUpload', {
+          this.emit('onChunkUploaded', {
             id,
             offset: off,
             size: len,
@@ -210,7 +210,7 @@ export class ChunkedUploader {
             size: len,
             err,
           });
-          this.emit('chunkError', { id, offset: off, size: len, res: err });
+          this.emit('onChunkError', { id, offset: off, size: len, res: err });
           throw err;
         }),
       );
