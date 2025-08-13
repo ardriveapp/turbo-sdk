@@ -175,7 +175,7 @@ export const optionMap = {
   chunkingMode: {
     alias: '--chunking-mode <chunkingMode>',
     description:
-      'Chunking mode to use for the upload. Can be "auto", "force" or "disable". Defaults to "auto".',
+      'Chunking mode to use for the upload. Can be "auto", "force" or "disabled". Defaults to "auto".',
     default: 'auto',
   },
 } as const;
