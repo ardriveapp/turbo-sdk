@@ -47,12 +47,7 @@ import {
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
-import {
-  ChunkedUploader,
-  defaultChunkSize,
-  fiveHundredMiB,
-  fiveMiB,
-} from './chunked.js';
+import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
