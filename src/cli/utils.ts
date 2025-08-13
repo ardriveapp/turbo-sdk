@@ -401,17 +401,17 @@ export function getChunkingOptions<O extends UploadOptions>(
   let chunkingMode: TurboChunkingMode | undefined;
 
   if (options.chunkingMode !== undefined) {
-    if (options.chunkingMode === 'force') {
-      chunkingMode = 'force';
-    } else if (options.chunkingMode === 'disabled') {
-      chunkingMode = 'disabled';
-    } else if (options.chunkingMode === 'auto') {
-      chunkingMode = 'auto';
-    } else {
+    const validChunkingModes: TurboChunkingMode[] = [
+      'auto',
+      'force',
+      'disabled',
+    ];
+    if (!validChunkingModes.includes(options.chunkingMode)) {
       throw new Error(
         `Invalid chunking mode: ${options.chunkingMode}. Must be one of "auto", "force", or "disabled".`,
       );
     }
+    chunkingMode = options.chunkingMode;
   }
 
   return {
