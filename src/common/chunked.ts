@@ -51,43 +51,53 @@ export class ChunkedUploader {
   private readonly token: string;
   private readonly logger: TurboLogger;
 
+  public readonly shouldUseChunkUploader: boolean;
+
   constructor({
     http,
     token,
     maxChunkConcurrency = defaultMaxChunkConcurrency,
     chunkByteCount = defaultChunkByteCount,
     logger = TurboWinstonLogger.default,
+    chunkingMode = 'auto',
+    dataItemByteCount,
   }: {
     http: TurboHTTPService;
     token: string;
     logger: TurboLogger;
     chunkByteCount?: number;
     maxChunkConcurrency?: number;
+    chunkingMode?: TurboChunkingMode;
+    dataItemByteCount: ByteCount;
   }) {
     this.chunkByteCount = chunkByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
     this.http = http;
     this.token = token;
     this.logger = logger;
-  }
-
-  static shouldUseChunkedUpload({
-    chunkByteCount = defaultChunkByteCount,
-    chunkingMode = 'auto',
-    dataItemByteCount,
-    maxChunkConcurrency = defaultMaxChunkConcurrency,
-  }: {
-    chunkByteCount?: ByteCount;
-    chunkingMode?: TurboChunkingMode;
-    dataItemByteCount: ByteCount;
-    maxChunkConcurrency?: number;
-  }): boolean {
-    ChunkedUploader.assertChunkParams({
+    this.assertChunkParams({
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
     });
+    this.shouldUseChunkUploader = this.shouldChunkUpload({
+      chunkByteCount,
+      chunkingMode,
+      dataItemByteCount,
+      maxChunkConcurrency,
+    });
+  }
 
+  private shouldChunkUpload({
+    chunkByteCount,
+    chunkingMode,
+    dataItemByteCount,
+  }: {
+    chunkByteCount: ByteCount;
+    chunkingMode: TurboChunkingMode;
+    dataItemByteCount: ByteCount;
+    maxChunkConcurrency: number;
+  }): boolean {
     if (chunkingMode === 'disabled') {
       return false;
     }
@@ -99,14 +109,14 @@ export class ChunkedUploader {
     return isMoreThanTwoChunksOfData;
   }
 
-  static assertChunkParams({
-    chunkByteCount = defaultChunkByteCount,
-    chunkingMode = 'auto',
-    maxChunkConcurrency = defaultMaxChunkConcurrency,
+  assertChunkParams({
+    chunkByteCount,
+    chunkingMode,
+    maxChunkConcurrency,
   }: {
-    chunkByteCount?: number;
-    chunkingMode?: TurboChunkingMode;
-    maxChunkConcurrency?: number;
+    chunkByteCount: number;
+    chunkingMode: TurboChunkingMode;
+    maxChunkConcurrency: number;
   }): void {
     if (
       Number.isNaN(maxChunkConcurrency) ||

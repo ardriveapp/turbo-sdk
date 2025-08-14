@@ -289,20 +289,17 @@ export abstract class TurboAuthenticatedBaseUploadService
       // this result due to the wrapped retry logic of this method.
       try {
         const { chunkByteCount, maxChunkConcurrency } = params;
-        const shouldUseChunkedUpload = ChunkedUploader.shouldUseChunkedUpload({
-          chunkByteCount: params.chunkByteCount,
-          chunkingMode: params.chunkingMode,
+        const chunkedUploader = new ChunkedUploader({
+          http: this.httpService,
+          token: this.token,
+          maxChunkConcurrency,
+          chunkByteCount,
+          logger: this.logger,
           dataItemByteCount: dataItemSizeFactory(),
-          maxChunkConcurrency: params.maxChunkConcurrency,
+          chunkingMode: params.chunkingMode,
         });
-        if (shouldUseChunkedUpload) {
-          const response = await new ChunkedUploader({
-            http: this.httpService,
-            token: this.token,
-            maxChunkConcurrency,
-            chunkByteCount,
-            logger: this.logger,
-          }).upload({
+        if (chunkedUploader.shouldUseChunkUploader) {
+          const response = await chunkedUploader.upload({
             dataItemStreamFactory,
             dataItemSizeFactory,
             dataItemOpts,
