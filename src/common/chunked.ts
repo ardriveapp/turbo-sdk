@@ -39,34 +39,11 @@ export const defaultChunkByteCount = minChunkByteCount; // Default chunk size fo
 
 const backlogQueueFactor = 2;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-/**
- * Events emitted during chunked upload.
- */
-export interface ChunkingEvents {
-  /** Fired after each successful chunk upload */
-  onChunkUploaded: (info: {
-    chunkPartNumber: number;
-    chunkOffset: number;
-    chunkByteCount: number;
-    totalBytesUploaded: number;
-  }) => void;
-  /** Fired when a chunk upload fails */
-  onChunkError: (info: {
-    chunkPartNumber: number;
-    chunkOffset: number;
-    chunkByteCount: number;
-    error: any;
-  }) => void;
-}
-
 /**
  * Performs a chunked upload by splitting the stream into fixed-size buffers,
  * uploading them in parallel, and emitting progress/error events.
  */
 export class ChunkedUploader {
-  private readonly emitter = new TurboEventEmitter();
   private readonly chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
   private readonly http: TurboHTTPService;
@@ -163,25 +140,6 @@ export class ChunkedUploader {
     }
   }
 
-  /**
-   * Subscribe to chunking events.
-   */
-  public on<E extends keyof ChunkingEvents>(
-    event: E,
-    listener: ChunkingEvents[E],
-  ): this {
-    // TurboEventEmitter is not generic, so cast to any
-    (this.emitter as any).on(event, listener);
-    return this;
-  }
-
-  private emit<E extends keyof ChunkingEvents>(
-    event: E,
-    payload: Parameters<ChunkingEvents[E]>[0],
-  ) {
-    (this.emitter as any).emit(event, payload);
-  }
-
   private get chunkingVersionHeader(): Record<string, string> {
     return { 'x-chunking-version': '2' };
   }
@@ -219,14 +177,6 @@ export class ChunkedUploader {
       emitter,
     });
 
-    this.on('onChunkUploaded', ({ totalBytesUploaded }) => {
-      emitter.emit('upload-progress', {
-        processedBytes: totalBytesUploaded,
-        totalBytes: dataItemByteCount,
-      });
-    });
-    this.on('onChunkError', ({ error }) => emitter.emit('upload-error', error));
-
     this.logger.debug(`Starting chunked upload`, {
       token: this.token,
       uploadId,
@@ -240,7 +190,7 @@ export class ChunkedUploader {
     const tasks: Promise<void>[] = [];
 
     const internalAbort = new AbortController();
-    const combinedSignal = anySignal([internalAbort.signal, signal]);
+    const combinedSignal = combineAbortSignals([internalAbort.signal, signal]);
 
     const limit = pLimit(this.maxChunkConcurrency);
     let currentOffset = 0;
@@ -252,7 +202,7 @@ export class ChunkedUploader {
     resume();
     for await (const chunk of chunks) {
       if (combinedSignal?.aborted)
-        throw combinedSignal.reason ?? new CanceledError();
+        throw combinedSignal.reason ?? new CanceledError(combinedSignal.reason);
 
       const chunkPartNumber = ++currentChunkPartNumber;
       const chunkByteCount = chunk.length;
@@ -288,11 +238,9 @@ export class ChunkedUploader {
           chunkOffset,
           chunkByteCount,
         });
-        this.emit('onChunkUploaded', {
-          chunkPartNumber,
-          chunkOffset,
-          chunkByteCount,
-          totalBytesUploaded: uploadedBytes,
+        emitter.emit('upload-progress', {
+          processedBytes: uploadedBytes,
+          totalBytes: dataItemByteCount,
         });
       }).catch((err) => {
         this.logger.error('Chunk upload failed', {
@@ -301,12 +249,7 @@ export class ChunkedUploader {
           size: chunkByteCount,
           err,
         });
-        this.emit('onChunkError', {
-          chunkPartNumber,
-          chunkOffset,
-          chunkByteCount,
-          error: err,
-        });
+        emitter.emit('upload-error', err);
         internalAbort.abort(err);
         throw err;
       });
@@ -326,7 +269,8 @@ export class ChunkedUploader {
       }
     }
 
-    await Promise.all(tasks);
+    await Promise.all([...inFlight]);
+    // await Promise.all(tasks);
 
     const paidByHeader: Record<string, string> = {};
     if (dataItemOpts?.paidBy !== undefined) {
@@ -349,7 +293,6 @@ export class ChunkedUploader {
     });
 
     emitter.emit('upload-success');
-
     return finalizeResponse;
   }
 }
@@ -393,8 +336,6 @@ export async function* splitReadableIntoChunks(
 
       while (remaining > 0) {
         const head = queue[0];
-        if (!(head instanceof Uint8Array))
-          throw new Error('Chunk assembly invariant violated.');
         const take = Math.min(remaining, head.length);
 
         out.set(head.subarray(0, take), off);
@@ -457,8 +398,6 @@ export async function* splitReadableStreamIntoChunks(
 
         while (remaining > 0) {
           const head = queue[0];
-          if (!(head instanceof Uint8Array))
-            throw new Error('Chunk assembly invariant violated.');
           const take = Math.min(remaining, head.length);
 
           out.set(head.subarray(0, take), off);
@@ -499,19 +438,21 @@ function isReadableStream(
   return typeof (source as any).getReader === 'function';
 }
 
-function anySignal(
+function combineAbortSignals(
   signals: (AbortSignal | undefined)[],
 ): AbortSignal | undefined {
   const real = signals.filter(Boolean) as AbortSignal[];
   if (real.length === 0) return undefined;
-  // Node 20+: AbortSignal.any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((AbortSignal as any).any) return (AbortSignal as any).any(real);
   const c = new AbortController();
   for (const s of real) {
     if (s.aborted) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       c.abort((s as any).reason);
       break;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     s.addEventListener('abort', () => c.abort((s as any).reason), {
       once: true,
     });
