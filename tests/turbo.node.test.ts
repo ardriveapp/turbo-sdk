@@ -854,6 +854,17 @@ describe('Node environment', () => {
         assert.ok(error instanceof CanceledError);
       });
 
+      it('should abort the upload when AbortController.signal is triggered with chunking forced', async () => {
+        const error = await turbo
+          .upload({
+            data: 'a test string',
+            signal: AbortSignal.timeout(0), // abort the request right away
+            chunkingMode: 'force',
+          })
+          .catch((error) => error);
+        assert.ok(error instanceof CanceledError);
+      });
+
       it('should return a FailedRequestError when the data is larger than the free limit and wallet is underfunded', async () => {
         const nonAllowListedJWK = await testArweave.crypto.generateJWK();
         const filePath = new URL('files/1MB_file', import.meta.url).pathname;
@@ -912,6 +923,7 @@ describe('Node environment', () => {
           fileSizeFactory: () => fileSize,
           dataItemOpts: {
             ...validDataItemOpts[0],
+            paidBy: [testArweaveNativeB64Address],
           },
           chunkingMode: 'auto',
         });
