@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { CanceledError } from 'axios';
 import { pLimit } from 'plimit-lit';
 import { Readable } from 'stream';
 
@@ -249,13 +250,14 @@ export class ChunkedUploader {
     const limit = pLimit(this.maxChunkConcurrency);
     let currentOffset = 0;
     let currentChunkPartNumber = 0;
+    let uploadedBytes = 0;
 
     const chunks = splitIntoChunks(stream, this.chunkByteCount);
 
     resume();
     for await (const chunk of chunks) {
       if (combinedSignal?.aborted)
-        throw combinedSignal.reason ?? new Error('Aborted');
+        throw combinedSignal.reason ?? new CanceledError();
 
       const chunkPartNumber = ++currentChunkPartNumber;
       const chunkByteCount = chunk.length;
@@ -269,50 +271,60 @@ export class ChunkedUploader {
         chunkByteCount,
       });
 
-      tasks.push(
-        limit(async () => {
-          this.logger.debug('Uploading chunk', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-          });
-          await this.http.post({
-            endpoint: `/chunks/${this.token}/${uploadId}/${chunkOffset}`,
-            data: chunk,
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              ...this.chunkingVersionHeader,
-            },
-            signal: combinedSignal,
-          });
-          this.logger.debug('Chunk uploaded', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-          });
-          this.emit('onChunkUploaded', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-            totalBytesUploaded: currentOffset,
-          });
-        }).catch((err) => {
-          this.logger.error('Chunk upload failed', {
-            id: chunkPartNumber,
-            offset: chunkOffset,
-            size: chunkByteCount,
-            err,
-          });
-          this.emit('onChunkError', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-            error: err,
-          });
-          internalAbort.abort(err);
-          throw err;
-        }),
-      );
+      const promise = limit(async () => {
+        this.logger.debug('Uploading chunk', {
+          chunkPartNumber,
+          chunkOffset,
+          chunkByteCount,
+        });
+        await this.http.post({
+          endpoint: `/chunks/${this.token}/${uploadId}/${chunkOffset}`,
+          data: chunk,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            ...this.chunkingVersionHeader,
+          },
+          signal: combinedSignal,
+        });
+        uploadedBytes += chunkByteCount;
+
+        this.logger.debug('Chunk uploaded', {
+          chunkPartNumber,
+          chunkOffset,
+          chunkByteCount,
+        });
+        this.emit('onChunkUploaded', {
+          chunkPartNumber,
+          chunkOffset,
+          chunkByteCount,
+          totalBytesUploaded: uploadedBytes,
+        });
+      }).catch((err) => {
+        this.logger.error('Chunk upload failed', {
+          id: chunkPartNumber,
+          offset: chunkOffset,
+          size: chunkByteCount,
+          err,
+        });
+        this.emit('onChunkError', {
+          chunkPartNumber,
+          chunkOffset,
+          chunkByteCount,
+          error: err,
+        });
+        internalAbort.abort(err);
+        throw err;
+      });
+
+      inFlight.add(promise);
+      promise.finally(() => inFlight.delete(promise));
+      tasks.push(promise);
+
+      // bounded backlog
+      const maxQueued = this.maxChunkConcurrency * 2; // Allow 2x concurrency in queued backlog
+      if (inFlight.size >= maxQueued) {
+        await Promise.race(inFlight);
+      }
     }
 
     await Promise.all(tasks);
