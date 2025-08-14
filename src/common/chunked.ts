@@ -44,7 +44,7 @@ const backlogQueueFactor = 2;
  * uploading them in parallel, and emitting progress/error events.
  */
 export class ChunkedUploader {
-  private readonly chunkByteCount: number;
+  private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
   private readonly http: TurboHTTPService;
   private readonly token: string;
@@ -157,6 +157,14 @@ export class ChunkedUploader {
       endpoint: `/chunks/${this.token}/-1/-1?chunkSize=${this.chunkByteCount}`,
       headers: this.chunkingVersionHeader,
     });
+
+    if (res.chunkSize !== this.chunkByteCount) {
+      this.logger.warn('Chunk size mismatch! Overriding with server value.', {
+        expected: this.chunkByteCount,
+        actual: res.chunkSize,
+      });
+      this.chunkByteCount = res.chunkSize;
+    }
     return res.id;
   }
 
@@ -187,7 +195,6 @@ export class ChunkedUploader {
     });
 
     const inFlight = new Set<Promise<void>>();
-    const tasks: Promise<void>[] = [];
 
     const internalAbort = new AbortController();
     const combinedSignal = combineAbortSignals([internalAbort.signal, signal]);
@@ -201,14 +208,14 @@ export class ChunkedUploader {
 
     resume();
     for await (const chunk of chunks) {
-      if (combinedSignal?.aborted)
-        throw combinedSignal.reason ?? new CanceledError(combinedSignal.reason);
+      if (combinedSignal?.aborted) {
+        throw new CanceledError(String(combinedSignal.reason ?? 'Aborted'));
+      }
 
       const chunkPartNumber = ++currentChunkPartNumber;
       const chunkByteCount = chunk.length;
       const chunkOffset = currentOffset;
-      const newOffset = currentOffset + chunkByteCount;
-      currentOffset = newOffset;
+      currentOffset += chunkByteCount;
 
       this.logger.debug('Queueing chunk', {
         chunkPartNumber,
@@ -256,21 +263,18 @@ export class ChunkedUploader {
 
       inFlight.add(promise);
       promise.finally(() => inFlight.delete(promise));
-      tasks.push(promise);
 
       // bounded backlog
       const maxQueued = this.maxChunkConcurrency * backlogQueueFactor;
       if (inFlight.size >= maxQueued) {
         await Promise.race(inFlight);
         if (combinedSignal?.aborted) {
-          internalAbort.abort(combinedSignal.reason);
-          throw new CanceledError(combinedSignal.reason);
+          throw new CanceledError(String(combinedSignal.reason ?? 'Aborted'));
         }
       }
     }
 
     await Promise.all([...inFlight]);
-    // await Promise.all(tasks);
 
     const paidByHeader: Record<string, string> = {};
     if (dataItemOpts?.paidBy !== undefined) {
@@ -320,10 +324,11 @@ export async function* splitReadableIntoChunks(
 
   for await (const piece of source) {
     // Buffer is a Uint8Array subclass; this makes a plain view either way.
+    let encoder: TextEncoder | undefined;
     const u8 =
       piece instanceof Uint8Array
         ? new Uint8Array(piece.buffer, piece.byteOffset, piece.byteLength)
-        : new TextEncoder().encode(String(piece)); // rare fallback if stream yields strings
+        : (encoder ??= new TextEncoder()).encode(String(piece)); // rare fallback if stream yields strings
 
     queue.push(u8);
     total += u8.length;
