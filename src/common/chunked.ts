@@ -99,13 +99,13 @@ export class ChunkedUploader {
   }
 
   static assertChunkParams({
-    chunkByteCount,
-    chunkingMode,
-    maxChunkConcurrency,
+    chunkByteCount = defaultChunkByteCount,
+    chunkingMode = 'auto',
+    maxChunkConcurrency = defaultMaxChunkConcurrency,
   }: {
-    chunkByteCount: number;
-    chunkingMode: TurboChunkingMode;
-    maxChunkConcurrency: number;
+    chunkByteCount?: number;
+    chunkingMode?: TurboChunkingMode;
+    maxChunkConcurrency?: number;
   }): void {
     if (
       Number.isNaN(maxChunkConcurrency) ||
@@ -435,6 +435,7 @@ export async function* splitReadableStreamIntoChunks(
 function isReadableStream(
   source: unknown,
 ): source is ReadableStream<Uint8Array> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return typeof (source as any).getReader === 'function';
 }
 
