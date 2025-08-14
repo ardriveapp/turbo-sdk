@@ -81,7 +81,7 @@ export class ChunkedUploader {
     dataItemByteCount: ByteCount;
     maxChunkConcurrency?: number;
   }): boolean {
-    this.assertChunkParams({
+    ChunkedUploader.assertChunkParams({
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
