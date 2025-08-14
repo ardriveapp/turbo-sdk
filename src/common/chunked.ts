@@ -211,8 +211,6 @@ export class ChunkedUploader {
 
     // create the tapped stream with events
     const emitter = new TurboEventEmitter(events);
-
-    // create the stream with upload events
     const { stream, resume } = createStreamWithUploadEvents({
       data: dataItemStreamFactory(),
       dataSize: dataItemByteCount,
@@ -224,9 +222,6 @@ export class ChunkedUploader {
         processedBytes: totalBytesUploaded,
         totalBytes: dataItemByteCount,
       });
-      if (totalBytesUploaded === dataItemByteCount) {
-        emitter.emit('upload-success');
-      }
     });
     this.on('onChunkError', ({ error }) => emitter.emit('upload-error', error));
 
@@ -240,20 +235,33 @@ export class ChunkedUploader {
         stream instanceof ReadableStream ? 'ReadableStream' : 'Readable',
     });
 
-    const limit = pLimit(this.maxChunkConcurrency);
-    let offset = 0;
-    let chunkId = 0;
+    //     Unbounded task queue ⇒ memory blowup
+    // tasks.push(limit(...)) for every chunk builds a tasks array O(number_of_chunks). With large inputs you’ll keep all chunk Buffers referenced in closures even when the limiter is saturated. This can balloon memory.
+
+    // Fix: Use a small, bounded queue (e.g., inFlight <= maxChunkConcurrency with a modest backlog like 1–2× concurrency). Await Promise.race(inFlight) to open capacity before scheduling more
+
+    const inFlight = new Set<Promise<any>>();
     const tasks: Promise<any>[] = [];
+
+    const internalAbort = new AbortController();
+    const combinedSignal = anySignal([internalAbort.signal, signal]);
+
+    const limit = pLimit(this.maxChunkConcurrency);
+    let currentOffset = 0;
+    let currentChunkPartNumber = 0;
 
     const chunks = splitIntoChunks(stream, this.chunkByteCount);
 
     resume();
     for await (const chunk of chunks) {
-      const chunkPartNumber = ++chunkId;
+      if (combinedSignal?.aborted)
+        throw combinedSignal.reason ?? new Error('Aborted');
+
+      const chunkPartNumber = ++currentChunkPartNumber;
       const chunkByteCount = chunk.length;
-      const chunkOffset = offset;
-      const newOffset = offset + chunkByteCount;
-      offset = newOffset;
+      const chunkOffset = currentOffset;
+      const newOffset = currentOffset + chunkByteCount;
+      currentOffset = newOffset;
 
       this.logger.debug('Queueing chunk', {
         chunkPartNumber,
@@ -275,7 +283,7 @@ export class ChunkedUploader {
               'Content-Type': 'application/octet-stream',
               ...this.chunkingVersionHeader,
             },
-            signal,
+            signal: combinedSignal,
           });
           this.logger.debug('Chunk uploaded', {
             chunkPartNumber,
@@ -286,7 +294,7 @@ export class ChunkedUploader {
             chunkPartNumber,
             chunkOffset,
             chunkByteCount,
-            totalBytesUploaded: newOffset,
+            totalBytesUploaded: currentOffset,
           });
         }).catch((err) => {
           this.logger.error('Chunk upload failed', {
@@ -301,6 +309,7 @@ export class ChunkedUploader {
             chunkByteCount,
             error: err,
           });
+          internalAbort.abort(err);
           throw err;
         }),
       );
@@ -325,8 +334,10 @@ export class ChunkedUploader {
         ...paidByHeader,
         ...this.chunkingVersionHeader,
       },
-      signal,
+      signal: combinedSignal,
     });
+
+    emitter.emit('upload-success');
 
     return finalizeResponse;
   }
@@ -402,4 +413,24 @@ export async function* splitReadableStreamIntoChunks(
   } finally {
     reader.releaseLock();
   }
+}
+
+function anySignal(
+  signals: (AbortSignal | undefined)[],
+): AbortSignal | undefined {
+  const real = signals.filter(Boolean) as AbortSignal[];
+  if (real.length === 0) return undefined;
+  // Node 20+: AbortSignal.any
+  if ((AbortSignal as any).any) return (AbortSignal as any).any(real);
+  const c = new AbortController();
+  for (const s of real) {
+    if (s.aborted) {
+      c.abort((s as any).reason);
+      break;
+    }
+    s.addEventListener('abort', () => c.abort((s as any).reason), {
+      once: true,
+    });
+  }
+  return c.signal;
 }
