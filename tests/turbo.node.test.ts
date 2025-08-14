@@ -903,6 +903,21 @@ describe('Node environment', () => {
           'Failed request: Failed to upload file after 6 attempts\n',
         );
       });
+
+      it('should return proper error when http throws an unrecognized error with chunking forced', async () => {
+        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        const error = await turbo
+          .upload({
+            data: 'a test string',
+            chunkingMode: 'force',
+          })
+          .catch((error) => error);
+        assert.ok(error instanceof FailedRequestError);
+        assert.equal(
+          error.message,
+          'Failed request: Failed to upload file after 6 attempts\n',
+        );
+      });
     });
 
     describe('uploadFile()', () => {
