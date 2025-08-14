@@ -84,7 +84,6 @@ export class ChunkedUploader {
       chunkByteCount,
       chunkingMode,
       dataItemByteCount,
-      maxChunkConcurrency,
     });
   }
 
@@ -96,7 +95,6 @@ export class ChunkedUploader {
     chunkByteCount: ByteCount;
     chunkingMode: TurboChunkingMode;
     dataItemByteCount: ByteCount;
-    maxChunkConcurrency: number;
   }): boolean {
     if (chunkingMode === 'disabled') {
       return false;
@@ -216,6 +214,8 @@ export class ChunkedUploader {
     resume();
     for await (const chunk of chunks) {
       if (combinedSignal?.aborted) {
+        internalAbort.abort();
+        await Promise.allSettled(inFlight);
         throw new CanceledError();
       }
 
@@ -276,6 +276,8 @@ export class ChunkedUploader {
       if (inFlight.size >= maxQueued) {
         await Promise.race(inFlight);
         if (combinedSignal?.aborted) {
+          internalAbort.abort();
+          await Promise.allSettled(inFlight);
           throw new CanceledError();
         }
       }
@@ -369,9 +371,7 @@ export async function* splitReadableIntoChunks(
     const out = new Uint8Array(total);
     let off = 0;
     while (queue.length > 0) {
-      const head = queue.shift();
-      /* c8 ignore next -- this is a guard clause */
-      if (!head) break;
+      const head = queue.shift() as Uint8Array; // safe due to loop condition
       out.set(head, off);
       off += head.length;
     }
@@ -430,9 +430,7 @@ export async function* splitReadableStreamIntoChunks(
       const out = new Uint8Array(total);
       let off = 0;
       while (queue.length > 0) {
-        const head = queue.shift();
-        /* c8 ignore next -- this is a guard clause */
-        if (!head) break;
+        const head = queue.shift() as Uint8Array; // safe due to loop condition
         out.set(head, off);
         off += head.length;
       }
