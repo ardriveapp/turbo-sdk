@@ -52,6 +52,7 @@ export class ChunkedUploader {
   private readonly logger: TurboLogger;
 
   public readonly shouldUseChunkUploader: boolean;
+  private maxBacklogQueue: number;
 
   constructor({
     http,
@@ -85,6 +86,7 @@ export class ChunkedUploader {
       chunkingMode,
       dataItemByteCount,
     });
+    this.maxBacklogQueue = this.maxChunkConcurrency * backlogQueueFactor;
   }
 
   private shouldChunkUpload({
@@ -271,9 +273,7 @@ export class ChunkedUploader {
       inFlight.add(promise);
       promise.finally(() => inFlight.delete(promise));
 
-      // bounded backlog
-      const maxQueued = this.maxChunkConcurrency * backlogQueueFactor;
-      if (inFlight.size >= maxQueued) {
+      if (inFlight.size >= this.maxBacklogQueue) {
         await Promise.race(inFlight);
         if (combinedSignal?.aborted) {
           internalAbort.abort();
