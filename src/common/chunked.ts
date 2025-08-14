@@ -356,6 +356,7 @@ export async function* splitReadableIntoChunks(
     let off = 0;
     while (queue.length > 0) {
       const head = queue.shift();
+      /* c8 ignore next -- this is a guard clause */
       if (!head) break;
       out.set(head, off);
       off += head.length;
@@ -416,6 +417,7 @@ export async function* splitReadableStreamIntoChunks(
       let off = 0;
       while (queue.length > 0) {
         const head = queue.shift();
+        /* c8 ignore next -- this is a guard clause */
         if (!head) break;
         out.set(head, off);
         off += head.length;
@@ -434,24 +436,34 @@ function isReadableStream(
   return typeof (source as any).getReader === 'function';
 }
 
+type AbortSignalWithReason = AbortSignal & { reason?: unknown };
+type AbortSignalStatic = typeof AbortSignal & {
+  // Node 20+: static AbortSignal.any
+  any?: (signals: readonly AbortSignal[]) => AbortSignal;
+};
+
 function combineAbortSignals(
-  signals: (AbortSignal | undefined)[],
+  signals: readonly (AbortSignal | undefined)[],
 ): AbortSignal | undefined {
   const real = signals.filter(Boolean) as AbortSignal[];
   if (real.length === 0) return undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((AbortSignal as any).any) return (AbortSignal as any).any(real);
-  const c = new AbortController();
+
+  const anyFn = (AbortSignal as AbortSignalStatic).any;
+  if (typeof anyFn === 'function') {
+    return anyFn(real);
+  }
+
+  const controller = new AbortController();
+
   for (const s of real) {
-    if (s.aborted) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      c.abort((s as any).reason);
+    const sig = s as AbortSignalWithReason;
+    if (sig.aborted) {
+      controller.abort(sig.reason);
       break;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    s.addEventListener('abort', () => c.abort((s as any).reason), {
-      once: true,
-    });
+    const onAbort = () => controller.abort(sig.reason);
+    s.addEventListener('abort', onAbort, { once: true });
   }
-  return c.signal;
+
+  return controller.signal;
 }
