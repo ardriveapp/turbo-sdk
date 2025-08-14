@@ -109,7 +109,7 @@ export class ChunkedUploader {
     return isMoreThanTwoChunksOfData;
   }
 
-  assertChunkParams({
+  private assertChunkParams({
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
@@ -328,10 +328,14 @@ export async function* splitReadableIntoChunks(
 ): AsyncGenerator<Buffer, void, unknown> {
   const queue: Uint8Array[] = [];
   let total = 0;
-
+  let encoder: TextEncoder | undefined;
   for await (const piece of source) {
-    queue.push(piece);
-    total += piece.length;
+    const u8 =
+      piece instanceof Uint8Array
+        ? new Uint8Array(piece.buffer, piece.byteOffset, piece.byteLength)
+        : (encoder ??= new TextEncoder()).encode(String(piece));
+    queue.push(u8);
+    total += u8.length;
 
     // Emit full chunks
     while (total >= chunkByteCount) {
