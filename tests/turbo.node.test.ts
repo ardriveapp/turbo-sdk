@@ -22,6 +22,7 @@ import {
   minChunkByteCount,
 } from '../src/common/chunked.js';
 import { JPY, USD } from '../src/common/currency.js';
+import { TurboHTTPService } from '../src/common/http.js';
 import { TurboWinstonLogger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
@@ -42,6 +43,7 @@ import {
   NativeAddress,
   TokenType,
   TurboChunkingMode,
+  TurboLogger,
   TurboSigner,
   fiatCurrencyTypes,
   tokenTypes,
@@ -973,7 +975,10 @@ describe('Node environment', () => {
         assert.ok(response.winc !== undefined);
       });
 
-      describe('assertChunkParams', () => {
+      describe('ChunkedUploader constructor', () => {
+        const http = {} as TurboHTTPService;
+        const logger = {} as TurboLogger;
+        const token = 'arweave';
         const invalidChunkByteCounts = [
           0,
           -1,
@@ -990,9 +995,12 @@ describe('Node environment', () => {
               JSON.stringify(chunkByteCount),
             () => {
               try {
-                ChunkedUploader['assertChunkParams']({
+                new ChunkedUploader({
                   dataItemByteCount: 10000,
                   chunkByteCount,
+                  http,
+                  logger,
+                  token,
                 });
               } catch (err) {
                 assert.ok(err instanceof Error);
@@ -1006,10 +1014,13 @@ describe('Node environment', () => {
         }
 
         it('asserts valid chunk size', () => {
-          const result = ChunkedUploader['assertChunkParams']({
+          const result = new ChunkedUploader({
             dataItemByteCount: 10000000000,
             chunkByteCount: defaultChunkByteCount,
             maxChunkConcurrency: defaultMaxChunkConcurrency,
+            http,
+            logger,
+            token,
           });
           assert.ok(result);
         });
@@ -1028,7 +1039,10 @@ describe('Node environment', () => {
               JSON.stringify(maxChunkConcurrency),
             () => {
               try {
-                ChunkedUploader['assertChunkParams']({
+                new ChunkedUploader({
+                  http,
+                  logger,
+                  token,
                   dataItemByteCount: 10000,
                   maxChunkConcurrency,
                 });
@@ -1045,7 +1059,10 @@ describe('Node environment', () => {
 
         it('asserts invalid chunking mode', () => {
           try {
-            ChunkedUploader['assertChunkParams']({
+            new ChunkedUploader({
+              http,
+              logger,
+              token,
               dataItemByteCount: 10000,
               chunkingMode: 'invalid' as TurboChunkingMode,
             });
