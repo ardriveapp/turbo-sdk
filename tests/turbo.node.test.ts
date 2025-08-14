@@ -973,7 +973,7 @@ describe('Node environment', () => {
         assert.ok(response.winc !== undefined);
       });
 
-      describe('shouldUseChunkedUpload', () => {
+      describe('assertChunkParams', () => {
         const invalidChunkByteCounts = [
           0,
           -1,
@@ -990,7 +990,7 @@ describe('Node environment', () => {
               JSON.stringify(chunkByteCount),
             () => {
               try {
-                ChunkedUploader.shouldUseChunkedUpload({
+                ChunkedUploader['assertChunkParams']({
                   dataItemByteCount: 10000,
                   chunkByteCount,
                 });
@@ -1006,7 +1006,7 @@ describe('Node environment', () => {
         }
 
         it('asserts valid chunk size', () => {
-          const result = ChunkedUploader.shouldUseChunkedUpload({
+          const result = ChunkedUploader['assertChunkParams']({
             dataItemByteCount: 10000000000,
             chunkByteCount: defaultChunkByteCount,
             maxChunkConcurrency: defaultMaxChunkConcurrency,
@@ -1028,7 +1028,7 @@ describe('Node environment', () => {
               JSON.stringify(maxChunkConcurrency),
             () => {
               try {
-                ChunkedUploader.shouldUseChunkedUpload({
+                ChunkedUploader['assertChunkParams']({
                   dataItemByteCount: 10000,
                   maxChunkConcurrency,
                 });
@@ -1045,7 +1045,7 @@ describe('Node environment', () => {
 
         it('asserts invalid chunking mode', () => {
           try {
-            ChunkedUploader.shouldUseChunkedUpload({
+            ChunkedUploader['assertChunkParams']({
               dataItemByteCount: 10000,
               chunkingMode: 'invalid' as TurboChunkingMode,
             });
