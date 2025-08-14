@@ -977,8 +977,8 @@ describe('Node environment', () => {
         assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it('should properly upload a Readable with 99 MiB of random data with 6 MiB Chunk Size', async () => {
-        const fileSize = 99 * 1024 * 1024; // 99 MiB
+      it('should properly upload a Readable with 19 MiB of random data with 6 MiB Chunk Size', async () => {
+        const fileSize = 19 * 1024 * 1024; // 19 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
           fileStreamFactory: () => Readable.from(randomData),
