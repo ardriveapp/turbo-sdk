@@ -40,6 +40,7 @@ import {
 import { TurboFactory } from '../src/node/factory.js';
 import { TurboNodeSigner } from '../src/node/signer.js';
 import {
+  DataItemOptions,
   NativeAddress,
   TokenType,
   TurboChunkingMode,
@@ -690,7 +691,12 @@ describe('Node environment', () => {
       },
     ];
 
-    const invalidDataItemOpts = [
+    const invalidDataItemOpts: Array<{
+      testName: string;
+      errorType?: string;
+      errorMessage: string;
+      dataItemOpts: DataItemOptions;
+    }> = [
       // TODO: These too long test broke when changing to upload service latest image -- check on this
       // {
       //   testName: 'tag name too long',
@@ -832,7 +838,7 @@ describe('Node environment', () => {
         testName,
         dataItemOpts,
         errorMessage,
-        // errorType,
+        errorType,
       } of invalidDataItemOpts) {
         it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
           await expectAsyncErrorThrow({
@@ -840,7 +846,7 @@ describe('Node environment', () => {
               data: 'a test string',
               dataItemOpts,
             }),
-            // errorType,
+            errorType,
             errorMessage,
           });
         });
@@ -1257,7 +1263,7 @@ describe('Node environment', () => {
         testName,
         dataItemOpts,
         errorMessage,
-        // errorType,
+        errorType,
       } of invalidDataItemOpts) {
         it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
           const fileSize = fs.statSync(oneKiBFilePath).size;
@@ -1267,7 +1273,7 @@ describe('Node environment', () => {
               fileSizeFactory: () => fileSize,
               dataItemOpts,
             }),
-            // errorType,
+            errorType,
             errorMessage,
           });
         });
