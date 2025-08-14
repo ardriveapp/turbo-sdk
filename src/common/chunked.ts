@@ -31,11 +31,11 @@ import { TurboWinstonLogger } from './logger.js';
 
 const fiveMiB = 5 * 1024 * 1024; // 5 MiB
 const fiveHundredMiB = fiveMiB * 100; // 500 MiB
-export const defaultMaxChunkConcurrency = 5; // Default max chunk concurrency
+export const defaultMaxChunkConcurrency = 5;
 
 export const maxChunkByteCount = fiveHundredMiB;
 export const minChunkByteCount = fiveMiB;
-export const defaultChunkByteCount = minChunkByteCount; // Default chunk size for uploads
+export const defaultChunkByteCount = minChunkByteCount;
 
 const backlogQueueFactor = 2;
 const chunkingHeader = { 'x-chunking-version': '2' } as const;
