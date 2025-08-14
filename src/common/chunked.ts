@@ -368,25 +368,63 @@ export async function* splitIntoChunks(
     yield* splitReadableIntoChunks(source, chunkByteCount);
   }
 }
-
 export async function* splitReadableIntoChunks(
   source: Readable,
   chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
-  let acc = Buffer.alloc(0);
+  const queue: Uint8Array[] = [];
+  let total = 0;
 
   for await (const piece of source) {
-    acc = Buffer.concat([acc, piece]);
+    // Buffer is a Uint8Array subclass; this makes a plain view either way.
+    const u8 =
+      piece instanceof Uint8Array
+        ? new Uint8Array(piece.buffer, piece.byteOffset, piece.byteLength)
+        : new TextEncoder().encode(String(piece)); // rare fallback if stream yields strings
 
-    while (acc.length >= chunkByteCount) {
-      yield acc.subarray(0, chunkByteCount);
-      acc = acc.subarray(chunkByteCount);
+    queue.push(u8);
+    total += u8.length;
+
+    // Emit full chunks
+    while (total >= chunkByteCount) {
+      const out = new Uint8Array(chunkByteCount);
+      let remaining = out.length;
+      let off = 0;
+
+      while (remaining > 0) {
+        const head = queue[0];
+        if (!(head instanceof Uint8Array))
+          throw new Error('Chunk assembly invariant violated.');
+        const take = Math.min(remaining, head.length);
+
+        out.set(head.subarray(0, take), off);
+        off += take;
+        remaining -= take;
+
+        if (take === head.length) {
+          queue.shift();
+        } else {
+          queue[0] = head.subarray(take);
+        }
+      }
+
+      total -= chunkByteCount;
+      // Yield a Buffer view (no copy)
+      yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
     }
   }
 
-  // yield the final piece
-  if (acc.length > 0) {
-    yield acc;
+  // Remainder
+  if (total > 0) {
+    const out = new Uint8Array(total);
+    let off = 0;
+    while (queue.length > 0) {
+      const head = queue.shift();
+      if (!head) break;
+      out.set(head, off);
+      off += head.length;
+    }
+    yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
   }
 }
 
@@ -395,29 +433,60 @@ export async function* splitReadableStreamIntoChunks(
   chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
   const reader = source.getReader();
-  let acc = new Uint8Array(0);
+  const queue: Uint8Array[] = [];
+  let total = 0;
 
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
-      // Append to accumulator
-      const merged = new Uint8Array(acc.length + value.length);
-      merged.set(acc);
-      merged.set(value, acc.length);
-      acc = merged;
+      // Ensure we keep a plain view (avoids surprises if the producer reuses buffers)
+      const u8 = new Uint8Array(
+        value.buffer,
+        value.byteOffset,
+        value.byteLength,
+      );
+      queue.push(u8);
+      total += u8.length;
 
-      // Yield full chunks
-      while (acc.length >= chunkByteCount) {
-        yield Buffer.from(acc.subarray(0, chunkByteCount));
-        acc = acc.subarray(chunkByteCount);
+      while (total >= chunkByteCount) {
+        const out = new Uint8Array(chunkByteCount);
+        let remaining = out.length;
+        let off = 0;
+
+        while (remaining > 0) {
+          const head = queue[0];
+          if (!(head instanceof Uint8Array))
+            throw new Error('Chunk assembly invariant violated.');
+          const take = Math.min(remaining, head.length);
+
+          out.set(head.subarray(0, take), off);
+          off += take;
+          remaining -= take;
+
+          if (take === head.length) {
+            queue.shift();
+          } else {
+            queue[0] = head.subarray(take);
+          }
+        }
+
+        total -= chunkByteCount;
+        yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
       }
     }
 
-    // Yield the remainder
-    if (acc.length > 0) {
-      yield Buffer.from(acc);
+    if (total > 0) {
+      const out = new Uint8Array(total);
+      let off = 0;
+      while (queue.length > 0) {
+        const head = queue.shift();
+        if (!head) break;
+        out.set(head, off);
+        off += head.length;
+      }
+      yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
     }
   } finally {
     reader.releaseLock();
