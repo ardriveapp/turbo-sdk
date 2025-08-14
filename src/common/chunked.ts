@@ -221,6 +221,7 @@ export class ChunkedUploader {
         internalAbort.abort();
         await Promise.allSettled(inFlight);
         firstError ??= new CanceledError();
+        break;
       }
 
       const chunkPartNumber = ++currentChunkPartNumber;
@@ -284,6 +285,7 @@ export class ChunkedUploader {
           internalAbort.abort();
           await Promise.allSettled(inFlight);
           firstError ??= new CanceledError();
+          break;
         }
       }
     }
