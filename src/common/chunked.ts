@@ -37,6 +37,8 @@ export const maxChunkByteCount = fiveHundredMiB;
 export const minChunkByteCount = fiveMiB;
 export const defaultChunkByteCount = minChunkByteCount; // Default chunk size for uploads
 
+const backlogQueueFactor = 2;
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
@@ -210,7 +212,6 @@ export class ChunkedUploader {
     const uploadId = await this.initUpload();
     const dataItemByteCount = dataItemSizeFactory();
 
-    // create the tapped stream with events
     const emitter = new TurboEventEmitter(events);
     const { stream, resume } = createStreamWithUploadEvents({
       data: dataItemStreamFactory(),
@@ -232,17 +233,11 @@ export class ChunkedUploader {
       totalSize: dataItemByteCount,
       chunkByteCount: this.chunkByteCount,
       maxChunkConcurrency: this.maxChunkConcurrency,
-      inputStreamType:
-        stream instanceof ReadableStream ? 'ReadableStream' : 'Readable',
+      inputStreamType: isReadableStream(stream) ? 'ReadableStream' : 'Readable',
     });
 
-    //     Unbounded task queue ⇒ memory blowup
-    // tasks.push(limit(...)) for every chunk builds a tasks array O(number_of_chunks). With large inputs you’ll keep all chunk Buffers referenced in closures even when the limiter is saturated. This can balloon memory.
-
-    // Fix: Use a small, bounded queue (e.g., inFlight <= maxChunkConcurrency with a modest backlog like 1–2× concurrency). Await Promise.race(inFlight) to open capacity before scheduling more
-
-    const inFlight = new Set<Promise<any>>();
-    const tasks: Promise<any>[] = [];
+    const inFlight = new Set<Promise<void>>();
+    const tasks: Promise<void>[] = [];
 
     const internalAbort = new AbortController();
     const combinedSignal = anySignal([internalAbort.signal, signal]);
@@ -321,9 +316,13 @@ export class ChunkedUploader {
       tasks.push(promise);
 
       // bounded backlog
-      const maxQueued = this.maxChunkConcurrency * 2; // Allow 2x concurrency in queued backlog
+      const maxQueued = this.maxChunkConcurrency * backlogQueueFactor;
       if (inFlight.size >= maxQueued) {
         await Promise.race(inFlight);
+        if (combinedSignal?.aborted) {
+          internalAbort.abort(combinedSignal.reason);
+          throw new CanceledError(combinedSignal.reason);
+        }
       }
     }
 
@@ -363,12 +362,10 @@ export async function* splitIntoChunks(
   source: Readable | ReadableStream<Uint8Array>,
   chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
-  if (source instanceof Readable) {
-    yield* splitReadableIntoChunks(source, chunkByteCount);
-  } else if (source instanceof ReadableStream) {
+  if (isReadableStream(source)) {
     yield* splitReadableStreamIntoChunks(source, chunkByteCount);
   } else {
-    throw new Error('Unsupported source type for chunking');
+    yield* splitReadableIntoChunks(source, chunkByteCount);
   }
 }
 
@@ -425,6 +422,12 @@ export async function* splitReadableStreamIntoChunks(
   } finally {
     reader.releaseLock();
   }
+}
+
+function isReadableStream(
+  source: unknown,
+): source is ReadableStream<Uint8Array> {
+  return typeof (source as any).getReader === 'function';
 }
 
 function anySignal(
