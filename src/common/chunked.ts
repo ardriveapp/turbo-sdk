@@ -38,6 +38,7 @@ export const minChunkByteCount = fiveMiB;
 export const defaultChunkByteCount = minChunkByteCount; // Default chunk size for uploads
 
 const backlogQueueFactor = 2;
+const chunkingHeader = { 'x-chunking-version': '2' } as const;
 
 /**
  * Performs a chunked upload by splitting the stream into fixed-size buffers,
@@ -140,10 +141,6 @@ export class ChunkedUploader {
     }
   }
 
-  private get chunkingVersionHeader(): Record<string, string> {
-    return { 'x-chunking-version': '2' };
-  }
-
   /**
    * Initialize or resume an upload session, returning the upload ID.
    */
@@ -155,7 +152,7 @@ export class ChunkedUploader {
       chunkSize: number;
     }>({
       endpoint: `/chunks/${this.token}/-1/-1?chunkSize=${this.chunkByteCount}`,
-      headers: this.chunkingVersionHeader,
+      headers: chunkingHeader,
     });
 
     if (res.chunkSize !== this.chunkByteCount) {
@@ -209,7 +206,7 @@ export class ChunkedUploader {
     resume();
     for await (const chunk of chunks) {
       if (combinedSignal?.aborted) {
-        throw new CanceledError(String(combinedSignal.reason ?? 'Aborted'));
+        throw new CanceledError();
       }
 
       const chunkPartNumber = ++currentChunkPartNumber;
@@ -234,7 +231,7 @@ export class ChunkedUploader {
           data: chunk,
           headers: {
             'Content-Type': 'application/octet-stream',
-            ...this.chunkingVersionHeader,
+            ...chunkingHeader,
           },
           signal: combinedSignal,
         });
@@ -269,12 +266,12 @@ export class ChunkedUploader {
       if (inFlight.size >= maxQueued) {
         await Promise.race(inFlight);
         if (combinedSignal?.aborted) {
-          throw new CanceledError(String(combinedSignal.reason ?? 'Aborted'));
+          throw new CanceledError();
         }
       }
     }
 
-    await Promise.all([...inFlight]);
+    await Promise.all(inFlight);
 
     const paidByHeader: Record<string, string> = {};
     if (dataItemOpts?.paidBy !== undefined) {
@@ -291,7 +288,7 @@ export class ChunkedUploader {
       headers: {
         'Content-Type': 'application/octet-stream',
         ...paidByHeader,
-        ...this.chunkingVersionHeader,
+        ...chunkingHeader,
       },
       signal: combinedSignal,
     });
@@ -323,15 +320,8 @@ export async function* splitReadableIntoChunks(
   let total = 0;
 
   for await (const piece of source) {
-    // Buffer is a Uint8Array subclass; this makes a plain view either way.
-    let encoder: TextEncoder | undefined;
-    const u8 =
-      piece instanceof Uint8Array
-        ? new Uint8Array(piece.buffer, piece.byteOffset, piece.byteLength)
-        : (encoder ??= new TextEncoder()).encode(String(piece)); // rare fallback if stream yields strings
-
-    queue.push(u8);
-    total += u8.length;
+    queue.push(piece);
+    total += piece.length;
 
     // Emit full chunks
     while (total >= chunkByteCount) {
