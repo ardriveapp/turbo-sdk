@@ -938,6 +938,26 @@ describe('Node environment', () => {
         assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
+      it('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
+        stub(turbo['uploadService']['httpService'], 'get').resolves({
+          chunkSize: 6 * 1024 * 1024, // 6 MiB
+        });
+        stub(turbo['uploadService']['httpService'], 'post').resolves({
+          id: 'stub',
+        });
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.id === 'stub');
+      });
+
       it('should properly upload a Readable with 11 MiB of random data', async () => {
         const fileSize = 11 * 1024 * 1024; // 11 MiB
         const randomData = randomBytes(fileSize);
