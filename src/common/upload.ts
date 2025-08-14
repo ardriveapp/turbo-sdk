@@ -276,19 +276,19 @@ export abstract class TurboAuthenticatedBaseUploadService
         throw new CanceledError();
       }
 
+      // TODO: create a SigningError class and throw that instead of the generic Error
+      const { dataItemStreamFactory, dataItemSizeFactory } =
+        await this.signer.signDataItem({
+          fileStreamFactory,
+          fileSizeFactory,
+          dataItemOpts,
+          emitter,
+        });
+
       // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
       // which will create a new emitter with upload events. We await
       // this result due to the wrapped retry logic of this method.
       try {
-        // TODO: create a SigningError class and throw that instead of the generic Error
-        const { dataItemStreamFactory, dataItemSizeFactory } =
-          await this.signer.signDataItem({
-            fileStreamFactory,
-            fileSizeFactory,
-            dataItemOpts,
-            emitter,
-          });
-
         const { chunkByteCount, maxChunkConcurrency } = params;
         const chunkedUploader = new ChunkedUploader({
           http: this.httpService,
