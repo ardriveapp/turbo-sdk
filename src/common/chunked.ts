@@ -444,8 +444,19 @@ export async function* splitReadableStreamIntoChunks(
 function isReadableStream(
   source: unknown,
 ): source is ReadableStream<Uint8Array> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return typeof (source as any).getReader === 'function';
+  // Prefer instanceof if available, otherwise use a safe duck-typing check
+  if (
+    typeof ReadableStream !== 'undefined' &&
+    source instanceof ReadableStream
+  ) {
+    return true;
+  }
+  return (
+    source !== null &&
+    typeof source === 'object' &&
+    'getReader' in source &&
+    typeof (source as ReadableStream<Uint8Array>).getReader === 'function'
+  );
 }
 
 type AbortSignalWithReason = AbortSignal & { reason?: unknown };
