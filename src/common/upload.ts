@@ -268,14 +268,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
     const emitter = new TurboEventEmitter(events);
     // avoid duplicating signing on failures here - these errors will immediately be thrown
-    // TODO: create a SigningError class and throw that instead of the generic Error
-    const { dataItemStreamFactory, dataItemSizeFactory } =
-      await this.signer.signDataItem({
-        fileStreamFactory,
-        fileSizeFactory,
-        dataItemOpts,
-        emitter,
-      });
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
@@ -288,6 +280,15 @@ export abstract class TurboAuthenticatedBaseUploadService
       // which will create a new emitter with upload events. We await
       // this result due to the wrapped retry logic of this method.
       try {
+        // TODO: create a SigningError class and throw that instead of the generic Error
+        const { dataItemStreamFactory, dataItemSizeFactory } =
+          await this.signer.signDataItem({
+            fileStreamFactory,
+            fileSizeFactory,
+            dataItemOpts,
+            emitter,
+          });
+
         const { chunkByteCount, maxChunkConcurrency } = params;
         const chunkedUploader = new ChunkedUploader({
           http: this.httpService,

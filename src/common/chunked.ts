@@ -209,6 +209,8 @@ export class ChunkedUploader {
     const limit = pLimit(this.maxChunkConcurrency);
     let currentOffset = 0;
     let currentChunkPartNumber = 0;
+
+    let firstError: undefined | Error;
     let uploadedBytes = 0;
 
     const chunks = splitIntoChunks(stream, this.chunkByteCount);
@@ -218,7 +220,7 @@ export class ChunkedUploader {
       if (combinedSignal?.aborted) {
         internalAbort.abort();
         await Promise.allSettled(inFlight);
-        throw new CanceledError();
+        firstError ??= new CanceledError();
       }
 
       const chunkPartNumber = ++currentChunkPartNumber;
@@ -233,6 +235,9 @@ export class ChunkedUploader {
       });
 
       const promise = limit(async () => {
+        if (firstError !== undefined) {
+          return;
+        }
         this.logger.debug('Uploading chunk', {
           chunkPartNumber,
           chunkOffset,
@@ -267,7 +272,7 @@ export class ChunkedUploader {
         });
         emitter.emit('upload-error', err);
         internalAbort.abort(err);
-        throw err;
+        firstError = firstError ?? err;
       });
 
       inFlight.add(promise);
@@ -278,12 +283,16 @@ export class ChunkedUploader {
         if (combinedSignal?.aborted) {
           internalAbort.abort();
           await Promise.allSettled(inFlight);
-          throw new CanceledError();
+          firstError ??= new CanceledError();
         }
       }
     }
 
     await Promise.all(inFlight);
+
+    if (firstError !== undefined) {
+      throw firstError;
+    }
 
     const paidByHeader: Record<string, string> = {};
     if (dataItemOpts?.paidBy !== undefined) {
