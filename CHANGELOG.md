@@ -1,3 +1,10 @@
+# [1.31.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.30.0...v1.31.0-alpha.1) (2025-08-15)
+
+
+### Features
+
+* **upload:** init multipart upload APIs for large files PE-5267 ([d98bf08](https://github.com/ardriveapp/turbo-sdk/commit/d98bf08d483ea877c474794bf783113d0dfeafc4))
+
 # [1.30.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.29.0...v1.30.0) (2025-08-04)
 
 
