@@ -10,6 +10,7 @@ import { BigNumber } from 'bignumber.js';
 import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
 import { strict as assert } from 'node:assert';
+import { randomBytes } from 'node:crypto';
 import { after, afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
@@ -705,6 +706,33 @@ describe('Browser environment', () => {
           })
           .catch((err) => err);
         assert.ok(error instanceof CanceledError);
+      });
+
+      it('should properly upload a ReadableStream with chunking forced', async () => {
+        const encoder = new TextEncoder();
+        const fileSize = 11 * 1024 * 1024;
+        const randomData = randomBytes(fileSize).toString();
+        const uint8Array = encoder.encode(randomData);
+        const readableStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(uint8Array);
+            controller.close();
+          },
+        });
+
+        // Upload the ReadableStream
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => readableStream,
+          fileSizeFactory: () => uint8Array.length,
+          dataItemOpts: {},
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+        assert.ok(response.winc !== undefined);
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {

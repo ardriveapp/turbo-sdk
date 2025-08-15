@@ -26,12 +26,12 @@ import {
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
+  TurboChunkingParams,
   TurboCreateCreditShareApprovalParams,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
   TurboRevokeCreditsParams,
-  TurboSignedDataItemFactory,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadAndSigningEmitterEvents,
@@ -43,10 +43,12 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
+  UploadSignedDataItemParams,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
+import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -106,9 +108,7 @@ export class TurboUnauthenticatedUploadService
     dataItemOpts,
     signal,
     events = {},
-  }: TurboSignedDataItemFactory &
-    TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse> {
+  }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
     const dataItemSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
 
@@ -180,9 +180,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     dataItemOpts,
     signal,
     events,
+    chunkByteCount,
+    chunkingMode,
+    maxChunkConcurrency,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
+    TurboUploadAndSigningEmitterEvents &
+    TurboChunkingParams): Promise<TurboUploadDataItemResponse> {
     // This function is intended to be usable in both Node and browser environments.
     if (isBlob(data)) {
       const streamFactory = () => data.stream();
@@ -212,6 +216,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       signal,
       dataItemOpts,
       events,
+      chunkByteCount,
+      chunkingMode,
+      maxChunkConcurrency,
     });
   }
 
@@ -261,14 +268,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
     const emitter = new TurboEventEmitter(events);
     // avoid duplicating signing on failures here - these errors will immediately be thrown
-    // TODO: create a SigningError class and throw that instead of the generic Error
-    const { dataItemStreamFactory, dataItemSizeFactory } =
-      await this.signer.signDataItem({
-        fileStreamFactory,
-        fileSizeFactory,
-        dataItemOpts,
-        emitter,
-      });
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
@@ -277,10 +276,39 @@ export abstract class TurboAuthenticatedBaseUploadService
         throw new CanceledError();
       }
 
+      // TODO: create a SigningError class and throw that instead of the generic Error
+      const { dataItemStreamFactory, dataItemSizeFactory } =
+        await this.signer.signDataItem({
+          fileStreamFactory,
+          fileSizeFactory,
+          dataItemOpts,
+          emitter,
+        });
+
       // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
       // which will create a new emitter with upload events. We await
       // this result due to the wrapped retry logic of this method.
       try {
+        const { chunkByteCount, maxChunkConcurrency } = params;
+        const chunkedUploader = new ChunkedUploader({
+          http: this.httpService,
+          token: this.token,
+          maxChunkConcurrency,
+          chunkByteCount,
+          logger: this.logger,
+          dataItemByteCount: dataItemSizeFactory(),
+          chunkingMode: params.chunkingMode,
+        });
+        if (chunkedUploader.shouldUseChunkUploader) {
+          const response = await chunkedUploader.upload({
+            dataItemStreamFactory,
+            dataItemSizeFactory,
+            dataItemOpts,
+            signal,
+            events,
+          });
+          return response;
+        }
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
@@ -421,6 +449,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       manifestOptions = {},
       maxConcurrentUploads = 1,
       throwOnFailure = true,
+      maxChunkConcurrency,
+      chunkByteCount,
+      chunkingMode,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -452,6 +483,9 @@ export abstract class TurboAuthenticatedBaseUploadService
           fileSizeFactory: () => this.getFileSize(file),
           signal,
           dataItemOpts: dataItemOptsWithContentType,
+          chunkByteCount,
+          maxChunkConcurrency,
+          chunkingMode,
         });
 
         const relativePath = this.getRelativePath(file, params);
@@ -506,6 +540,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
+      chunkByteCount,
+      maxChunkConcurrency,
+      chunkingMode,
     });
 
     return {

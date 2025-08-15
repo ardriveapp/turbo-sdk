@@ -25,8 +25,17 @@ if [ $elapsed -ge $timeout ]; then
   exit 1
 fi
 
+# check for arg --only (source copy_repo.sh --only)
+if [[ "$@" == *"--only"* ]]; then
+  only=true
+fi
+
 # Run tests and capture the exit code
-yarn dotenv -e .env.test yarn test
+if [ "$only" = true ]; then
+  yarn dotenv -e .env.test yarn test:only
+else
+  yarn dotenv -e .env.test yarn test
+fi
 exit_code=$?
 
 # Tear down the docker-compose setup

@@ -35,6 +35,8 @@ import { TurboWinstonLogger } from './common/logger.js';
 export type Base64String = string;
 export type NativeAddress = string;
 
+export type ByteCount = number;
+
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
@@ -254,7 +256,8 @@ type UploadFolderParams = {
     fallbackFile?: string;
     indexFile?: string;
   };
-} & TurboAbortSignal;
+} & TurboAbortSignal &
+  TurboChunkingParams;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -591,6 +594,18 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
+export const validChunkingModes = ['force', 'disabled', 'auto'] as const;
+export type TurboChunkingMode = (typeof validChunkingModes)[number];
+
+export type TurboChunkingParams = {
+  /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
+  chunkByteCount?: number;
+  /** Number of chunks to send up concurrently */
+  maxChunkConcurrency?: number;
+  /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
+  chunkingMode?: TurboChunkingMode;
+};
+
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
   TurboAbortSignal &
   TurboUploadAndSigningEmitterEvents;
@@ -598,7 +613,8 @@ export type TurboUploadFileWithFileOrPathParams = {
   file: File | string;
   dataItemOpts?: DataItemOptions;
 } & TurboAbortSignal &
-  TurboUploadAndSigningEmitterEvents;
+  TurboUploadAndSigningEmitterEvents &
+  TurboChunkingParams;
 
 export type TurboUploadFileParams =
   | TurboUploadFileWithStreamFactoryParams
@@ -618,7 +634,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
   // bundle?: boolean; // TODO: add bundling into BDIs
-};
+} & TurboChunkingParams;
 
 export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
@@ -778,7 +794,8 @@ export interface TurboAuthenticatedUploadServiceInterface
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+    TurboUploadEmitterEvents &
+    TurboChunkingParams): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse>;
@@ -835,3 +852,7 @@ export type TokenFactory = Record<
   string,
   (config: TokenConfig | AoProcessConfig) => TokenTools
 >;
+
+export type UploadSignedDataItemParams = TurboSignedDataItemFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;

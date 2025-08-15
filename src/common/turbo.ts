@@ -27,6 +27,7 @@ import {
   TurboBalanceResponse,
   TurboCheckoutSessionParams,
   TurboCheckoutSessionResponse,
+  TurboChunkingParams,
   TurboCountriesResponse,
   TurboCreateCreditShareApprovalParams,
   TurboCryptoFundResponse,
@@ -316,10 +317,22 @@ export class TurboAuthenticatedClient
     dataItemOpts,
     signal,
     events,
+    chunkByteCount,
+    chunkingMode,
+    maxChunkConcurrency,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadAndSigningEmitterEvents): Promise<TurboUploadDataItemResponse> {
-    return this.uploadService.upload({ data, dataItemOpts, signal, events });
+    TurboUploadAndSigningEmitterEvents &
+    TurboChunkingParams): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.upload({
+      data,
+      dataItemOpts,
+      signal,
+      events,
+      chunkByteCount,
+      chunkingMode,
+      maxChunkConcurrency,
+    });
   }
 
   /**
