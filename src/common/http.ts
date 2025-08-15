@@ -77,7 +77,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     signal?: AbortSignal;
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
-    data: Readable | Buffer | ReadableStream;
+    data: Readable | Buffer | ReadableStream | Uint8Array;
   }): Promise<T> {
     // Buffer and Readable → keep Axios (streams work fine there)
     if (!(data instanceof ReadableStream)) {
@@ -94,6 +94,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     const { body, duplex } = await toFetchBody(data);
 
     try {
+      this.logger.debug('Posting data via fetch', { endpoint, headers });
       const res = await fetch(this.axios.defaults.baseURL + endpoint, {
         method: 'POST',
         headers,

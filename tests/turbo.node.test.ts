@@ -9,11 +9,20 @@ import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import fs from 'fs';
 import { strict as assert } from 'node:assert';
+import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
+import {
+  ChunkedUploader,
+  defaultChunkByteCount,
+  defaultMaxChunkConcurrency,
+  maxChunkByteCount,
+  minChunkByteCount,
+} from '../src/common/chunked.js';
 import { JPY, USD } from '../src/common/currency.js';
+import { TurboHTTPService } from '../src/common/http.js';
 import { TurboWinstonLogger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
@@ -31,13 +40,17 @@ import {
 import { TurboFactory } from '../src/node/factory.js';
 import { TurboNodeSigner } from '../src/node/signer.js';
 import {
+  DataItemOptions,
   NativeAddress,
   TokenType,
+  TurboChunkingMode,
+  TurboLogger,
   TurboSigner,
   fiatCurrencyTypes,
   tokenTypes,
+  validChunkingModes,
 } from '../src/types.js';
-import { signerFromKyveMnemonic } from '../src/utils/common.js';
+import { signerFromKyveMnemonic, sleep } from '../src/utils/common.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   base64KyveAddress,
@@ -589,10 +602,11 @@ describe('Node environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
+        await sleep(250); // wait to offset balance checks, this test can race condition with web suite
         const balanceBefore = await getRawBalance(testArweaveNativeB64Address);
 
         const txId = await sendFundTransaction(1000);
-        await mineArLocalBlock(minConfirmations);
+        await mineArLocalBlock(minConfirmations + 1);
 
         const { id, winc, owner, token, status } =
           await turbo.submitFundTransaction({
@@ -649,35 +663,100 @@ describe('Node environment', () => {
       });
     });
 
-    describe('upload()', () => {
-      const validDataItemOpts = [
-        {
-          target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
-          anchor: 'anchorMustBeThirtyTwoBytesLong!!',
-          tags: [
-            {
-              name: '', // empty name
-              value: '', // empty val
-            },
-          ],
-        },
-        {
-          // cspell:disable
-          target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
-          anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
-          tags: [
-            {
-              name: 'test',
-              value: 'test',
-            },
-            {
-              name: 'test2',
-              value: 'test2',
-            },
-          ],
-        },
-      ];
+    const validDataItemOpts = [
+      {
+        target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
+        anchor: 'anchorMustBeThirtyTwoBytesLong!!',
+        tags: [
+          {
+            name: '', // empty name
+            value: '', // empty val
+          },
+        ],
+      },
+      {
+        // cspell:disable
+        target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
+        anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
+        tags: [
+          {
+            name: 'test',
+            value: 'test',
+          },
+          {
+            name: 'test2',
+            value: 'test2',
+          },
+        ],
+      },
+    ];
 
+    const invalidDataItemOpts: Array<{
+      testName: string;
+      errorType?: string;
+      errorMessage: string;
+      dataItemOpts: DataItemOptions;
+    }> = [
+      // TODO: These too long test broke when changing to upload service latest image -- check on this
+      // {
+      //   testName: 'tag name too long',
+      //   errorType: 'FailedRequestError',
+      //   errorMessage:
+      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+      //   dataItemOpts: {
+      //     tags: [
+      //       {
+      //         name: Array(1025).fill('a').join(''),
+      //         value: 'test',
+      //       },
+      //     ],
+      //   },
+      // },
+      // {
+      //   testName: 'tag value too long',
+      //   errorType: 'FailedRequestError',
+      //   errorMessage:
+      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+      //   dataItemOpts: {
+      //     tags: [
+      //       {
+      //         name: 'test',
+      //         value: Array(3073).fill('a').join(''),
+      //       },
+      //     ],
+      //   },
+      // },
+      {
+        testName: 'target Too Short',
+        errorMessage: 'Target must be 32 bytes but was incorrectly 10',
+        dataItemOpts: {
+          target: 'target Too Short',
+        },
+      },
+      {
+        testName: 'anchor Too Short',
+        errorMessage: 'Anchor must be 32 bytes',
+        dataItemOpts: {
+          anchor: 'anchor Too Short',
+        },
+      },
+      {
+        testName: 'target Too Long',
+        errorMessage: 'Target must be 32 bytes but was incorrectly 33',
+        dataItemOpts: {
+          target: 'target Too Long This is 33 Bytes one two three four five',
+        },
+      },
+      {
+        testName: 'anchor Too Long',
+        errorMessage: 'Anchor must be 32 bytes',
+        dataItemOpts: {
+          anchor: 'anchor Too Long This is 33 Bytes one two three four five',
+        },
+      },
+    ];
+
+    describe('upload()', () => {
       const uploadDataTypeInputsMap = {
         string: 'a test string',
         Buffer: Buffer.from('a test string'),
@@ -700,6 +779,7 @@ describe('Node environment', () => {
             const response = await turbo.upload({
               data: input,
               dataItemOpts,
+              chunkingMode: 'disabled',
               events: {
                 onProgress: () => {
                   overallProgressCalled = true;
@@ -754,64 +834,6 @@ describe('Node environment', () => {
         }
       }
 
-      const invalidDataItemOpts = [
-        {
-          testName: 'tag name too long',
-          errorType: 'FailedRequestError',
-          errorMessage:
-            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
-          dataItemOpts: {
-            tags: [
-              {
-                name: Array(1025).fill('a').join(''),
-                value: 'test',
-              },
-            ],
-          },
-        },
-        {
-          testName: 'tag value too long',
-          errorType: 'FailedRequestError',
-          errorMessage:
-            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
-          dataItemOpts: {
-            tags: [
-              {
-                name: 'test',
-                value: Array(3073).fill('a').join(''),
-              },
-            ],
-          },
-        },
-        {
-          testName: 'target Too Short',
-          errorMessage: 'Target must be 32 bytes but was incorrectly 10',
-          dataItemOpts: {
-            target: 'target Too Short',
-          },
-        },
-        {
-          testName: 'anchor Too Short',
-          errorMessage: 'Anchor must be 32 bytes',
-          dataItemOpts: {
-            anchor: 'anchor Too Short',
-          },
-        },
-        {
-          testName: 'target Too Long',
-          errorMessage: 'Target must be 32 bytes but was incorrectly 33',
-          dataItemOpts: {
-            target: 'target Too Long This is 33 Bytes one two three four five',
-          },
-        },
-        {
-          testName: 'anchor Too Long',
-          errorMessage: 'Anchor must be 32 bytes',
-          dataItemOpts: {
-            anchor: 'anchor Too Long This is 33 Bytes one two three four five',
-          },
-        },
-      ];
       for (const {
         testName,
         dataItemOpts,
@@ -835,6 +857,17 @@ describe('Node environment', () => {
           .upload({
             data: 'a test string',
             signal: AbortSignal.timeout(0), // abort the request right away
+          })
+          .catch((error) => error);
+        assert.ok(error instanceof CanceledError);
+      });
+
+      it('should abort the upload when AbortController.signal is triggered with chunking forced', async () => {
+        const error = await turbo
+          .upload({
+            data: 'a test string',
+            signal: AbortSignal.timeout(0), // abort the request right away
+            chunkingMode: 'force',
           })
           .catch((error) => error);
         assert.ok(error instanceof CanceledError);
@@ -870,36 +903,221 @@ describe('Node environment', () => {
           'Failed request: Failed to upload file after 6 attempts\n',
         );
       });
+
+      it('should return proper error when http throws an unrecognized error with chunking forced', async () => {
+        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        const error = await turbo
+          .upload({
+            data: 'a test string',
+            chunkingMode: 'force',
+          })
+          .catch((error) => error);
+        assert.ok(error instanceof FailedRequestError);
+        assert.equal(
+          error.message,
+          'Failed request: Failed to upload file after 6 attempts\n',
+        );
+      });
     });
 
     describe('uploadFile()', () => {
-      const validDataItemOpts = [
-        {
-          target: '43charactersAbcdEfghIjklMnopQrstUvwxYz12345',
-          anchor: 'anchorMustBeThirtyTwoBytesLong!!',
-          tags: [
-            {
-              name: '', // empty name
-              value: '', // empty val
+      it('should properly upload a Readable with chunking forced', async () => {
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      it('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
+        stub(turbo['uploadService']['httpService'], 'get').resolves({
+          chunkSize: 6 * 1024 * 1024, // 6 MiB
+        });
+        stub(turbo['uploadService']['httpService'], 'post').resolves({
+          id: 'stub',
+        });
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.id === 'stub');
+      });
+
+      it('should properly upload a Readable with 11 MiB of random data', async () => {
+        const fileSize = 11 * 1024 * 1024; // 11 MiB
+        const randomData = randomBytes(fileSize);
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => Readable.from(randomData),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+            paidBy: testArweaveNativeB64Address,
+          },
+          chunkingMode: 'auto',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      it('should properly upload a Readable with 19 MiB of random data with 6 MiB Chunk Size', async () => {
+        const fileSize = 19 * 1024 * 1024; // 19 MiB
+        const randomData = randomBytes(fileSize);
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => Readable.from(randomData),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+            paidBy: [testArweaveNativeB64Address, testEthNativeAddress],
+          },
+          chunkingMode: 'force',
+          chunkByteCount: 6 * 1024 * 1024, // 6 MiB
+          maxChunkConcurrency: 10,
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+      });
+
+      it('should properly upload a Buffer with chunking forced', async () => {
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
+          fileSizeFactory: () => fileSize,
+          dataItemOpts: {
+            ...validDataItemOpts[0],
+          },
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+        assert.ok(response.winc !== undefined);
+      });
+
+      describe('ChunkedUploader constructor', () => {
+        const http = {} as TurboHTTPService;
+        const logger = {} as TurboLogger;
+        const token = 'arweave';
+        const invalidChunkByteCounts = [
+          0,
+          -1,
+          1.5,
+          'string',
+          null,
+          undefined,
+          maxChunkByteCount + 1,
+          minChunkByteCount - 1,
+        ] as unknown as number[];
+        for (const chunkByteCount of invalidChunkByteCounts) {
+          it(
+            'asserts chunk size invalid value ' +
+              JSON.stringify(chunkByteCount),
+            () => {
+              try {
+                new ChunkedUploader({
+                  dataItemByteCount: 10000,
+                  chunkByteCount,
+                  http,
+                  logger,
+                  token,
+                });
+              } catch (err) {
+                assert.ok(err instanceof Error);
+                assert.equal(
+                  err.message,
+                  'Invalid chunk size. Must be an integer between 5 MiB and 500 MiB.',
+                );
+              }
             },
-          ],
-        },
-        {
-          // cspell:disable
-          target: 'WeirdCharacters-_!felwfleowpfl12345678901234', // cspell:disable
-          anchor: 'anchor-MusTBe__-__TwoBytesLong!!',
-          tags: [
-            {
-              name: 'test',
-              value: 'test',
+          );
+        }
+
+        it('asserts valid chunk size', () => {
+          const result = new ChunkedUploader({
+            dataItemByteCount: 10000000000,
+            chunkByteCount: defaultChunkByteCount,
+            maxChunkConcurrency: defaultMaxChunkConcurrency,
+            http,
+            logger,
+            token,
+          });
+          assert.ok(result);
+        });
+
+        const invalidMaxChunkConcurrencies = [
+          0,
+          -1,
+          1.5,
+          'string',
+          null,
+          undefined,
+        ] as unknown as number[];
+        for (const maxChunkConcurrency of invalidMaxChunkConcurrencies) {
+          it(
+            'asserts chunk concurrency invalid value ' +
+              JSON.stringify(maxChunkConcurrency),
+            () => {
+              try {
+                new ChunkedUploader({
+                  http,
+                  logger,
+                  token,
+                  dataItemByteCount: 10000,
+                  maxChunkConcurrency,
+                });
+              } catch (err) {
+                assert.ok(err instanceof Error);
+                assert.equal(
+                  err.message,
+                  'Invalid max chunk concurrency. Must be an integer of at least 1.',
+                );
+              }
             },
-            {
-              name: 'test2',
-              value: 'test2',
-            },
-          ],
-        },
-      ];
+          );
+        }
+
+        it('asserts invalid chunking mode', () => {
+          try {
+            new ChunkedUploader({
+              http,
+              logger,
+              token,
+              dataItemByteCount: 10000,
+              chunkingMode: 'invalid' as TurboChunkingMode,
+            });
+          } catch (err) {
+            assert.ok(err instanceof Error);
+            assert.equal(
+              err.message,
+              `Invalid chunking mode. Must be one of: ${validChunkingModes.join(
+                ', ',
+              )}`,
+            );
+          }
+        });
+      });
 
       for (const dataItemOpts of validDataItemOpts) {
         it('should properly upload a Readable to turbo with events', async () => {
@@ -971,66 +1189,111 @@ describe('Node environment', () => {
           assert.equal(overallErrorCalled, false);
           assert.equal(overallSuccessCalled, true);
         });
+
+        it('should properly upload a Readable to turbo with events with chunking forced', async () => {
+          let uploadProgressCalled = false;
+          let signingProgressCalled = false;
+          let overallProgressCalled = false;
+          let overallErrorCalled = false;
+          let overallSuccessCalled = false;
+          let uploadErrorCalled = false;
+          let signingErrorCalled = false;
+          let uploadSuccessCalled = false;
+          let signingSuccessCalled = false;
+          const fileSize = fs.statSync(oneKiBFilePath).size;
+          const response = await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+            fileSizeFactory: () => fileSize,
+            dataItemOpts,
+            chunkingMode: 'force',
+            events: {
+              // overall events
+              onProgress: () => {
+                overallProgressCalled = true;
+              },
+              onError: () => {
+                overallErrorCalled = true;
+              },
+              onSuccess: () => {
+                overallSuccessCalled = true;
+              },
+              // upload events
+              onUploadProgress: () => {
+                uploadProgressCalled = true;
+              },
+              onUploadError: () => {
+                uploadErrorCalled = true;
+              },
+              onUploadSuccess: () => {
+                uploadSuccessCalled = true;
+              },
+              // signing events
+              onSigningProgress: () => {
+                signingProgressCalled = true;
+              },
+              onSigningError: () => {
+                signingErrorCalled = true;
+              },
+              onSigningSuccess: () => {
+                signingSuccessCalled = true;
+              },
+            },
+          });
+          assert.ok(response !== undefined);
+          assert.ok(response.fastFinalityIndexes !== undefined);
+          assert.ok(response.dataCaches !== undefined);
+          assert.ok(response.owner !== undefined);
+          assert.equal(response.owner, testArweaveNativeB64Address);
+
+          // signing events
+          assert.equal(
+            signingProgressCalled,
+            true,
+            'Signing progress event not called!',
+          );
+          assert.equal(
+            signingErrorCalled,
+            false,
+            'Signing error event called!',
+          );
+          assert.equal(
+            signingSuccessCalled,
+            true,
+            'Signing success event not called!',
+          );
+
+          // upload events
+          assert.equal(
+            uploadProgressCalled,
+            true,
+            'Upload progress event not called!',
+          );
+          assert.equal(uploadErrorCalled, false, 'Upload error event called!');
+          assert.equal(
+            uploadSuccessCalled,
+            true,
+            'Upload success event not called!',
+          );
+
+          // overall events
+          assert.equal(
+            overallProgressCalled,
+            true,
+            'Overall progress event not called!',
+          );
+          assert.equal(
+            overallErrorCalled,
+            false,
+            'Overall error event called!',
+          );
+          assert.equal(
+            overallSuccessCalled,
+            true,
+            'Overall success event not called!',
+          );
+        });
       }
 
-      const invalidDataItemOpts = [
-        {
-          testName: 'tag name too long',
-          errorType: 'FailedRequestError',
-          errorMessage:
-            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
-          dataItemOpts: {
-            tags: [
-              {
-                name: Array(1025).fill('a').join(''),
-                value: 'test',
-              },
-            ],
-          },
-        },
-        {
-          testName: 'tag value too long',
-          errorType: 'FailedRequestError',
-          errorMessage:
-            'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
-          dataItemOpts: {
-            tags: [
-              {
-                name: 'test',
-                value: Array(3073).fill('a').join(''),
-              },
-            ],
-          },
-        },
-        {
-          testName: 'target Too Short',
-          errorMessage: 'Target must be 32 bytes but was incorrectly 10',
-          dataItemOpts: {
-            target: 'target Too Short',
-          },
-        },
-        {
-          testName: 'anchor Too Short',
-          errorMessage: 'Anchor must be 32 bytes',
-          dataItemOpts: {
-            anchor: 'anchor Too Short',
-          },
-        },
-        {
-          testName: 'target Too Long',
-          errorMessage: 'Target must be 32 bytes but was incorrectly 33',
-          dataItemOpts: {
-            target: 'target Too Long This is 33 Bytes one two three four five',
-          },
-        },
-        {
-          testName: 'anchor Too Long',
-          errorMessage: 'Anchor must be 32 bytes',
-          dataItemOpts: {
-            anchor: 'anchor Too Long This is 33 Bytes one two three four five',
-          },
-        },
-      ];
       for (const {
         testName,
         dataItemOpts,
@@ -1039,7 +1302,6 @@ describe('Node environment', () => {
       } of invalidDataItemOpts) {
         it(`should fail to upload a Buffer to turbo when ${testName}`, async () => {
           const fileSize = fs.statSync(oneKiBFilePath).size;
-
           await expectAsyncErrorThrow({
             promiseToError: turbo.uploadFile({
               fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),

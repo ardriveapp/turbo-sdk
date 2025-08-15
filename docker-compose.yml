@@ -23,7 +23,7 @@ services:
   #     - '8545:8545'
 
   upload-service:
-    image: ghcr.io/ardriveapp/upload-service:722375f2aaa5bbe6ab0dd3ee9ca38be5f46925ba
+    image: ghcr.io/ardriveapp/upload-service:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     ports:
       - '3000:3000'
     healthcheck:
@@ -81,13 +81,13 @@ services:
       - upload-service-data:/var/lib/postgresql/data
 
   localstack:
-    image: ghcr.io/ardriveapp/turbo-upload-service-localstack:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
+    image: ghcr.io/ardriveapp/upload-service-localstack-image:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     restart: on-failure
     ports:
       - '4566:4566'
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
-      - SERVICES=${SERVICES:-s3,sqs,secretsmanager}
+      - SERVICES=${SERVICES:-s3,sqs,secretsmanager,dynamodb}
       - DEBUG=${DEBUG:-0}
       - NODE_ENV=${NODE_ENV:-local}
       - ARWEAVE_WALLET=${ARWEAVE_WALLET:-$BUNDLER_ARWEAVE_WALLET}

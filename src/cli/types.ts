@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { TurboChunkingMode } from '../types.js';
 
 export type GlobalOptions = {
   dev: boolean;
@@ -48,6 +49,9 @@ export type UploadOptions = WalletOptions & {
   ignoreApprovals: boolean;
   useSignerBalanceFirst: boolean;
   tags: string[] | undefined;
+  maxChunkConcurrency: string | undefined;
+  chunkByteCount: string | undefined;
+  chunkingMode: TurboChunkingMode | undefined;
 };
 
 export type UploadFolderOptions = UploadOptions & {
