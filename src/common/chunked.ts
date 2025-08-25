@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { CanceledError } from 'axios';
 import { pLimit } from 'plimit-lit';
 import { Readable } from 'stream';
 
@@ -32,45 +33,28 @@ import { TurboWinstonLogger } from './logger.js';
 
 const fiveMiB = 5 * 1024 * 1024; // 5 MiB
 const fiveHundredMiB = fiveMiB * 100; // 500 MiB
-export const defaultMaxChunkConcurrency = 5; // Default max chunk concurrency
+export const defaultMaxChunkConcurrency = 5;
 
 export const maxChunkByteCount = fiveHundredMiB;
 export const minChunkByteCount = fiveMiB;
-export const defaultChunkByteCount = minChunkByteCount; // Default chunk size for uploads
+export const defaultChunkByteCount = minChunkByteCount;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-/**
- * Events emitted during chunked upload.
- */
-export interface ChunkingEvents {
-  /** Fired after each successful chunk upload */
-  onChunkUploaded: (info: {
-    chunkPartNumber: number;
-    chunkOffset: number;
-    chunkByteCount: number;
-    totalBytesUploaded: number;
-  }) => void;
-  /** Fired when a chunk upload fails */
-  onChunkError: (info: {
-    chunkPartNumber: number;
-    chunkOffset: number;
-    chunkByteCount: number;
-    error: any;
-  }) => void;
-}
+const backlogQueueFactor = 2;
+const chunkingHeader = { 'x-chunking-version': '2' } as const;
 
 /**
  * Performs a chunked upload by splitting the stream into fixed-size buffers,
  * uploading them in parallel, and emitting progress/error events.
  */
 export class ChunkedUploader {
-  private readonly emitter = new TurboEventEmitter();
-  private readonly chunkByteCount: number;
+  private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
+
+  public readonly shouldUseChunkUploader: boolean;
+  private maxBacklogQueue: number;
 
   constructor({
     http,
@@ -78,37 +62,44 @@ export class ChunkedUploader {
     maxChunkConcurrency = defaultMaxChunkConcurrency,
     chunkByteCount = defaultChunkByteCount,
     logger = TurboWinstonLogger.default,
+    chunkingMode = 'auto',
+    dataItemByteCount,
   }: {
     http: TurboHTTPService;
     token: string;
     logger: TurboLogger;
     chunkByteCount?: number;
     maxChunkConcurrency?: number;
+    chunkingMode?: TurboChunkingMode;
+    dataItemByteCount: ByteCount;
   }) {
     this.chunkByteCount = chunkByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
     this.http = http;
     this.token = token;
     this.logger = logger;
-  }
-
-  static shouldUseChunkedUpload({
-    chunkByteCount = defaultChunkByteCount,
-    chunkingMode = 'auto',
-    dataItemByteCount,
-    maxChunkConcurrency = defaultMaxChunkConcurrency,
-  }: {
-    chunkByteCount?: ByteCount;
-    chunkingMode?: TurboChunkingMode;
-    dataItemByteCount: ByteCount;
-    maxChunkConcurrency?: number;
-  }): boolean {
     this.assertChunkParams({
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
     });
+    this.shouldUseChunkUploader = this.shouldChunkUpload({
+      chunkByteCount,
+      chunkingMode,
+      dataItemByteCount,
+    });
+    this.maxBacklogQueue = this.maxChunkConcurrency * backlogQueueFactor;
+  }
 
+  private shouldChunkUpload({
+    chunkByteCount,
+    chunkingMode,
+    dataItemByteCount,
+  }: {
+    chunkByteCount: ByteCount;
+    chunkingMode: TurboChunkingMode;
+    dataItemByteCount: ByteCount;
+  }): boolean {
     if (chunkingMode === 'disabled') {
       return false;
     }
@@ -120,7 +111,7 @@ export class ChunkedUploader {
     return isMoreThanTwoChunksOfData;
   }
 
-  static assertChunkParams({
+  private assertChunkParams({
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
@@ -163,29 +154,6 @@ export class ChunkedUploader {
   }
 
   /**
-   * Subscribe to chunking events.
-   */
-  public on<E extends keyof ChunkingEvents>(
-    event: E,
-    listener: ChunkingEvents[E],
-  ): this {
-    // TurboEventEmitter is not generic, so cast to any
-    (this.emitter as any).on(event, listener);
-    return this;
-  }
-
-  private emit<E extends keyof ChunkingEvents>(
-    event: E,
-    payload: Parameters<ChunkingEvents[E]>[0],
-  ) {
-    (this.emitter as any).emit(event, payload);
-  }
-
-  private get chunkingVersionHeader(): Record<string, string> {
-    return { 'x-chunking-version': '2' };
-  }
-
-  /**
    * Initialize or resume an upload session, returning the upload ID.
    */
   private async initUpload(): Promise<string> {
@@ -196,8 +164,16 @@ export class ChunkedUploader {
       chunkSize: number;
     }>({
       endpoint: `/chunks/${this.token}/-1/-1?chunkSize=${this.chunkByteCount}`,
-      headers: this.chunkingVersionHeader,
+      headers: chunkingHeader,
     });
+
+    if (res.chunkSize !== this.chunkByteCount) {
+      this.logger.warn('Chunk size mismatch! Overriding with server value.', {
+        expected: this.chunkByteCount,
+        actual: res.chunkSize,
+      });
+      this.chunkByteCount = res.chunkSize;
+    }
     return res.id;
   }
 
@@ -211,26 +187,12 @@ export class ChunkedUploader {
     const uploadId = await this.initUpload();
     const dataItemByteCount = dataItemSizeFactory();
 
-    // create the tapped stream with events
     const emitter = new TurboEventEmitter(events);
-
-    // create the stream with upload events
     const { stream, resume } = createStreamWithUploadEvents({
       data: dataItemStreamFactory(),
       dataSize: dataItemByteCount,
       emitter,
     });
-
-    this.on('onChunkUploaded', ({ totalBytesUploaded }) => {
-      emitter.emit('upload-progress', {
-        processedBytes: totalBytesUploaded,
-        totalBytes: dataItemByteCount,
-      });
-      if (totalBytesUploaded === dataItemByteCount) {
-        emitter.emit('upload-success');
-      }
-    });
-    this.on('onChunkError', ({ error }) => emitter.emit('upload-error', error));
 
     this.logger.debug(`Starting chunked upload`, {
       token: this.token,
@@ -238,24 +200,36 @@ export class ChunkedUploader {
       totalSize: dataItemByteCount,
       chunkByteCount: this.chunkByteCount,
       maxChunkConcurrency: this.maxChunkConcurrency,
-      inputStreamType:
-        stream instanceof ReadableStream ? 'ReadableStream' : 'Readable',
+      inputStreamType: isReadableStream(stream) ? 'ReadableStream' : 'Readable',
     });
 
+    const inFlight = new Set<Promise<void>>();
+
+    const internalAbort = new AbortController();
+    const combinedSignal = combineAbortSignals([internalAbort.signal, signal]);
+
     const limit = pLimit(this.maxChunkConcurrency);
-    let offset = 0;
-    let chunkId = 0;
-    const tasks: Promise<any>[] = [];
+    let currentOffset = 0;
+    let currentChunkPartNumber = 0;
+
+    let firstError: undefined | Error;
+    let uploadedBytes = 0;
 
     const chunks = splitIntoChunks(stream, this.chunkByteCount);
 
     resume();
     for await (const chunk of chunks) {
-      const chunkPartNumber = ++chunkId;
+      if (combinedSignal?.aborted) {
+        internalAbort.abort();
+        await Promise.allSettled(inFlight);
+        firstError ??= new CanceledError();
+        break;
+      }
+
+      const chunkPartNumber = ++currentChunkPartNumber;
       const chunkByteCount = chunk.length;
-      const chunkOffset = offset;
-      const newOffset = offset + chunkByteCount;
-      offset = newOffset;
+      const chunkOffset = currentOffset;
+      currentOffset += chunkByteCount;
 
       this.logger.debug('Queueing chunk', {
         chunkPartNumber,
@@ -263,52 +237,66 @@ export class ChunkedUploader {
         chunkByteCount,
       });
 
-      tasks.push(
-        limit(async () => {
-          this.logger.debug('Uploading chunk', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-          });
-          await this.http.post({
-            endpoint: `/chunks/${this.token}/${uploadId}/${chunkOffset}`,
-            data: chunk,
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              ...this.chunkingVersionHeader,
-            },
-            signal,
-          });
-          this.logger.debug('Chunk uploaded', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-          });
-          this.emit('onChunkUploaded', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-            totalBytesUploaded: newOffset,
-          });
-        }).catch((err) => {
-          this.logger.error('Chunk upload failed', {
-            id: chunkPartNumber,
-            offset: chunkOffset,
-            size: chunkByteCount,
-            err,
-          });
-          this.emit('onChunkError', {
-            chunkPartNumber,
-            chunkOffset,
-            chunkByteCount,
-            error: err,
-          });
-          throw err;
-        }),
-      );
+      const promise = limit(async () => {
+        if (firstError !== undefined) {
+          return;
+        }
+        this.logger.debug('Uploading chunk', {
+          chunkPartNumber,
+          chunkOffset,
+          chunkByteCount,
+        });
+        await this.http.post({
+          endpoint: `/chunks/${this.token}/${uploadId}/${chunkOffset}`,
+          data: chunk,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            ...chunkingHeader,
+          },
+          signal: combinedSignal,
+        });
+        uploadedBytes += chunkByteCount;
+
+        this.logger.debug('Chunk uploaded', {
+          chunkPartNumber,
+          chunkOffset,
+          chunkByteCount,
+        });
+        emitter.emit('upload-progress', {
+          processedBytes: uploadedBytes,
+          totalBytes: dataItemByteCount,
+        });
+      }).catch((err) => {
+        this.logger.error('Chunk upload failed', {
+          id: chunkPartNumber,
+          offset: chunkOffset,
+          size: chunkByteCount,
+          err,
+        });
+        emitter.emit('upload-error', err);
+        internalAbort.abort(err);
+        firstError = firstError ?? err;
+      });
+
+      inFlight.add(promise);
+      promise.finally(() => inFlight.delete(promise));
+
+      if (inFlight.size >= this.maxBacklogQueue) {
+        await Promise.race(inFlight);
+        if (combinedSignal?.aborted) {
+          internalAbort.abort();
+          await Promise.allSettled(inFlight);
+          firstError ??= new CanceledError();
+          break;
+        }
+      }
     }
 
-    await Promise.all(tasks);
+    await Promise.all(inFlight);
+
+    if (firstError !== undefined) {
+      throw firstError;
+    }
 
     const paidByHeader: Record<string, string> = {};
     if (dataItemOpts?.paidBy !== undefined) {
@@ -325,11 +313,12 @@ export class ChunkedUploader {
       headers: {
         'Content-Type': 'application/octet-stream',
         ...paidByHeader,
-        ...this.chunkingVersionHeader,
+        ...chunkingHeader,
       },
-      signal,
+      signal: combinedSignal,
     });
 
+    emitter.emit('upload-success');
     return finalizeResponse;
   }
 
@@ -424,33 +413,64 @@ export async function* splitIntoChunks(
   source: Readable | ReadableStream<Uint8Array>,
   chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
-  if (source instanceof Readable) {
-    yield* splitReadableIntoChunks(source, chunkByteCount);
-  } else if (source instanceof ReadableStream) {
+  if (isReadableStream(source)) {
     yield* splitReadableStreamIntoChunks(source, chunkByteCount);
   } else {
-    throw new Error('Unsupported source type for chunking');
+    yield* splitReadableIntoChunks(source, chunkByteCount);
   }
 }
-
 export async function* splitReadableIntoChunks(
   source: Readable,
   chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
-  let acc = Buffer.alloc(0);
-
+  const queue: Uint8Array[] = [];
+  let total = 0;
+  let encoder: TextEncoder | undefined;
   for await (const piece of source) {
-    acc = Buffer.concat([acc, piece]);
+    const u8 =
+      piece instanceof Uint8Array
+        ? new Uint8Array(piece.buffer, piece.byteOffset, piece.byteLength)
+        : (encoder ??= new TextEncoder()).encode(String(piece));
+    queue.push(u8);
+    total += u8.length;
 
-    while (acc.length >= chunkByteCount) {
-      yield acc.subarray(0, chunkByteCount);
-      acc = acc.subarray(chunkByteCount);
+    // Emit full chunks
+    while (total >= chunkByteCount) {
+      const out = new Uint8Array(chunkByteCount);
+      let remaining = out.length;
+      let off = 0;
+
+      while (remaining > 0) {
+        const head = queue[0];
+        const take = Math.min(remaining, head.length);
+
+        out.set(head.subarray(0, take), off);
+        off += take;
+        remaining -= take;
+
+        if (take === head.length) {
+          queue.shift();
+        } else {
+          queue[0] = head.subarray(take);
+        }
+      }
+
+      total -= chunkByteCount;
+      // Yield a Buffer view (no copy)
+      yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
     }
   }
 
-  // yield the final piece
-  if (acc.length > 0) {
-    yield acc;
+  // Remainder
+  if (total > 0) {
+    const out = new Uint8Array(total);
+    let off = 0;
+    while (queue.length > 0) {
+      const head = queue.shift() as Uint8Array; // safe due to loop condition
+      out.set(head, off);
+      off += head.length;
+    }
+    yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
   }
 }
 
@@ -459,31 +479,109 @@ export async function* splitReadableStreamIntoChunks(
   chunkByteCount: number,
 ): AsyncGenerator<Buffer, void, unknown> {
   const reader = source.getReader();
-  let acc = new Uint8Array(0);
+  const queue: Uint8Array[] = [];
+  let total = 0;
 
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
-      // Append to accumulator
-      const merged = new Uint8Array(acc.length + value.length);
-      merged.set(acc);
-      merged.set(value, acc.length);
-      acc = merged;
+      // Ensure we keep a plain view (avoids surprises if the producer reuses buffers)
+      const u8 = new Uint8Array(
+        value.buffer,
+        value.byteOffset,
+        value.byteLength,
+      );
+      queue.push(u8);
+      total += u8.length;
 
-      // Yield full chunks
-      while (acc.length >= chunkByteCount) {
-        yield Buffer.from(acc.subarray(0, chunkByteCount));
-        acc = acc.subarray(chunkByteCount);
+      while (total >= chunkByteCount) {
+        const out = new Uint8Array(chunkByteCount);
+        let remaining = out.length;
+        let off = 0;
+
+        while (remaining > 0) {
+          const head = queue[0];
+          const take = Math.min(remaining, head.length);
+
+          out.set(head.subarray(0, take), off);
+          off += take;
+          remaining -= take;
+
+          if (take === head.length) {
+            queue.shift();
+          } else {
+            queue[0] = head.subarray(take);
+          }
+        }
+
+        total -= chunkByteCount;
+        yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
       }
     }
 
-    // Yield the remainder
-    if (acc.length > 0) {
-      yield Buffer.from(acc);
+    if (total > 0) {
+      const out = new Uint8Array(total);
+      let off = 0;
+      while (queue.length > 0) {
+        const head = queue.shift() as Uint8Array; // safe due to loop condition
+        out.set(head, off);
+        off += head.length;
+      }
+      yield Buffer.from(out.buffer, out.byteOffset, out.byteLength);
     }
   } finally {
     reader.releaseLock();
   }
+}
+
+function isReadableStream(
+  source: unknown,
+): source is ReadableStream<Uint8Array> {
+  // Prefer instanceof if available, otherwise use a safe duck-typing check
+  if (
+    typeof ReadableStream !== 'undefined' &&
+    source instanceof ReadableStream
+  ) {
+    return true;
+  }
+  return (
+    source !== null &&
+    typeof source === 'object' &&
+    'getReader' in source &&
+    typeof (source as ReadableStream<Uint8Array>).getReader === 'function'
+  );
+}
+
+type AbortSignalWithReason = AbortSignal & { reason?: unknown };
+type AbortSignalStatic = typeof AbortSignal & {
+  // Node 20+: static AbortSignal.any
+  any?: (signals: readonly AbortSignal[]) => AbortSignal;
+};
+
+function combineAbortSignals(
+  signals: readonly (AbortSignal | undefined)[],
+): AbortSignal | undefined {
+  const real = signals.filter(Boolean) as AbortSignal[];
+  if (real.length === 0) return undefined;
+
+  const anyFn = (AbortSignal as AbortSignalStatic).any;
+  if (typeof anyFn === 'function') {
+    return anyFn(real);
+  }
+
+  const controller = new AbortController();
+
+  for (const s of real) {
+    const sig = s as AbortSignalWithReason;
+    if (sig.aborted) {
+      controller.abort(sig.reason);
+      break;
+    }
+    const onAbort = () => controller.abort(sig.reason);
+    s.addEventListener('abort', onAbort, { once: true });
+  }
+
+  return controller.signal;
 }
