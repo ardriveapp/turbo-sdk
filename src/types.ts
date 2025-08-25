@@ -256,8 +256,57 @@ export type TurboMultiPartStatus =
   | 'INVALID'
   | 'APPROVAL_FAILED'
   | 'REVOKE_FAILED';
-export type TurboFinalizeStatusResponse = {
-  status: TurboMultiPartStatus;
+
+export const multipartPendingStatus = [
+  'UNDERFUNDED',
+  'ASSEMBLING',
+  'VALIDATING',
+  'FINALIZING',
+  'INVALID',
+  'APPROVAL_FAILED',
+  'REVOKE_FAILED',
+] as const;
+export type PendingMultiPartStatus = (typeof multipartPendingStatus)[number];
+
+export const multipartFailedStatus = [
+  'INVALID',
+  'APPROVAL_FAILED',
+  'REVOKE_FAILED',
+] as const;
+export type FailedMultiPartStatus = (typeof multipartFailedStatus)[number];
+
+export const multipartFinalizedStatus = ['FINALIZED'] as const;
+export type FinalizedMultiPartStatus =
+  (typeof multipartFinalizedStatus)[number];
+
+export type TurboMultiPartStatusResponse =
+  | { status: PendingMultiPartStatus }
+  | { status: FailedMultiPartStatus }
+  | FinalizedStatusResponse;
+type FinalizedStatusResponse = {
+  status: 'FINALIZED';
+} & {
+  info: {
+    status: 'new' | 'pending' | 'permanent' | 'failed';
+    assessedWinstonPrice: string;
+    bundleId?: TransactionId;
+    uploadedTimestamp: number;
+    deadlineHeight?: number;
+    failedReason?: string;
+    owner: string;
+  };
+  receipt: {
+    id: string;
+    deadlineHeight: number;
+    timestamp: number;
+    version: string;
+    dataCaches: string[];
+    fastFinalityIndexes: string[];
+    winc: string;
+    owner: string;
+    public: string;
+    signature: string;
+  };
 };
 
 type UploadFolderParams = {

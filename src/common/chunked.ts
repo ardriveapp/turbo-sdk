@@ -20,8 +20,8 @@ import { Readable } from 'stream';
 import {
   ByteCount,
   TurboChunkingMode,
-  TurboFinalizeStatusResponse,
   TurboLogger,
+  TurboMultiPartStatusResponse,
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
   validChunkingModes,
@@ -298,25 +298,12 @@ export class ChunkedUploader {
       throw firstError;
     }
 
-    const paidByHeader: Record<string, string> = {};
-    if (dataItemOpts?.paidBy !== undefined) {
-      paidByHeader['x-paid-by'] = Array.isArray(dataItemOpts.paidBy)
-        ? dataItemOpts.paidBy.join(',')
-        : dataItemOpts.paidBy;
-    }
-
-    // TODO: Async Finalize
-    // Finalize and reconstruct server-side
-    const finalizeResponse = await this.http.post<TurboUploadDataItemResponse>({
-      endpoint: `/chunks/${this.token}/${uploadId}/-1`,
-      data: Buffer.alloc(0),
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        ...paidByHeader,
-        ...chunkingHeader,
-      },
-      signal: combinedSignal,
-    });
+    const finalizeResponse = await this.finalizeUpload(
+      uploadId,
+      dataItemByteCount,
+      dataItemOpts?.paidBy,
+      combinedSignal,
+    );
 
     emitter.emit('upload-success');
     return finalizeResponse;
@@ -329,12 +316,33 @@ export class ChunkedUploader {
   private async finalizeUpload(
     uploadId: string,
     dataItemByteCount: ByteCount,
+    paidBy?: string | string[],
+    signal?: AbortSignal,
   ): Promise<TurboUploadDataItemResponse> {
-    const fileSizeInGiB = Math.ceil(dataItemByteCount / this.toGiB(1));
+    // Wait up to 1 minute per GiB of data for the upload to finalize
+    const fileSizeInGiB = Math.ceil(this.toGiB(dataItemByteCount));
     const maxWaitTime = fileSizeInGiB;
 
+    const paidByHeader: Record<string, string> = {};
+    if (paidBy !== undefined) {
+      paidByHeader['x-paid-by'] = Array.isArray(paidBy)
+        ? paidBy.join(',')
+        : paidBy;
+    }
+
+    await this.http.post<TurboUploadDataItemResponse>({
+      endpoint: `/chunks/${this.token}/${uploadId}/finalize`,
+      data: Buffer.alloc(0),
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...paidByHeader,
+        ...chunkingHeader,
+      },
+      signal,
+    });
+
     this.logger.debug(
-      `Confirming upload to Turbo with uploadId $uploadId for up to ${maxWaitTime} minutes.`,
+      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${maxWaitTime} minutes.`,
     );
 
     const startTime = Date.now();
@@ -342,18 +350,24 @@ export class ChunkedUploader {
     let attemptCount = 0;
 
     while (Date.now() < cutoffTime) {
-      const response = await this.http.get<TurboFinalizeStatusResponse>({
+      if (signal?.aborted) {
+        this.logger.warn(`Upload finalization aborted by signal.`);
+        throw new CanceledError();
+      }
+
+      const response = await this.http.get<TurboMultiPartStatusResponse>({
         endpoint: `/chunks/${this.token}/${uploadId}/status`,
+        signal,
       });
 
       if (response.status === 'FINALIZED') {
         this.logger.debug(`Upload finalized successfully.`);
-        // TODO: GET DATA ITEM  INFO and return here
+        return response.receipt;
       }
 
       if (response.status === 'UNDERFUNDED') {
         throw new FailedRequestError(
-          `Upload failed due to Insufficient Balance}`,
+          `Upload failed due to Insufficient Balance`,
         );
       }
 
@@ -364,45 +378,8 @@ export class ChunkedUploader {
       );
     }
 
-    throw new Error(`Upload confirmation timed out.`);
+    throw new Error(`Upload multi-part finalization has timed out.`);
   }
-  //  final fileSizeInGiB = (dataItemSize.toDouble() / GiB(1).size).ceil();
-  //     final maxWaitTime = Duration(minutes: fileSizeInGiB);
-  //     logger.d(
-  //         '[$dataItemId] Confirming upload to Turbo with uploadId $uploadId for up to ${maxWaitTime.inMinutes} minutes.');
-
-  //     final startTime = DateTime.now();
-  //     final cutoffTime = startTime.add(maxWaitTime);
-  //     int attemptCount = 0;
-
-  //     while (DateTime.now().isBefore(cutoffTime)) {
-  //       final response = await dio.get(
-  //         '$turboUploadUri/chunks/arweave/$uploadId/status',
-  //       );
-
-  //       final responseData = response.data;
-  //       final responseStatus = responseData['status'];
-  //       switch (responseStatus) {
-  //         case 'FINALIZED':
-  //           logger.i('[$dataItemId] DataItem confirmed!');
-  //           return response;
-  //         case 'UNDERFUNDED':
-  //           throw UnderFundException(
-  //               message: 'Upload canceled. Underfunded.', error: response.data);
-  //         case 'ASSEMBLING':
-  //         case 'VALIDATING':
-  //         case 'FINALIZING':
-  //           final retryAfterDuration =
-  //               dataItemConfirmationRetryDelay(attemptCount++);
-  //           logger.i(
-  //               '[$dataItemId] DataItem not confirmed. Retrying in ${retryAfterDuration.inMilliseconds}ms');
-
-  //           await Future.delayed(retryAfterDuration);
-  //         default:
-  //           throw UploadCanceledException(
-  //               'Upload canceled. Finalization failed. Status: ${responseData['status']}');
-  //       }
-  //     }
 }
 
 /**
