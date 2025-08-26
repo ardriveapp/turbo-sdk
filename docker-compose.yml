@@ -98,17 +98,17 @@ services:
       DB_PORT: 5432
       DB_PASSWORD: postgres
       PORT: ${FULFILLMENT_PORT:-4001}
-      AWS_ENDPOINT: ${AWS_ENDPOINT:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      SQS_PREPARE_BUNDLE_URL: ${SQS_PREPARE_BUNDLE_URL:-}
-      SQS_POST_BUNDLE_URL: ${SQS_POST_BUNDLE_URL:-}
-      SQS_SEED_BUNDLE_URL: ${SQS_SEED_BUNDLE_URL:-}
-      SQS_FINALIZE_UPLOAD_URL: ${SQS_FINALIZE_UPLOAD_URL:-}
-      SQS_OPTICAL_URL: ${SQS_OPTICAL_URL:-}
-      SQS_NEW_DATA_ITEM_URL: ${SQS_NEW_DATA_ITEM_URL:-}
-      SQS_UNBUNDLE_BDI_URL: ${SQS_UNBUNDLE_BDI_URL:-}
-      SQS_PUT_OFFSETS_URL: ${SQS_PUT_OFFSETS_URL:-}
+      AWS_ENDPOINT: ${AWS_ENDPOINT:-http://localstack:4566}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      SQS_PREPARE_BUNDLE_URL: ${SQS_PREPARE_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/prepare-bundle-queue}
+      SQS_FINALIZE_UPLOAD_URL: ${SQS_FINALIZE_UPLOAD_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/finalize-multipart-queue}
+      SQS_OPTICAL_URL: ${SQS_OPTICAL_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/optical-post-queue}
+      SQS_NEW_DATA_ITEM_URL: ${SQS_NEW_DATA_ITEM_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/batch-insert-new-data-items-queue}
+      SQS_UNBUNDLE_BDI_URL: ${SQS_UNBUNDLE_BDI_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/bdi-unbundle-queue}
+      SQS_PUT_OFFSETS_URL: ${SQS_PUT_OFFSETS_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/put-offsets-queue}
+      SQS_POST_BUNDLE_URL: ${SQS_POST_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/post-bundle-queue}
+      SQS_SEED_BUNDLE_URL: ${SQS_SEED_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/seed-bundle-queue}
       PLAN_BUNDLE_ENABLED: ${PLAN_BUNDLE_ENABLED:-true}
       VERIFY_BUNDLE_ENABLED: ${VERIFY_BUNDLE_ENABLED:-true}
       OPTICAL_BRIDGING_ENABLED: ${OPTICAL_BRIDGING_ENABLED:-false}
