@@ -97,7 +97,7 @@ services:
       DB_HOST: upload-service-pg
       DB_PORT: 5432
       DB_PASSWORD: postgres
-      PORT: ${FULFILLMENT_PORT:-4000}
+      PORT: ${FULFILLMENT_PORT:-4001}
       AWS_ENDPOINT: ${AWS_ENDPOINT:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -121,7 +121,7 @@ services:
       ELASTICACHE_HOST: ${ELASTICACHE_HOST:-redis}
       ELASTICACHE_NO_CLUSTERING: ${ELASTICACHE_NO_CLUSTERING:-true}
     ports:
-      - '${FULFILLMENT_PORT:-4000}:${FULFILLMENT_PORT:-4000}'
+      - '${FULFILLMENT_PORT:-4001}:${FULFILLMENT_PORT:-4001}'
     depends_on:
       localstack:
         condition: service_healthy
