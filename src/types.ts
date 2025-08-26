@@ -247,16 +247,6 @@ export type TurboUploadDataItemResponse = {
   revokedApprovals?: CreditShareApproval[];
 };
 
-export type TurboMultiPartStatus =
-  | 'FINALIZED'
-  | 'UNDERFUNDED'
-  | 'ASSEMBLING'
-  | 'VALIDATING'
-  | 'FINALIZING'
-  | 'INVALID'
-  | 'APPROVAL_FAILED'
-  | 'REVOKE_FAILED';
-
 export const multipartPendingStatus = [
   'UNDERFUNDED',
   'ASSEMBLING',
