@@ -330,7 +330,7 @@ export class ChunkedUploader {
         : paidBy;
     }
 
-    await this.http.post<TurboUploadDataItemResponse>({
+    await this.http.post({
       endpoint: `/chunks/${this.token}/${uploadId}/finalize`,
       data: Buffer.alloc(0),
       headers: {
