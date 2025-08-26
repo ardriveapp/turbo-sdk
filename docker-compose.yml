@@ -127,8 +127,6 @@ services:
         condition: service_healthy
       upload-service-pg:
         condition: service_started
-      migrator-service:
-        condition: service_started
 
   upload-service-pg:
     image: postgres:13.8

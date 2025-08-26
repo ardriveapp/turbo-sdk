@@ -169,8 +169,8 @@ export class ChunkedUploader {
 
     if (res.chunkSize !== this.chunkByteCount) {
       this.logger.warn('Chunk size mismatch! Overriding with server value.', {
-        expected: this.chunkByteCount,
-        actual: res.chunkSize,
+        clientExpected: this.chunkByteCount,
+        serverReturned: res.chunkSize,
       });
       this.chunkByteCount = res.chunkSize;
     }
