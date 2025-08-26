@@ -101,6 +101,7 @@ services:
       AWS_ENDPOINT: ${AWS_ENDPOINT:-http://localstack:4566}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
       SQS_PREPARE_BUNDLE_URL: ${SQS_PREPARE_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/prepare-bundle-queue}
       SQS_FINALIZE_UPLOAD_URL: ${SQS_FINALIZE_UPLOAD_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/finalize-multipart-queue}
       SQS_OPTICAL_URL: ${SQS_OPTICAL_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/optical-post-queue}
