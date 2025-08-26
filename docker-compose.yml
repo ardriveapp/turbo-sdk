@@ -91,12 +91,7 @@ services:
       retries: 10
 
   fulfillment-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.fulfillment
-      args:
-        NODE_VERSION: ${NODE_VERSION:-18.17.0}
-        NODE_VERSION_SHORT: ${NODE_VERSION_SHORT:-18}
+    image: ghcr.io/ardriveapp/upload-service-fulfillment:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     environment:
       NODE_ENV: ${NODE_ENV:-local}
       DB_HOST: upload-service-pg
