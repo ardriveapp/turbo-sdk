@@ -248,17 +248,14 @@ export type TurboUploadDataItemResponse = {
 };
 
 export const multipartPendingStatus = [
-  'UNDERFUNDED',
   'ASSEMBLING',
   'VALIDATING',
   'FINALIZING',
-  'INVALID',
-  'APPROVAL_FAILED',
-  'REVOKE_FAILED',
 ] as const;
 export type PendingMultiPartStatus = (typeof multipartPendingStatus)[number];
 
 export const multipartFailedStatus = [
+  'UNDERFUNDED',
   'INVALID',
   'APPROVAL_FAILED',
   'REVOKE_FAILED',
@@ -276,15 +273,6 @@ export type TurboMultiPartStatusResponse =
 type FinalizedStatusResponse = {
   status: 'FINALIZED';
 } & {
-  info: {
-    status: 'new' | 'pending' | 'permanent' | 'failed';
-    assessedWinstonPrice: string;
-    bundleId?: TransactionId;
-    uploadedTimestamp: number;
-    deadlineHeight?: number;
-    failedReason?: string;
-    owner: string;
-  };
   receipt: {
     id: string;
     deadlineHeight: number;
