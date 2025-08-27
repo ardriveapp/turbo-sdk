@@ -390,6 +390,7 @@ export class ChunkedUploader {
       if (response.status === 'UNDERFUNDED') {
         throw new FailedRequestError(
           `Upload failed due to Insufficient Balance`,
+          402,
         );
       }
 
