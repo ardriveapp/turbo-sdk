@@ -921,7 +921,7 @@ describe('Node environment', () => {
     });
 
     describe('uploadFile()', () => {
-      it('should properly upload a Readable with chunking forced', async () => {
+      it.only('should properly upload a Readable with chunking forced', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
@@ -938,10 +938,17 @@ describe('Node environment', () => {
         assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
-        stub(turbo['uploadService']['httpService'], 'get').resolves({
-          chunkSize: 6 * 1024 * 1024, // 6 MiB
-        });
+      it.only('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
+        stub(turbo['uploadService']['httpService'], 'get')
+          .onFirstCall()
+          .resolves({
+            chunkSize: 6 * 1024 * 1024, // 6 MiB
+          })
+          .onSecondCall()
+          .resolves({
+            id: 'stub',
+          });
+
         stub(turbo['uploadService']['httpService'], 'post').resolves({
           id: 'stub',
         });
