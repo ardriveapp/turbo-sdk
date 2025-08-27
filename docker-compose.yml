@@ -123,7 +123,7 @@ services:
       - '${FULFILLMENT_PORT:-4001}:${FULFILLMENT_PORT:-4001}'
     depends_on:
       upload-service:
-        condition: service_healthy
+        condition: service_started
       localstack:
         condition: service_healthy
       upload-service-pg:
