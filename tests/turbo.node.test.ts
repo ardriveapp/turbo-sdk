@@ -1183,7 +1183,7 @@ describe('Node environment', () => {
               assert.ok(err instanceof Error);
               assert.equal(
                 err.message,
-                'Invalid maxFinalizationWaitTimeMs. Must be a non-negative integer.',
+                'Invalid max finalization wait time. Must be a non-negative integer.',
               );
             }
           }
@@ -1452,6 +1452,7 @@ describe('Node environment', () => {
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
+        console.log('error', error);
         assert.match(error.message, /Insufficient balance/);
       });
 

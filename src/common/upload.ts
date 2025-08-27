@@ -321,17 +321,20 @@ export abstract class TurboAuthenticatedBaseUploadService
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
+        console.log('err const', lastError?.name);
         if (error instanceof FailedRequestError) {
           lastStatusCode = error.status;
         } else {
           lastStatusCode = error.response?.status;
         }
 
+        console.log('lastStatusCode', lastStatusCode);
         if (
           lastStatusCode !== undefined &&
           lastStatusCode >= 400 &&
           lastStatusCode < 500
         ) {
+          console.log('break');
           // Don't retry client error codes
           break;
         }
