@@ -993,12 +993,13 @@ describe('Node environment', () => {
               ...validDataItemOpts[0],
             },
             chunkingMode: 'force',
-            maxFinalizationWaitTimeMs: 5_000,
+            maxFinalizationWaitTimeMs: 1000,
           });
           assert.fail(
             'Expected uploadFile to throw a TurboError with code CANCELED',
           );
         } catch (error) {
+          console.log('error', error);
           assert.ok(error instanceof CanceledError);
         }
       });

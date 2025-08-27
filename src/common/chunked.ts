@@ -76,17 +76,18 @@ export class ChunkedUploader {
     chunkingMode?: TurboChunkingMode;
     dataItemByteCount: ByteCount;
   }) {
+    this.assertChunkParams({
+      chunkByteCount,
+      chunkingMode,
+      maxChunkConcurrency,
+      maxFinalizationWaitTimeMs,
+    });
     this.chunkByteCount = chunkByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
     this.maxFinalizationWaitTimeMs = maxFinalizationWaitTimeMs;
     this.http = http;
     this.token = token;
     this.logger = logger;
-    this.assertChunkParams({
-      chunkByteCount,
-      chunkingMode,
-      maxChunkConcurrency,
-    });
     this.shouldUseChunkUploader = this.shouldChunkUpload({
       chunkByteCount,
       chunkingMode,
