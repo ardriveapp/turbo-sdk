@@ -1569,7 +1569,6 @@ describe('Node environment', () => {
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
-      console.log('response', response);
       assert.ok(response !== undefined);
       assert.ok(response.fastFinalityIndexes !== undefined);
       assert.ok(response.dataCaches !== undefined);
