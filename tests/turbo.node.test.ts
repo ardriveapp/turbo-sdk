@@ -868,6 +868,7 @@ describe('Node environment', () => {
             data: 'a test string',
             signal: AbortSignal.timeout(0), // abort the request right away
             chunkingMode: 'force',
+            maxFinalizationWaitTimeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof CanceledError);
@@ -910,6 +911,7 @@ describe('Node environment', () => {
           .upload({
             data: 'a test string',
             chunkingMode: 'force',
+            maxFinalizationWaitTimeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
@@ -930,6 +932,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
+          maxFinalizationWaitTimeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -962,7 +965,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
-          maxFinalizationWaitTimeMs: 2000, // 2 seconds
+          maxFinalizationWaitTimeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.id === 'stub');
@@ -979,6 +982,7 @@ describe('Node environment', () => {
             paidBy: testArweaveNativeB64Address,
           },
           chunkingMode: 'auto',
+          maxFinalizationWaitTimeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1000,6 +1004,7 @@ describe('Node environment', () => {
           chunkingMode: 'force',
           chunkByteCount: 6 * 1024 * 1024, // 6 MiB
           maxChunkConcurrency: 10,
+          maxFinalizationWaitTimeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1017,6 +1022,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
+          maxFinalizationWaitTimeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1563,6 +1569,7 @@ describe('Node environment', () => {
         fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
         fileSizeFactory: () => fileSize,
       });
+      console.log('response', response);
       assert.ok(response !== undefined);
       assert.ok(response.fastFinalityIndexes !== undefined);
       assert.ok(response.dataCaches !== undefined);
