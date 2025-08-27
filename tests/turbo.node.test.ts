@@ -984,6 +984,10 @@ describe('Node environment', () => {
           },
         );
 
+        stub(turbo['uploadService']['httpService'], 'post').resolves({
+          id: 'stub',
+        });
+
         const fileSize = fs.statSync(oneKiBFilePath).size;
         try {
           await turbo.uploadFile({
