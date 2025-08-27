@@ -248,12 +248,6 @@ export class ChunkedUploader {
       const chunkOffset = currentOffset;
       currentOffset += chunkByteCount;
 
-      this.logger.debug('Queueing chunk', {
-        chunkPartNumber,
-        chunkOffset,
-        chunkByteCount,
-      });
-
       const promise = limit(async () => {
         if (firstError !== undefined) {
           return;
