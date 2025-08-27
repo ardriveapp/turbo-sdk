@@ -1434,7 +1434,6 @@ describe('Node environment', () => {
             fileSizeFactory: () => fileSize,
           })
           .catch((error) => error);
-        console.log('error non-chunk', error);
         assert.ok(error instanceof FailedRequestError);
         assert.match(error.message, /Insufficient balance/);
       });
@@ -1456,7 +1455,6 @@ describe('Node environment', () => {
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
-        console.log('error', error);
         assert.match(error.message, /Insufficient balance/);
       });
 
