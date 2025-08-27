@@ -1114,6 +1114,48 @@ describe('Node environment', () => {
           );
         }
 
+        it('asserts valid maxFinalizationWaitTimeMs', () => {
+          const validValues = [0, 1000, 5000, 10000];
+          for (const value of validValues) {
+            try {
+              const uploader = new ChunkedUploader({
+                http,
+                logger,
+                token,
+                dataItemByteCount: 10000,
+                maxFinalizationWaitTimeMs: value,
+              });
+              assert.ok(uploader);
+            } catch (err) {
+              assert.fail(`Unexpected error for value ${value}: ${err}`);
+            }
+          }
+        });
+
+        it('asserts invalid maxFinalizationWaitTimeMs', () => {
+          const invalidValues = [-1000, -1, 'string', null, undefined];
+          for (const value of invalidValues) {
+            try {
+              new ChunkedUploader({
+                http,
+                logger,
+                token,
+                dataItemByteCount: 10000,
+                maxFinalizationWaitTimeMs: value as unknown as number,
+              });
+              assert.fail(
+                `Expected error for value ${value}, but none was thrown.`,
+              );
+            } catch (err) {
+              assert.ok(err instanceof Error);
+              assert.equal(
+                err.message,
+                'Invalid maxFinalizationWaitTimeMs. Must be a non-negative integer.',
+              );
+            }
+          }
+        });
+
         it('asserts invalid chunking mode', () => {
           try {
             new ChunkedUploader({
