@@ -50,6 +50,7 @@ export type UploadOptions = WalletOptions & {
   useSignerBalanceFirst: boolean;
   tags: string[] | undefined;
   maxChunkConcurrency: string | undefined;
+  maxFinalizationWaitTimeMs: string | undefined;
   chunkByteCount: string | undefined;
   chunkingMode: TurboChunkingMode | undefined;
 };

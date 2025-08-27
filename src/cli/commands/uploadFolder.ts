@@ -37,6 +37,7 @@ export async function uploadFolder(
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    maxFinalizationWaitTimeMs,
   } = getUploadFolderOptions(options);
 
   const customTags = getTagsFromOptions(options);
@@ -53,6 +54,7 @@ export async function uploadFolder(
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    maxFinalizationWaitTimeMs,
   });
 
   console.log('Uploaded folder:', JSON.stringify(result, null, 2));

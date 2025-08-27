@@ -298,6 +298,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           logger: this.logger,
           dataItemByteCount: dataItemSizeFactory(),
           chunkingMode: params.chunkingMode,
+          maxFinalizationWaitTimeMs: params.maxFinalizationWaitTimeMs,
         });
         if (chunkedUploader.shouldUseChunkUploader) {
           const response = await chunkedUploader.upload({
@@ -452,6 +453,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
+      maxFinalizationWaitTimeMs,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -542,6 +544,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
       chunkByteCount,
       maxChunkConcurrency,
+      maxFinalizationWaitTimeMs,
       chunkingMode,
     });
 

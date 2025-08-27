@@ -962,6 +962,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
+          maxFinalizationWaitTimeMs: 2000, // 2 seconds
         });
         assert.ok(response !== undefined);
         assert.ok(response.id === 'stub');

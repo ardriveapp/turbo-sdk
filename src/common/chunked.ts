@@ -49,6 +49,7 @@ const chunkingHeader = { 'x-chunking-version': '2' } as const;
 export class ChunkedUploader {
   private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
+  private readonly maxFinalizationWaitTimeMs: number | undefined;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
@@ -60,11 +61,13 @@ export class ChunkedUploader {
     http,
     token,
     maxChunkConcurrency = defaultMaxChunkConcurrency,
+    maxFinalizationWaitTimeMs,
     chunkByteCount = defaultChunkByteCount,
     logger = TurboWinstonLogger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
   }: {
+    maxFinalizationWaitTimeMs?: number;
     http: TurboHTTPService;
     token: string;
     logger: TurboLogger;
@@ -75,6 +78,7 @@ export class ChunkedUploader {
   }) {
     this.chunkByteCount = chunkByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
+    this.maxFinalizationWaitTimeMs = maxFinalizationWaitTimeMs;
     this.http = http;
     this.token = token;
     this.logger = logger;
@@ -115,11 +119,24 @@ export class ChunkedUploader {
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    maxFinalizationWaitTimeMs,
   }: {
     chunkByteCount: number;
     chunkingMode: TurboChunkingMode;
     maxChunkConcurrency: number;
+    maxFinalizationWaitTimeMs?: number;
   }): void {
+    if (
+      maxFinalizationWaitTimeMs !== undefined &&
+      (Number.isNaN(maxFinalizationWaitTimeMs) ||
+        !Number.isInteger(maxFinalizationWaitTimeMs) ||
+        maxFinalizationWaitTimeMs < 0)
+    ) {
+      throw new Error(
+        'Invalid max finalization wait time. Must be a non-negative integer.',
+      );
+    }
+
     if (
       Number.isNaN(maxChunkConcurrency) ||
       !Number.isInteger(maxChunkConcurrency) ||
@@ -321,7 +338,12 @@ export class ChunkedUploader {
   ): Promise<TurboUploadDataItemResponse> {
     // Wait up to 1 minute per GiB of data for the upload to finalize
     const fileSizeInGiB = Math.ceil(this.toGiB(dataItemByteCount));
-    const maxWaitTime = fileSizeInGiB;
+    const defaultMaxWaitTime = fileSizeInGiB;
+    const maxWaitTimeMs =
+      this.maxFinalizationWaitTimeMs ?? defaultMaxWaitTime * 60 * 1000;
+
+    const waitPerAttempt =
+      maxWaitTimeMs < 5000 ? Math.floor(maxWaitTimeMs / 5) : 2000;
 
     const paidByHeader: Record<string, string> = {};
     if (paidBy !== undefined) {
@@ -342,11 +364,11 @@ export class ChunkedUploader {
     });
 
     this.logger.debug(
-      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${maxWaitTime} minutes.`,
+      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${defaultMaxWaitTime} minutes.`,
     );
 
     const startTime = Date.now();
-    const cutoffTime = startTime + maxWaitTime * 60 * 1000;
+    const cutoffTime = startTime + maxWaitTimeMs;
     let attemptCount = 0;
 
     while (Date.now() < cutoffTime) {
@@ -374,7 +396,7 @@ export class ChunkedUploader {
       this.logger.debug(`Upload status: ${response.status}`);
 
       await new Promise((resolve) =>
-        setTimeout(resolve, attemptCount++ * 2000),
+        setTimeout(resolve, attemptCount++ * waitPerAttempt),
       );
     }
 

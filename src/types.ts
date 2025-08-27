@@ -644,6 +644,11 @@ export type TurboChunkingParams = {
   maxChunkConcurrency?: number;
   /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
   chunkingMode?: TurboChunkingMode;
+  /**
+   * Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded.
+   * If not specified, the SDK will use a default value of 1 minute per GiB.
+   */
+  maxFinalizationWaitTimeMs?: number;
 };
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
