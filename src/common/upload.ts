@@ -321,7 +321,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
-        console.log('err const', lastError?.name);
+        console.log('err const', lastError?.name ?? typeof lastError);
         if (error instanceof FailedRequestError) {
           lastStatusCode = error.status;
         } else {
@@ -357,7 +357,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     }
 
-    const msg = `Failed to upload file after ${maxRetries + 1} attempts\n${
+    const msg = `Failed to upload file after ${retries + 1} attempts\n${
       lastError instanceof Error ? lastError.message : lastError
     }`;
     // After all retries, throw the last error for catching
