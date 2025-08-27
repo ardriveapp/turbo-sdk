@@ -21,7 +21,6 @@ import {
   Currency,
   TokenType,
   TurboAuthenticatedClient,
-  TurboChunkingMode,
   TurboChunkingParams,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
