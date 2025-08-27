@@ -1,6 +1,6 @@
 #!/bin/bash
 docker compose pull --quiet
-docker compose up --quiet-pull -d --env-file .env.test
+docker compose --env-file .env.test up --quiet-pull -d 
 
 # Wait for LocalStack to be ready (up to 120 seconds)
 timeout=120
