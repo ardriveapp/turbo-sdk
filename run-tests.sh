@@ -41,5 +41,9 @@ exit_code=$?
 # Tear down the docker-compose setup
 docker compose down -v
 
+# Destroy redis data
+docker volume rm -f redis-data
+
+
 # Exit with the captured exit code
 exit $exit_code
