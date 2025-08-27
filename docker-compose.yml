@@ -71,7 +71,6 @@ services:
       - upload-service-pg
       - payment-service
       - arlocal-setup
-      - fulfillment-service
       - localstack
       - redis
 
@@ -123,6 +122,8 @@ services:
     ports:
       - '${FULFILLMENT_PORT:-4001}:${FULFILLMENT_PORT:-4001}'
     depends_on:
+      upload-service:
+        condition: service_healthy
       localstack:
         condition: service_healthy
       upload-service-pg:
