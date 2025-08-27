@@ -971,6 +971,38 @@ describe('Node environment', () => {
         assert.ok(response.id === 'stub');
       });
 
+      it('should fail with a canceled error when uploading a Readable with chunking forced and server never returns FINALIZED before maxWaitTime', async () => {
+        stub(turbo['uploadService']['httpService'], 'get').callsFake(
+          async ({ endpoint }) => {
+            if (endpoint.includes('-1')) {
+              return { chunkSize: 5 * 1024 * 1024 };
+            }
+            if (endpoint.includes('/status')) {
+              return { status: 'PROCESSING' };
+            }
+            return {};
+          },
+        );
+
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        try {
+          await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+            fileSizeFactory: () => fileSize,
+            dataItemOpts: {
+              ...validDataItemOpts[0],
+            },
+            chunkingMode: 'force',
+            maxFinalizationWaitTimeMs: 5_000,
+          });
+          assert.fail(
+            'Expected uploadFile to throw a TurboError with code CANCELED',
+          );
+        } catch (error) {
+          assert.ok(error instanceof CanceledError);
+        }
+      });
+
       it('should properly upload a Readable with 11 MiB of random data', async () => {
         const fileSize = 11 * 1024 * 1024; // 11 MiB
         const randomData = randomBytes(fileSize);
