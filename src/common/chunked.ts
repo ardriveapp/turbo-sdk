@@ -134,7 +134,7 @@ export class ChunkedUploader {
         maxFinalizeMs < 0)
     ) {
       throw new Error(
-        'Invalid max finalize wait time. Must be a non-negative integer.',
+        'Invalid max finalization wait time. Must be a non-negative integer.',
       );
     }
 
