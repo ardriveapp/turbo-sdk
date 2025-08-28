@@ -632,6 +632,7 @@ By default, the Turbo upload methods will split files into chunks that are large
 - `chunkByteCount`: The maximum size in bytes for each chunk. Must be between 5 MiB and 500 MiB. Defaults to 5 MiB.
 - `maxChunkConcurrency`: The maximum number of chunks to upload concurrently. Defaults to 5. Reducing concurrency will slow down uploads, but reduce memory utilization and serialize network calls. Increasing it will upload faster, but can strain available resources.
 - `chunkingMode`: The chunking mode to use. Can be 'auto', 'force', or 'disabled'. Defaults to 'auto'. Auto behavior means chunking is enabled if the file would be split into at least three chunks.
+- `maxFinalizeMs`: The maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded. Defaults to 1 minute per GiB of the total file size.
 
 ```typescript
 // Customize chunking behavior

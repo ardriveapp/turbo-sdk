@@ -52,6 +52,7 @@ jobs:
         run: yarn test:docker
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          BUNDLER_ARWEAVE_WALLET: ${{ secrets.BUNDLER_ARWEAVE_WALLET }}
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4

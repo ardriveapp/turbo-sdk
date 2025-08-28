@@ -868,6 +868,7 @@ describe('Node environment', () => {
             data: 'a test string',
             signal: AbortSignal.timeout(0), // abort the request right away
             chunkingMode: 'force',
+            maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof CanceledError);
@@ -910,6 +911,7 @@ describe('Node environment', () => {
           .upload({
             data: 'a test string',
             chunkingMode: 'force',
+            maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
@@ -930,6 +932,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -939,9 +942,18 @@ describe('Node environment', () => {
       });
 
       it('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
-        stub(turbo['uploadService']['httpService'], 'get').resolves({
-          chunkSize: 6 * 1024 * 1024, // 6 MiB
-        });
+        stub(turbo['uploadService']['httpService'], 'get').callsFake(
+          async ({ endpoint }) => {
+            if (endpoint.includes('-1')) {
+              return { chunkSize: 6 * 1024 * 1024 };
+            }
+            if (endpoint.includes('/status')) {
+              return { status: 'FINALIZED', receipt: { id: 'stub' } };
+            }
+            return {};
+          },
+        );
+
         stub(turbo['uploadService']['httpService'], 'post').resolves({
           id: 'stub',
         });
@@ -953,9 +965,46 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.id === 'stub');
+      });
+
+      it('should fail with a canceled error when uploading a Readable with chunking forced and server never returns FINALIZED before maxWaitTime', async () => {
+        stub(turbo['uploadService']['httpService'], 'get').callsFake(
+          async ({ endpoint }) => {
+            if (endpoint.includes('-1')) {
+              return { chunkSize: 5 * 1024 * 1024 };
+            }
+            if (endpoint.includes('/status')) {
+              return { status: 'PROCESSING' };
+            }
+            return {};
+          },
+        );
+
+        stub(turbo['uploadService']['httpService'], 'post').resolves({
+          id: 'stub',
+        });
+
+        const fileSize = fs.statSync(oneKiBFilePath).size;
+        try {
+          await turbo.uploadFile({
+            fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
+            fileSizeFactory: () => fileSize,
+            dataItemOpts: {
+              ...validDataItemOpts[0],
+            },
+            chunkingMode: 'force',
+            maxFinalizeMs: 1000,
+          });
+          assert.fail(
+            'Expected uploadFile to throw a TurboError with code CANCELED',
+          );
+        } catch (error) {
+          assert.ok(error instanceof FailedRequestError);
+        }
       });
 
       it('should properly upload a Readable with 11 MiB of random data', async () => {
@@ -969,6 +1018,7 @@ describe('Node environment', () => {
             paidBy: testArweaveNativeB64Address,
           },
           chunkingMode: 'auto',
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -990,6 +1040,7 @@ describe('Node environment', () => {
           chunkingMode: 'force',
           chunkByteCount: 6 * 1024 * 1024, // 6 MiB
           maxChunkConcurrency: 10,
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1007,6 +1058,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1097,6 +1149,48 @@ describe('Node environment', () => {
             },
           );
         }
+
+        it('asserts valid maxFinalizeMs', () => {
+          const validValues = [0, 1000, 5000, 10000];
+          for (const value of validValues) {
+            try {
+              const uploader = new ChunkedUploader({
+                http,
+                logger,
+                token,
+                dataItemByteCount: 10000,
+                maxFinalizeMs: value,
+              });
+              assert.ok(uploader);
+            } catch (err) {
+              assert.fail(`Unexpected error for value ${value}: ${err}`);
+            }
+          }
+        });
+
+        it('asserts invalid maxFinalizeMs', () => {
+          const invalidValues = [-1000, -1, 'string', null];
+          for (const value of invalidValues) {
+            try {
+              new ChunkedUploader({
+                http,
+                logger,
+                token,
+                dataItemByteCount: 10000,
+                maxFinalizeMs: value as unknown as number,
+              });
+              assert.fail(
+                `Expected error for value ${value}, but none was thrown.`,
+              );
+            } catch (err) {
+              assert.ok(err instanceof Error);
+              assert.equal(
+                err.message,
+                'Invalid max finalization wait time. Must be a non-negative integer.',
+              );
+            }
+          }
+        });
 
         it('asserts invalid chunking mode', () => {
           try {
@@ -1338,6 +1432,26 @@ describe('Node environment', () => {
           .uploadFile({
             fileStreamFactory: () => fs.createReadStream(filePath),
             fileSizeFactory: () => fileSize,
+          })
+          .catch((error) => error);
+        assert.ok(error instanceof FailedRequestError);
+        assert.match(error.message, /Insufficient balance/);
+      });
+
+      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded and chunking is forced', async () => {
+        const nonAllowListedJWK = await testArweave.crypto.generateJWK();
+        const filePath = new URL('files/1MB_file', import.meta.url).pathname;
+        const fileSize = fs.statSync(filePath).size;
+        const newTurbo = TurboFactory.authenticated({
+          privateKey: nonAllowListedJWK,
+          ...turboDevelopmentConfigurations,
+        });
+        const error = await newTurbo
+          .uploadFile({
+            fileStreamFactory: () => fs.createReadStream(filePath),
+            fileSizeFactory: () => fileSize,
+            chunkingMode: 'force',
+            maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);

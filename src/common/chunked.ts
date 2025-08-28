@@ -21,10 +21,13 @@ import {
   ByteCount,
   TurboChunkingMode,
   TurboLogger,
+  TurboMultiPartStatusResponse,
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
   validChunkingModes,
 } from '../types.js';
+import { sleep } from '../utils/common.js';
+import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -47,6 +50,7 @@ const chunkingHeader = { 'x-chunking-version': '2' } as const;
 export class ChunkedUploader {
   private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
+  private readonly maxFinalizeMs: number | undefined;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
@@ -58,11 +62,13 @@ export class ChunkedUploader {
     http,
     token,
     maxChunkConcurrency = defaultMaxChunkConcurrency,
+    maxFinalizeMs,
     chunkByteCount = defaultChunkByteCount,
     logger = TurboWinstonLogger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
   }: {
+    maxFinalizeMs?: number;
     http: TurboHTTPService;
     token: string;
     logger: TurboLogger;
@@ -71,16 +77,18 @@ export class ChunkedUploader {
     chunkingMode?: TurboChunkingMode;
     dataItemByteCount: ByteCount;
   }) {
-    this.chunkByteCount = chunkByteCount;
-    this.maxChunkConcurrency = maxChunkConcurrency;
-    this.http = http;
-    this.token = token;
-    this.logger = logger;
     this.assertChunkParams({
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
+      maxFinalizeMs,
     });
+    this.chunkByteCount = chunkByteCount;
+    this.maxChunkConcurrency = maxChunkConcurrency;
+    this.maxFinalizeMs = maxFinalizeMs;
+    this.http = http;
+    this.token = token;
+    this.logger = logger;
     this.shouldUseChunkUploader = this.shouldChunkUpload({
       chunkByteCount,
       chunkingMode,
@@ -113,11 +121,24 @@ export class ChunkedUploader {
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    maxFinalizeMs,
   }: {
     chunkByteCount: number;
     chunkingMode: TurboChunkingMode;
     maxChunkConcurrency: number;
+    maxFinalizeMs?: number;
   }): void {
+    if (
+      maxFinalizeMs !== undefined &&
+      (Number.isNaN(maxFinalizeMs) ||
+        !Number.isInteger(maxFinalizeMs) ||
+        maxFinalizeMs < 0)
+    ) {
+      throw new Error(
+        'Invalid max finalization wait time. Must be a non-negative integer.',
+      );
+    }
+
     if (
       Number.isNaN(maxChunkConcurrency) ||
       !Number.isInteger(maxChunkConcurrency) ||
@@ -167,8 +188,8 @@ export class ChunkedUploader {
 
     if (res.chunkSize !== this.chunkByteCount) {
       this.logger.warn('Chunk size mismatch! Overriding with server value.', {
-        expected: this.chunkByteCount,
-        actual: res.chunkSize,
+        clientExpected: this.chunkByteCount,
+        serverReturned: res.chunkSize,
       });
       this.chunkByteCount = res.chunkSize;
     }
@@ -228,12 +249,6 @@ export class ChunkedUploader {
       const chunkByteCount = chunk.length;
       const chunkOffset = currentOffset;
       currentOffset += chunkByteCount;
-
-      this.logger.debug('Queueing chunk', {
-        chunkPartNumber,
-        chunkOffset,
-        chunkByteCount,
-      });
 
       const promise = limit(async () => {
         if (firstError !== undefined) {
@@ -296,28 +311,110 @@ export class ChunkedUploader {
       throw firstError;
     }
 
+    const finalizeResponse = await this.finalizeUpload(
+      uploadId,
+      dataItemByteCount,
+      dataItemOpts?.paidBy,
+      combinedSignal,
+    );
+
+    emitter.emit('upload-success');
+    return finalizeResponse;
+  }
+
+  private toGiB(bytes: ByteCount): ByteCount {
+    return bytes / 1024 ** 3;
+  }
+
+  private async finalizeUpload(
+    uploadId: string,
+    dataItemByteCount: ByteCount,
+    paidBy?: string | string[],
+    signal?: AbortSignal,
+  ): Promise<TurboUploadDataItemResponse> {
+    // Wait up to 1 minute per GiB of data for the upload to finalize
+    const fileSizeInGiB = Math.ceil(this.toGiB(dataItemByteCount));
+    const defaultMaxWaitTimeMins = fileSizeInGiB;
+    const maxWaitTimeMs =
+      this.maxFinalizeMs ?? defaultMaxWaitTimeMins * 60 * 1000;
+
+    const minimumWaitPerStepMs =
+      // Per step, files smaller than 100MB will wait 2 second,
+      dataItemByteCount < 1024 * 1024 * 100
+        ? 2000
+        : // files smaller than 3 GiB will wait 3 seconds,
+        dataItemByteCount < 1024 * 1024 * 1024 * 3
+        ? 3000
+        : // and larger files will wait 1 second per GiB with max of 10 seconds
+          Math.max(1000 * fileSizeInGiB, 10000);
+
     const paidByHeader: Record<string, string> = {};
-    if (dataItemOpts?.paidBy !== undefined) {
-      paidByHeader['x-paid-by'] = Array.isArray(dataItemOpts.paidBy)
-        ? dataItemOpts.paidBy.join(',')
-        : dataItemOpts.paidBy;
+    if (paidBy !== undefined) {
+      paidByHeader['x-paid-by'] = Array.isArray(paidBy)
+        ? paidBy.join(',')
+        : paidBy;
     }
 
-    // TODO: Async Finalize
-    // Finalize and reconstruct server-side
-    const finalizeResponse = await this.http.post<TurboUploadDataItemResponse>({
-      endpoint: `/chunks/${this.token}/${uploadId}/-1`,
+    await this.http.post({
+      endpoint: `/chunks/${this.token}/${uploadId}/finalize`,
       data: Buffer.alloc(0),
       headers: {
         'Content-Type': 'application/octet-stream',
         ...paidByHeader,
         ...chunkingHeader,
       },
-      signal: combinedSignal,
+      signal,
     });
 
-    emitter.emit('upload-success');
-    return finalizeResponse;
+    this.logger.debug(
+      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${defaultMaxWaitTimeMins} minutes.`,
+    );
+
+    const startTime = Date.now();
+    const cutoffTime = startTime + maxWaitTimeMs;
+
+    let attempts = 0;
+
+    while (Date.now() < cutoffTime) {
+      // Wait for 3/4 of the time remaining per attempt or minimum step
+      const waitTimeMs = Math.min(
+        Math.floor((cutoffTime - Date.now()) * (3 / 4)),
+        minimumWaitPerStepMs,
+      );
+      await sleep(waitTimeMs);
+
+      if (signal?.aborted) {
+        this.logger.warn(`Upload finalization aborted by signal.`);
+        throw new CanceledError();
+      }
+
+      const response = await this.http.get<TurboMultiPartStatusResponse>({
+        endpoint: `/chunks/${this.token}/${uploadId}/status`,
+        signal,
+      });
+
+      this.logger.debug(`Upload status found: ${response.status}`, {
+        status: response.status,
+        attempts: attempts++,
+        maxWaitTimeMs,
+        minimumWaitPerStepMs,
+        waitTimeMs,
+        elapsedMs: Date.now() - startTime,
+      });
+
+      if (response.status === 'FINALIZED') {
+        this.logger.debug(`Upload finalized successfully.`);
+        return response.receipt;
+      }
+
+      if (response.status === 'UNDERFUNDED') {
+        throw new FailedRequestError(`Insufficient balance`, 402);
+      }
+    }
+
+    throw new Error(
+      `Upload multi-part finalization has timed out for Upload ID ${uploadId}`,
+    );
   }
 }
 

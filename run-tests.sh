@@ -1,4 +1,7 @@
 #!/bin/bash
+
+BUNDLER_ARWEAVE_WALLET=$(cat ./tests/wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json)
+
 docker compose pull --quiet
 docker compose up --quiet-pull -d
 
@@ -40,6 +43,10 @@ exit_code=$?
 
 # Tear down the docker-compose setup
 docker compose down -v
+
+# Destroy redis data between tests
+docker volume rm -f redis-data
+
 
 # Exit with the captured exit code
 exit $exit_code

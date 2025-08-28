@@ -298,6 +298,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           logger: this.logger,
           dataItemByteCount: dataItemSizeFactory(),
           chunkingMode: params.chunkingMode,
+          maxFinalizeMs: params.maxFinalizeMs,
         });
         if (chunkedUploader.shouldUseChunkUploader) {
           const response = await chunkedUploader.upload({
@@ -353,7 +354,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     }
 
-    const msg = `Failed to upload file after ${maxRetries + 1} attempts\n${
+    const msg = `Failed to upload file after ${retries + 1} attempts\n${
       lastError instanceof Error ? lastError.message : lastError
     }`;
     // After all retries, throw the last error for catching
@@ -452,6 +453,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
+      maxFinalizeMs,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -542,6 +544,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
       chunkByteCount,
       maxChunkConcurrency,
+      maxFinalizeMs,
       chunkingMode,
     });
 

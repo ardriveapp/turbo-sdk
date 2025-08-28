@@ -247,6 +247,46 @@ export type TurboUploadDataItemResponse = {
   revokedApprovals?: CreditShareApproval[];
 };
 
+export const multipartPendingStatus = [
+  'ASSEMBLING',
+  'VALIDATING',
+  'FINALIZING',
+] as const;
+export type PendingMultiPartStatus = (typeof multipartPendingStatus)[number];
+
+export const multipartFailedStatus = [
+  'UNDERFUNDED',
+  'INVALID',
+  'APPROVAL_FAILED',
+  'REVOKE_FAILED',
+] as const;
+export type FailedMultiPartStatus = (typeof multipartFailedStatus)[number];
+
+export const multipartFinalizedStatus = ['FINALIZED'] as const;
+export type FinalizedMultiPartStatus =
+  (typeof multipartFinalizedStatus)[number];
+
+export type TurboMultiPartStatusResponse =
+  | { status: PendingMultiPartStatus }
+  | { status: FailedMultiPartStatus }
+  | FinalizedStatusResponse;
+type FinalizedStatusResponse = {
+  status: 'FINALIZED';
+} & {
+  receipt: {
+    id: string;
+    deadlineHeight: number;
+    timestamp: number;
+    version: string;
+    dataCaches: string[];
+    fastFinalityIndexes: string[];
+    winc: string;
+    owner: string;
+    public: string;
+    signature: string;
+  };
+};
+
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
@@ -604,6 +644,11 @@ export type TurboChunkingParams = {
   maxChunkConcurrency?: number;
   /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
   chunkingMode?: TurboChunkingMode;
+  /**
+   * Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded.
+   * If not specified, the SDK will use a default value of 1 minute per GiB.
+   */
+  maxFinalizeMs?: number;
 };
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
