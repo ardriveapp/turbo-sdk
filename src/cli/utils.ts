@@ -401,9 +401,7 @@ export function getChunkingOptions<O extends UploadOptions>(
       options.maxChunkConcurrency !== undefined
         ? +options.maxChunkConcurrency
         : undefined,
-    maxFinalizationWaitTimeMs:
-      options.maxFinalizationWaitTimeMs !== undefined
-        ? +options.maxFinalizationWaitTimeMs
-        : undefined,
+    maxFinalizeMs:
+      options.maxFinalizeMs !== undefined ? +options.maxFinalizeMs : undefined,
   };
 }

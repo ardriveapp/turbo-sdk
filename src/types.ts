@@ -648,7 +648,7 @@ export type TurboChunkingParams = {
    * Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded.
    * If not specified, the SDK will use a default value of 1 minute per GiB.
    */
-  maxFinalizationWaitTimeMs?: number;
+  maxFinalizeMs?: number;
 };
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &

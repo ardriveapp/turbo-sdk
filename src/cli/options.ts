@@ -168,8 +168,8 @@ export const optionMap = {
     alias: '--max-chunk-concurrency <maxChunkConcurrency>',
     description: 'Maximum number of concurrent chunks to upload per file',
   },
-  maxFinalizationWaitTimeMs: {
-    alias: '--max-finalization-wait-time-ms <maxFinalizationWaitTimeMs>',
+  maxFinalizeMs: {
+    alias: '--max-finalize-ms <maxFinalizeMs>',
     description:
       'Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded. Defaults to 1 minute per GiB of the total file size.',
   },
@@ -210,7 +210,7 @@ export const uploadOptions = [
   optionMap.useSignerBalanceFirst,
   optionMap.tags,
   optionMap.maxChunkConcurrency,
-  optionMap.maxFinalizationWaitTimeMs,
+  optionMap.maxFinalizeMs,
   optionMap.chunkByteCount,
   optionMap.chunkingMode,
 ];

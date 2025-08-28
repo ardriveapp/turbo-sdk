@@ -868,7 +868,7 @@ describe('Node environment', () => {
             data: 'a test string',
             signal: AbortSignal.timeout(0), // abort the request right away
             chunkingMode: 'force',
-            maxFinalizationWaitTimeMs: 5_000,
+            maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof CanceledError);
@@ -911,7 +911,7 @@ describe('Node environment', () => {
           .upload({
             data: 'a test string',
             chunkingMode: 'force',
-            maxFinalizationWaitTimeMs: 5_000,
+            maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
@@ -932,7 +932,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
-          maxFinalizationWaitTimeMs: 5_000,
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -965,7 +965,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
-          maxFinalizationWaitTimeMs: 5_000,
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.id === 'stub');
@@ -997,7 +997,7 @@ describe('Node environment', () => {
               ...validDataItemOpts[0],
             },
             chunkingMode: 'force',
-            maxFinalizationWaitTimeMs: 1000,
+            maxFinalizeMs: 1000,
           });
           assert.fail(
             'Expected uploadFile to throw a TurboError with code CANCELED',
@@ -1018,7 +1018,7 @@ describe('Node environment', () => {
             paidBy: testArweaveNativeB64Address,
           },
           chunkingMode: 'auto',
-          maxFinalizationWaitTimeMs: 5_000,
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1040,7 +1040,7 @@ describe('Node environment', () => {
           chunkingMode: 'force',
           chunkByteCount: 6 * 1024 * 1024, // 6 MiB
           maxChunkConcurrency: 10,
-          maxFinalizationWaitTimeMs: 5_000,
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1058,7 +1058,7 @@ describe('Node environment', () => {
             ...validDataItemOpts[0],
           },
           chunkingMode: 'force',
-          maxFinalizationWaitTimeMs: 5_000,
+          maxFinalizeMs: 5_000,
         });
         assert.ok(response !== undefined);
         assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1150,7 +1150,7 @@ describe('Node environment', () => {
           );
         }
 
-        it('asserts valid maxFinalizationWaitTimeMs', () => {
+        it('asserts valid maxFinalizeMs', () => {
           const validValues = [0, 1000, 5000, 10000];
           for (const value of validValues) {
             try {
@@ -1159,7 +1159,7 @@ describe('Node environment', () => {
                 logger,
                 token,
                 dataItemByteCount: 10000,
-                maxFinalizationWaitTimeMs: value,
+                maxFinalizeMs: value,
               });
               assert.ok(uploader);
             } catch (err) {
@@ -1168,7 +1168,7 @@ describe('Node environment', () => {
           }
         });
 
-        it('asserts invalid maxFinalizationWaitTimeMs', () => {
+        it('asserts invalid maxFinalizeMs', () => {
           const invalidValues = [-1000, -1, 'string', null];
           for (const value of invalidValues) {
             try {
@@ -1177,7 +1177,7 @@ describe('Node environment', () => {
                 logger,
                 token,
                 dataItemByteCount: 10000,
-                maxFinalizationWaitTimeMs: value as unknown as number,
+                maxFinalizeMs: value as unknown as number,
               });
               assert.fail(
                 `Expected error for value ${value}, but none was thrown.`,
@@ -1451,7 +1451,7 @@ describe('Node environment', () => {
             fileStreamFactory: () => fs.createReadStream(filePath),
             fileSizeFactory: () => fileSize,
             chunkingMode: 'force',
-            maxFinalizationWaitTimeMs: 5_000,
+            maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);

@@ -49,7 +49,7 @@ const chunkingHeader = { 'x-chunking-version': '2' } as const;
 export class ChunkedUploader {
   private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
-  private readonly maxFinalizationWaitTimeMs: number | undefined;
+  private readonly maxFinalizeMs: number | undefined;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
@@ -61,13 +61,13 @@ export class ChunkedUploader {
     http,
     token,
     maxChunkConcurrency = defaultMaxChunkConcurrency,
-    maxFinalizationWaitTimeMs,
+    maxFinalizeMs,
     chunkByteCount = defaultChunkByteCount,
     logger = TurboWinstonLogger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
   }: {
-    maxFinalizationWaitTimeMs?: number;
+    maxFinalizeMs?: number;
     http: TurboHTTPService;
     token: string;
     logger: TurboLogger;
@@ -80,11 +80,11 @@ export class ChunkedUploader {
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
-      maxFinalizationWaitTimeMs,
+      maxFinalizeMs,
     });
     this.chunkByteCount = chunkByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
-    this.maxFinalizationWaitTimeMs = maxFinalizationWaitTimeMs;
+    this.maxFinalizeMs = maxFinalizeMs;
     this.http = http;
     this.token = token;
     this.logger = logger;
@@ -120,21 +120,21 @@ export class ChunkedUploader {
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
-    maxFinalizationWaitTimeMs,
+    maxFinalizeMs,
   }: {
     chunkByteCount: number;
     chunkingMode: TurboChunkingMode;
     maxChunkConcurrency: number;
-    maxFinalizationWaitTimeMs?: number;
+    maxFinalizeMs?: number;
   }): void {
     if (
-      maxFinalizationWaitTimeMs !== undefined &&
-      (Number.isNaN(maxFinalizationWaitTimeMs) ||
-        !Number.isInteger(maxFinalizationWaitTimeMs) ||
-        maxFinalizationWaitTimeMs < 0)
+      maxFinalizeMs !== undefined &&
+      (Number.isNaN(maxFinalizeMs) ||
+        !Number.isInteger(maxFinalizeMs) ||
+        maxFinalizeMs < 0)
     ) {
       throw new Error(
-        'Invalid max finalization wait time. Must be a non-negative integer.',
+        'Invalid max finalize wait time. Must be a non-negative integer.',
       );
     }
 
@@ -334,8 +334,7 @@ export class ChunkedUploader {
     // Wait up to 1 minute per GiB of data for the upload to finalize
     const fileSizeInGiB = Math.ceil(this.toGiB(dataItemByteCount));
     const defaultMaxWaitTime = fileSizeInGiB;
-    const maxWaitTimeMs =
-      this.maxFinalizationWaitTimeMs ?? defaultMaxWaitTime * 60 * 1000;
+    const maxWaitTimeMs = this.maxFinalizeMs ?? defaultMaxWaitTime * 60 * 1000;
 
     const waitPerAttempt =
       maxWaitTimeMs < 5000 ? Math.floor(maxWaitTimeMs / 5) : 2000;
