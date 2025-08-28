@@ -3,7 +3,7 @@
 BUNDLER_ARWEAVE_WALLET=$(cat ./tests/wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json)
 
 docker compose pull --quiet
-docker compose up --quiet-pull -d 
+docker compose up --quiet-pull -d
 
 # Wait for LocalStack to be ready (up to 120 seconds)
 timeout=120
