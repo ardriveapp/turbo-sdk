@@ -384,11 +384,17 @@ export class ChunkedUploader {
 
       this.logger.debug(`Upload status: ${response.status}`);
 
+      const now = Date.now();
+      if (now >= cutoffTime) {
+        // Break from an extra wait
+        break;
+      }
+
       await new Promise((resolve) =>
         setTimeout(
           resolve,
           // Wait for 3/4 of the time remaining per attempt or 5 seconds minimum
-          Math.min(Math.floor((cutoffTime - Date.now()) * (3 / 4)), 5000),
+          Math.min(Math.floor((cutoffTime - now) * (3 / 4)), 5000),
         ),
       );
     }
