@@ -26,6 +26,7 @@ import {
   UploadSignedDataItemParams,
   validChunkingModes,
 } from '../types.js';
+import { sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
@@ -337,6 +338,16 @@ export class ChunkedUploader {
     const maxWaitTimeMs =
       this.maxFinalizeMs ?? defaultMaxWaitTimeMins * 60 * 1000;
 
+    const minimumWaitPerStepMs =
+      // Per step, files smaller than 100MB will wait 2 second,
+      dataItemByteCount < 1024 * 1024 * 100
+        ? 2000
+        : // files smaller than 3 GiB will wait 3 seconds,
+        dataItemByteCount < 1024 * 1024 * 1024 * 3
+        ? 3000
+        : // and larger files will wait 1 second per GiB with max of 10 seconds
+          Math.max(1000 * fileSizeInGiB, 10000);
+
     const paidByHeader: Record<string, string> = {};
     if (paidBy !== undefined) {
       paidByHeader['x-paid-by'] = Array.isArray(paidBy)
@@ -362,7 +373,16 @@ export class ChunkedUploader {
     const startTime = Date.now();
     const cutoffTime = startTime + maxWaitTimeMs;
 
+    let attempts = 0;
+
     while (Date.now() < cutoffTime) {
+      // Wait for 3/4 of the time remaining per attempt or minimum step
+      const waitTimeMs = Math.min(
+        Math.floor((cutoffTime - Date.now()) * (3 / 4)),
+        minimumWaitPerStepMs,
+      );
+      await sleep(waitTimeMs);
+
       if (signal?.aborted) {
         this.logger.warn(`Upload finalization aborted by signal.`);
         throw new CanceledError();
@@ -373,6 +393,15 @@ export class ChunkedUploader {
         signal,
       });
 
+      this.logger.debug(`Upload status found: ${response.status}`, {
+        status: response.status,
+        attempts: attempts++,
+        maxWaitTimeMs,
+        minimumWaitPerStepMs,
+        waitTimeMs,
+        elapsedMs: Date.now() - startTime,
+      });
+
       if (response.status === 'FINALIZED') {
         this.logger.debug(`Upload finalized successfully.`);
         return response.receipt;
@@ -381,25 +410,11 @@ export class ChunkedUploader {
       if (response.status === 'UNDERFUNDED') {
         throw new FailedRequestError(`Insufficient balance`, 402);
       }
-
-      this.logger.debug(`Upload status: ${response.status}`);
-
-      const now = Date.now();
-      if (now >= cutoffTime) {
-        // Break from an extra wait
-        break;
-      }
-
-      await new Promise((resolve) =>
-        setTimeout(
-          resolve,
-          // Wait for 3/4 of the time remaining per attempt or 5 seconds minimum
-          Math.min(Math.floor((cutoffTime - now) * (3 / 4)), 5000),
-        ),
-      );
     }
 
-    throw new Error(`Upload multi-part finalization has timed out.`);
+    throw new Error(
+      `Upload multi-part finalization has timed out for Upload ID ${uploadId}`,
+    );
   }
 }
 
