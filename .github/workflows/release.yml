@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    uses: ardriveapp/turbo-sdk/.github/workflows/build.yml@main
+    uses: ardriveapp/turbo-sdk/.github/workflows/build.yml@alpha
     secrets: inherit
   release:
     runs-on: ubuntu-latest
