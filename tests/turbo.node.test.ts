@@ -1662,10 +1662,10 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
+      const randomData = Readable.from(randomBytes(1024));
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
+        fileStreamFactory: () => randomData,
+        fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
       assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1675,17 +1675,22 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
+      const randomData = Readable.from(randomBytes(1024));
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
+        fileStreamFactory: () => randomData,
+        fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
       assert.equal(response.owner, testEthAddressBase64);
     });
 
     it('should properly upload a Buffer to turbo with uploadSignedDataItem with events', async () => {
-      const signedDataItem = createData('signed data item', signer, {});
+      const signedDataItem = createData(
+        // make non-deterministic data item IDs to avoid caching issues from CI
+        'signed data item' + Math.random().toString(),
+        signer,
+        {},
+      );
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
@@ -1795,10 +1800,10 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
+      const randomData = Readable.from(randomBytes(1024));
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
+        fileStreamFactory: () => randomData,
+        fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
       assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1808,7 +1813,12 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Buffer to turbo with events', async () => {
-      const signedDataItem = createData('signed data item', signer, {});
+      // make non-deterministic data item IDs to avoid caching issues from CI
+      const signedDataItem = createData(
+        'signed data item' + Math.random().toString(),
+        signer,
+        {},
+      );
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
@@ -1982,7 +1992,12 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Buffer to turbo with events', async () => {
-      const signedDataItem = createData('signed data item', signer, {});
+      // make non-deterministic data item IDs to avoid caching issues from CI
+      const signedDataItem = createData(
+        'signed data item' + Math.random().toString(),
+        signer,
+        {},
+      );
       await signedDataItem.sign(signer);
 
       let uploadProgressCalled = false;
