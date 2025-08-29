@@ -1662,10 +1662,10 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
+      const randomData = Readable.from(randomBytes(1024));
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
+        fileStreamFactory: () => randomData,
+        fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
       assert.ok(response.fastFinalityIndexes !== undefined);
@@ -1675,10 +1675,10 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
+      const randomData = Readable.from(randomBytes(1024));
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
+        fileStreamFactory: () => randomData,
+        fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
       assert.equal(response.owner, testEthAddressBase64);
@@ -1800,10 +1800,10 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
+      const randomData = Readable.from(randomBytes(1024));
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
+        fileStreamFactory: () => randomData,
+        fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
       assert.ok(response.fastFinalityIndexes !== undefined);
