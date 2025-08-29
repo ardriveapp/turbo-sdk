@@ -799,8 +799,8 @@ Shares credits from the connected wallet to the provided native address and appr
 ```typescript
 const { approvalDataItemId, approvedWincAmount } = await turbo.shareCredits({
   approvedAddress: '2cor...VUa',
-  approvedWincAmount: 0.08315565032,
-  expiresBySeconds: 3600,
+  approvedWincAmount: 800_000_000_000, // 0.8 Credits
+  expiresBySeconds: 3600, // Credits will expire back to original wallet in 1 hour
 });
 ```
 
