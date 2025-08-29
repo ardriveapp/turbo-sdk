@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { AxiosError, AxiosInstance, AxiosResponse, CanceledError } from 'axios';
-import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 
 import {
@@ -22,20 +21,26 @@ import {
   TurboLogger,
   TurboSignedRequestHeaders,
 } from '../types.js';
-import { createAxiosInstance } from '../utils/axiosClient.js';
+import {
+  RetryConfig,
+  createAxiosInstance,
+  defaultRetryConfig,
+} from '../utils/axiosClient.js';
+import { sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 
 export class TurboHTTPService implements TurboHTTPServiceInterface {
   protected axios: AxiosInstance;
   protected logger: TurboLogger;
+  protected retryConfig: RetryConfig;
 
   constructor({
     url,
-    retryConfig,
     logger,
+    retryConfig = defaultRetryConfig(logger),
   }: {
     url: string;
-    retryConfig?: IAxiosRetryConfig;
+    retryConfig: RetryConfig;
     logger: TurboLogger;
   }) {
     this.logger = logger;
@@ -44,9 +49,9 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         baseURL: url,
         maxRedirects: 0, // prevents backpressure issues when uploading larger streams via https
       },
-      retryConfig,
       logger: this.logger,
     });
+    this.retryConfig = retryConfig;
   }
 
   async get<T>({
@@ -60,7 +65,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
   }): Promise<T> {
-    return this.tryRequest<T>(
+    return this.retryRequest<T>(
       () => this.axios.get<T>(endpoint, { headers, signal }),
       allowedStatuses,
     );
@@ -81,7 +86,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
   }): Promise<T> {
     // Buffer and Readable → keep Axios (streams work fine there)
     if (!(data instanceof ReadableStream)) {
-      return this.tryRequest(
+      return this.retryRequest(
         () => this.axios.post<T>(endpoint, data, { headers, signal }),
         allowedStatuses,
       );
@@ -155,6 +160,35 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       }
       throw error;
     }
+  }
+
+  private async retryRequest<T>(
+    request: () => Promise<AxiosResponse<T, unknown>>,
+    allowedStatuses: number[],
+  ): Promise<T> {
+    let attempt = 0;
+    let lastError: FailedRequestError | undefined;
+
+    while (attempt < this.retryConfig.retries) {
+      try {
+        const resp = await this.tryRequest(request, allowedStatuses);
+        return resp;
+      } catch (error) {
+        if (error instanceof FailedRequestError) {
+          lastError = error;
+          this.retryConfig.onRetry(attempt + 1, error);
+          await sleep(this.retryConfig.retryDelay(attempt + 1));
+          attempt++;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    throw new FailedRequestError(
+      'Max retries reached - ' + lastError?.message,
+      lastError?.status,
+    );
   }
 }
 

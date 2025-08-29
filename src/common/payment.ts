@@ -52,6 +52,7 @@ import {
   TurboWincForTokenResponse,
   UserAddress,
 } from '../types.js';
+import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
@@ -68,7 +69,7 @@ export class TurboUnauthenticatedPaymentService
 
   constructor({
     url = defaultPaymentServiceURL,
-    retryConfig,
+    retryConfig = defaultRetryConfig(),
     logger = TurboWinstonLogger.default,
     token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
