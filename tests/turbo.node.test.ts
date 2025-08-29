@@ -1662,9 +1662,9 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const randomData = Readable.from(randomBytes(1024));
+      const randomData = randomBytes(1024);
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => randomData,
+        fileStreamFactory: () => Readable.from(randomData),
         fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
@@ -1675,9 +1675,9 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
-      const randomData = Readable.from(randomBytes(1024));
+      const randomData = randomBytes(1024);
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => randomData,
+        fileStreamFactory: () => Readable.from(randomData),
         fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
@@ -1800,9 +1800,9 @@ describe('Node environment', () => {
     });
 
     it('should properly upload a Readable to turbo', async () => {
-      const randomData = Readable.from(randomBytes(1024));
+      const randomData = randomBytes(1024);
       const response = await turbo.uploadFile({
-        fileStreamFactory: () => randomData,
+        fileStreamFactory: () => Readable.from(randomData),
         fileSizeFactory: () => 1024,
       });
       assert.ok(response !== undefined);
