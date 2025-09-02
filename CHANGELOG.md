@@ -1,3 +1,10 @@
+# [1.31.0-alpha.3](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.0-alpha.2...v1.31.0-alpha.3) (2025-09-02)
+
+
+### Bug Fixes
+
+* **retry:** use internal retry strategy handling ([da6d517](https://github.com/ardriveapp/turbo-sdk/commit/da6d5172e6cb232ff6415be04224750de28beb8d))
+
 # [1.30.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.29.0...v1.30.0) (2025-08-04)
 
 
