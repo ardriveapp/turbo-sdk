@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import axios, { AxiosInstance, AxiosRequestConfig, CanceledError } from 'axios';
-import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 import { TurboWinstonLogger } from '../common/logger.js';
 import { TurboLogger } from '../types.js';
@@ -27,31 +26,28 @@ export const defaultRequestHeaders = {
 
 export interface AxiosInstanceParameters {
   axiosConfig?: Omit<AxiosRequestConfig, 'validateStatus'>;
-  retryConfig?: IAxiosRetryConfig;
+  retryConfig?: RetryConfig;
   logger?: TurboLogger;
 }
 
-export const defaultRetryConfig: (logger?: TurboLogger) => IAxiosRetryConfig = (
+export type RetryConfig = {
+  retryDelay: (retryCount: number) => number;
+  retries: number;
+  onRetry: (retryCount: number, error: unknown) => void;
+};
+
+export const defaultRetryConfig: (logger?: TurboLogger) => RetryConfig = (
   logger = TurboWinstonLogger.default,
 ) => ({
-  retryDelay: axiosRetry.exponentialDelay,
+  retryDelay: (retryCount) => Math.min(1000 * 2 ** (retryCount - 1), 30 * 1000), // exponential backoff up to 30s
   retries: 5,
-  retryCondition: (error) => {
-    return (
-      !(error instanceof CanceledError) &&
-      axiosRetry.isIdempotentRequestError(error) &&
-      axiosRetry.isNetworkError(error)
-    );
-  },
   onRetry: (retryCount, error) => {
     logger.debug(`Request failed, ${error}. Retry attempt #${retryCount}...`);
   },
 });
 
 export const createAxiosInstance = ({
-  logger = TurboWinstonLogger.default,
   axiosConfig = {},
-  retryConfig = defaultRetryConfig(logger),
 }: AxiosInstanceParameters = {}): AxiosInstance => {
   const axiosInstance = axios.create({
     ...axiosConfig,
@@ -62,12 +58,6 @@ export const createAxiosInstance = ({
     adapter: 'fetch',
     validateStatus: () => true, // don't throw on non-200 status codes
   });
-
-  if (retryConfig.retries !== undefined && retryConfig.retries > 0) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    axiosRetry(axiosInstance, retryConfig);
-  }
 
   return axiosInstance;
 };

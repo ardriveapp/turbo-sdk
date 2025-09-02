@@ -19,11 +19,13 @@ import { Readable } from 'stream';
 
 import {
   ByteCount,
+  FailedMultiPartStatus,
   TurboChunkingMode,
   TurboLogger,
   TurboMultiPartStatusResponse,
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
+  multipartFailedStatus,
   validChunkingModes,
 } from '../types.js';
 import { sleep } from '../utils/common.js';
@@ -35,6 +37,9 @@ import { TurboWinstonLogger } from './logger.js';
 const fiveMiB = 5 * 1024 * 1024; // 5 MiB
 const fiveHundredMiB = fiveMiB * 100; // 500 MiB
 export const defaultMaxChunkConcurrency = 5;
+
+// Limit uploaders to protect server
+const absoluteMaxChunkConcurrency = 256;
 
 export const maxChunkByteCount = fiveHundredMiB;
 export const minChunkByteCount = fiveMiB;
@@ -142,10 +147,11 @@ export class ChunkedUploader {
     if (
       Number.isNaN(maxChunkConcurrency) ||
       !Number.isInteger(maxChunkConcurrency) ||
-      maxChunkConcurrency < 1
+      maxChunkConcurrency < 1 ||
+      maxChunkConcurrency > absoluteMaxChunkConcurrency
     ) {
       throw new Error(
-        'Invalid max chunk concurrency. Must be an integer of at least 1.',
+        'Invalid max chunk concurrency. Must be an integer of at least 1 and at most 256.',
       );
     }
 
@@ -409,6 +415,14 @@ export class ChunkedUploader {
 
       if (response.status === 'UNDERFUNDED') {
         throw new FailedRequestError(`Insufficient balance`, 402);
+      }
+
+      if (
+        multipartFailedStatus.includes(response.status as FailedMultiPartStatus)
+      ) {
+        throw new FailedRequestError(
+          `Upload failed with multi-part status ${response.status}`,
+        );
       }
     }
 

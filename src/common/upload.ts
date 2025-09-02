@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { CanceledError } from 'axios';
-import { IAxiosRetryConfig } from 'axios-retry';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
 
@@ -45,7 +44,7 @@ import {
   UploadDataInput,
   UploadSignedDataItemParams,
 } from '../types.js';
-import { defaultRetryConfig } from '../utils/axiosClient.js';
+import { RetryConfig, defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
@@ -85,7 +84,7 @@ export class TurboUnauthenticatedUploadService
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected token: TokenType;
-  protected retryConfig: IAxiosRetryConfig;
+  protected retryConfig: RetryConfig;
   constructor({
     url = defaultUploadServiceURL,
     logger = TurboWinstonLogger.default,
@@ -347,10 +346,7 @@ export abstract class TurboAuthenticatedBaseUploadService
             resolve();
           });
         });
-        await Promise.race([
-          sleep(retryDelay(retries, error)),
-          abortEventPromise,
-        ]);
+        await Promise.race([sleep(retryDelay(retries)), abortEventPromise]);
       }
     }
 

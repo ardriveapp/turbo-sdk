@@ -22,7 +22,6 @@ import {
   HexSolanaSigner,
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
-import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
@@ -31,6 +30,7 @@ import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
+import { RetryConfig } from './utils/axiosClient.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
@@ -441,7 +441,7 @@ type TurboAuthConfiguration = {
 
 type TurboServiceConfiguration = {
   url?: string;
-  retryConfig?: IAxiosRetryConfig;
+  retryConfig?: RetryConfig;
   logger?: TurboLogger;
   token?: TokenType;
 };
