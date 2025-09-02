@@ -1125,6 +1125,7 @@ describe('Node environment', () => {
           'string',
           null,
           undefined,
+          257,
         ] as unknown as number[];
         for (const maxChunkConcurrency of invalidMaxChunkConcurrencies) {
           it(
@@ -1143,7 +1144,7 @@ describe('Node environment', () => {
                 assert.ok(err instanceof Error);
                 assert.equal(
                   err.message,
-                  'Invalid max chunk concurrency. Must be an integer of at least 1.',
+                  'Invalid max chunk concurrency. Must be an integer of at least 1 and at most 256.',
                 );
               }
             },
