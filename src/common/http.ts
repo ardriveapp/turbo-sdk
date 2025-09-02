@@ -86,6 +86,13 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
   }): Promise<T> {
     // Buffer and Readable → keep Axios (streams work fine there)
     if (!(data instanceof ReadableStream)) {
+      if (data instanceof Readable) {
+        return this.tryRequest(
+          // Can't retry a Readable stream that has already been partially consumed
+          () => this.axios.post<T>(endpoint, data, { headers, signal }),
+          allowedStatuses,
+        );
+      }
       return this.retryRequest(
         () => this.axios.post<T>(endpoint, data, { headers, signal }),
         allowedStatuses,
@@ -177,6 +184,15 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         if (error instanceof FailedRequestError) {
           lastError = error;
           this.retryConfig.onRetry(attempt + 1, error);
+          if (
+            error.status !== undefined &&
+            error.status >= 400 &&
+            error.status < 500
+          ) {
+            // If it's a client error, we can stop retrying
+            throw error;
+          }
+
           await sleep(this.retryConfig.retryDelay(attempt + 1));
           attempt++;
         } else {
