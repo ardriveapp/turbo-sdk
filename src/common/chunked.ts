@@ -340,19 +340,19 @@ export class ChunkedUploader {
   ): Promise<TurboUploadDataItemResponse> {
     // Wait up to 1 minute per GiB of data for the upload to finalize
     const fileSizeInGiB = Math.ceil(this.toGiB(dataItemByteCount));
-    const defaultMaxWaitTimeMins = fileSizeInGiB;
+    const defaultMaxWaitTimeMins = fileSizeInGiB * 2.5;
     const maxWaitTimeMs =
-      this.maxFinalizeMs ?? defaultMaxWaitTimeMins * 60 * 1000;
+      this.maxFinalizeMs ?? Math.floor(defaultMaxWaitTimeMins * 60 * 1000);
 
     const minimumWaitPerStepMs =
       // Per step, files smaller than 100MB will wait 2 second,
       dataItemByteCount < 1024 * 1024 * 100
         ? 2000
-        : // files smaller than 3 GiB will wait 3 seconds,
+        : // files smaller than 3 GiB will wait 4 seconds,
         dataItemByteCount < 1024 * 1024 * 1024 * 3
-        ? 3000
-        : // and larger files will wait 1 second per GiB with max of 10 seconds
-          Math.max(1000 * fileSizeInGiB, 10000);
+        ? 4000
+        : // and larger files will wait 1.5 second per GiB with max of 15 seconds
+          Math.max(1500 * fileSizeInGiB, 15000);
 
     const paidByHeader: Record<string, string> = {};
     if (paidBy !== undefined) {
@@ -373,7 +373,9 @@ export class ChunkedUploader {
     });
 
     this.logger.debug(
-      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${defaultMaxWaitTimeMins} minutes.`,
+      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${
+        maxWaitTimeMs / 1000 / 60
+      } minutes.`,
     );
 
     const startTime = Date.now();
