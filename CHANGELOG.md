@@ -1,3 +1,17 @@
+# [1.31.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.30.0...v1.31.0) (2025-09-03)
+
+
+### Bug Fixes
+
+* **retry:** use internal retry strategy handling ([da6d517](https://github.com/ardriveapp/turbo-sdk/commit/da6d5172e6cb232ff6415be04224750de28beb8d))
+
+
+### Features
+
+* **async fianlize:** init async finalize handling PE-5267 ([a78df0a](https://github.com/ardriveapp/turbo-sdk/commit/a78df0a0c307641af4bbd387b315270ee10a91c2))
+* **async fianlize:** use new receipt API on status; finish async finalize flow PE-8461 ([99bcdfa](https://github.com/ardriveapp/turbo-sdk/commit/99bcdfa83ed61c6239e0aa45792b8c4f73631cef))
+* **upload:** init multipart upload APIs for large files PE-5267 ([d98bf08](https://github.com/ardriveapp/turbo-sdk/commit/d98bf08d483ea877c474794bf783113d0dfeafc4))
+
 # [1.30.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.29.0...v1.30.0) (2025-08-04)
 
 
