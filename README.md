@@ -810,7 +810,7 @@ Revokes all credits shared from the connected wallet to the provided native addr
 
 ```typescript
 const revokedApprovals = await turbo.revokeCredits({
-  approvedAddress: '2cor...VUa',
+  revokedAddress: '2cor...VUa',
 });
 ```
 
