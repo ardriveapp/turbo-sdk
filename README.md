@@ -625,6 +625,40 @@ const uploadResult = await turbo.uploadFile({
 });
 ```
 
+##### Customize Multi-Part Upload Behavior
+
+By default, the Turbo upload methods will split files that are larger than 10 MiB into chunks and send them to the upload service multi-part endpoints. This behavior can be customized with the following inputs:
+
+- `chunkByteCount`: The maximum size in bytes for each chunk. Must be between 5 MiB and 500 MiB. Defaults to 5 MiB.
+- `maxChunkConcurrency`: The maximum number of chunks to upload concurrently. Defaults to 5. Reducing concurrency will slow down uploads, but reduce memory utilization and serialize network calls. Increasing it will upload faster, but can strain available resources.
+- `chunkingMode`: The chunking mode to use. Can be 'auto', 'force', or 'disabled'. Defaults to 'auto'. Auto behavior means chunking is enabled if the file would be split into at least three chunks.
+- `maxFinalizeMs`: The maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded. Defaults to 1 minute per GiB of the total file size.
+
+```typescript
+// Customize chunking behavior
+await turbo.upload({
+  ...params,
+  chunkByteCount: 1024 * 1024 * 500, // Max chunk size
+  maxChunkConcurrency: 1, // Minimize concurrency
+});
+```
+
+```typescript
+// Disable chunking behavior
+await turbo.upload({
+  ...params,
+  chunkingMode: 'disabled',
+});
+```
+
+```typescript
+// Force chunking behavior
+await turbo.upload({
+  ...params,
+  chunkingMode: 'force',
+});
+```
+
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
@@ -765,8 +799,8 @@ Shares credits from the connected wallet to the provided native address and appr
 ```typescript
 const { approvalDataItemId, approvedWincAmount } = await turbo.shareCredits({
   approvedAddress: '2cor...VUa',
-  approvedWincAmount: 0.08315565032,
-  expiresBySeconds: 3600,
+  approvedWincAmount: 800_000_000_000, // 0.8 Credits
+  expiresBySeconds: 3600, // Credits will expire back to original wallet in 1 hour
 });
 ```
 
@@ -776,7 +810,7 @@ Revokes all credits shared from the connected wallet to the provided native addr
 
 ```typescript
 const revokedApprovals = await turbo.revokeCredits({
-  approvedAddress: '2cor...VUa',
+  revokedAddress: '2cor...VUa',
 });
 ```
 

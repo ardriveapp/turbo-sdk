@@ -129,15 +129,15 @@ describe('ensureChunkedStream', () => {
     );
 
     const reader = chunkedStream.getReader();
-    let chunkSize = 0;
+    let chunkByteCount = 0;
     const validationStream = new ReadableStream<Uint8Array>({
       async pull(controller) {
         const { value, done } = await reader.read();
         if (done) {
           controller.close();
         }
-        if (!chunkSize) {
-          chunkSize = value?.byteLength ?? 0;
+        if (!chunkByteCount) {
+          chunkByteCount = value?.byteLength ?? 0;
         }
 
         controller.enqueue(value);
@@ -149,7 +149,7 @@ describe('ensureChunkedStream', () => {
       size: data.length,
     });
 
-    assert.equal(chunkSize, 1, 'Expected one byte chunks');
+    assert.equal(chunkByteCount, 1, 'Expected one byte chunks');
     assert.equal(buffer.length, data.length, 'Expected full buffer');
     assert.equal(
       buffer.toString(),

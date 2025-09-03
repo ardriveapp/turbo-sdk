@@ -23,7 +23,7 @@ services:
   #     - '8545:8545'
 
   upload-service:
-    image: ghcr.io/ardriveapp/upload-service:722375f2aaa5bbe6ab0dd3ee9ca38be5f46925ba
+    image: ghcr.io/ardriveapp/upload-service:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     ports:
       - '3000:3000'
     healthcheck:
@@ -48,11 +48,15 @@ services:
       AWS_ENDPOINT: ${AWS_ENDPOINT:-http://localstack:4566}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      ELASTICACHE_HOST: ${ELASTICACHE_HOST:-redis}
+      ELASTICACHE_NO_CLUSTERING: ${ELASTICACHE_NO_CLUSTERING:-true}
       SQS_PREPARE_BUNDLE_URL: ${SQS_PREPARE_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/prepare-bundle-queue}
       SQS_FINALIZE_UPLOAD_URL: ${SQS_FINALIZE_UPLOAD_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/finalize-multipart-queue}
       SQS_OPTICAL_URL: ${SQS_OPTICAL_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/optical-post-queue}
       SQS_NEW_DATA_ITEM_URL: ${SQS_NEW_DATA_ITEM_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/batch-insert-new-data-items-queue}
       SQS_UNBUNDLE_BDI_URL: ${SQS_UNBUNDLE_BDI_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/bdi-unbundle-queue}
+      SQS_PUT_OFFSETS_URL: ${SQS_PUT_OFFSETS_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/put-offsets-queue}
+      OPTICAL_BRIDGING_ENABLED: ${OPTICAL_BRIDGING_ENABLED:-false}
       DATA_ITEM_BUCKET: ${DATA_ITEM_BUCKET:-turbo-sdk}
       DATA_ITEM_BUCKET_REGION: ${DATA_ITEM_BUCKET_REGION:-us-east-1}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
@@ -68,6 +72,62 @@ services:
       - payment-service
       - arlocal-setup
       - localstack
+      - redis
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: ['redis-server']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  fulfillment-service:
+    image: ghcr.io/ardriveapp/upload-service-fulfillment:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
+    environment:
+      NODE_ENV: ${NODE_ENV:-local}
+      DB_HOST: upload-service-pg
+      DB_PORT: 5432
+      DB_PASSWORD: postgres
+      PORT: ${FULFILLMENT_PORT:-4001}
+      AWS_ENDPOINT: ${AWS_ENDPOINT:-http://localstack:4566}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
+      SQS_PREPARE_BUNDLE_URL: ${SQS_PREPARE_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/prepare-bundle-queue}
+      SQS_FINALIZE_UPLOAD_URL: ${SQS_FINALIZE_UPLOAD_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/finalize-multipart-queue}
+      SQS_OPTICAL_URL: ${SQS_OPTICAL_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/optical-post-queue}
+      SQS_NEW_DATA_ITEM_URL: ${SQS_NEW_DATA_ITEM_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/batch-insert-new-data-items-queue}
+      SQS_UNBUNDLE_BDI_URL: ${SQS_UNBUNDLE_BDI_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/bdi-unbundle-queue}
+      SQS_PUT_OFFSETS_URL: ${SQS_PUT_OFFSETS_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/put-offsets-queue}
+      SQS_POST_BUNDLE_URL: ${SQS_POST_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/post-bundle-queue}
+      SQS_SEED_BUNDLE_URL: ${SQS_SEED_BUNDLE_URL:-http://sqs.us-east-1.localstack.localstack.cloud:4566/000000000000/seed-bundle-queue}
+      PLAN_BUNDLE_ENABLED: ${PLAN_BUNDLE_ENABLED:-false}
+      VERIFY_BUNDLE_ENABLED: ${VERIFY_BUNDLE_ENABLED:-false}
+      OPTICAL_BRIDGING_ENABLED: ${OPTICAL_BRIDGING_ENABLED:-false}
+      DATA_ITEM_BUCKET: ${DATA_ITEM_BUCKET:-turbo-sdk}
+      DATA_ITEM_BUCKET_REGION: ${DATA_ITEM_BUCKET_REGION:-us-east-1}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      OVERDUE_DATA_ITEM_THRESHOLD_MS: ${OVERDUE_DATA_ITEM_THRESHOLD_MS:-0} # plan data items immediately into bundles when plan-bundle runs
+      ELASTICACHE_HOST: ${ELASTICACHE_HOST:-redis}
+      ELASTICACHE_NO_CLUSTERING: ${ELASTICACHE_NO_CLUSTERING:-true}
+    ports:
+      - '${FULFILLMENT_PORT:-4001}:${FULFILLMENT_PORT:-4001}'
+    depends_on:
+      upload-service:
+        condition: service_started
+      localstack:
+        condition: service_healthy
+      upload-service-pg:
+        condition: service_started
 
   upload-service-pg:
     image: postgres:13.8
@@ -81,13 +141,13 @@ services:
       - upload-service-data:/var/lib/postgresql/data
 
   localstack:
-    image: ghcr.io/ardriveapp/turbo-upload-service-localstack:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
+    image: ghcr.io/ardriveapp/upload-service-localstack-image:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     restart: on-failure
     ports:
       - '4566:4566'
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
-      - SERVICES=${SERVICES:-s3,sqs,secretsmanager}
+      - SERVICES=${SERVICES:-s3,sqs,secretsmanager,dynamodb}
       - DEBUG=${DEBUG:-0}
       - NODE_ENV=${NODE_ENV:-local}
       - ARWEAVE_WALLET=${ARWEAVE_WALLET:-$BUNDLER_ARWEAVE_WALLET}
@@ -155,3 +215,4 @@ volumes:
   payment-service-data:
   upload-service-data:
   upload-service-data-items:
+  redis-data:

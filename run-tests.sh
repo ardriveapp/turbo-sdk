@@ -1,4 +1,7 @@
 #!/bin/bash
+
+BUNDLER_ARWEAVE_WALLET=$(cat ./tests/wallets/ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU.json)
+
 docker compose pull --quiet
 docker compose up --quiet-pull -d
 
@@ -25,12 +28,25 @@ if [ $elapsed -ge $timeout ]; then
   exit 1
 fi
 
+# check for arg --only (source copy_repo.sh --only)
+if [[ "$@" == *"--only"* ]]; then
+  only=true
+fi
+
 # Run tests and capture the exit code
-yarn dotenv -e .env.test yarn test
+if [ "$only" = true ]; then
+  yarn dotenv -e .env.test yarn test:only
+else
+  yarn dotenv -e .env.test yarn test
+fi
 exit_code=$?
 
 # Tear down the docker-compose setup
 docker compose down -v
+
+# Destroy redis data between tests
+docker volume rm -f redis-data
+
 
 # Exit with the captured exit code
 exit $exit_code

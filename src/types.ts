@@ -22,7 +22,6 @@ import {
   HexSolanaSigner,
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
-import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
@@ -31,9 +30,12 @@ import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
+import { RetryConfig } from './utils/axiosClient.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
+
+export type ByteCount = number;
 
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
@@ -245,6 +247,46 @@ export type TurboUploadDataItemResponse = {
   revokedApprovals?: CreditShareApproval[];
 };
 
+export const multipartPendingStatus = [
+  'ASSEMBLING',
+  'VALIDATING',
+  'FINALIZING',
+] as const;
+export type PendingMultiPartStatus = (typeof multipartPendingStatus)[number];
+
+export const multipartFailedStatus = [
+  'UNDERFUNDED',
+  'INVALID',
+  'APPROVAL_FAILED',
+  'REVOKE_FAILED',
+] as const;
+export type FailedMultiPartStatus = (typeof multipartFailedStatus)[number];
+
+export const multipartFinalizedStatus = ['FINALIZED'] as const;
+export type FinalizedMultiPartStatus =
+  (typeof multipartFinalizedStatus)[number];
+
+export type TurboMultiPartStatusResponse =
+  | { status: PendingMultiPartStatus }
+  | { status: FailedMultiPartStatus }
+  | FinalizedStatusResponse;
+type FinalizedStatusResponse = {
+  status: 'FINALIZED';
+} & {
+  receipt: {
+    id: string;
+    deadlineHeight: number;
+    timestamp: number;
+    version: string;
+    dataCaches: string[];
+    fastFinalityIndexes: string[];
+    winc: string;
+    owner: string;
+    public: string;
+    signature: string;
+  };
+};
+
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
@@ -254,7 +296,8 @@ type UploadFolderParams = {
     fallbackFile?: string;
     indexFile?: string;
   };
-} & TurboAbortSignal;
+} & TurboAbortSignal &
+  TurboChunkingParams;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -398,7 +441,7 @@ type TurboAuthConfiguration = {
 
 type TurboServiceConfiguration = {
   url?: string;
-  retryConfig?: IAxiosRetryConfig;
+  retryConfig?: RetryConfig;
   logger?: TurboLogger;
   token?: TokenType;
 };
@@ -591,6 +634,23 @@ export type UploadDataInput = {
   signal?: AbortSignal;
 };
 
+export const validChunkingModes = ['force', 'disabled', 'auto'] as const;
+export type TurboChunkingMode = (typeof validChunkingModes)[number];
+
+export type TurboChunkingParams = {
+  /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
+  chunkByteCount?: number;
+  /** Number of chunks to send up concurrently */
+  maxChunkConcurrency?: number;
+  /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
+  chunkingMode?: TurboChunkingMode;
+  /**
+   * Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded.
+   * If not specified, the SDK will use a default value of 1 minute per GiB.
+   */
+  maxFinalizeMs?: number;
+};
+
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &
   TurboAbortSignal &
   TurboUploadAndSigningEmitterEvents;
@@ -598,7 +658,8 @@ export type TurboUploadFileWithFileOrPathParams = {
   file: File | string;
   dataItemOpts?: DataItemOptions;
 } & TurboAbortSignal &
-  TurboUploadAndSigningEmitterEvents;
+  TurboUploadAndSigningEmitterEvents &
+  TurboChunkingParams;
 
 export type TurboUploadFileParams =
   | TurboUploadFileWithStreamFactoryParams
@@ -618,7 +679,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
   // bundle?: boolean; // TODO: add bundling into BDIs
-};
+} & TurboChunkingParams;
 
 export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
@@ -778,7 +839,8 @@ export interface TurboAuthenticatedUploadServiceInterface
     events,
   }: UploadDataInput &
     TurboAbortSignal &
-    TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+    TurboUploadEmitterEvents &
+    TurboChunkingParams): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse>;
@@ -835,3 +897,7 @@ export type TokenFactory = Record<
   string,
   (config: TokenConfig | AoProcessConfig) => TokenTools
 >;
+
+export type UploadSignedDataItemParams = TurboSignedDataItemFactory &
+  TurboAbortSignal &
+  TurboUploadEmitterEvents;

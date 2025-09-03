@@ -21,6 +21,7 @@ import {
   Currency,
   TokenType,
   TurboAuthenticatedClient,
+  TurboChunkingParams,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
   defaultTurboConfiguration,
@@ -297,7 +298,7 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
   fallbackFile: string | undefined;
   disableManifest: boolean;
   maxConcurrentUploads: number;
-} {
+} & Partial<TurboChunkingParams> {
   if (options.folderPath === undefined) {
     throw new Error('--folder-path is required');
   }
@@ -308,6 +309,7 @@ export function getUploadFolderOptions(options: UploadFolderOptions): {
     fallbackFile: options.fallbackFile,
     disableManifest: !options.manifest,
     maxConcurrentUploads: +(options.maxConcurrency ?? 1),
+    ...getChunkingOptions(options),
   };
 }
 
@@ -384,4 +386,22 @@ export function requiredByteCountFromOptions({
     throw new Error('Must provide a positive number for byte count.');
   }
   return byteCountValue;
+}
+
+export function getChunkingOptions<O extends UploadOptions>(
+  options: O,
+): Partial<TurboChunkingParams> {
+  return {
+    chunkingMode: options.chunkingMode,
+    chunkByteCount:
+      options.chunkByteCount !== undefined
+        ? +options.chunkByteCount
+        : undefined,
+    maxChunkConcurrency:
+      options.maxChunkConcurrency !== undefined
+        ? +options.maxChunkConcurrency
+        : undefined,
+    maxFinalizeMs:
+      options.maxFinalizeMs !== undefined ? +options.maxFinalizeMs : undefined,
+  };
 }

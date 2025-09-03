@@ -10,6 +10,7 @@ import { BigNumber } from 'bignumber.js';
 import { TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
 import { strict as assert } from 'node:assert';
+import { randomBytes } from 'node:crypto';
 import { after, afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
@@ -62,6 +63,8 @@ describe('Browser environment', () => {
   after(() => {
     delete (global as any).window;
   });
+
+  const randomTestData = () => randomBytes(1024).toString('utf-8');
 
   describe('TurboFactory', () => {
     it('should be a TurboUnauthenticatedClient running in the browser and not provided a privateKey', () => {
@@ -559,10 +562,10 @@ describe('Browser environment', () => {
 
     describe('upload()', () => {
       const uploadDataTypeInputsMap = {
-        string: 'a test string',
-        Uint8Array: new TextEncoder().encode('a test string'),
-        ArrayBuffer: new TextEncoder().encode('a test string').buffer,
-        Blob: new Blob(['a test string'], { type: 'text/plain' }),
+        string: randomTestData(),
+        Uint8Array: new TextEncoder().encode(randomTestData()),
+        ArrayBuffer: new TextEncoder().encode(randomTestData()).buffer,
+        Blob: new Blob([randomTestData()], { type: 'text/plain' }),
       };
       for (const [label, input] of Object.entries(uploadDataTypeInputsMap)) {
         it(`should properly upload a ${label} to turbo events`, async () => {
@@ -638,7 +641,7 @@ describe('Browser environment', () => {
     describe('uploadFile()', () => {
       it('should properly upload a ReadableStream to turbo', async () => {
         const encoder = new TextEncoder();
-        const uint8Array = encoder.encode('test data');
+        const uint8Array = encoder.encode(randomTestData());
         const readableStream = new ReadableStream({
           start(controller) {
             controller.enqueue(uint8Array);
@@ -690,7 +693,7 @@ describe('Browser environment', () => {
 
       it('should abort the upload when AbortController.signal is triggered', async () => {
         const encoder = new TextEncoder();
-        const uint8Array = encoder.encode('test data');
+        const uint8Array = encoder.encode(randomTestData());
         const readableStream = new ReadableStream({
           start(controller) {
             controller.enqueue(uint8Array);
@@ -705,6 +708,33 @@ describe('Browser environment', () => {
           })
           .catch((err) => err);
         assert.ok(error instanceof CanceledError);
+      });
+
+      it('should properly upload a ReadableStream with chunking forced', async () => {
+        const encoder = new TextEncoder();
+        const fileSize = 11 * 1024 * 1024;
+        const randomData = randomBytes(fileSize).toString();
+        const uint8Array = encoder.encode(randomData);
+        const readableStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(uint8Array);
+            controller.close();
+          },
+        });
+
+        // Upload the ReadableStream
+        const response = await turbo.uploadFile({
+          fileStreamFactory: () => readableStream,
+          fileSizeFactory: () => uint8Array.length,
+          dataItemOpts: {},
+          chunkingMode: 'force',
+        });
+        assert.ok(response !== undefined);
+        assert.ok(response.fastFinalityIndexes !== undefined);
+        assert.ok(response.dataCaches !== undefined);
+        assert.ok(response.owner !== undefined);
+        assert.equal(response.owner, testArweaveNativeB64Address);
+        assert.ok(response.winc !== undefined);
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {
@@ -732,7 +762,7 @@ describe('Browser environment', () => {
 
       it('should properly upload a file with File object', async () => {
         const encoder = new TextEncoder();
-        const uint8Array = encoder.encode('test data');
+        const uint8Array = encoder.encode(randomTestData());
         const file = new File([uint8Array], 'stubFile.txt', {
           type: 'text/plain',
         });
@@ -744,7 +774,7 @@ describe('Browser environment', () => {
     describe('uploadFolder()', () => {
       it('uploads expected data items and manifest', async () => {
         const files = [
-          new File(['test data'], 'stubFile.txt', { type: 'text/plain' }),
+          new File([randomTestData()], 'stubFile.txt', { type: 'text/plain' }),
           new File(['test data 2'], 'stubFile2.txt', { type: 'text/plain' }),
           new File(
             [`{ "key":  "val", "key2" : [1, 2, 3] }`],
@@ -883,7 +913,7 @@ describe('Browser environment', () => {
 
     it('should properly upload a Readable to turbo', async () => {
       const encoder = new TextEncoder();
-      const uint8Array = encoder.encode('test data');
+      const uint8Array = encoder.encode(randomTestData());
       const readableStream = new ReadableStream({
         start(controller) {
           controller.enqueue(uint8Array);
@@ -1007,7 +1037,7 @@ describe('Browser environment', () => {
 
     it('should properly upload a Readable to turbo', async () => {
       const encoder = new TextEncoder();
-      const uint8Array = encoder.encode('test data');
+      const uint8Array = encoder.encode(randomTestData());
       const readableStream = new ReadableStream({
         start(controller) {
           controller.enqueue(uint8Array);
@@ -1028,7 +1058,7 @@ describe('Browser environment', () => {
 
     it('should properly upload a Buffer to turbo with uploadFile', async () => {
       const encoder = new TextEncoder();
-      const uint8Array = encoder.encode('test data');
+      const uint8Array = encoder.encode(randomTestData());
 
       const response = await turbo.uploadFile({
         fileStreamFactory: () => Buffer.from(uint8Array),
