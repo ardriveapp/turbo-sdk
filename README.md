@@ -627,7 +627,7 @@ const uploadResult = await turbo.uploadFile({
 
 ##### Customize Multi-Part Upload Behavior
 
-By default, the Turbo upload methods will split files into chunks that are larger than 10 MiB and send these chunks to the upload service multi-part endpoints. This behavior can be customized with the following inputs:
+By default, the Turbo upload methods will split files that are larger than 10 MiB into chunks and send them to the upload service multi-part endpoints. This behavior can be customized with the following inputs:
 
 - `chunkByteCount`: The maximum size in bytes for each chunk. Must be between 5 MiB and 500 MiB. Defaults to 5 MiB.
 - `maxChunkConcurrency`: The maximum number of chunks to upload concurrently. Defaults to 5. Reducing concurrency will slow down uploads, but reduce memory utilization and serialize network calls. Increasing it will upload faster, but can strain available resources.
