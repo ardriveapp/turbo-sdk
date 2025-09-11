@@ -191,8 +191,8 @@ export abstract class TurboBaseFactory {
       }
       return new HexInjectedSolanaSigner(walletAdapter);
     }
-
-    if (token === 'ethereum') {
+    const ethTokens = new Set(['ethereum', 'base-eth']);
+    if (ethTokens.has(token)) {
       if (!isEthereumWalletAdapter(walletAdapter)) {
         throw new Error(
           'Unsupported wallet adapter -- must implement getSigner',
