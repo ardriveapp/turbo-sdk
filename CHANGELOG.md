@@ -1,3 +1,10 @@
+## [1.31.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.0...v1.31.1-alpha.1) (2025-09-11)
+
+
+### Bug Fixes
+
+* allow base-eth on wallet adapter PE-8541 ([7353eb2](https://github.com/ardriveapp/turbo-sdk/commit/7353eb2f71b6c0f5bf9ac762401d50708d374633))
+
 # [1.31.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.30.0...v1.31.0) (2025-09-03)
 
 
