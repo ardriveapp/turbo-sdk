@@ -96,10 +96,10 @@ export function createTurboSigner({
     if (clientProvidedSigner instanceof InjectedEthereumSigner) {
       // Override the setPublicKey method to resolve a generic string to sign
       clientProvidedSigner.setPublicKey = async () => {
-        const address = 'sign this message to connect to your account';
+        const message = 'sign this message to connect to your account';
         const signedMsg =
-          await clientProvidedSigner['signer'].signMessage(address);
-        const hash = hashMessage(address);
+          await clientProvidedSigner['signer'].signMessage(message);
+        const hash = hashMessage(message);
         const recoveredKey = recoverPublicKey(arrayify(hash), signedMsg);
         this.publicKey = Buffer.from(arrayify(recoveredKey));
       };
