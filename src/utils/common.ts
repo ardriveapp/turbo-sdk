@@ -101,7 +101,7 @@ export function createTurboSigner({
           await clientProvidedSigner['signer'].signMessage(message);
         const hash = hashMessage(message);
         const recoveredKey = recoverPublicKey(arrayify(hash), signedMsg);
-        this.publicKey = Buffer.from(arrayify(recoveredKey));
+        clientProvidedSigner.publicKey = Buffer.from(arrayify(recoveredKey));
       };
     }
     return clientProvidedSigner;
