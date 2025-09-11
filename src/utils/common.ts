@@ -20,7 +20,11 @@ import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
+  InjectedEthereumSigner,
 } from '@dha-team/arbundles';
+import { arrayify } from '@ethersproject/bytes';
+import { recoverPublicKey } from '@ethersproject/signing-key';
+import { hashMessage } from 'ethers';
 
 import {
   TokenType,
@@ -89,6 +93,17 @@ export function createTurboSigner({
   token: TokenType;
 }): TurboSigner {
   if (clientProvidedSigner !== undefined) {
+    if (clientProvidedSigner instanceof InjectedEthereumSigner) {
+      // Override the setPublicKey method to resolve a generic string to sign
+      clientProvidedSigner.setPublicKey = async () => {
+        const address = 'sign this message to connect to your account';
+        const signedMsg =
+          await clientProvidedSigner['signer'].signMessage(address);
+        const hash = hashMessage(address);
+        const recoveredKey = recoverPublicKey(arrayify(hash), signedMsg);
+        this.publicKey = Buffer.from(arrayify(recoveredKey));
+      };
+    }
     return clientProvidedSigner;
   }
 
