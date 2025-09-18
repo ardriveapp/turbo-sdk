@@ -28,6 +28,7 @@ import {
   TurboUploadFolderParams,
   isNodeUploadFolderParams,
 } from '../types.js';
+import { TurboAuthenticatedPaymentService } from './index.js';
 
 export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploadService {
   constructor({
@@ -36,13 +37,17 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     signer,
     logger,
     token,
-  }: TurboAuthenticatedUploadServiceConfiguration) {
+    paymentService,
+  }: TurboAuthenticatedUploadServiceConfiguration & {
+    paymentService: TurboAuthenticatedPaymentService;
+  }) {
     super({
       url,
       retryConfig,
       logger,
       token,
       signer,
+      paymentService,
     });
   }
 

@@ -15,6 +15,7 @@
  */
 import { CanceledError } from 'axios';
 import { IAxiosRetryConfig } from 'axios-retry';
+import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
 
@@ -28,6 +29,7 @@ import {
   TurboAuthenticatedUploadServiceInterface,
   TurboChunkingParams,
   TurboCreateCreditShareApprovalParams,
+  TurboCryptoFundResponse,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
@@ -51,7 +53,9 @@ import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
+import { tokenToBaseMap } from './index.js';
 import { TurboWinstonLogger } from './logger.js';
+import { TurboAuthenticatedPaymentService } from './payment.js';
 
 export type TurboUploadConfig = TurboFileFactory &
   TurboAbortSignal &
@@ -86,6 +90,7 @@ export class TurboUnauthenticatedUploadService
   protected logger: TurboLogger;
   protected token: TokenType;
   protected retryConfig: IAxiosRetryConfig;
+
   constructor({
     url = defaultUploadServiceURL,
     logger = TurboWinstonLogger.default,
@@ -160,6 +165,7 @@ export abstract class TurboAuthenticatedBaseUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
   protected signer: TurboDataItemSigner;
+  protected paymentService: TurboAuthenticatedPaymentService;
 
   constructor({
     url = defaultUploadServiceURL,
@@ -167,9 +173,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     signer,
     logger,
     token,
-  }: TurboAuthenticatedUploadServiceConfiguration) {
+    paymentService,
+  }: TurboAuthenticatedUploadServiceConfiguration & {
+    paymentService: TurboAuthenticatedPaymentService;
+  }) {
     super({ url, retryConfig, logger, token });
     this.signer = signer;
+    this.paymentService = paymentService;
   }
 
   /**
@@ -256,8 +266,14 @@ export abstract class TurboAuthenticatedBaseUploadService
   async uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse> {
-    const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
-      this.resolveUploadFileConfig(params);
+    const {
+      signal,
+      dataItemOpts,
+      events,
+      fileStreamFactory,
+      fileSizeFactory,
+      cryptoTopUpOnDemand,
+    } = this.resolveUploadFileConfig(params);
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -268,6 +284,12 @@ export abstract class TurboAuthenticatedBaseUploadService
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
     const emitter = new TurboEventEmitter(events);
     // avoid duplicating signing on failures here - these errors will immediately be thrown
+
+    let cryptoFundResult: TurboCryptoFundResponse | undefined;
+    if (cryptoTopUpOnDemand) {
+      const totalByteCount = fileSizeFactory();
+      cryptoFundResult = await this.onDemand({ totalByteCount });
+    }
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
@@ -307,7 +329,7 @@ export abstract class TurboAuthenticatedBaseUploadService
             signal,
             events,
           });
-          return response;
+          return { ...response, cryptoFundResult };
         }
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
@@ -316,7 +338,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           signal,
           events,
         });
-        return response;
+        return { ...response, cryptoFundResult };
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
@@ -452,6 +474,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
+      cryptoTopUpOnDemand = false,
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
@@ -503,6 +526,14 @@ export abstract class TurboAuthenticatedBaseUploadService
     const files = await this.getFiles(params);
     const limit = pLimit(maxConcurrentUploads);
 
+    let cryptoFundResult: TurboCryptoFundResponse | undefined;
+    if (cryptoTopUpOnDemand) {
+      const totalByteCount = files.reduce((acc, file) => {
+        return acc + this.getFileSize(file);
+      }, 0);
+      cryptoFundResult = await this.onDemand({ totalByteCount });
+    }
+
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
 
     this.logger.debug('Finished uploading files', {
@@ -549,6 +580,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       ...response,
       manifest,
       manifestResponse,
+      cryptoFundResult,
     };
   }
 
@@ -618,5 +650,129 @@ export abstract class TurboAuthenticatedBaseUploadService
       );
     }
     return revokedApprovals;
+  }
+
+  private enabledOnDemandTokens: TokenType[] = ['ario', 'solana', 'base-eth'];
+
+  /**
+   * Triggers an upload that will top-up the wallet with Credits for the amount before uploading.
+   * First, it calculates the expected cost of the upload. Next, it checks the wallet for existing
+   * balance. If the balance is insufficient, it will attempt the top-up with the wallet in the specified `token`
+   * and await for the balance to be credited.
+   * Note: Only `ario`, `solana`, and `base-eth` tokens are currently supported for on-demand uploads.
+   */
+  private async onDemand({
+    totalByteCount,
+    topUpBuffer = 1.1,
+  }: {
+    totalByteCount: number;
+    topUpBuffer?: number;
+  }): Promise<TurboCryptoFundResponse | undefined> {
+    const currentBalance = await this.paymentService.getBalance();
+    const wincPriceForOneGiB = (
+      await this.paymentService.getUploadCosts({
+        bytes: [2 ** 30],
+      })
+    )[0].winc;
+
+    const expectedWincPrice = new BigNumber(wincPriceForOneGiB)
+      .multipliedBy(totalByteCount)
+      .dividedBy(2 ** 30)
+      .toFixed(0, BigNumber.ROUND_UP);
+
+    if (
+      BigNumber(currentBalance.effectiveBalance).isGreaterThanOrEqualTo(
+        expectedWincPrice,
+      )
+    ) {
+      this.logger.debug('Sufficient balance for on demand upload', {
+        currentBalance,
+        expectedWincPrice,
+      });
+      return undefined;
+    }
+
+    this.logger.debug('Insufficient balance for on demand upload', {
+      currentBalance,
+      expectedWincPrice,
+    });
+
+    if (!this.enabledOnDemandTokens.includes(this.token)) {
+      throw new Error(
+        `On-demand uploads are not supported for token: ${this.token}`,
+      );
+    }
+
+    const topUpWincAmount = BigNumber(expectedWincPrice)
+      .minus(currentBalance.effectiveBalance)
+      .multipliedBy(topUpBuffer) // add buffer to avoid underpayment
+      .toFixed(0, BigNumber.ROUND_UP);
+
+    const wincPriceForOneToken = (
+      await this.paymentService.getWincForToken({
+        tokenAmount: tokenToBaseMap[this.token](1),
+      })
+    ).winc;
+
+    const topUpTokenAmount = new BigNumber(topUpWincAmount)
+      .dividedBy(wincPriceForOneToken)
+      .multipliedBy(tokenToBaseMap[this.token](1))
+      .toFixed(0, BigNumber.ROUND_UP);
+
+    this.logger.debug(
+      `Topping up wallet with ${topUpTokenAmount} ${this.token} for ${topUpWincAmount} winc`,
+    );
+    const topUpResponse = await this.paymentService.topUpWithTokens({
+      tokenAmount: topUpTokenAmount,
+    });
+    this.logger.debug('Top up transaction submitted', { topUpResponse });
+
+    const pollingOptions = {
+      initialDelayMs: 1000, // wait 1 second before polling
+      pollIntervalMs: 2 * 1000, // poll every 2 seconds
+      timeoutMs: 30 * 1000, // wait up to 30 seconds
+    };
+    this.logger.debug('Polling for updated balance after top-up...', {
+      pollingOptions,
+    });
+    let tries = 0;
+    const maxTries = Math.ceil(
+      pollingOptions.timeoutMs / pollingOptions.pollIntervalMs,
+    );
+    await sleep(pollingOptions.initialDelayMs);
+    while (tries < maxTries) {
+      tries++;
+      try {
+        const updatedBalance = await this.paymentService.getBalance();
+        if (
+          BigNumber(updatedBalance.effectiveBalance).isGreaterThanOrEqualTo(
+            BigNumber(currentBalance.effectiveBalance).plus(topUpWincAmount),
+          )
+        ) {
+          break;
+        }
+      } catch (error) {
+        this.logger.warn('Error fetching balance during top-up polling', {
+          message: error instanceof Error ? error.message : error,
+        });
+      }
+      this.logger.debug('Balance not yet updated, waiting to poll again', {
+        tries,
+        maxTries,
+      });
+      await sleep(pollingOptions.pollIntervalMs);
+    }
+    if (tries === maxTries) {
+      this.logger.warn(
+        'Timed out waiting for balance to update after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
+        {
+          currentBalance,
+          expectedBalance: BigNumber(currentBalance.effectiveBalance)
+            .plus(topUpWincAmount)
+            .toFixed(0, BigNumber.ROUND_UP),
+        },
+      );
+    }
+    return topUpResponse;
   }
 }

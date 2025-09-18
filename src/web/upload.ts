@@ -22,6 +22,7 @@ import {
   TurboUploadFolderParams,
   isWebUploadFolderParams,
 } from '../types.js';
+import { TurboAuthenticatedPaymentService } from './index.js';
 
 export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploadService {
   constructor({
@@ -30,8 +31,11 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
     signer,
     logger,
     token,
-  }: TurboAuthenticatedUploadServiceConfiguration) {
-    super({ url, retryConfig, logger, token, signer });
+    paymentService,
+  }: TurboAuthenticatedUploadServiceConfiguration & {
+    paymentService: TurboAuthenticatedPaymentService;
+  }) {
+    super({ url, retryConfig, logger, token, signer, paymentService });
   }
 
   getFiles(params: TurboUploadFolderParams): Promise<File[]> {

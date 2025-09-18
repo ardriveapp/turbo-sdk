@@ -245,12 +245,14 @@ export type TurboUploadDataItemResponse = {
   winc: string;
   createdApproval?: CreditShareApproval;
   revokedApprovals?: CreditShareApproval[];
+  cryptoFundResult?: TurboCryptoFundResponse;
 };
 
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
+  cryptoTopUpOnDemand?: boolean;
   manifestOptions?: {
     disableManifest?: boolean;
     fallbackFile?: string;
@@ -292,6 +294,7 @@ export type TurboUploadFolderResponse = {
   manifestResponse?: TurboUploadDataItemResponse;
   manifest?: ArweaveManifest;
   errors?: Error[];
+  cryptoFundResult?: TurboCryptoFundResponse;
 };
 
 export type ArweaveManifest = {
@@ -633,6 +636,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
+  cryptoTopUpOnDemand?: boolean;
   // bundle?: boolean; // TODO: add bundling into BDIs
 } & TurboChunkingParams;
 
