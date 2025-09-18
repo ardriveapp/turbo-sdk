@@ -178,6 +178,12 @@ export const optionMap = {
       'Chunking mode to use for the upload. Can be "auto", "force" or "disabled". Defaults to "auto".',
     default: 'auto',
   },
+  onDemand: {
+    alias: '--on-demand',
+    description:
+      'Enable on-demand crypto top-ups during upload if balance is insufficient',
+    default: false,
+  },
 } as const;
 
 export const walletOptions = [
@@ -207,6 +213,7 @@ export const uploadOptions = [
   optionMap.maxChunkConcurrency,
   optionMap.chunkByteCount,
   optionMap.chunkingMode,
+  optionMap.onDemand,
 ];
 
 export const uploadFolderOptions = [

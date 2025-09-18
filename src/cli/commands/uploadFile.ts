@@ -40,6 +40,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
     fileSizeFactory: () => fileSize,
     dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
     ...getChunkingOptions(options),
+    cryptoTopUpOnDemand: options.onDemand,
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

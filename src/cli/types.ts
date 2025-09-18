@@ -52,6 +52,7 @@ export type UploadOptions = WalletOptions & {
   maxChunkConcurrency: string | undefined;
   chunkByteCount: string | undefined;
   chunkingMode: TurboChunkingMode | undefined;
+  onDemand: boolean;
 };
 
 export type UploadFolderOptions = UploadOptions & {

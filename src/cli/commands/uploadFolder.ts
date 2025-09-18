@@ -53,6 +53,7 @@ export async function uploadFolder(
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    cryptoTopUpOnDemand: options.onDemand,
   });
 
   console.log('Uploaded folder:', JSON.stringify(result, null, 2));
