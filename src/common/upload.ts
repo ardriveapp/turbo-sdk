@@ -272,8 +272,14 @@ export abstract class TurboAuthenticatedBaseUploadService
       events,
       fileStreamFactory,
       fileSizeFactory,
-      cryptoTopUpOnDemand,
+      onDemandOptions,
     } = this.resolveUploadFileConfig(params);
+
+    const {
+      cryptoTopUpOnDemand = false,
+      feeMultiplier,
+      maxTokenAmount,
+    } = onDemandOptions ?? {};
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -286,10 +292,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     // avoid duplicating signing on failures here - these errors will immediately be thrown
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
-    if (cryptoTopUpOnDemand) {
-      const totalByteCount = fileSizeFactory();
-      cryptoFundResult = await this.onDemand({ totalByteCount });
-    }
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
@@ -306,6 +308,15 @@ export abstract class TurboAuthenticatedBaseUploadService
           dataItemOpts,
           emitter,
         });
+
+      if (cryptoTopUpOnDemand && cryptoFundResult === undefined) {
+        const totalByteCount = dataItemSizeFactory();
+        cryptoFundResult = await this.onDemand({
+          totalByteCount,
+          feeMultiplier,
+          maxTokenAmount,
+        });
+      }
 
       // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
       // which will create a new emitter with upload events. We await
@@ -474,8 +485,14 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
-      cryptoTopUpOnDemand = false,
+      onDemandOptions = {},
     } = params;
+
+    const {
+      cryptoTopUpOnDemand = false,
+      feeMultiplier,
+      maxTokenAmount,
+    } = onDemandOptions;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
 
@@ -529,9 +546,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
     if (cryptoTopUpOnDemand) {
       const totalByteCount = files.reduce((acc, file) => {
-        return acc + this.getFileSize(file);
+        return acc + this.getFileSize(file) + 1200; // allow extra per file for ANS-104 headers
       }, 0);
-      cryptoFundResult = await this.onDemand({ totalByteCount });
+      cryptoFundResult = await this.onDemand({
+        totalByteCount,
+        feeMultiplier,
+        maxTokenAmount,
+      });
     }
 
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
@@ -663,10 +684,14 @@ export abstract class TurboAuthenticatedBaseUploadService
    */
   private async onDemand({
     totalByteCount,
-    topUpBuffer = 1.1,
+    maxTokenAmount,
+    feeMultiplier,
+    topUpBufferMultiplier = 1.1,
   }: {
     totalByteCount: number;
-    topUpBuffer?: number;
+    maxTokenAmount?: string;
+    feeMultiplier?: number;
+    topUpBufferMultiplier?: number;
   }): Promise<TurboCryptoFundResponse | undefined> {
     const currentBalance = await this.paymentService.getBalance();
     const wincPriceForOneGiB = (
@@ -705,7 +730,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     const topUpWincAmount = BigNumber(expectedWincPrice)
       .minus(currentBalance.effectiveBalance)
-      .multipliedBy(topUpBuffer) // add buffer to avoid underpayment
+      .multipliedBy(topUpBufferMultiplier) // add buffer to avoid underpayment
       .toFixed(0, BigNumber.ROUND_UP);
 
     const wincPriceForOneToken = (
@@ -719,44 +744,55 @@ export abstract class TurboAuthenticatedBaseUploadService
       .multipliedBy(tokenToBaseMap[this.token](1))
       .toFixed(0, BigNumber.ROUND_UP);
 
+    if (maxTokenAmount !== undefined) {
+      if (new BigNumber(topUpTokenAmount).isGreaterThan(maxTokenAmount)) {
+        throw new Error(
+          `Top up token amount ${topUpTokenAmount} is greater than the maximum allowed amount of ${maxTokenAmount}`,
+        );
+      }
+    }
+
     this.logger.debug(
       `Topping up wallet with ${topUpTokenAmount} ${this.token} for ${topUpWincAmount} winc`,
     );
     const topUpResponse = await this.paymentService.topUpWithTokens({
       tokenAmount: topUpTokenAmount,
+      feeMultiplier,
     });
     this.logger.debug('Top up transaction submitted', { topUpResponse });
 
     const pollingOptions = {
-      initialDelayMs: 1000, // wait 1 second before polling
-      pollIntervalMs: 2 * 1000, // poll every 2 seconds
-      timeoutMs: 30 * 1000, // wait up to 30 seconds
+      pollIntervalMs: 3 * 1000, // poll every 3 seconds
+      timeoutMs: 60 * 1000, // wait up to 60 seconds
     };
-    this.logger.debug('Polling for updated balance after top-up...', {
+    this.logger.debug('Polling for tx to be confirmed by payment...', {
       pollingOptions,
     });
     let tries = 0;
     const maxTries = Math.ceil(
       pollingOptions.timeoutMs / pollingOptions.pollIntervalMs,
     );
-    await sleep(pollingOptions.initialDelayMs);
-    while (tries < maxTries) {
+    while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
       tries++;
       try {
-        const updatedBalance = await this.paymentService.getBalance();
-        if (
-          BigNumber(updatedBalance.effectiveBalance).isGreaterThanOrEqualTo(
-            BigNumber(currentBalance.effectiveBalance).plus(topUpWincAmount),
-          )
-        ) {
+        const submitFundResult =
+          await this.paymentService.submitFundTransaction({
+            txId: topUpResponse.id,
+          });
+        if (submitFundResult.status === 'confirmed') {
+          this.logger.debug(
+            'Top-up transaction confirmed and balance updated',
+            { submitFundResult },
+          );
+          topUpResponse.status = 'confirmed';
           break;
         }
       } catch (error) {
-        this.logger.warn('Error fetching balance during top-up polling', {
+        this.logger.warn('Error fetching fund transaction during polling', {
           message: error instanceof Error ? error.message : error,
         });
       }
-      this.logger.debug('Balance not yet updated, waiting to poll again', {
+      this.logger.debug('Tx not yet confirmed, waiting to poll again', {
         tries,
         maxTries,
       });
@@ -764,7 +800,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     }
     if (tries === maxTries) {
       this.logger.warn(
-        'Timed out waiting for balance to update after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
+        'Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
         {
           currentBalance,
           expectedBalance: BigNumber(currentBalance.effectiveBalance)

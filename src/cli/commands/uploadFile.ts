@@ -20,6 +20,7 @@ import { UploadFileOptions } from '../types.js';
 import {
   getChunkingOptions,
   getTagsFromOptions,
+  onDemandOptionsFromOptions,
   paidByFromOptions,
   turboFromOptions,
 } from '../utils.js';
@@ -40,7 +41,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
     fileSizeFactory: () => fileSize,
     dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
     ...getChunkingOptions(options),
-    cryptoTopUpOnDemand: options.onDemand,
+    onDemandOptions: onDemandOptionsFromOptions(options),
   });
 
   console.log('Uploaded file:', JSON.stringify(result, null, 2));

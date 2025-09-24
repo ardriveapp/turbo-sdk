@@ -248,11 +248,18 @@ export type TurboUploadDataItemResponse = {
   cryptoFundResult?: TurboCryptoFundResponse;
 };
 
+type OnDemandOptions = {
+  cryptoTopUpOnDemand?: boolean;
+  maxTokenAmount?: string;
+  feeMultiplier?: number;
+  topUpBufferMultiplier?: number;
+};
+
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
-  cryptoTopUpOnDemand?: boolean;
+  onDemandOptions?: OnDemandOptions;
   manifestOptions?: {
     disableManifest?: boolean;
     fallbackFile?: string;
@@ -636,7 +643,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
-  cryptoTopUpOnDemand?: boolean;
+  onDemandOptions?: OnDemandOptions;
   // bundle?: boolean; // TODO: add bundling into BDIs
 } & TurboChunkingParams;
 

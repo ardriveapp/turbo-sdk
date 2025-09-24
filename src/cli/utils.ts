@@ -30,6 +30,7 @@ import {
   isCurrency,
   isTokenType,
   privateKeyFromKyveMnemonic,
+  tokenToBaseMap,
 } from '../node/index.js';
 import {
   defaultProdAoConfigs,
@@ -356,6 +357,45 @@ export function getTagsFromOptions(
   options: UploadOptions,
 ): { name: string; value: string }[] {
   return parseTags(options.tags);
+}
+
+export function onDemandOptionsFromOptions(options: UploadOptions): {
+  cryptoTopUpOnDemand: boolean;
+  topUpBufferMultiplier?: number;
+  maxTokenAmount?: string;
+  feeMultiplier?: number;
+} {
+  const value = options.maxCryptoTopUpValue;
+
+  let maxTokenAmount: string | undefined = undefined;
+  if (value !== undefined) {
+    if (isNaN(+value) || +value <= 0) {
+      throw new Error('maxTokenAmount must be a positive number');
+    }
+    const token = tokenFromOptions(options);
+    maxTokenAmount = tokenToBaseMap[token](value).toString();
+  }
+
+  if (
+    options.topUpBufferMultiplier !== undefined &&
+    (isNaN(options.topUpBufferMultiplier) || options.topUpBufferMultiplier < 1)
+  ) {
+    throw new Error('topUpBufferMultiplier must be a number >= 1');
+  }
+
+  if (
+    options.feeMultiplier !== undefined &&
+    (isNaN(options.feeMultiplier) || options.feeMultiplier < 1)
+  ) {
+    throw new Error('feeMultiplier must be a number >= 1');
+  }
+
+  return {
+    cryptoTopUpOnDemand: options.onDemand,
+    topUpBufferMultiplier: options.topUpBufferMultiplier,
+    maxTokenAmount,
+    feeMultiplier: options.feeMultiplier,
+  };
 }
 
 export function currencyFromOptions<

@@ -90,6 +90,7 @@ export class EthereumToken implements TokenTools {
         const tx = await this.rpcProvider.getTransaction(txId);
 
         if (tx) {
+          this.logger.debug('Transaction found on chain', { txId, tx });
           return;
         }
       } catch (e) {

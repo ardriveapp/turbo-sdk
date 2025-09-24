@@ -53,6 +53,9 @@ export type UploadOptions = WalletOptions & {
   chunkByteCount: string | undefined;
   chunkingMode: TurboChunkingMode | undefined;
   onDemand: boolean;
+  maxCryptoTopUpValue: string | undefined;
+  topUpBufferMultiplier: number | undefined;
+  feeMultiplier: number | undefined;
 };
 
 export type UploadFolderOptions = UploadOptions & {

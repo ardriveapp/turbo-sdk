@@ -184,6 +184,21 @@ export const optionMap = {
       'Enable on-demand crypto top-ups during upload if balance is insufficient',
     default: false,
   },
+  feeMultiplier: {
+    alias: '--fee-multiplier <feeMultiplier>',
+    description:
+      'Multiplier to apply to the estimated fee amount to avoid underpayment during on-demand top-ups. Defaults to 1.0 (no multiplier).',
+  },
+  topUpBufferMultiplier: {
+    alias: '--top-up-buffer-multiplier <topUpBufferMultiplier>',
+    description:
+      'Multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups. Defaults to 1.1 (10% buffer).',
+  },
+  maxCryptoTopUpValue: {
+    alias: '--max-crypto-top-up-value <maxCryptoTopUpValue>',
+    description:
+      'Maximum crypto top-up value to use for the upload. Defaults to no limit.',
+  },
 } as const;
 
 export const walletOptions = [
@@ -204,6 +219,13 @@ export const globalOptions = [
   optionMap.uploadUrl,
 ];
 
+const onDemandOptions = [
+  optionMap.onDemand,
+  optionMap.topUpBufferMultiplier,
+  optionMap.maxCryptoTopUpValue,
+  optionMap.feeMultiplier,
+];
+
 export const uploadOptions = [
   ...walletOptions,
   optionMap.paidBy,
@@ -213,7 +235,7 @@ export const uploadOptions = [
   optionMap.maxChunkConcurrency,
   optionMap.chunkByteCount,
   optionMap.chunkingMode,
-  optionMap.onDemand,
+  ...onDemandOptions,
 ];
 
 export const uploadFolderOptions = [

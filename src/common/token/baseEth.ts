@@ -22,7 +22,7 @@ export class BaseEthToken extends EthereumToken {
     logger,
     gatewayUrl = defaultProdGatewayUrls['base-eth'],
     pollingOptions = {
-      initialBackoffMs: 1_000,
+      initialBackoffMs: 2_500,
       maxAttempts: 10,
       pollingIntervalMs: 2_500,
     },
@@ -32,5 +32,47 @@ export class BaseEthToken extends EthereumToken {
       gatewayUrl,
       pollingOptions,
     });
+  }
+
+  public async pollForTxBeingAvailable({
+    txId,
+  }: {
+    txId: string;
+  }): Promise<void> {
+    this.logger.debug('Polling for transaction to be available on chain', {
+      txId,
+      ...this.pollingOptions,
+    });
+    await new Promise((resolve) =>
+      setTimeout(resolve, this.pollingOptions.initialBackoffMs),
+    );
+
+    let attempts = 0;
+    while (attempts < this.pollingOptions.maxAttempts) {
+      try {
+        const tx = await this.rpcProvider.getTransactionReceipt(txId);
+
+        if (tx) {
+          const confirmations = await tx.confirmations();
+          if (confirmations >= 1) {
+            this.logger.debug('Transaction found on chain', {
+              txId,
+              tx,
+              confirmations,
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        this.logger.debug('Error polling for tx', { txId, e });
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.pollingOptions.pollingIntervalMs),
+      );
+      attempts++;
+    }
+
+    throw new Error('Transaction not found after polling!');
   }
 }
