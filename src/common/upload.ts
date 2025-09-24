@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { CanceledError } from 'axios';
-import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
@@ -47,7 +46,7 @@ import {
   UploadDataInput,
   UploadSignedDataItemParams,
 } from '../types.js';
-import { defaultRetryConfig } from '../utils/axiosClient.js';
+import { RetryConfig, defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
@@ -89,8 +88,8 @@ export class TurboUnauthenticatedUploadService
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected token: TokenType;
-  protected retryConfig: IAxiosRetryConfig;
 
+  protected retryConfig: RetryConfig;
   constructor({
     url = defaultUploadServiceURL,
     logger = TurboWinstonLogger.default,
@@ -331,6 +330,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           logger: this.logger,
           dataItemByteCount: dataItemSizeFactory(),
           chunkingMode: params.chunkingMode,
+          maxFinalizeMs: params.maxFinalizeMs,
         });
         if (chunkedUploader.shouldUseChunkUploader) {
           const response = await chunkedUploader.upload({
@@ -379,14 +379,11 @@ export abstract class TurboAuthenticatedBaseUploadService
             resolve();
           });
         });
-        await Promise.race([
-          sleep(retryDelay(retries, error)),
-          abortEventPromise,
-        ]);
+        await Promise.race([sleep(retryDelay(retries)), abortEventPromise]);
       }
     }
 
-    const msg = `Failed to upload file after ${maxRetries + 1} attempts\n${
+    const msg = `Failed to upload file after ${retries + 1} attempts\n${
       lastError instanceof Error ? lastError.message : lastError
     }`;
     // After all retries, throw the last error for catching
@@ -486,6 +483,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       chunkByteCount,
       chunkingMode,
       onDemandOptions = {},
+      maxFinalizeMs,
     } = params;
 
     const {
@@ -594,6 +592,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
       chunkByteCount,
       maxChunkConcurrency,
+      maxFinalizeMs,
       chunkingMode,
     });
 

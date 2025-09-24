@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node_version: [18.x, 20.x]
+        node_version: [18.x, 20.x, 22.x, 24.x]
         command: ['lint', 'format', 'build']
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +52,7 @@ jobs:
         run: yarn test:docker
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          BUNDLER_ARWEAVE_WALLET: ${{ secrets.BUNDLER_ARWEAVE_WALLET }}
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4

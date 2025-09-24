@@ -22,7 +22,6 @@ import {
   HexSolanaSigner,
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
-import { IAxiosRetryConfig } from 'axios-retry';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
@@ -31,6 +30,7 @@ import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
 import { TurboWinstonLogger } from './common/logger.js';
+import { RetryConfig } from './utils/axiosClient.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
@@ -255,6 +255,46 @@ type OnDemandOptions = {
   topUpBufferMultiplier?: number;
 };
 
+export const multipartPendingStatus = [
+  'ASSEMBLING',
+  'VALIDATING',
+  'FINALIZING',
+] as const;
+export type PendingMultiPartStatus = (typeof multipartPendingStatus)[number];
+
+export const multipartFailedStatus = [
+  'UNDERFUNDED',
+  'INVALID',
+  'APPROVAL_FAILED',
+  'REVOKE_FAILED',
+] as const;
+export type FailedMultiPartStatus = (typeof multipartFailedStatus)[number];
+
+export const multipartFinalizedStatus = ['FINALIZED'] as const;
+export type FinalizedMultiPartStatus =
+  (typeof multipartFinalizedStatus)[number];
+
+export type TurboMultiPartStatusResponse =
+  | { status: PendingMultiPartStatus }
+  | { status: FailedMultiPartStatus }
+  | FinalizedStatusResponse;
+type FinalizedStatusResponse = {
+  status: 'FINALIZED';
+} & {
+  receipt: {
+    id: string;
+    deadlineHeight: number;
+    timestamp: number;
+    version: string;
+    dataCaches: string[];
+    fastFinalityIndexes: string[];
+    winc: string;
+    owner: string;
+    public: string;
+    signature: string;
+  };
+};
+
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
@@ -411,7 +451,7 @@ type TurboAuthConfiguration = {
 
 type TurboServiceConfiguration = {
   url?: string;
-  retryConfig?: IAxiosRetryConfig;
+  retryConfig?: RetryConfig;
   logger?: TurboLogger;
   token?: TokenType;
 };
@@ -614,6 +654,11 @@ export type TurboChunkingParams = {
   maxChunkConcurrency?: number;
   /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
   chunkingMode?: TurboChunkingMode;
+  /**
+   * Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded.
+   * If not specified, the SDK will use a default value of 1 minute per GiB.
+   */
+  maxFinalizeMs?: number;
 };
 
 export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory &

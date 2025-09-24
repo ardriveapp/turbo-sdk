@@ -19,12 +19,17 @@ import { Readable } from 'stream';
 
 import {
   ByteCount,
+  FailedMultiPartStatus,
   TurboChunkingMode,
   TurboLogger,
+  TurboMultiPartStatusResponse,
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
+  multipartFailedStatus,
   validChunkingModes,
 } from '../types.js';
+import { sleep } from '../utils/common.js';
+import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
@@ -32,6 +37,9 @@ import { TurboWinstonLogger } from './logger.js';
 const fiveMiB = 5 * 1024 * 1024; // 5 MiB
 const fiveHundredMiB = fiveMiB * 100; // 500 MiB
 export const defaultMaxChunkConcurrency = 5;
+
+// Limit uploaders to protect server
+const absoluteMaxChunkConcurrency = 256;
 
 export const maxChunkByteCount = fiveHundredMiB;
 export const minChunkByteCount = fiveMiB;
@@ -47,6 +55,7 @@ const chunkingHeader = { 'x-chunking-version': '2' } as const;
 export class ChunkedUploader {
   private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
+  private readonly maxFinalizeMs: number | undefined;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
@@ -58,11 +67,13 @@ export class ChunkedUploader {
     http,
     token,
     maxChunkConcurrency = defaultMaxChunkConcurrency,
+    maxFinalizeMs,
     chunkByteCount = defaultChunkByteCount,
     logger = TurboWinstonLogger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
   }: {
+    maxFinalizeMs?: number;
     http: TurboHTTPService;
     token: string;
     logger: TurboLogger;
@@ -71,16 +82,18 @@ export class ChunkedUploader {
     chunkingMode?: TurboChunkingMode;
     dataItemByteCount: ByteCount;
   }) {
-    this.chunkByteCount = chunkByteCount;
-    this.maxChunkConcurrency = maxChunkConcurrency;
-    this.http = http;
-    this.token = token;
-    this.logger = logger;
     this.assertChunkParams({
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
+      maxFinalizeMs,
     });
+    this.chunkByteCount = chunkByteCount;
+    this.maxChunkConcurrency = maxChunkConcurrency;
+    this.maxFinalizeMs = maxFinalizeMs;
+    this.http = http;
+    this.token = token;
+    this.logger = logger;
     this.shouldUseChunkUploader = this.shouldChunkUpload({
       chunkByteCount,
       chunkingMode,
@@ -113,18 +126,32 @@ export class ChunkedUploader {
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    maxFinalizeMs,
   }: {
     chunkByteCount: number;
     chunkingMode: TurboChunkingMode;
     maxChunkConcurrency: number;
+    maxFinalizeMs?: number;
   }): void {
+    if (
+      maxFinalizeMs !== undefined &&
+      (Number.isNaN(maxFinalizeMs) ||
+        !Number.isInteger(maxFinalizeMs) ||
+        maxFinalizeMs < 0)
+    ) {
+      throw new Error(
+        'Invalid max finalization wait time. Must be a non-negative integer.',
+      );
+    }
+
     if (
       Number.isNaN(maxChunkConcurrency) ||
       !Number.isInteger(maxChunkConcurrency) ||
-      maxChunkConcurrency < 1
+      maxChunkConcurrency < 1 ||
+      maxChunkConcurrency > absoluteMaxChunkConcurrency
     ) {
       throw new Error(
-        'Invalid max chunk concurrency. Must be an integer of at least 1.',
+        'Invalid max chunk concurrency. Must be an integer of at least 1 and at most 256.',
       );
     }
 
@@ -167,8 +194,8 @@ export class ChunkedUploader {
 
     if (res.chunkSize !== this.chunkByteCount) {
       this.logger.warn('Chunk size mismatch! Overriding with server value.', {
-        expected: this.chunkByteCount,
-        actual: res.chunkSize,
+        clientExpected: this.chunkByteCount,
+        serverReturned: res.chunkSize,
       });
       this.chunkByteCount = res.chunkSize;
     }
@@ -228,12 +255,6 @@ export class ChunkedUploader {
       const chunkByteCount = chunk.length;
       const chunkOffset = currentOffset;
       currentOffset += chunkByteCount;
-
-      this.logger.debug('Queueing chunk', {
-        chunkPartNumber,
-        chunkOffset,
-        chunkByteCount,
-      });
 
       const promise = limit(async () => {
         if (firstError !== undefined) {
@@ -296,28 +317,120 @@ export class ChunkedUploader {
       throw firstError;
     }
 
+    const finalizeResponse = await this.finalizeUpload(
+      uploadId,
+      dataItemByteCount,
+      dataItemOpts?.paidBy,
+      combinedSignal,
+    );
+
+    emitter.emit('upload-success');
+    return finalizeResponse;
+  }
+
+  private toGiB(bytes: ByteCount): ByteCount {
+    return bytes / 1024 ** 3;
+  }
+
+  private async finalizeUpload(
+    uploadId: string,
+    dataItemByteCount: ByteCount,
+    paidBy?: string | string[],
+    signal?: AbortSignal,
+  ): Promise<TurboUploadDataItemResponse> {
+    // Wait up to 1 minute per GiB of data for the upload to finalize
+    const fileSizeInGiB = Math.ceil(this.toGiB(dataItemByteCount));
+    const defaultMaxWaitTimeMins = fileSizeInGiB * 2.5;
+    const maxWaitTimeMs =
+      this.maxFinalizeMs ?? Math.floor(defaultMaxWaitTimeMins * 60 * 1000);
+
+    const minimumWaitPerStepMs =
+      // Per step, files smaller than 100MB will wait 2 second,
+      dataItemByteCount < 1024 * 1024 * 100
+        ? 2000
+        : // files smaller than 3 GiB will wait 4 seconds,
+        dataItemByteCount < 1024 * 1024 * 1024 * 3
+        ? 4000
+        : // and larger files will wait 1.5 second per GiB with max of 15 seconds
+          Math.max(1500 * fileSizeInGiB, 15000);
+
     const paidByHeader: Record<string, string> = {};
-    if (dataItemOpts?.paidBy !== undefined) {
-      paidByHeader['x-paid-by'] = Array.isArray(dataItemOpts.paidBy)
-        ? dataItemOpts.paidBy.join(',')
-        : dataItemOpts.paidBy;
+    if (paidBy !== undefined) {
+      paidByHeader['x-paid-by'] = Array.isArray(paidBy)
+        ? paidBy.join(',')
+        : paidBy;
     }
 
-    // TODO: Async Finalize
-    // Finalize and reconstruct server-side
-    const finalizeResponse = await this.http.post<TurboUploadDataItemResponse>({
-      endpoint: `/chunks/${this.token}/${uploadId}/-1`,
+    await this.http.post({
+      endpoint: `/chunks/${this.token}/${uploadId}/finalize`,
       data: Buffer.alloc(0),
       headers: {
         'Content-Type': 'application/octet-stream',
         ...paidByHeader,
         ...chunkingHeader,
       },
-      signal: combinedSignal,
+      signal,
     });
 
-    emitter.emit('upload-success');
-    return finalizeResponse;
+    this.logger.debug(
+      `Confirming upload to Turbo with uploadId ${uploadId} for up to ${
+        maxWaitTimeMs / 1000 / 60
+      } minutes.`,
+    );
+
+    const startTime = Date.now();
+    const cutoffTime = startTime + maxWaitTimeMs;
+
+    let attempts = 0;
+
+    while (Date.now() < cutoffTime) {
+      // Wait for 3/4 of the time remaining per attempt or minimum step
+      const waitTimeMs = Math.min(
+        Math.floor((cutoffTime - Date.now()) * (3 / 4)),
+        minimumWaitPerStepMs,
+      );
+      await sleep(waitTimeMs);
+
+      if (signal?.aborted) {
+        this.logger.warn(`Upload finalization aborted by signal.`);
+        throw new CanceledError();
+      }
+
+      const response = await this.http.get<TurboMultiPartStatusResponse>({
+        endpoint: `/chunks/${this.token}/${uploadId}/status`,
+        signal,
+      });
+
+      this.logger.debug(`Upload status found: ${response.status}`, {
+        status: response.status,
+        attempts: attempts++,
+        maxWaitTimeMs,
+        minimumWaitPerStepMs,
+        waitTimeMs,
+        elapsedMs: Date.now() - startTime,
+      });
+
+      if (response.status === 'FINALIZED') {
+        this.logger.debug(`Upload finalized successfully.`);
+        return response.receipt;
+      }
+
+      if (response.status === 'UNDERFUNDED') {
+        throw new FailedRequestError(`Insufficient balance`, 402);
+      }
+
+      if (
+        multipartFailedStatus.includes(response.status as FailedMultiPartStatus)
+      ) {
+        throw new FailedRequestError(
+          `Upload failed with multi-part status ${response.status}`,
+        );
+      }
+    }
+
+    throw new Error(
+      `Upload multi-part finalization has timed out for Upload ID ${uploadId}`,
+    );
   }
 }
 
