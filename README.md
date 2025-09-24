@@ -658,6 +658,21 @@ await turbo.upload({
 });
 ```
 
+#### On Demand Uploads
+
+With the upload methods, you can choose to Top Up with Tokens on demand if the connected wallet and `token` setting if the wallet does not have enough credits to complete the upload. This is done by providing the `onDemandOptions` to upload methods with the `cryptoTopUpOnDemand` parameter set to true. The `maxTokenAmount` (optional) is the maximum amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with. The `topUpBufferMultiplier` (optional) is the multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups. Defaults to 1.1, meaning a 10% buffer.
+
+```typescript
+await turbo.upload({
+  ...params,
+  onDemandOptions: {
+    cryptoTopUpOnDemand: true,
+    maxTokenAmount: WinstonToTokenAmount(1_000_000_000), // 1 AR
+    topUpBufferMultiplier: 1.1, // 10% buffer to avoid underpayment
+  },
+});
+```
+
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
