@@ -1874,7 +1874,7 @@ describe('Node environment', () => {
         fileStreamFactory: () => Readable.from(file),
         fileSizeFactory: () => file.byteLength,
         dataItemOpts: {},
-        onDemandOptions: { cryptoTopUpOnDemand: true },
+        cryptoTopUpOnDemand: true,
       });
       const { id, quantity, owner, winc, target } = cryptoFundResult!;
 
