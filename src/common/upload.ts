@@ -271,14 +271,11 @@ export abstract class TurboAuthenticatedBaseUploadService
       events,
       fileStreamFactory,
       fileSizeFactory,
-      onDemandOptions,
-    } = this.resolveUploadFileConfig(params);
-
-    const {
-      cryptoTopUpOnDemand = false,
-      feeMultiplier,
+      cryptoTopUpOnDemand,
       maxTokenAmount,
-    } = onDemandOptions ?? {};
+      feeMultiplier,
+      topUpBufferMultiplier,
+    } = this.resolveUploadFileConfig(params);
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -314,6 +311,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           totalByteCount,
           feeMultiplier,
           maxTokenAmount,
+          topUpBufferMultiplier,
         });
       }
 
@@ -482,15 +480,12 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
-      onDemandOptions = {},
-      maxFinalizeMs,
-    } = params;
-
-    const {
       cryptoTopUpOnDemand = false,
       feeMultiplier,
       maxTokenAmount,
-    } = onDemandOptions;
+      topUpBufferMultiplier,
+      maxFinalizeMs,
+    } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
 
@@ -550,6 +545,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         totalByteCount,
         feeMultiplier,
         maxTokenAmount,
+        topUpBufferMultiplier,
       });
     }
 

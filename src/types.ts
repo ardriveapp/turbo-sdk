@@ -248,7 +248,7 @@ export type TurboUploadDataItemResponse = {
   cryptoFundResult?: TurboCryptoFundResponse;
 };
 
-type OnDemandOptions = {
+export type OnDemandOptions = {
   cryptoTopUpOnDemand?: boolean;
   maxTokenAmount?: string;
   feeMultiplier?: number;
@@ -299,14 +299,15 @@ type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
-  onDemandOptions?: OnDemandOptions;
+
   manifestOptions?: {
     disableManifest?: boolean;
     fallbackFile?: string;
     indexFile?: string;
   };
 } & TurboAbortSignal &
-  TurboChunkingParams;
+  TurboChunkingParams &
+  OnDemandOptions;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -688,9 +689,10 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
-  onDemandOptions?: OnDemandOptions;
+
   // bundle?: boolean; // TODO: add bundling into BDIs
-} & TurboChunkingParams;
+} & TurboChunkingParams &
+  OnDemandOptions;
 
 export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
@@ -851,7 +853,8 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadEmitterEvents &
-    TurboChunkingParams): Promise<TurboUploadDataItemResponse>;
+    TurboChunkingParams &
+    OnDemandOptions): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse>;

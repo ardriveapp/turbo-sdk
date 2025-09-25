@@ -18,6 +18,7 @@ import {
   Currency,
   GetCreditShareApprovalsResponse,
   NativeAddress,
+  OnDemandOptions,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedClientConfiguration,
@@ -320,10 +321,16 @@ export class TurboAuthenticatedClient
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    cryptoTopUpOnDemand,
+    maxFinalizeMs,
+    maxTokenAmount,
+    topUpBufferMultiplier,
+    feeMultiplier,
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadAndSigningEmitterEvents &
-    TurboChunkingParams): Promise<TurboUploadDataItemResponse> {
+    TurboChunkingParams &
+    OnDemandOptions): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.upload({
       data,
       dataItemOpts,
@@ -332,6 +339,11 @@ export class TurboAuthenticatedClient
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
+      cryptoTopUpOnDemand,
+      maxFinalizeMs,
+      maxTokenAmount,
+      topUpBufferMultiplier,
+      feeMultiplier,
     });
   }
 

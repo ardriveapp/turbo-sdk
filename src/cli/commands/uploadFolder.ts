@@ -55,8 +55,8 @@ export async function uploadFolder(
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
-    onDemandOptions: onDemandOptionsFromOptions(options),
     maxFinalizeMs,
+    ...onDemandOptionsFromOptions(options),
   });
 
   console.log('Uploaded folder:', JSON.stringify(result, null, 2));

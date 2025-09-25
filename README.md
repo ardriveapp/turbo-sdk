@@ -672,11 +672,9 @@ const turbo = TurboFactory.authenticated({
 });
 await turbo.upload({
   ...params,
-  onDemandOptions: {
-    cryptoTopUpOnDemand: true,
-    maxTokenAmount: ARIOToTokenAmount(500), // Max 500 $ARIO
-    topUpBufferMultiplier: 1.1, // 10% buffer to avoid underpayment
-  },
+  cryptoTopUpOnDemand: true,
+  maxTokenAmount: ARIOToTokenAmount(500), // Max 500 $ARIO
+  topUpBufferMultiplier: 1.1, // 10% buffer to avoid underpayment
 });
 ```
 
