@@ -760,14 +760,17 @@ export abstract class TurboAuthenticatedBaseUploadService
       pollIntervalMs: 3 * 1000, // poll every 3 seconds
       timeoutMs: 60 * 1000, // wait up to 60 seconds
     };
-    this.logger.debug('Polling for tx to be confirmed by payment...', {
-      pollingOptions,
-    });
+
     let tries = 0;
     const maxTries = Math.ceil(
       pollingOptions.timeoutMs / pollingOptions.pollIntervalMs,
     );
     while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
+      this.logger.debug('Tx not yet confirmed, waiting to poll again', {
+        tries,
+        maxTries,
+      });
+      await sleep(pollingOptions.pollIntervalMs);
       tries++;
       try {
         const submitFundResult =
@@ -787,21 +790,10 @@ export abstract class TurboAuthenticatedBaseUploadService
           message: error instanceof Error ? error.message : error,
         });
       }
-      this.logger.debug('Tx not yet confirmed, waiting to poll again', {
-        tries,
-        maxTries,
-      });
-      await sleep(pollingOptions.pollIntervalMs);
     }
     if (tries === maxTries) {
       this.logger.warn(
         'Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
-        {
-          currentBalance,
-          expectedBalance: BigNumber(currentBalance.effectiveBalance)
-            .plus(topUpWincAmount)
-            .toFixed(0, BigNumber.ROUND_UP),
-        },
       );
     }
     return topUpResponse;
