@@ -19,6 +19,7 @@ import { readFileSync, statSync } from 'fs';
 
 import {
   Currency,
+  ExistingBalanceFunding,
   OnDemandFunding,
   TokenType,
   TurboAuthenticatedClient,
@@ -358,10 +359,10 @@ export function getTagsFromOptions(
 }
 
 export function onDemandOptionsFromOptions(options: UploadOptions): {
-  fundingMode: OnDemandFunding | undefined;
+  fundingMode: OnDemandFunding | ExistingBalanceFunding;
 } {
   if (!options.onDemand) {
-    return { fundingMode: undefined };
+    return { fundingMode: new ExistingBalanceFunding() };
   }
 
   const value = options.maxCryptoTopUpValue;
