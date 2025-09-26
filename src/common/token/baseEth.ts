@@ -34,11 +34,7 @@ export class BaseEthToken extends EthereumToken {
     });
   }
 
-  public async pollForTxBeingAvailable({
-    txId,
-  }: {
-    txId: string;
-  }): Promise<void> {
+  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
     this.logger.debug('Polling for transaction to be available on chain', {
       txId,
       ...this.pollingOptions,

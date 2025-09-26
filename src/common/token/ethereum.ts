@@ -75,11 +75,7 @@ export class EthereumToken implements TokenTools {
     };
   }
 
-  public async pollForTxBeingAvailable({
-    txId,
-  }: {
-    txId: string;
-  }): Promise<void> {
+  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
     await new Promise((resolve) =>
       setTimeout(resolve, this.pollingOptions.initialBackoffMs),
     );

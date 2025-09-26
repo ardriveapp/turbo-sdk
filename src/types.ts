@@ -889,7 +889,7 @@ export interface TokenTools {
     reward?: string;
   }>;
 
-  pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
+  pollTxAvailability: (p: { txId: string }) => Promise<void>;
 }
 
 export type TokenConfig = {

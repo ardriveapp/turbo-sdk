@@ -109,7 +109,7 @@ export class ARIOToken implements TokenTools {
     return { id: txId, target, reward: '0' };
   }
 
-  public async pollForTxBeingAvailable(): Promise<void> {
+  public async pollTxAvailability(): Promise<void> {
     // AO finality should be instant -- but we'll wait initial backoff to
     // provide infra some time to crank without reading the whole result
     return sleep(this.pollingOptions.initialBackoffMs);
