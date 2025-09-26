@@ -766,11 +766,11 @@ export abstract class TurboAuthenticatedBaseUploadService
       timeoutMs: 60 * 1000, // wait up to 60 seconds
     };
 
-    let tries = 0;
+    let tries = 1;
     const maxTries = Math.ceil(
       pollingOptions.timeoutMs / pollingOptions.pollIntervalMs,
     );
-    while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
+    while (topUpResponse.status !== 'confirmed' && tries < maxTries - 1) {
       this.logger.debug('Tx not yet confirmed, waiting to poll again', {
         tries,
         maxTries,
@@ -796,7 +796,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         });
       }
     }
-    if (tries === maxTries) {
+    if (tries >= maxTries) {
       this.logger.warn(
         'Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
       );
