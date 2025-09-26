@@ -42,6 +42,7 @@ import { TurboNodeSigner } from '../src/node/signer.js';
 import {
   DataItemOptions,
   NativeAddress,
+  OnDemandFunding,
   TokenType,
   TurboChunkingMode,
   TurboLogger,
@@ -1874,7 +1875,7 @@ describe('Node environment', () => {
         fileStreamFactory: () => Readable.from(file),
         fileSizeFactory: () => file.byteLength,
         dataItemOpts: {},
-        cryptoTopUpOnDemand: true,
+        fundingMode: new OnDemandFunding({}),
       });
       const { id, quantity, owner, winc, target } = cryptoFundResult!;
 

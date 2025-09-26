@@ -19,6 +19,7 @@ import { readFileSync, statSync } from 'fs';
 
 import {
   Currency,
+  OnDemandFunding,
   TokenType,
   TurboAuthenticatedClient,
   TurboChunkingParams,
@@ -357,11 +358,12 @@ export function getTagsFromOptions(
 }
 
 export function onDemandOptionsFromOptions(options: UploadOptions): {
-  cryptoTopUpOnDemand: boolean;
-  topUpBufferMultiplier?: number;
-  maxTokenAmount?: string;
-  feeMultiplier?: number;
+  fundingMode: OnDemandFunding | undefined;
 } {
+  if (!options.onDemand) {
+    return { fundingMode: undefined };
+  }
+
   const value = options.maxCryptoTopUpValue;
 
   let maxTokenAmount: string | undefined = undefined;
@@ -380,18 +382,11 @@ export function onDemandOptionsFromOptions(options: UploadOptions): {
     throw new Error('topUpBufferMultiplier must be a number >= 1');
   }
 
-  if (
-    options.feeMultiplier !== undefined &&
-    (isNaN(options.feeMultiplier) || options.feeMultiplier < 1)
-  ) {
-    throw new Error('feeMultiplier must be a number >= 1');
-  }
-
   return {
-    cryptoTopUpOnDemand: options.onDemand,
-    topUpBufferMultiplier: options.topUpBufferMultiplier,
-    maxTokenAmount,
-    feeMultiplier: options.feeMultiplier,
+    fundingMode: new OnDemandFunding({
+      maxTokenAmount,
+      topUpBufferMultiplier: options.topUpBufferMultiplier,
+    }),
   };
 }
 

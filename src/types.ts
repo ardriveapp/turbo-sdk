@@ -248,12 +248,37 @@ export type TurboUploadDataItemResponse = {
   cryptoFundResult?: TurboCryptoFundResponse;
 };
 
-export type OnDemandOptions = {
-  cryptoTopUpOnDemand?: boolean;
-  maxTokenAmount?: string;
-  feeMultiplier?: number;
-  topUpBufferMultiplier?: number;
+export type FundingOptions = {
+  fundingMode?: OnDemandFunding | ExistingBalanceFunding; // TODO: SharedCreditsFunding helper (can be used with paidBy currently)
 };
+
+export class ExistingBalanceFunding {}
+export class OnDemandFunding {
+  public maxTokenAmount: BigNumber | undefined;
+  public topUpBufferMultiplier: number;
+
+  constructor({
+    maxTokenAmount,
+    topUpBufferMultiplier = 1.1,
+  }: {
+    topUpBufferMultiplier?: number;
+    maxTokenAmount?: BigNumber.Value;
+  }) {
+    if (
+      maxTokenAmount !== undefined &&
+      new BigNumber(maxTokenAmount).isLessThan(0)
+    ) {
+      throw new Error('maxTokenAmount must be non-negative');
+    }
+    this.maxTokenAmount =
+      maxTokenAmount !== undefined ? new BigNumber(maxTokenAmount) : undefined;
+
+    if (topUpBufferMultiplier < 1) {
+      throw new Error('topUpBufferMultiplier must be >= 1');
+    }
+    this.topUpBufferMultiplier = topUpBufferMultiplier;
+  }
+}
 
 export const multipartPendingStatus = [
   'ASSEMBLING',
@@ -307,7 +332,7 @@ type UploadFolderParams = {
   };
 } & TurboAbortSignal &
   TurboChunkingParams &
-  OnDemandOptions;
+  FundingOptions;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -692,7 +717,7 @@ export type TurboFileFactory<T = FileStreamFactory> = {
 
   // bundle?: boolean; // TODO: add bundling into BDIs
 } & TurboChunkingParams &
-  OnDemandOptions;
+  FundingOptions;
 
 export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
@@ -854,7 +879,7 @@ export interface TurboAuthenticatedUploadServiceInterface
     TurboAbortSignal &
     TurboUploadEmitterEvents &
     TurboChunkingParams &
-    OnDemandOptions): Promise<TurboUploadDataItemResponse>;
+    FundingOptions): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse>;

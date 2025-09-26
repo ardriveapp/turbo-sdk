@@ -22,6 +22,9 @@ import {
   ArweaveManifest,
   CreditShareApproval,
   DataItemOptions,
+  ExistingBalanceFunding,
+  FundingOptions,
+  OnDemandFunding,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
@@ -192,10 +195,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    fundingMode,
+    maxFinalizeMs,
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadAndSigningEmitterEvents &
-    TurboChunkingParams): Promise<TurboUploadDataItemResponse> {
+    TurboChunkingParams &
+    FundingOptions): Promise<TurboUploadDataItemResponse> {
     // This function is intended to be usable in both Node and browser environments.
     if (isBlob(data)) {
       const streamFactory = () => data.stream();
@@ -206,6 +212,11 @@ export abstract class TurboAuthenticatedBaseUploadService
         signal,
         dataItemOpts,
         events,
+        chunkByteCount,
+        chunkingMode,
+        maxChunkConcurrency,
+        fundingMode,
+        maxFinalizeMs,
       });
     }
 
@@ -228,6 +239,8 @@ export abstract class TurboAuthenticatedBaseUploadService
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
+      fundingMode,
+      maxFinalizeMs,
     });
   }
 
@@ -271,10 +284,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       events,
       fileStreamFactory,
       fileSizeFactory,
-      cryptoTopUpOnDemand,
-      maxTokenAmount,
-      feeMultiplier,
-      topUpBufferMultiplier,
+      fundingMode = new ExistingBalanceFunding(),
     } = this.resolveUploadFileConfig(params);
 
     let retries = 0;
@@ -305,13 +315,14 @@ export abstract class TurboAuthenticatedBaseUploadService
           emitter,
         });
 
-      if (cryptoTopUpOnDemand && cryptoFundResult === undefined) {
+      if (
+        fundingMode instanceof OnDemandFunding &&
+        cryptoFundResult === undefined
+      ) {
         const totalByteCount = dataItemSizeFactory();
         cryptoFundResult = await this.onDemand({
           totalByteCount,
-          feeMultiplier,
-          maxTokenAmount,
-          topUpBufferMultiplier,
+          onDemandFunding: fundingMode,
         });
       }
 
@@ -480,10 +491,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
-      cryptoTopUpOnDemand = false,
-      feeMultiplier,
-      maxTokenAmount,
-      topUpBufferMultiplier,
+      fundingMode = new ExistingBalanceFunding(),
       maxFinalizeMs,
     } = params;
 
@@ -537,15 +545,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     const limit = pLimit(maxConcurrentUploads);
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
-    if (cryptoTopUpOnDemand) {
+    if (fundingMode instanceof OnDemandFunding) {
       const totalByteCount = files.reduce((acc, file) => {
         return acc + this.getFileSize(file) + 1200; // allow extra per file for ANS-104 headers
       }, 0);
       cryptoFundResult = await this.onDemand({
         totalByteCount,
-        feeMultiplier,
-        maxTokenAmount,
-        topUpBufferMultiplier,
+        onDemandFunding: fundingMode,
       });
     }
 
@@ -679,15 +685,13 @@ export abstract class TurboAuthenticatedBaseUploadService
    */
   private async onDemand({
     totalByteCount,
-    maxTokenAmount,
-    feeMultiplier,
-    topUpBufferMultiplier = 1.1,
+    onDemandFunding,
   }: {
     totalByteCount: number;
-    maxTokenAmount?: string;
-    feeMultiplier?: number;
-    topUpBufferMultiplier?: number;
+    onDemandFunding: OnDemandFunding;
   }): Promise<TurboCryptoFundResponse | undefined> {
+    const { maxTokenAmount, topUpBufferMultiplier } = onDemandFunding;
+
     const currentBalance = await this.paymentService.getBalance();
     const wincPriceForOneGiB = (
       await this.paymentService.getUploadCosts({
@@ -752,7 +756,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     );
     const topUpResponse = await this.paymentService.topUpWithTokens({
       tokenAmount: topUpTokenAmount,
-      feeMultiplier,
     });
     this.logger.debug('Top up transaction submitted', { topUpResponse });
 
