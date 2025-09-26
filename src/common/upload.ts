@@ -55,7 +55,7 @@ import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
-import { tokenToBaseMap } from './index.js';
+import { exponentMap, tokenToBaseMap } from './index.js';
 import { TurboWinstonLogger } from './logger.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
 
@@ -746,7 +746,9 @@ export abstract class TurboAuthenticatedBaseUploadService
     if (maxTokenAmount !== undefined) {
       if (new BigNumber(topUpTokenAmount).isGreaterThan(maxTokenAmount)) {
         throw new Error(
-          `Top up token amount ${topUpTokenAmount} is greater than the maximum allowed amount of ${maxTokenAmount}`,
+          `Top up token amount ${new BigNumber(topUpTokenAmount).div(
+            exponentMap[this.token],
+          )} is greater than the maximum allowed amount of ${maxTokenAmount}`,
         );
       }
     }
@@ -768,7 +770,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     const maxTries = Math.ceil(
       pollingOptions.timeoutMs / pollingOptions.pollIntervalMs,
     );
-    while (topUpResponse.status !== 'confirmed' && tries < maxTries - 1) {
+    while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
       this.logger.debug('Tx not yet confirmed, waiting to poll again', {
         tries,
         maxTries,
@@ -794,7 +796,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         });
       }
     }
-    if (tries >= maxTries) {
+    if (tries === maxTries) {
       this.logger.warn(
         'Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
       );
