@@ -763,7 +763,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     const pollingOptions = {
       pollIntervalMs: 3 * 1000, // poll every 3 seconds
-      timeoutMs: 60 * 1000, // wait up to 60 seconds
+      timeoutMs: 120 * 1000, // wait up to 2 minutes
     };
 
     let tries = 1;
