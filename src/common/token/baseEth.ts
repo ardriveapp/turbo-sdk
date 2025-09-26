@@ -34,41 +34,21 @@ export class BaseEthToken extends EthereumToken {
     });
   }
 
-  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
-    this.logger.debug('Polling for transaction to be available on chain', {
-      txId,
-      ...this.pollingOptions,
-    });
-    await new Promise((resolve) =>
-      setTimeout(resolve, this.pollingOptions.initialBackoffMs),
-    );
+  protected async getTxAvailability(txId: string): Promise<boolean> {
+    const tx = await this.rpcProvider.getTransactionReceipt(txId);
 
-    let attempts = 0;
-    while (attempts < this.pollingOptions.maxAttempts) {
-      try {
-        const tx = await this.rpcProvider.getTransactionReceipt(txId);
-
-        if (tx) {
-          const confirmations = await tx.confirmations();
-          if (confirmations >= 1) {
-            this.logger.debug('Transaction found on chain', {
-              txId,
-              tx,
-              confirmations,
-            });
-            return;
-          }
-        }
-      } catch (e) {
-        this.logger.debug('Error polling for tx', { txId, e });
+    if (tx) {
+      const confirmations = await tx.confirmations();
+      if (confirmations >= 1) {
+        this.logger.debug('Transaction is available on chain', {
+          txId,
+          tx,
+          confirmations,
+        });
+        return true;
       }
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.pollingOptions.pollingIntervalMs),
-      );
-      attempts++;
     }
-
-    throw new Error('Transaction not found after polling!');
+    this.logger.debug('Transaction not yet available on chain', { txId, tx });
+    return false;
   }
 }
