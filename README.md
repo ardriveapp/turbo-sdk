@@ -1068,7 +1068,7 @@ Command Options:
 - `--no-manifest` - Disable manifest creation
 - `--max-concurrency <maxConcurrency>` - Maximum number of concurrent uploads
 - `--on-demand` - Enable on-demand top up if the connected wallet does not have enough credits to complete the upload (only available for $ARIO, $SOL, and $ETH on Base Network token types)
-- `--max-crypto-top-up-value <maxCryptoTopUpValue>` - Maximum value of crypto token for on-demand top up. e.g: 100 for 100 $ARIO
+- `--max-crypto-top-up-value <maxCryptoTopUpValue>` - Maximum value of crypto token for on-demand top up. e.g: 100 for 100 $ARIO. NOTE: This is a value in the token's standard crypto unit, not the smallest unit. e.g: 100 for 100 $ARIO, NOT 100000000 for 100 $ARIO
 - `--top-up-buffer-multiplier <topUpBufferMultiplier>` - Multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations. Default: 1.1 (10% buffer)
 
 e.g:
@@ -1085,7 +1085,7 @@ Command Options:
 
 - `-f, --file-path <filePath>` - Path to the file to upload
 - `--on-demand` - Enable on-demand top up if the connected wallet does not have enough credits to complete the upload (only available for $ARIO, $SOL, and $ETH on Base Network token types)
-- `--max-crypto-top-up-value <maxCryptoTopUpValue>` - Maximum value of crypto token for on-demand top up. e.g: 100 for 100 $ARIO
+- `--max-crypto-top-up-value <maxCryptoTopUpValue>` - Maximum value of crypto token for on-demand top up. e.g: 100 for 100 $ARIO. NOTE: This is a value in the token's standard crypto unit, not the smallest unit. e.g: 100 for 100 $ARIO, NOT 100000000 for 100 $ARIO
 - `--top-up-buffer-multiplier <topUpBufferMultiplier>` - Multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations. Default: 1.1 (10% buffer)
 
 e.g:
