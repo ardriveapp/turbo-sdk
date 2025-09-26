@@ -794,7 +794,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         });
       }
     }
-    if (tries === maxTries) {
+    if (tries >= maxTries) {
       this.logger.warn(
         'Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
       );
