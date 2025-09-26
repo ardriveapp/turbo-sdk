@@ -189,11 +189,6 @@ export const optionMap = {
       'Enable on-demand crypto top-ups during upload if balance is insufficient',
     default: false,
   },
-  feeMultiplier: {
-    alias: '--fee-multiplier <feeMultiplier>',
-    description:
-      'Multiplier to apply to the estimated fee amount to avoid underpayment during on-demand top-ups. Defaults to 1.0 (no multiplier).',
-  },
   topUpBufferMultiplier: {
     alias: '--top-up-buffer-multiplier <topUpBufferMultiplier>',
     description:
@@ -228,7 +223,6 @@ const onDemandOptions = [
   optionMap.onDemand,
   optionMap.topUpBufferMultiplier,
   optionMap.maxCryptoTopUpValue,
-  optionMap.feeMultiplier,
 ];
 
 export const uploadOptions = [
