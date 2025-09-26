@@ -109,6 +109,6 @@ export class EthereumToken implements TokenTools {
       attempts++;
     }
 
-    throw new Error('Transaction not found after polling!');
+    throw new Error(`Transaction ${txId} not found after polling!`);
   }
 }
