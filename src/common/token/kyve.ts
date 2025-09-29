@@ -133,11 +133,7 @@ export class KyveToken implements TokenTools {
     return { id: txHash, target };
   }
 
-  public async pollForTxBeingAvailable({
-    txId,
-  }: {
-    txId: string;
-  }): Promise<void> {
+  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
     const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
       this.pollingOptions;
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { TurboBaseFactory } from '../common/factory.js';
+import { TurboAuthenticatedPaymentService } from '../common/payment.js';
 import { TurboDataItemAbstractSigner } from '../common/signer.js';
 import {
   GetTurboSignerParams,
@@ -46,7 +47,9 @@ export class TurboFactory extends TurboBaseFactory {
   }
 
   protected getAuthenticatedUploadService(
-    config: TurboAuthenticatedUploadServiceConfiguration,
+    config: TurboAuthenticatedUploadServiceConfiguration & {
+      paymentService: TurboAuthenticatedPaymentService;
+    },
   ): TurboAuthenticatedUploadServiceInterface {
     // Import the TurboAuthenticatedUploadService class from the web upload module
     return new TurboAuthenticatedUploadService(config);

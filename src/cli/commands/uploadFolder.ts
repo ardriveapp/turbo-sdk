@@ -18,6 +18,7 @@ import { UploadFolderOptions } from '../types.js';
 import {
   getTagsFromOptions,
   getUploadFolderOptions,
+  onDemandOptionsFromOptions,
   paidByFromOptions,
   turboFromOptions,
 } from '../utils.js';
@@ -55,6 +56,7 @@ export async function uploadFolder(
     chunkingMode,
     maxChunkConcurrency,
     maxFinalizeMs,
+    ...onDemandOptionsFromOptions(options),
   });
 
   console.log('Uploaded folder:', JSON.stringify(result, null, 2));

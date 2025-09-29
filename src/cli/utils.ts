@@ -19,6 +19,8 @@ import { readFileSync, statSync } from 'fs';
 
 import {
   Currency,
+  ExistingBalanceFunding,
+  OnDemandFunding,
   TokenType,
   TurboAuthenticatedClient,
   TurboChunkingParams,
@@ -30,6 +32,7 @@ import {
   isCurrency,
   isTokenType,
   privateKeyFromKyveMnemonic,
+  tokenToBaseMap,
 } from '../node/index.js';
 import {
   defaultProdAoConfigs,
@@ -353,6 +356,39 @@ export function getTagsFromOptions(
   options: UploadOptions,
 ): { name: string; value: string }[] {
   return parseTags(options.tags);
+}
+
+export function onDemandOptionsFromOptions(options: UploadOptions): {
+  fundingMode: OnDemandFunding | ExistingBalanceFunding;
+} {
+  if (!options.onDemand) {
+    return { fundingMode: new ExistingBalanceFunding() };
+  }
+
+  const value = options.maxCryptoTopUpValue;
+
+  let maxTokenAmount: string | undefined = undefined;
+  if (value !== undefined) {
+    if (isNaN(+value) || +value <= 0) {
+      throw new Error('maxTokenAmount must be a positive number');
+    }
+    const token = tokenFromOptions(options);
+    maxTokenAmount = tokenToBaseMap[token](value).toString();
+  }
+
+  if (
+    options.topUpBufferMultiplier !== undefined &&
+    (isNaN(options.topUpBufferMultiplier) || options.topUpBufferMultiplier < 1)
+  ) {
+    throw new Error('topUpBufferMultiplier must be a number >= 1');
+  }
+
+  return {
+    fundingMode: new OnDemandFunding({
+      maxTokenAmount,
+      topUpBufferMultiplier: options.topUpBufferMultiplier,
+    }),
+  };
 }
 
 export function currencyFromOptions<

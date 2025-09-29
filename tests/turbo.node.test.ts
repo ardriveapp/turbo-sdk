@@ -42,6 +42,7 @@ import { TurboNodeSigner } from '../src/node/signer.js';
 import {
   DataItemOptions,
   NativeAddress,
+  OnDemandFunding,
   TokenType,
   TurboChunkingMode,
   TurboLogger,
@@ -1866,6 +1867,23 @@ describe('Node environment', () => {
       assert.equal(signingProgressCalled, false);
       assert.equal(signingErrorCalled, false);
       assert.equal(signingSuccessCalled, false);
+    });
+
+    it('should upload a 110 KiB Buffer to turbo with cryptoTopUpOnDemand enabled', async () => {
+      const file = randomBytes(110 * 1024);
+      const { cryptoFundResult } = await turbo.uploadFile({
+        fileStreamFactory: () => Readable.from(file),
+        fileSizeFactory: () => file.byteLength,
+        dataItemOpts: {},
+        fundingMode: new OnDemandFunding({}),
+      });
+      const { id, quantity, owner, winc, target } = cryptoFundResult!;
+
+      assert.ok(typeof id === 'string');
+      assert.ok(typeof target === 'string');
+      assert.ok(typeof winc === 'string');
+      assert.ok(typeof quantity, 'string');
+      assert.equal(owner, testSolNativeAddress);
     });
 
     it.skip('should topUpWithTokens() to a SOL wallet', async () => {

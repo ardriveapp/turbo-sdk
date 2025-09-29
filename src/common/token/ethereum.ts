@@ -75,11 +75,18 @@ export class EthereumToken implements TokenTools {
     };
   }
 
-  public async pollForTxBeingAvailable({
-    txId,
-  }: {
-    txId: string;
-  }): Promise<void> {
+  protected async getTxAvailability(txId: string): Promise<boolean> {
+    const tx = await this.rpcProvider.getTransaction(txId);
+
+    if (tx) {
+      this.logger.debug('Transaction is available on chain', { txId, tx });
+      return true;
+    }
+    this.logger.debug('Transaction not yet available on chain', { txId });
+    return false;
+  }
+
+  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
     await new Promise((resolve) =>
       setTimeout(resolve, this.pollingOptions.initialBackoffMs),
     );
@@ -87,9 +94,9 @@ export class EthereumToken implements TokenTools {
     let attempts = 0;
     while (attempts < this.pollingOptions.maxAttempts) {
       try {
-        const tx = await this.rpcProvider.getTransaction(txId);
+        const txIsAvailable = await this.getTxAvailability(txId);
 
-        if (tx) {
+        if (txIsAvailable) {
           return;
         }
       } catch (e) {
@@ -102,6 +109,6 @@ export class EthereumToken implements TokenTools {
       attempts++;
     }
 
-    throw new Error('Transaction not found after polling!');
+    throw new Error(`Transaction ${txId} not found after polling!`);
   }
 }

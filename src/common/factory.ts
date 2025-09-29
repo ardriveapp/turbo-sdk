@@ -90,7 +90,9 @@ export abstract class TurboBaseFactory {
   }: GetTurboSignerParams): TurboDataItemAbstractSigner;
 
   protected abstract getAuthenticatedUploadService(
-    config: TurboAuthenticatedUploadServiceConfiguration,
+    config: TurboAuthenticatedUploadServiceConfiguration & {
+      paymentService: TurboAuthenticatedPaymentService;
+    },
   ): TurboAuthenticatedUploadServiceInterface;
 
   protected getAuthenticatedTurbo({
@@ -174,6 +176,7 @@ export abstract class TurboBaseFactory {
       signer: turboSigner,
       logger,
       token,
+      paymentService,
     });
     return new TurboAuthenticatedClient({
       uploadService,
