@@ -15,4 +15,4 @@
  */
 
 // AUTOMATICALLY GENERATED FILE - DO NOT TOUCH
-export const version = '1.31.1';
+export const version = '1.32.0';

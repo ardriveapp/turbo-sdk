@@ -1,3 +1,11 @@
+# [1.32.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.1...v1.32.0) (2025-09-29)
+
+
+### Features
+
+* **onDemand:** add cryptoTopUpOnDemand upload SDK setting PE-8456 ([117a80b](https://github.com/ardriveapp/turbo-sdk/commit/117a80b3dd197d9b9f03dca9f62ac6c9cb2fd0e5))
+* **onDemand:** add onDemand upload CLI setting PE-8456 ([c813e5c](https://github.com/ardriveapp/turbo-sdk/commit/c813e5c7deefb637c6625c4a5a89357611b1b123))
+
 ## [1.31.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.0...v1.31.1) (2025-09-11)
 
 
