@@ -767,10 +767,9 @@ export abstract class TurboAuthenticatedBaseUploadService
     };
 
     let tries = 1;
-    const maxTries = Math.ceil(
-      pollingOptions.timeoutMs / pollingOptions.pollIntervalMs,
-    );
-    while (topUpResponse.status !== 'confirmed' && tries < maxTries - 1) {
+    const maxTries =
+      Math.ceil(pollingOptions.timeoutMs / pollingOptions.pollIntervalMs) - 1; // -1 because we already tried once with the initial request
+    while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
       this.logger.debug('Tx not yet confirmed, waiting to poll again', {
         tries,
         maxTries,
