@@ -183,6 +183,22 @@ export const optionMap = {
       'Chunking mode to use for the upload. Can be "auto", "force" or "disabled". Defaults to "auto".',
     default: 'auto',
   },
+  onDemand: {
+    alias: '--on-demand',
+    description:
+      'Enable on-demand crypto top-ups during upload if balance is insufficient',
+    default: false,
+  },
+  topUpBufferMultiplier: {
+    alias: '--top-up-buffer-multiplier <topUpBufferMultiplier>',
+    description:
+      'Multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups. Defaults to 1.1 (10% buffer).',
+  },
+  maxCryptoTopUpValue: {
+    alias: '--max-crypto-top-up-value <maxCryptoTopUpValue>',
+    description:
+      'Maximum crypto top-up value to use for the upload. Defaults to no limit.',
+  },
 } as const;
 
 export const walletOptions = [
@@ -203,6 +219,12 @@ export const globalOptions = [
   optionMap.uploadUrl,
 ];
 
+const onDemandOptions = [
+  optionMap.onDemand,
+  optionMap.topUpBufferMultiplier,
+  optionMap.maxCryptoTopUpValue,
+];
+
 export const uploadOptions = [
   ...walletOptions,
   optionMap.paidBy,
@@ -213,6 +235,7 @@ export const uploadOptions = [
   optionMap.maxFinalizeMs,
   optionMap.chunkByteCount,
   optionMap.chunkingMode,
+  ...onDemandOptions,
 ];
 
 export const uploadFolderOptions = [

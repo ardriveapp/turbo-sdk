@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { CanceledError } from 'axios';
+import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
 
@@ -21,12 +22,16 @@ import {
   ArweaveManifest,
   CreditShareApproval,
   DataItemOptions,
+  ExistingBalanceFunding,
+  FundingOptions,
+  OnDemandFunding,
   TokenType,
   TurboAbortSignal,
   TurboAuthenticatedUploadServiceConfiguration,
   TurboAuthenticatedUploadServiceInterface,
   TurboChunkingParams,
   TurboCreateCreditShareApprovalParams,
+  TurboCryptoFundResponse,
   TurboDataItemSigner,
   TurboFileFactory,
   TurboLogger,
@@ -50,7 +55,9 @@ import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
+import { exponentMap, tokenToBaseMap } from './index.js';
 import { TurboWinstonLogger } from './logger.js';
+import { TurboAuthenticatedPaymentService } from './payment.js';
 
 export type TurboUploadConfig = TurboFileFactory &
   TurboAbortSignal &
@@ -84,6 +91,7 @@ export class TurboUnauthenticatedUploadService
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected token: TokenType;
+
   protected retryConfig: RetryConfig;
   constructor({
     url = defaultUploadServiceURL,
@@ -159,6 +167,7 @@ export abstract class TurboAuthenticatedBaseUploadService
   implements TurboAuthenticatedUploadServiceInterface
 {
   protected signer: TurboDataItemSigner;
+  protected paymentService: TurboAuthenticatedPaymentService;
 
   constructor({
     url = defaultUploadServiceURL,
@@ -166,9 +175,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     signer,
     logger,
     token,
-  }: TurboAuthenticatedUploadServiceConfiguration) {
+    paymentService,
+  }: TurboAuthenticatedUploadServiceConfiguration & {
+    paymentService: TurboAuthenticatedPaymentService;
+  }) {
     super({ url, retryConfig, logger, token });
     this.signer = signer;
+    this.paymentService = paymentService;
   }
 
   /**
@@ -182,10 +195,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     chunkByteCount,
     chunkingMode,
     maxChunkConcurrency,
+    fundingMode,
+    maxFinalizeMs,
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadAndSigningEmitterEvents &
-    TurboChunkingParams): Promise<TurboUploadDataItemResponse> {
+    TurboChunkingParams &
+    FundingOptions): Promise<TurboUploadDataItemResponse> {
     // This function is intended to be usable in both Node and browser environments.
     if (isBlob(data)) {
       const streamFactory = () => data.stream();
@@ -196,6 +212,11 @@ export abstract class TurboAuthenticatedBaseUploadService
         signal,
         dataItemOpts,
         events,
+        chunkByteCount,
+        chunkingMode,
+        maxChunkConcurrency,
+        fundingMode,
+        maxFinalizeMs,
       });
     }
 
@@ -218,6 +239,8 @@ export abstract class TurboAuthenticatedBaseUploadService
       chunkByteCount,
       chunkingMode,
       maxChunkConcurrency,
+      fundingMode,
+      maxFinalizeMs,
     });
   }
 
@@ -255,8 +278,14 @@ export abstract class TurboAuthenticatedBaseUploadService
   async uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse> {
-    const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory } =
-      this.resolveUploadFileConfig(params);
+    const {
+      signal,
+      dataItemOpts,
+      events,
+      fileStreamFactory,
+      fileSizeFactory,
+      fundingMode = new ExistingBalanceFunding(),
+    } = this.resolveUploadFileConfig(params);
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -267,6 +296,8 @@ export abstract class TurboAuthenticatedBaseUploadService
     let lastStatusCode: number | undefined = undefined; // Store the last status code for throwing
     const emitter = new TurboEventEmitter(events);
     // avoid duplicating signing on failures here - these errors will immediately be thrown
+
+    let cryptoFundResult: TurboCryptoFundResponse | undefined;
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
@@ -283,6 +314,17 @@ export abstract class TurboAuthenticatedBaseUploadService
           dataItemOpts,
           emitter,
         });
+
+      if (
+        fundingMode instanceof OnDemandFunding &&
+        cryptoFundResult === undefined
+      ) {
+        const totalByteCount = dataItemSizeFactory();
+        cryptoFundResult = await this.onDemand({
+          totalByteCount,
+          onDemandFunding: fundingMode,
+        });
+      }
 
       // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
       // which will create a new emitter with upload events. We await
@@ -307,7 +349,7 @@ export abstract class TurboAuthenticatedBaseUploadService
             signal,
             events,
           });
-          return response;
+          return { ...response, cryptoFundResult };
         }
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
@@ -316,7 +358,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           signal,
           events,
         });
-        return response;
+        return { ...response, cryptoFundResult };
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
@@ -449,6 +491,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       chunkByteCount,
       chunkingMode,
+      fundingMode = new ExistingBalanceFunding(),
       maxFinalizeMs,
     } = params;
 
@@ -501,6 +544,17 @@ export abstract class TurboAuthenticatedBaseUploadService
     const files = await this.getFiles(params);
     const limit = pLimit(maxConcurrentUploads);
 
+    let cryptoFundResult: TurboCryptoFundResponse | undefined;
+    if (fundingMode instanceof OnDemandFunding) {
+      const totalByteCount = files.reduce((acc, file) => {
+        return acc + this.getFileSize(file) + 1200; // allow extra per file for ANS-104 headers
+      }, 0);
+      cryptoFundResult = await this.onDemand({
+        totalByteCount,
+        onDemandFunding: fundingMode,
+      });
+    }
+
     await Promise.all(files.map((file) => limit(() => uploadFile(file))));
 
     this.logger.debug('Finished uploading files', {
@@ -548,6 +602,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       ...response,
       manifest,
       manifestResponse,
+      cryptoFundResult,
     };
   }
 
@@ -617,5 +672,134 @@ export abstract class TurboAuthenticatedBaseUploadService
       );
     }
     return revokedApprovals;
+  }
+
+  private enabledOnDemandTokens: TokenType[] = ['ario', 'solana', 'base-eth'];
+
+  /**
+   * Triggers an upload that will top-up the wallet with Credits for the amount before uploading.
+   * First, it calculates the expected cost of the upload. Next, it checks the wallet for existing
+   * balance. If the balance is insufficient, it will attempt the top-up with the wallet in the specified `token`
+   * and await for the balance to be credited.
+   * Note: Only `ario`, `solana`, and `base-eth` tokens are currently supported for on-demand uploads.
+   */
+  private async onDemand({
+    totalByteCount,
+    onDemandFunding,
+  }: {
+    totalByteCount: number;
+    onDemandFunding: OnDemandFunding;
+  }): Promise<TurboCryptoFundResponse | undefined> {
+    const { maxTokenAmount, topUpBufferMultiplier } = onDemandFunding;
+
+    const currentBalance = await this.paymentService.getBalance();
+    const wincPriceForOneGiB = (
+      await this.paymentService.getUploadCosts({
+        bytes: [2 ** 30],
+      })
+    )[0].winc;
+
+    const expectedWincPrice = new BigNumber(wincPriceForOneGiB)
+      .multipliedBy(totalByteCount)
+      .dividedBy(2 ** 30)
+      .toFixed(0, BigNumber.ROUND_UP);
+
+    if (
+      BigNumber(currentBalance.effectiveBalance).isGreaterThanOrEqualTo(
+        expectedWincPrice,
+      )
+    ) {
+      this.logger.debug('Sufficient balance for on demand upload', {
+        currentBalance,
+        expectedWincPrice,
+      });
+      return undefined;
+    }
+
+    this.logger.debug('Insufficient balance for on demand upload', {
+      currentBalance,
+      expectedWincPrice,
+    });
+
+    if (!this.enabledOnDemandTokens.includes(this.token)) {
+      throw new Error(
+        `On-demand uploads are not supported for token: ${this.token}`,
+      );
+    }
+
+    const topUpWincAmount = BigNumber(expectedWincPrice)
+      .minus(currentBalance.effectiveBalance)
+      .multipliedBy(topUpBufferMultiplier) // add buffer to avoid underpayment
+      .toFixed(0, BigNumber.ROUND_UP);
+
+    const wincPriceForOneToken = (
+      await this.paymentService.getWincForToken({
+        tokenAmount: tokenToBaseMap[this.token](1),
+      })
+    ).winc;
+
+    const topUpTokenAmount = new BigNumber(topUpWincAmount)
+      .dividedBy(wincPriceForOneToken)
+      .multipliedBy(tokenToBaseMap[this.token](1))
+      .toFixed(0, BigNumber.ROUND_UP);
+
+    if (maxTokenAmount !== undefined) {
+      if (new BigNumber(topUpTokenAmount).isGreaterThan(maxTokenAmount)) {
+        throw new Error(
+          `Top up token amount ${new BigNumber(topUpTokenAmount).div(
+            exponentMap[this.token],
+          )} is greater than the maximum allowed amount of ${maxTokenAmount}`,
+        );
+      }
+    }
+
+    this.logger.debug(
+      `Topping up wallet with ${topUpTokenAmount} ${this.token} for ${topUpWincAmount} winc`,
+    );
+    const topUpResponse = await this.paymentService.topUpWithTokens({
+      tokenAmount: topUpTokenAmount,
+    });
+    this.logger.debug('Top up transaction submitted', { topUpResponse });
+
+    const pollingOptions = {
+      pollIntervalMs: 3 * 1000, // poll every 3 seconds
+      timeoutMs: 120 * 1000, // wait up to 2 minutes
+    };
+
+    let tries = 1;
+    const maxTries =
+      Math.ceil(pollingOptions.timeoutMs / pollingOptions.pollIntervalMs) - 1; // -1 because we already tried once with the initial request
+    while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
+      this.logger.debug('Tx not yet confirmed, waiting to poll again', {
+        tries,
+        maxTries,
+      });
+      await sleep(pollingOptions.pollIntervalMs);
+      tries++;
+      try {
+        const submitFundResult =
+          await this.paymentService.submitFundTransaction({
+            txId: topUpResponse.id,
+          });
+        if (submitFundResult.status === 'confirmed') {
+          this.logger.debug(
+            'Top-up transaction confirmed and balance updated',
+            { submitFundResult },
+          );
+          topUpResponse.status = 'confirmed';
+          break;
+        }
+      } catch (error) {
+        this.logger.warn('Error fetching fund transaction during polling', {
+          message: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+    if (tries >= maxTries) {
+      this.logger.warn(
+        'Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.',
+      );
+    }
+    return topUpResponse;
   }
 }

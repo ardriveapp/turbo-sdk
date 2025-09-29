@@ -659,6 +659,28 @@ await turbo.upload({
 });
 ```
 
+#### On Demand Uploads
+
+With the upload methods, you can choose to Top Up with selected crypto token on demand if the connected wallet does not have enough credits to complete the upload.
+
+This is done by providing the `OnDemandFunding` class to the `fundingMode` parameter on upload methods. The `maxTokenAmount` (optional) is the maximum amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with. The `topUpBufferMultiplier` (optional) is the multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations on longer uploads. Defaults to 1.1, meaning a 10% buffer.
+
+Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), and $ETH on Base Network (`base-eth`) token types.
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  signer: arweaveSignerWithARIO,
+  token: 'ario',
+});
+await turbo.upload({
+  ...params,
+  fundingMode: new OnDemandFunding({
+    maxTokenAmount: ARIOToTokenAmount(500), // Max 500 $ARIO
+    topUpBufferMultiplier: 1.1, // 10% buffer to avoid underpayment
+  }),
+});
+```
+
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
@@ -1045,6 +1067,9 @@ Command Options:
 - `--fallback-file <fallbackFile>` - File to use for the "fallback" path in the resulting manifest
 - `--no-manifest` - Disable manifest creation
 - `--max-concurrency <maxConcurrency>` - Maximum number of concurrent uploads
+- `--on-demand` - Enable on-demand top up if the connected wallet does not have enough credits to complete the upload (only available for $ARIO, $SOL, and $ETH on Base Network token types)
+- `--max-crypto-top-up-value <maxCryptoTopUpValue>` - Maximum value of crypto token for on-demand top up. e.g: 100 for 100 $ARIO. NOTE: This is a value in the token's standard crypto unit, not the smallest unit. e.g: 100 for 100 $ARIO, NOT 100000000 for 100 $ARIO
+- `--top-up-buffer-multiplier <topUpBufferMultiplier>` - Multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations. Default: 1.1 (10% buffer)
 
 e.g:
 
@@ -1059,6 +1084,9 @@ Upload a file to the Turbo Upload Service.
 Command Options:
 
 - `-f, --file-path <filePath>` - Path to the file to upload
+- `--on-demand` - Enable on-demand top up if the connected wallet does not have enough credits to complete the upload (only available for $ARIO, $SOL, and $ETH on Base Network token types)
+- `--max-crypto-top-up-value <maxCryptoTopUpValue>` - Maximum value of crypto token for on-demand top up. e.g: 100 for 100 $ARIO. NOTE: This is a value in the token's standard crypto unit, not the smallest unit. e.g: 100 for 100 $ARIO, NOT 100000000 for 100 $ARIO
+- `--top-up-buffer-multiplier <topUpBufferMultiplier>` - Multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations. Default: 1.1 (10% buffer)
 
 e.g:
 

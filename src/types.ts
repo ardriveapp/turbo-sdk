@@ -245,7 +245,40 @@ export type TurboUploadDataItemResponse = {
   winc: string;
   createdApproval?: CreditShareApproval;
   revokedApprovals?: CreditShareApproval[];
+  cryptoFundResult?: TurboCryptoFundResponse;
 };
+
+export type FundingOptions = {
+  fundingMode?: OnDemandFunding | ExistingBalanceFunding; // TODO: SharedCreditsFunding helper (can be used with paidBy currently)
+};
+
+export class ExistingBalanceFunding {}
+export class OnDemandFunding {
+  public maxTokenAmount: BigNumber | undefined;
+  public topUpBufferMultiplier: number;
+
+  constructor({
+    maxTokenAmount,
+    topUpBufferMultiplier = 1.1,
+  }: {
+    topUpBufferMultiplier?: number;
+    maxTokenAmount?: BigNumber.Value;
+  }) {
+    if (
+      maxTokenAmount !== undefined &&
+      new BigNumber(maxTokenAmount).isLessThan(0)
+    ) {
+      throw new Error('maxTokenAmount must be non-negative');
+    }
+    this.maxTokenAmount =
+      maxTokenAmount !== undefined ? new BigNumber(maxTokenAmount) : undefined;
+
+    if (topUpBufferMultiplier < 1) {
+      throw new Error('topUpBufferMultiplier must be >= 1');
+    }
+    this.topUpBufferMultiplier = topUpBufferMultiplier;
+  }
+}
 
 export const multipartPendingStatus = [
   'ASSEMBLING',
@@ -291,13 +324,15 @@ type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
+
   manifestOptions?: {
     disableManifest?: boolean;
     fallbackFile?: string;
     indexFile?: string;
   };
 } & TurboAbortSignal &
-  TurboChunkingParams;
+  TurboChunkingParams &
+  FundingOptions;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -332,6 +367,7 @@ export type TurboUploadFolderResponse = {
   manifestResponse?: TurboUploadDataItemResponse;
   manifest?: ArweaveManifest;
   errors?: Error[];
+  cryptoFundResult?: TurboCryptoFundResponse;
 };
 
 export type ArweaveManifest = {
@@ -678,8 +714,10 @@ export type TurboFileFactory<T = FileStreamFactory> = {
   fileSizeFactory: StreamSizeFactory;
   dataItemOpts?: DataItemOptions;
   emitter?: TurboEventEmitter;
+
   // bundle?: boolean; // TODO: add bundling into BDIs
-} & TurboChunkingParams;
+} & TurboChunkingParams &
+  FundingOptions;
 
 export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
 
@@ -840,7 +878,8 @@ export interface TurboAuthenticatedUploadServiceInterface
   }: UploadDataInput &
     TurboAbortSignal &
     TurboUploadEmitterEvents &
-    TurboChunkingParams): Promise<TurboUploadDataItemResponse>;
+    TurboChunkingParams &
+    FundingOptions): Promise<TurboUploadDataItemResponse>;
   uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse>;
@@ -875,7 +914,7 @@ export interface TokenTools {
     reward?: string;
   }>;
 
-  pollForTxBeingAvailable: (p: { txId: string }) => Promise<void>;
+  pollTxAvailability: (p: { txId: string }) => Promise<void>;
 }
 
 export type TokenConfig = {

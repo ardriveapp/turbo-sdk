@@ -121,11 +121,7 @@ export class ArweaveToken implements TokenTools {
     return { id, target, reward: tx.reward };
   }
 
-  public async pollForTxBeingAvailable({
-    txId,
-  }: {
-    txId: string;
-  }): Promise<void> {
+  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
     const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
       this.pollingOptions;
 
