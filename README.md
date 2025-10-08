@@ -267,6 +267,14 @@ const signer = new HexSolanaSigner(bs58.encode(secretKey));
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
+##### Solana Web Wallet Adapter
+
+````typescript
+const turbo = TurboFactory.authenticated({
+  walletAdapter: window.solana,
+  token: 'solana',
+});
+
 ##### Solana Secret Key
 
 ```typescript
@@ -274,7 +282,7 @@ const turbo = TurboFactory.authenticated({
   privateKey: bs58.encode(secretKey),
   token: 'solana',
 });
-```
+````
 
 ##### KYVE Private Key
 
