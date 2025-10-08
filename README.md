@@ -18,13 +18,6 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [Examples](#examples)
 - [APIs](#apis)
   - [TurboFactory](#turbofactory)
-  - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
-  - [TurboAuthenticatedClient](#turboauthenticatedclient)
-- [Events](#events)
-- [Logging](#logging)
-- [CLI](#cli)
-  - [Installation](#installation-1)
-  - [Usage](#usage-1)
 - [Turbo Credit Sharing](#turbo-credit-sharing)
 - [Developers](#developers)
   - [Requirements](#requirements)
@@ -269,20 +262,20 @@ const turbo = TurboFactory.authenticated({ signer });
 
 ##### Solana Web Wallet Adapter
 
-````typescript
+```typescript
 const turbo = TurboFactory.authenticated({
   walletAdapter: window.solana,
   token: 'solana',
 });
+```
 
 ##### Solana Secret Key
 
-```typescript
+````typescript
 const turbo = TurboFactory.authenticated({
   privateKey: bs58.encode(secretKey),
   token: 'solana',
 });
-````
 
 ##### KYVE Private Key
 
@@ -291,7 +284,7 @@ const turbo = TurboFactory.authenticated({
   privateKey: kyveHexadecimalPrivateKey,
   token: 'kyve',
 });
-```
+````
 
 ##### KYVE Mnemonic
 

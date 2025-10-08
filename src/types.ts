@@ -622,6 +622,8 @@ export type SolanaWalletAdapter = {
   signMessage: (
     message: Uint8Array,
   ) => Promise<Uint8Array | { signature: Uint8Array }>;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signTransaction: (transaction: any) => Promise<any>;
 };
 
