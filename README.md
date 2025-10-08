@@ -271,11 +271,12 @@ const turbo = TurboFactory.authenticated({
 
 ##### Solana Secret Key
 
-````typescript
+```typescript
 const turbo = TurboFactory.authenticated({
   privateKey: bs58.encode(secretKey),
   token: 'solana',
 });
+```
 
 ##### KYVE Private Key
 
@@ -284,7 +285,7 @@ const turbo = TurboFactory.authenticated({
   privateKey: kyveHexadecimalPrivateKey,
   token: 'kyve',
 });
-````
+```
 
 ##### KYVE Mnemonic
 
