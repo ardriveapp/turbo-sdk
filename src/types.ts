@@ -615,9 +615,14 @@ export type TurboAuthenticatedConfiguration =
 
 export type SolanaWalletAdapter = {
   publicKey: {
-    toBuffer: () => Buffer;
+    toString: () => string;
+    /** @deprecated -- fulfill toString() instead, this is here for umi-uploader backwards compatibility */
+    toBuffer?: () => Buffer;
   };
-  signMessage: (message: Uint8Array) => Promise<Uint8Array>;
+  signMessage: (
+    message: Uint8Array,
+  ) => Promise<Uint8Array | { signature: Uint8Array }>;
+  signTransaction: (transaction: any) => Promise<any>;
 };
 
 export type WalletAdapter = SolanaWalletAdapter | EthereumWalletAdapter;
