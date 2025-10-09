@@ -146,10 +146,7 @@ export abstract class TurboDataItemAbstractSigner
         const connection = new Connection(gatewayUrl, 'confirmed');
 
         const publicKey = new PublicKey(
-          this.walletAdapter.publicKey?.toString?.() ||
-            // For backwards compatibility with umi uploader
-            this.walletAdapter.publicKey?.toBuffer?.() ||
-            '<unknown>',
+          this.walletAdapter.publicKey.toString(),
         );
         const tx = new Transaction({
           feePayer: publicKey,
