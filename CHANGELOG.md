@@ -1,3 +1,10 @@
+## [1.32.1-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.1-alpha.1...v1.32.1-alpha.2) (2025-10-09)
+
+
+### Bug Fixes
+
+* **sol:** fulfill signMessage and toString in arbundles compatible way PE-8557 ([37f6448](https://github.com/ardriveapp/turbo-sdk/commit/37f6448fa6781cb2a06dfd22b4faca31102946e6))
+
 ## [1.32.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.0...v1.32.1-alpha.1) (2025-10-09)
 
 
