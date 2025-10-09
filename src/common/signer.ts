@@ -222,14 +222,6 @@ export abstract class TurboDataItemAbstractSigner
 
       const signature = nacl.sign.detached(dataToSign, combinedKey);
       return signature;
-    } else if (
-      this.walletAdapter !== undefined &&
-      isSolanaWalletAdapter(this.walletAdapter)
-    ) {
-      const signature = await this.walletAdapter.signTransaction(
-        Transaction.from(dataToSign),
-      );
-      return signature;
     }
 
     return this.signer.sign(dataToSign);
