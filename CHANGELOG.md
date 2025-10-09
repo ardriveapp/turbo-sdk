@@ -1,9 +1,10 @@
-# [1.32.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.0-alpha.1...v1.32.0-alpha.2) (2025-10-09)
+# [1.32.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.1...v1.32.0) (2025-09-29)
 
 
-### Bug Fixes
+### Features
 
-* **sol:** allow window.solana to be passed to walletAdapter PE-8557 ([c0f7ba1](https://github.com/ardriveapp/turbo-sdk/commit/c0f7ba15a1853beab1064858144483de446b1fa5))
+* **onDemand:** add cryptoTopUpOnDemand upload SDK setting PE-8456 ([117a80b](https://github.com/ardriveapp/turbo-sdk/commit/117a80b3dd197d9b9f03dca9f62ac6c9cb2fd0e5))
+* **onDemand:** add onDemand upload CLI setting PE-8456 ([c813e5c](https://github.com/ardriveapp/turbo-sdk/commit/c813e5c7deefb637c6625c4a5a89357611b1b123))
 
 ## [1.31.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.0...v1.31.1) (2025-09-11)
 
