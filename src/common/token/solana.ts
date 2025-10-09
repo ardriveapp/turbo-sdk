@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { HexInjectedSolanaSigner } from '@dha-team/arbundles';
 import {
   Connection,
   PublicKey,
@@ -69,6 +70,14 @@ export class SolanaToken implements TokenTools {
     id: string;
     target: string;
   }> {
+    if (signer.signer instanceof HexInjectedSolanaSigner) {
+      const id = await signer.sendTransaction({
+        amount: tokenAmount,
+        target,
+        gatewayUrl: this.gatewayUrl,
+      });
+      return { target, id };
+    }
     const publicKey = new PublicKey(
       bs58.encode(Uint8Array.from(await signer.getPublicKey())),
     );

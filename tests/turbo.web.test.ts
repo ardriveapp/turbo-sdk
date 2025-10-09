@@ -112,6 +112,7 @@ describe('Browser environment', () => {
         walletAdapter: {
           signMessage: (m) => Promise.resolve(m),
           publicKey: { toBuffer: () => Buffer.from(testSolWallet, 'hex') },
+          signTransaction: (t) => Promise.resolve(t),
         },
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
@@ -164,6 +165,7 @@ describe('Browser environment', () => {
             walletAdapter: {
               signMessage: (m) => Promise.resolve(m),
               publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+              signTransaction: (t) => Promise.resolve(t),
             },
           }),
         /Unsupported wallet adapter/,
@@ -178,6 +180,7 @@ describe('Browser environment', () => {
             walletAdapter: {
               signMessage: (m) => Promise.resolve(m),
               publicKey: { toBuffer: () => Buffer.from(testEthWallet, 'hex') },
+              signTransaction: (t) => Promise.resolve(t),
             },
           }),
         /Unsupported wallet adapter/,
