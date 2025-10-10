@@ -18,6 +18,13 @@ import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
 import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from '@solana/web3.js';
+import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
@@ -37,6 +44,7 @@ import {
   TurboSigner,
   WalletAdapter,
   isEthereumWalletAdapter,
+  isSolanaWalletAdapter,
 } from '../types.js';
 import {
   fromB64Url,
@@ -134,6 +142,28 @@ export abstract class TurboDataItemAbstractSigner
     gatewayUrl,
   }: SendTxWithSignerParams): Promise<string> {
     if (this.walletAdapter) {
+      if (isSolanaWalletAdapter(this.walletAdapter)) {
+        const connection = new Connection(gatewayUrl, 'confirmed');
+
+        const publicKey = new PublicKey(
+          this.walletAdapter.publicKey.toString(),
+        );
+        const tx = new Transaction({
+          feePayer: publicKey,
+          ...(await connection.getLatestBlockhash()),
+        });
+
+        tx.add(
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: new PublicKey(target),
+            lamports: +new BigNumber(amount),
+          }),
+        );
+        const signedTx = await this.walletAdapter.signTransaction(tx);
+        const id = await connection.sendRawTransaction(signedTx.serialize());
+        return id;
+      }
       if (!isEthereumWalletAdapter(this.walletAdapter)) {
         throw new Error(
           'Unsupported wallet adapter -- must implement getSigner',

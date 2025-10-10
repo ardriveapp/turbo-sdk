@@ -141,6 +141,25 @@ export abstract class TurboBaseFactory {
     token ??= 'arweave'; // default to arweave if token is not provided
 
     if (walletAdapter) {
+      if (isSolanaWalletAdapter(walletAdapter)) {
+        const signMessage = walletAdapter.signMessage.bind(walletAdapter);
+        walletAdapter.signMessage = async (message: Uint8Array) => {
+          const signed = await signMessage(message);
+          if ('signature' in signed) {
+            return signed.signature;
+          }
+          return signed;
+        };
+
+        if (!('toString' in walletAdapter.publicKey)) {
+          // Umi uploader compatibility
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (walletAdapter.publicKey as any).toString = function () {
+            return this.toBuffer().toString('base64');
+          };
+        }
+      }
+
       providedSigner = this.signerFromAdapter(walletAdapter, token);
     }
 
