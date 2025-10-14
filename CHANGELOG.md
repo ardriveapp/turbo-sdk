@@ -1,3 +1,11 @@
+## [1.32.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.0...v1.32.1) (2025-10-13)
+
+
+### Bug Fixes
+
+* **sol:** allow window.solana to be passed to walletAdapter PE-8557 ([c0f7ba1](https://github.com/ardriveapp/turbo-sdk/commit/c0f7ba15a1853beab1064858144483de446b1fa5))
+* **sol:** fulfill signMessage and toString in arbundles compatible way PE-8557 ([37f6448](https://github.com/ardriveapp/turbo-sdk/commit/37f6448fa6781cb2a06dfd22b4faca31102946e6))
+
 # [1.32.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.1...v1.32.0) (2025-09-29)
 
 
