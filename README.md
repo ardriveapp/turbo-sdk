@@ -21,6 +21,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
 - [Events](#events)
+  - [File Upload Events](#file-upload-events)
+  - [Folder Upload Events](#folder-upload-events)
 - [Logging](#logging)
 - [CLI](#cli)
   - [Installation](#installation-1)
