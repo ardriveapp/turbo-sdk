@@ -319,6 +319,12 @@ const turbo = TurboFactory.authenticated({
   privateKey: process.env.BASE_SEPOLIA_PRIVATE_KEY,
   token: 'base-eth',
   gatewayUrl: 'https://sepolia.base.org', // Required for testnet
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev', // Dev payment service
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev', // Dev upload service
+  }
 });
 
 // Solana Devnet
@@ -326,6 +332,12 @@ const turbo = TurboFactory.authenticated({
   privateKey: bs58.encode(secretKey),
   token: 'solana',
   gatewayUrl: 'https://api.devnet.solana.com',
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+  }
 });
 
 // Ethereum Holesky
@@ -333,6 +345,12 @@ const turbo = TurboFactory.authenticated({
   privateKey: process.env.HOLESKY_PRIVATE_KEY,
   token: 'ethereum',
   gatewayUrl: 'https://ethereum-holesky-rpc.publicnode.com',
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+
 });
 ```
 
