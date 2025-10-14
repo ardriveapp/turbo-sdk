@@ -307,6 +307,43 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
+#### Testnet Configuration
+
+For development and testing, you can configure the SDK to use blockchain testnets. This allows you to test your integration with free testnet tokens without spending real cryptocurrency.
+
+**Important**: The SDK defaults to mainnet. You must explicitly set the `gatewayUrl` parameter to use a testnet.
+
+```typescript
+// Base Sepolia (recommended for testing)
+const turbo = TurboFactory.authenticated({
+  privateKey: process.env.BASE_SEPOLIA_PRIVATE_KEY,
+  token: 'base-eth',
+  gatewayUrl: 'https://sepolia.base.org', // Required for testnet
+});
+
+// Solana Devnet
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana',
+  gatewayUrl: 'https://api.devnet.solana.com',
+});
+
+// Ethereum Holesky
+const turbo = TurboFactory.authenticated({
+  privateKey: process.env.HOLESKY_PRIVATE_KEY,
+  token: 'ethereum',
+  gatewayUrl: 'https://ethereum-holesky-rpc.publicnode.com',
+});
+```
+
+**Supported Testnets**:
+- **Base Sepolia** (`base-eth`) - Supports on-demand funding
+- **Solana Devnet** (`solana`) - Supports on-demand funding
+- **Ethereum Holesky** (`ethereum`) - Manual top-up only
+- **Polygon Amoy** (`pol`) - Manual top-up only
+
+For detailed testnet configuration including faucets, on-demand funding, and troubleshooting, see the [Testnet Configuration Guide](./docs/testnet-configuration-guide.md).
+
 ### TurboUnauthenticatedClient
 
 #### `getSupportedCurrencies()`
