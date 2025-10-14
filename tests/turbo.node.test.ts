@@ -1586,7 +1586,12 @@ describe('Node environment', () => {
           events: {
             onFileStart: ({ fileName, fileIndex, totalFiles, fileSize }) => {
               fileStartCalled++;
-              fileStartEvents.push({ fileName, fileIndex, totalFiles, fileSize });
+              fileStartEvents.push({
+                fileName,
+                fileIndex,
+                totalFiles,
+                fileSize,
+              });
               assert.ok(typeof fileName === 'string');
               assert.ok(typeof fileSize === 'number');
               assert.ok(typeof fileIndex === 'number');
