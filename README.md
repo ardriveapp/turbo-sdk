@@ -337,12 +337,11 @@ const turbo = TurboFactory.authenticated({
 ```
 
 **Supported Testnets**:
+
 - **Base Sepolia** (`base-eth`) - Supports on-demand funding
 - **Solana Devnet** (`solana`) - Supports on-demand funding
 - **Ethereum Holesky** (`ethereum`) - Manual top-up only
 - **Polygon Amoy** (`pol`) - Manual top-up only
-
-For detailed testnet configuration including faucets, on-demand funding, and troubleshooting, see the [Testnet Configuration Guide](./docs/testnet-configuration-guide.md).
 
 ### TurboUnauthenticatedClient
 
@@ -796,7 +795,9 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
     // Per-file events
     onFileStart: ({ fileName, fileSize, fileIndex, totalFiles }) => {
       console.log(
-        `Starting file ${fileIndex + 1}/${totalFiles}: ${fileName} (${fileSize} bytes)`,
+        `Starting file ${
+          fileIndex + 1
+        }/${totalFiles}: ${fileName} (${fileSize} bytes)`,
       );
     },
     onFileProgress: ({
@@ -809,7 +810,9 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
     }) => {
       const percentComplete = (fileProcessedBytes / fileTotalBytes) * 100;
       console.log(
-        `File ${fileIndex + 1}/${totalFiles} (${fileName}) ${step}: ${percentComplete.toFixed(2)}%`,
+        `File ${
+          fileIndex + 1
+        }/${totalFiles} (${fileName}) ${step}: ${percentComplete.toFixed(2)}%`,
       );
     },
     onFileComplete: ({ fileName, fileIndex, totalFiles, id }) => {
@@ -833,7 +836,9 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
     }) => {
       const percentComplete = (processedBytes / totalBytes) * 100;
       console.log(
-        `Folder progress (${currentPhase}): ${processedFiles}/${totalFiles} files, ${percentComplete.toFixed(2)}%`,
+        `Folder progress (${currentPhase}): ${processedFiles}/${totalFiles} files, ${percentComplete.toFixed(
+          2,
+        )}%`,
       );
     },
     onFolderError: (error) => {
