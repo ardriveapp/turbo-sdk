@@ -796,6 +796,220 @@ describe('Browser environment', () => {
         assert.equal(result.fileResponses.length, 4);
         assert.ok(result.manifestResponse !== undefined);
       });
+
+      it('should properly upload folder with folder events', async () => {
+        const files = [
+          new File([randomTestData()], 'stubFile.txt', { type: 'text/plain' }),
+          new File(['test data 2'], 'stubFile2.txt', { type: 'text/plain' }),
+          new File(
+            [`{ "key":  "val", "key2" : [1, 2, 3] }`],
+            'nested/stubFile5.json',
+            { type: 'application/json' },
+          ),
+          new File(['test data 3'], 'stubFile3.txt'),
+        ];
+
+        let fileStartCalled = 0;
+        let fileProgressCalled = 0;
+        let fileCompleteCalled = 0;
+        let fileErrorCalled = 0;
+        let folderProgressCalled = 0;
+        let folderErrorCalled = 0;
+        let folderSuccessCalled = 0;
+
+        const fileStartEvents: Array<{
+          fileName: string;
+          fileSize: number;
+          fileIndex: number;
+          totalFiles: number;
+        }> = [];
+        const fileCompleteEvents: Array<{
+          fileName: string;
+          fileIndex: number;
+          totalFiles: number;
+          id: string;
+        }> = [];
+        const folderProgressEvents: Array<{
+          processedFiles: number;
+          totalFiles: number;
+          processedBytes: number;
+          totalBytes: number;
+          currentPhase: 'files' | 'manifest';
+        }> = [];
+
+        const result = await turbo.uploadFolder({
+          files,
+          events: {
+            onFileStart: ({ fileName, fileIndex, totalFiles, fileSize }) => {
+              fileStartCalled++;
+              fileStartEvents.push({
+                fileName,
+                fileIndex,
+                totalFiles,
+                fileSize,
+              });
+              assert.ok(typeof fileName === 'string');
+              assert.ok(typeof fileSize === 'number');
+              assert.ok(typeof fileIndex === 'number');
+              assert.equal(totalFiles, 4);
+            },
+            onFileProgress: ({
+              fileName,
+              fileIndex,
+              totalFiles,
+              fileProcessedBytes,
+              fileTotalBytes,
+              step,
+            }) => {
+              fileProgressCalled++;
+              assert.ok(typeof fileName === 'string');
+              assert.ok(typeof fileIndex === 'number');
+              assert.equal(totalFiles, 4);
+              assert.ok(typeof fileProcessedBytes === 'number');
+              assert.ok(typeof fileTotalBytes === 'number');
+              assert.ok(step === 'signing' || step === 'upload');
+            },
+            onFileComplete: ({ fileName, fileIndex, totalFiles, id }) => {
+              fileCompleteCalled++;
+              fileCompleteEvents.push({ fileName, fileIndex, totalFiles, id });
+              assert.ok(typeof fileName === 'string');
+              assert.ok(typeof fileIndex === 'number');
+              assert.equal(totalFiles, 4);
+              assert.ok(typeof id === 'string');
+            },
+            onFileError: ({ fileName, fileIndex, totalFiles, error }) => {
+              fileErrorCalled++;
+              assert.ok(typeof fileName === 'string');
+              assert.ok(typeof fileIndex === 'number');
+              assert.equal(totalFiles, 4);
+              assert.ok(error instanceof Error);
+            },
+            onFolderProgress: ({
+              processedFiles,
+              totalFiles,
+              processedBytes,
+              totalBytes,
+              currentPhase,
+            }) => {
+              folderProgressCalled++;
+              folderProgressEvents.push({
+                processedFiles,
+                totalFiles,
+                processedBytes,
+                totalBytes,
+                currentPhase,
+              });
+              assert.ok(typeof processedFiles === 'number');
+              assert.equal(totalFiles, 4);
+              assert.ok(typeof processedBytes === 'number');
+              assert.ok(typeof totalBytes === 'number');
+              assert.ok(
+                currentPhase === 'files' || currentPhase === 'manifest',
+              );
+            },
+            onFolderError: (error) => {
+              folderErrorCalled++;
+              assert.ok(error instanceof Error);
+            },
+            onFolderSuccess: () => {
+              folderSuccessCalled++;
+            },
+          },
+        });
+
+        assert.ok(result !== undefined);
+        assert.ok(result.manifest !== undefined);
+        assert.equal(result.fileResponses.length, 4);
+
+        // Verify all event callbacks were called
+        assert.equal(fileStartCalled, 4, 'fileStart should be called 4 times');
+        assert.ok(
+          fileProgressCalled > 0,
+          'fileProgress should be called at least once',
+        );
+        assert.equal(
+          fileCompleteCalled,
+          4,
+          'fileComplete should be called 4 times',
+        );
+        assert.equal(fileErrorCalled, 0, 'fileError should not be called');
+        assert.ok(
+          folderProgressCalled > 0,
+          'folderProgress should be called at least once',
+        );
+        assert.equal(folderErrorCalled, 0, 'folderError should not be called');
+        assert.equal(
+          folderSuccessCalled,
+          1,
+          'folderSuccess should be called once',
+        );
+
+        // Verify file indices are sequential
+        for (let i = 0; i < 4; i++) {
+          const startEvent = fileStartEvents.find((e) => e.fileIndex === i);
+          const completeEvent = fileCompleteEvents.find(
+            (e) => e.fileIndex === i,
+          );
+          assert.ok(startEvent !== undefined, `fileStart event for index ${i}`);
+          assert.ok(
+            completeEvent !== undefined,
+            `fileComplete event for index ${i}`,
+          );
+        }
+
+        // Verify folder progress includes both phases
+        const filesPhaseEvents = folderProgressEvents.filter(
+          (e) => e.currentPhase === 'files',
+        );
+        const manifestPhaseEvents = folderProgressEvents.filter(
+          (e) => e.currentPhase === 'manifest',
+        );
+        assert.ok(
+          filesPhaseEvents.length > 0,
+          'Should have files phase progress events',
+        );
+        assert.ok(
+          manifestPhaseEvents.length > 0,
+          'Should have manifest phase progress events',
+        );
+      });
+
+      it('should track folder upload phases correctly', async () => {
+        const files = [
+          new File([randomTestData()], 'stubFile.txt', { type: 'text/plain' }),
+          new File(['test data 2'], 'stubFile2.txt', { type: 'text/plain' }),
+          new File(['test data 3'], 'stubFile3.txt'),
+        ];
+
+        const phases: Array<'files' | 'manifest'> = [];
+
+        await turbo.uploadFolder({
+          files,
+          events: {
+            onFolderProgress: ({ currentPhase }) => {
+              if (
+                phases.length === 0 ||
+                phases[phases.length - 1] !== currentPhase
+              ) {
+                phases.push(currentPhase);
+              }
+            },
+          },
+        });
+
+        // Verify phases are in correct order
+        assert.ok(phases.includes('files'), 'Should have files phase');
+        assert.ok(phases.includes('manifest'), 'Should have manifest phase');
+        assert.equal(
+          phases.indexOf('files'),
+          0,
+          'Files phase should come first',
+        );
+        assert.ok(
+          phases.indexOf('manifest') > phases.indexOf('files'),
+          'Manifest phase should come after files phase',
+        );
+      });
     });
 
     it('getWincForFiat() fails with bad promo code', async () => {

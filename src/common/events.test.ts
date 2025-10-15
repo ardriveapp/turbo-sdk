@@ -556,4 +556,146 @@ describe('TurboEventEmitter', () => {
     assert.equal(overallProgressPayload?.totalBytes, 1000);
     assert.equal(overallProgressPayload?.step, 'upload');
   });
+
+  it('should register onFileStart callback and emit file-upload-start event', () => {
+    let onFileStartCalled = false;
+    let fileStartPayload: any;
+    const emitter = new TurboEventEmitter({
+      onFileStart: (event) => {
+        onFileStartCalled = true;
+        fileStartPayload = event;
+      },
+    });
+
+    const testPayload = {
+      fileName: 'test.txt',
+      fileSize: 1024,
+      fileIndex: 0,
+      totalFiles: 5,
+    };
+
+    emitter.emit('file-upload-start', testPayload);
+    assert.equal(onFileStartCalled, true);
+    assert.deepStrictEqual(fileStartPayload, testPayload);
+  });
+
+  it('should register onFileProgress callback and emit file-upload-progress event', () => {
+    let onFileProgressCalled = false;
+    let fileProgressPayload: any;
+    const emitter = new TurboEventEmitter({
+      onFileProgress: (event) => {
+        onFileProgressCalled = true;
+        fileProgressPayload = event;
+      },
+    });
+
+    const testPayload = {
+      fileName: 'test.txt',
+      fileIndex: 0,
+      totalFiles: 5,
+      fileProcessedBytes: 512,
+      fileTotalBytes: 1024,
+      step: 'signing' as const,
+    };
+
+    emitter.emit('file-upload-progress', testPayload);
+    assert.equal(onFileProgressCalled, true);
+    assert.deepStrictEqual(fileProgressPayload, testPayload);
+  });
+
+  it('should register onFileComplete callback and emit file-upload-complete event', () => {
+    let onFileCompleteCalled = false;
+    let fileCompletePayload: any;
+    const emitter = new TurboEventEmitter({
+      onFileComplete: (event) => {
+        onFileCompleteCalled = true;
+        fileCompletePayload = event;
+      },
+    });
+
+    const testPayload = {
+      fileName: 'test.txt',
+      fileIndex: 0,
+      totalFiles: 5,
+      id: 'abc123',
+    };
+
+    emitter.emit('file-upload-complete', testPayload);
+    assert.equal(onFileCompleteCalled, true);
+    assert.deepStrictEqual(fileCompletePayload, testPayload);
+  });
+
+  it('should register onFileError callback and emit file-upload-error event', () => {
+    let onFileErrorCalled = false;
+    let fileErrorPayload: any;
+    const emitter = new TurboEventEmitter({
+      onFileError: (event) => {
+        onFileErrorCalled = true;
+        fileErrorPayload = event;
+      },
+    });
+
+    const testError = new Error('File upload error');
+    const testPayload = {
+      fileName: 'test.txt',
+      fileIndex: 0,
+      totalFiles: 5,
+      error: testError,
+    };
+
+    emitter.emit('file-upload-error', testPayload);
+    assert.equal(onFileErrorCalled, true);
+    assert.deepStrictEqual(fileErrorPayload, testPayload);
+  });
+
+  it('should register onFolderProgress callback and emit folder-progress event', () => {
+    let onFolderProgressCalled = false;
+    let folderProgressPayload: any;
+    const emitter = new TurboEventEmitter({
+      onFolderProgress: (event) => {
+        onFolderProgressCalled = true;
+        folderProgressPayload = event;
+      },
+    });
+
+    const testPayload = {
+      processedFiles: 2,
+      totalFiles: 5,
+      processedBytes: 2048,
+      totalBytes: 5120,
+      currentPhase: 'files' as const,
+    };
+
+    emitter.emit('folder-progress', testPayload);
+    assert.equal(onFolderProgressCalled, true);
+    assert.deepStrictEqual(folderProgressPayload, testPayload);
+  });
+
+  it('should register onFolderError callback and emit folder-error event', () => {
+    let onFolderErrorCalled = false;
+    let folderErrorPayload: any;
+    const emitter = new TurboEventEmitter({
+      onFolderError: (error) => {
+        onFolderErrorCalled = true;
+        folderErrorPayload = error;
+      },
+    });
+
+    const testError = new Error('Folder upload error');
+    emitter.emit('folder-error', testError);
+    assert.equal(onFolderErrorCalled, true);
+    assert.deepStrictEqual(folderErrorPayload, testError);
+  });
+
+  it('should register onFolderSuccess callback and emit folder-success event', () => {
+    let onFolderSuccessCalled = false;
+    const emitter = new TurboEventEmitter({
+      onFolderSuccess: () => {
+        onFolderSuccessCalled = true;
+      },
+    });
+
+    emitter.emit('folder-success');
+    assert.equal(onFolderSuccessCalled, true);
+  });
 });

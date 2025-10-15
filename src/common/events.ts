@@ -17,6 +17,8 @@ import { EventEmitter } from 'eventemitter3';
 import { PassThrough, Readable } from 'stream';
 
 import {
+  TurboFolderUploadEmitterEventArgs,
+  TurboFolderUploadEventsAndPayloads,
   TurboSigningEmitterEventArgs,
   TurboSigningEventsAndPayloads,
   TurboTotalEmitterEventArgs,
@@ -264,10 +266,12 @@ export function createStreamWithEvents({
 
 export type TurboEventEmitterEvents = TurboUploadEventsAndPayloads &
   TurboSigningEventsAndPayloads &
-  TurboTotalEventsAndPayloads;
+  TurboTotalEventsAndPayloads &
+  TurboFolderUploadEventsAndPayloads;
 export type TurboEventEmitterEventArgs = TurboUploadEmitterEventArgs &
   TurboSigningEmitterEventArgs &
-  TurboTotalEmitterEventArgs;
+  TurboTotalEmitterEventArgs &
+  TurboFolderUploadEmitterEventArgs;
 
 export class TurboEventEmitter extends EventEmitter<TurboEventEmitterEvents> {
   constructor({
@@ -280,6 +284,13 @@ export class TurboEventEmitter extends EventEmitter<TurboEventEmitterEvents> {
     onSigningProgress,
     onSigningError,
     onSigningSuccess,
+    onFileStart,
+    onFileProgress,
+    onFileComplete,
+    onFileError,
+    onFolderProgress,
+    onFolderError,
+    onFolderSuccess,
   }: TurboEventEmitterEventArgs = {}) {
     super();
     if (onUploadProgress !== undefined) {
@@ -338,6 +349,28 @@ export class TurboEventEmitter extends EventEmitter<TurboEventEmitterEvents> {
     this.on('upload-success', () => {
       this.emit('overall-success');
     });
+    // folder upload event handlers
+    if (onFileStart !== undefined) {
+      this.on('file-upload-start', onFileStart);
+    }
+    if (onFileProgress !== undefined) {
+      this.on('file-upload-progress', onFileProgress);
+    }
+    if (onFileComplete !== undefined) {
+      this.on('file-upload-complete', onFileComplete);
+    }
+    if (onFileError !== undefined) {
+      this.on('file-upload-error', onFileError);
+    }
+    if (onFolderProgress !== undefined) {
+      this.on('folder-progress', onFolderProgress);
+    }
+    if (onFolderError !== undefined) {
+      this.on('folder-error', onFolderError);
+    }
+    if (onFolderSuccess !== undefined) {
+      this.on('folder-success', onFolderSuccess);
+    }
   }
 }
 

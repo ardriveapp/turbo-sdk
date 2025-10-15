@@ -446,6 +446,7 @@ export abstract class TurboAuthenticatedBaseUploadService
   abstract contentTypeFromFile(file: File | string): string;
   abstract getFileStreamForFile(file: string | File): Readable | ReadableStream;
   abstract getFileSize(file: string | File): number;
+  abstract getFileName(file: string | File): string;
   abstract getRelativePath(
     file: string | File,
     params: TurboUploadFolderParams,
@@ -468,15 +469,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     return this.contentTypeFromFile(file);
   }
 
-  /**
-   * TODO: add events to the uploadFolder method
-   * TODO: create resolveUploadFolderConfig() function
-   * could be a predicate with a resolveConfig() function, eg: events: ({...file ctx}) => ({
-   *   onProgress: (progress) => {
-   *     console.log('progress', progress);
-   *   },
-   * })
-   */
   async uploadFolder(
     params: TurboUploadFolderParams,
   ): Promise<TurboUploadFolderResponse> {
@@ -493,9 +485,13 @@ export abstract class TurboAuthenticatedBaseUploadService
       chunkingMode,
       fundingMode = new ExistingBalanceFunding(),
       maxFinalizeMs,
+      events = {},
     } = params;
 
     const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+
+    // Create event emitter from events parameter
+    const emitter = new TurboEventEmitter(events);
 
     const paths: Record<string, { id: string }> = {};
     const response: TurboUploadFolderResponse = {
@@ -503,7 +499,33 @@ export abstract class TurboAuthenticatedBaseUploadService
     };
     const errors: Error[] = [];
 
-    const uploadFile = async (file: string | File) => {
+    // Get files and calculate total bytes upfront for progress tracking
+    const files = await this.getFiles(params);
+    const totalFiles = files.length;
+    let totalBytes = 0;
+    const fileSizes = new Map<string | File, number>();
+    files.forEach((file) => {
+      const size = this.getFileSize(file);
+      fileSizes.set(file, size);
+      totalBytes += size;
+    });
+
+    // Track progress across all files
+    let processedFiles = 0;
+    let processedBytes = 0;
+
+    const uploadFile = async (file: string | File, fileIndex: number) => {
+      const fileName = this.getFileName(file);
+      const fileSize = fileSizes.get(file) ?? 0;
+
+      // Emit file-upload-start event
+      emitter.emit('file-upload-start', {
+        fileName,
+        fileSize,
+        fileIndex,
+        totalFiles,
+      });
+
       const contentType = this.getContentType(file, dataItemOpts);
 
       const dataItemOptsWithContentType = {
@@ -521,19 +543,79 @@ export abstract class TurboAuthenticatedBaseUploadService
           // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fileStreamFactory: () => this.getFileStreamForFile(file) as any,
-          fileSizeFactory: () => this.getFileSize(file),
+          fileSizeFactory: () => fileSize,
           signal,
           dataItemOpts: dataItemOptsWithContentType,
           chunkByteCount,
           maxChunkConcurrency,
           chunkingMode,
+          events: {
+            onProgress: (event) => {
+              // Bridge individual file progress to folder events
+              emitter.emit('file-upload-progress', {
+                fileName,
+                fileIndex,
+                totalFiles,
+                fileProcessedBytes: event.processedBytes,
+                fileTotalBytes: event.totalBytes,
+                step: event.step,
+              });
+
+              // Update folder progress
+              const currentFileProgress = event.processedBytes;
+              emitter.emit('folder-progress', {
+                processedFiles,
+                totalFiles,
+                processedBytes: processedBytes + currentFileProgress,
+                totalBytes,
+                currentPhase: 'files',
+              });
+            },
+            onError: (error) => {
+              emitter.emit('file-upload-error', {
+                fileName,
+                fileIndex,
+                totalFiles,
+                error,
+              });
+            },
+          },
         });
 
         const relativePath = this.getRelativePath(file, params);
         paths[relativePath] = { id: result.id };
         response.fileResponses.push(result);
+
+        // Update processed counts after file completes
+        processedFiles++;
+        processedBytes += fileSize;
+
+        // Emit file-upload-complete event
+        emitter.emit('file-upload-complete', {
+          fileName,
+          fileIndex,
+          totalFiles,
+          id: result.id,
+        });
+
+        // Emit folder progress after file completes
+        emitter.emit('folder-progress', {
+          processedFiles,
+          totalFiles,
+          processedBytes,
+          totalBytes,
+          currentPhase: 'files',
+        });
       } catch (error) {
+        emitter.emit('file-upload-error', {
+          fileName,
+          fileIndex,
+          totalFiles,
+          error,
+        });
+
         if (throwOnFailure) {
+          emitter.emit('folder-error', error);
           throw error;
         }
         this.logger.error(`Error uploading file: ${file}`, error);
@@ -541,7 +623,6 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     };
 
-    const files = await this.getFiles(params);
     const limit = pLimit(maxConcurrentUploads);
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
@@ -555,7 +636,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       });
     }
 
-    await Promise.all(files.map((file) => limit(() => uploadFile(file))));
+    await Promise.all(
+      files.map((file, index) => limit(() => uploadFile(file, index))),
+    );
 
     this.logger.debug('Finished uploading files', {
       numFiles: files.length,
@@ -568,8 +651,18 @@ export abstract class TurboAuthenticatedBaseUploadService
     }
 
     if (disableManifest) {
+      emitter.emit('folder-success');
       return response;
     }
+
+    // Emit folder progress for manifest phase
+    emitter.emit('folder-progress', {
+      processedFiles,
+      totalFiles,
+      processedBytes,
+      totalBytes,
+      currentPhase: 'manifest',
+    });
 
     const manifest = await this.generateManifest({
       paths,
@@ -597,6 +690,8 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxFinalizeMs,
       chunkingMode,
     });
+
+    emitter.emit('folder-success');
 
     return {
       ...response,
