@@ -21,6 +21,8 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
 - [Events](#events)
+  - [File Upload Events](#file-upload-events)
+  - [Folder Upload Events](#folder-upload-events)
 - [Logging](#logging)
 - [CLI](#cli)
   - [Installation](#installation-1)
@@ -304,6 +306,60 @@ const turbo = TurboFactory.authenticated({
   token: 'kyve',
 });
 ```
+
+#### Testnet Configuration
+
+For development and testing, you can configure the SDK to use blockchain testnets. This allows you to test your integration with free testnet tokens without spending real cryptocurrency.
+
+**Important**: The SDK defaults to mainnet. You must explicitly set the `gatewayUrl` parameter to use a testnet.
+
+```typescript
+// Base Sepolia (recommended for testing)
+const turbo = TurboFactory.authenticated({
+  privateKey: process.env.BASE_SEPOLIA_PRIVATE_KEY,
+  token: 'base-eth',
+  gatewayUrl: 'https://sepolia.base.org', // Required for testnet
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev', // Dev payment service
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev', // Dev upload service
+  }
+});
+
+// Solana Devnet
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana',
+  gatewayUrl: 'https://api.devnet.solana.com',
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+  }
+});
+
+// Ethereum Holesky
+const turbo = TurboFactory.authenticated({
+  privateKey: process.env.HOLESKY_PRIVATE_KEY,
+  token: 'ethereum',
+  gatewayUrl: 'https://ethereum-holesky-rpc.publicnode.com',
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+
+});
+```
+
+**Supported Testnets**:
+
+- **Base Sepolia** (`base-eth`) - Supports on-demand funding
+- **Solana Devnet** (`solana`) - Supports on-demand funding
+- **Ethereum Holesky** (`ethereum`) - Manual top-up only
+- **Polygon Amoy** (`pol`) - Manual top-up only
 
 ### TurboUnauthenticatedClient
 
@@ -745,6 +801,74 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 </script>
 ```
 
+##### Upload Folder with Progress Events
+
+The `uploadFolder` method supports folder-level and per-file events for tracking upload progress. This is useful for building progress bars or providing feedback to users during folder uploads.
+
+```typescript
+const folderPath = path.join(__dirname, './my-folder');
+const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
+  folderPath,
+  events: {
+    // Per-file events
+    onFileStart: ({ fileName, fileSize, fileIndex, totalFiles }) => {
+      console.log(
+        `Starting file ${
+          fileIndex + 1
+        }/${totalFiles}: ${fileName} (${fileSize} bytes)`,
+      );
+    },
+    onFileProgress: ({
+      fileName,
+      fileIndex,
+      totalFiles,
+      fileProcessedBytes,
+      fileTotalBytes,
+      step,
+    }) => {
+      const percentComplete = (fileProcessedBytes / fileTotalBytes) * 100;
+      console.log(
+        `File ${
+          fileIndex + 1
+        }/${totalFiles} (${fileName}) ${step}: ${percentComplete.toFixed(2)}%`,
+      );
+    },
+    onFileComplete: ({ fileName, fileIndex, totalFiles, id }) => {
+      console.log(
+        `Completed file ${fileIndex + 1}/${totalFiles}: ${fileName} (${id})`,
+      );
+    },
+    onFileError: ({ fileName, fileIndex, totalFiles, error }) => {
+      console.error(
+        `Error uploading file ${fileIndex + 1}/${totalFiles}: ${fileName}`,
+        error,
+      );
+    },
+    // Folder-level aggregate events
+    onFolderProgress: ({
+      processedFiles,
+      totalFiles,
+      processedBytes,
+      totalBytes,
+      currentPhase,
+    }) => {
+      const percentComplete = (processedBytes / totalBytes) * 100;
+      console.log(
+        `Folder progress (${currentPhase}): ${processedFiles}/${totalFiles} files, ${percentComplete.toFixed(
+          2,
+        )}%`,
+      );
+    },
+    onFolderError: (error) => {
+      console.error('Folder upload error:', error);
+    },
+    onFolderSuccess: () => {
+      console.log('Folder upload complete!');
+    },
+  },
+});
+```
+
 #### `topUpWithTokens({ tokenAmount, feeMultiplier })`
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
@@ -858,7 +982,11 @@ const { givenApprovals, receivedApprovals } =
 
 ## Events
 
-The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, and `uploadSignedDataItem` methods.
+The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, `uploadFolder`, and `uploadSignedDataItem` methods.
+
+### File Upload Events
+
+These events are available for `upload`, `uploadFile`, and `uploadSignedDataItem` methods:
 
 - `onProgress` - emitted when the overall progress changes (includes both upload and signing). Each event consists of the total bytes, processed bytes, and the step (upload or signing)
 - `onError` - emitted when the overall upload or signing fails (includes both upload and signing)
@@ -869,6 +997,18 @@ The SDK provides events for tracking the state signing and uploading data to Tur
 - `onUploadProgress` - emitted when the upload progress changes
 - `onUploadError` - emitted when the upload fails
 - `onUploadSuccess` - emitted when the upload succeeds
+
+### Folder Upload Events
+
+These events are available for the `uploadFolder` method:
+
+- `onFileStart` - emitted when a file in the folder starts uploading. Includes the file name, file size, file index, and total number of files
+- `onFileProgress` - emitted when a file's upload or signing progress changes. Includes the file name, file index, total files, processed bytes for the file, total bytes for the file, and the current step (signing or upload)
+- `onFileComplete` - emitted when a file successfully completes uploading. Includes the file name, file index, total files, and the data item ID
+- `onFileError` - emitted when a file upload fails. Includes the file name, file index, total files, and the error
+- `onFolderProgress` - emitted when the overall folder upload progress changes. Includes the number of processed files, total files, processed bytes across all files, total bytes across all files, and the current phase (files or manifest)
+- `onFolderError` - emitted when the overall folder upload fails
+- `onFolderSuccess` - emitted when the folder upload successfully completes (including manifest generation) - this is the last event emitted for the folder upload process
 
 ```typescript
 const uploadResult = await turbo.upload({

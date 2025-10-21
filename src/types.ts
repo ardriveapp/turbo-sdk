@@ -332,7 +332,8 @@ type UploadFolderParams = {
   };
 } & TurboAbortSignal &
   TurboChunkingParams &
-  FundingOptions;
+  FundingOptions &
+  TurboFolderUploadEmitterEvents;
 
 export type NodeUploadFolderParams = {
   folderPath: string;
@@ -552,6 +553,72 @@ export type TurboSigningEmitterEvents = {
 export type TurboUploadAndSigningEmitterEvents = TurboUploadEmitterEvents &
   TurboSigningEmitterEvents &
   TurboTotalEmitterEvents;
+
+export type TurboFolderUploadEventsAndPayloads = {
+  'file-upload-start': {
+    fileName: string;
+    fileSize: number;
+    fileIndex: number;
+    totalFiles: number;
+  };
+  'file-upload-progress': {
+    fileName: string;
+    fileIndex: number;
+    totalFiles: number;
+    fileProcessedBytes: number;
+    fileTotalBytes: number;
+    step: 'signing' | 'upload';
+  };
+  'file-upload-complete': {
+    fileName: string;
+    fileIndex: number;
+    totalFiles: number;
+    id: string;
+  };
+  'file-upload-error': {
+    fileName: string;
+    fileIndex: number;
+    totalFiles: number;
+    error: Error;
+  };
+  'folder-progress': {
+    processedFiles: number;
+    totalFiles: number;
+    processedBytes: number;
+    totalBytes: number;
+    currentPhase: 'files' | 'manifest';
+  };
+  'folder-error': Error;
+  'folder-success': never[];
+};
+
+export type TurboFolderUploadEmitterEventArgs = {
+  onFileStart?: (
+    event: TurboFolderUploadEventsAndPayloads['file-upload-start'],
+  ) => void;
+  onFileProgress?: (
+    event: TurboFolderUploadEventsAndPayloads['file-upload-progress'],
+  ) => void;
+  onFileComplete?: (
+    event: TurboFolderUploadEventsAndPayloads['file-upload-complete'],
+  ) => void;
+  onFileError?: (
+    event: TurboFolderUploadEventsAndPayloads['file-upload-error'],
+  ) => void;
+  onFolderProgress?: (
+    event: TurboFolderUploadEventsAndPayloads['folder-progress'],
+  ) => void;
+  onFolderError?: (
+    event: TurboFolderUploadEventsAndPayloads['folder-error'],
+  ) => void;
+  onFolderSuccess?: (
+    event: TurboFolderUploadEventsAndPayloads['folder-success'],
+  ) => void;
+};
+
+export type TurboFolderUploadEmitterEvents = {
+  events?: TurboFolderUploadEmitterEventArgs;
+};
 
 export type TurboUnauthenticatedUploadServiceConfiguration =
   TurboServiceConfiguration;
