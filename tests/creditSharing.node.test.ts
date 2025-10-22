@@ -241,8 +241,7 @@ describe('Credit Sharing', () => {
         promiseToError: turbo.revokeCredits({
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
-        errorMessage:
-          "Failed to upload file after 1 attempts\nFailed request (Status 400): Unable to revoke delegated payment approval : No valid approvals found for approved address 'stub-43-char-address-stub-43-char-address-0' and paying address 'Gu8Oh37kjEWPoCsbudZ1GMmnP4QzFFd5APq0KEuNPvw'",
+        errorMessage: `Failed to upload file after 1 attempts\nFailed request (Status 400): Unable to revoke delegated payment approval : No valid approvals found for approved address 'stub-43-char-address-stub-43-char-address-0' and paying address '${arweavePayerAddress}'`,
         errorType: 'FailedRequestError',
       });
     });
