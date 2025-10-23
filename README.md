@@ -1187,6 +1187,7 @@ Command Options:
 
 - `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
 - `-i, --tx-id <txId>` - Transaction ID of an existing funding transaction
+- `-a, --address <nativeAddress>` - Optional native address to send the Turbo credits to
 
 e.g:
 
@@ -1207,6 +1208,10 @@ turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wall
 turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
 ```
 
+````shell
+# Send to custom destination address
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json--address '0xSome-Valid-Custom-destination-EVM-address'
+
 ##### `upload-folder`
 
 Upload a folder of files and create and upload a manifest file for the folder upload to the Turbo Upload Service.
@@ -1226,7 +1231,7 @@ e.g:
 
 ```shell
 turbo upload-folder --folder-path '../path/to/my/folder' --token solana --wallet-file ../path/to/sol/sec/key.json
-```
+````
 
 ##### `upload-file`
 
