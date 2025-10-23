@@ -386,6 +386,7 @@ export type TurboSubmitFundTxResponse = {
   winc: string;
   token: string;
   status: 'pending' | 'confirmed' | 'failed';
+  recipient?: string;
   block?: number;
 };
 
@@ -408,6 +409,7 @@ export type PendingPaymentTransaction = {
   winstonCreditAmount: string;
   destinationAddress: UserAddress;
   destinationAddressType: string;
+  transactionSenderAddress?: UserAddress;
 };
 
 export type FailedPaymentTransaction = PendingPaymentTransaction & {

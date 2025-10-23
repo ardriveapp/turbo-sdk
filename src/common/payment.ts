@@ -259,29 +259,38 @@ export class TurboUnauthenticatedPaymentService
       return {
         id: response.creditedTransaction.transactionId,
         quantity: response.creditedTransaction.transactionQuantity,
-        owner: response.creditedTransaction.destinationAddress,
+        owner:
+          response.creditedTransaction.transactionSenderAddress ??
+          response.creditedTransaction.destinationAddress,
         winc: response.creditedTransaction.winstonCreditAmount,
         token: response.creditedTransaction.tokenType,
         status: 'confirmed',
         block: response.creditedTransaction.blockHeight,
+        recipient: response.creditedTransaction.destinationAddress,
       };
     } else if ('pendingTransaction' in response) {
       return {
         id: response.pendingTransaction.transactionId,
         quantity: response.pendingTransaction.transactionQuantity,
-        owner: response.pendingTransaction.destinationAddress,
+        owner:
+          response.pendingTransaction.transactionSenderAddress ??
+          response.pendingTransaction.destinationAddress,
         winc: response.pendingTransaction.winstonCreditAmount,
         token: response.pendingTransaction.tokenType,
         status: 'pending',
+        recipient: response.pendingTransaction.destinationAddress,
       };
     } else if ('failedTransaction' in response) {
       return {
         id: response.failedTransaction.transactionId,
         quantity: response.failedTransaction.transactionQuantity,
-        owner: response.failedTransaction.destinationAddress,
+        owner:
+          response.failedTransaction.transactionSenderAddress ??
+          response.failedTransaction.destinationAddress,
         winc: response.failedTransaction.winstonCreditAmount,
         token: response.failedTransaction.tokenType,
         status: 'failed',
+        recipient: response.failedTransaction.destinationAddress,
       };
     }
     throw new Error('Unknown response from payment service: ' + response);
