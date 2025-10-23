@@ -869,12 +869,13 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 });
 ```
 
-#### `topUpWithTokens({ tokenAmount, feeMultiplier })`
+#### `topUpWithTokens({ tokenAmount, feeMultiplier, turboCreditDestinationAddress })`
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -884,6 +885,7 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
 });
 ```
 
