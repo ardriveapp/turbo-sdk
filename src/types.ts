@@ -841,7 +841,7 @@ export type SendFundTxParams = {
 export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
-
+  turboCreditDestinationAddress?: UserAddress;
   gatewayUrl: string;
 };
 
@@ -917,6 +917,7 @@ export type TurboFundWithTokensParams = {
   /** Amount of token in the smallest unit value. e.g value in Winston for "arweave" token */
   tokenAmount: BigNumber.Value;
   feeMultiplier?: number | undefined;
+  turboCreditDestinationAddress?: UserAddress;
 };
 
 export interface TurboAuthenticatedPaymentServiceInterface
@@ -979,6 +980,7 @@ export type TokenCreateTxParams = {
   tokenAmount: BigNumber;
   feeMultiplier: number;
   signer: TurboDataItemSigner;
+  turboCreditDestinationAddress?: UserAddress;
 };
 
 export interface TokenTools {

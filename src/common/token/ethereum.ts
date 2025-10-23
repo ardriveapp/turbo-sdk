@@ -43,7 +43,7 @@ export class EthereumToken implements TokenTools {
     pollingOptions = {
       maxAttempts: 10,
       pollingIntervalMs: 4_000,
-      initialBackoffMs: 10_000,
+      initialBackoffMs: 25_000,
     },
   }: TokenConfig = {}) {
     this.logger = logger;
@@ -57,22 +57,35 @@ export class EthereumToken implements TokenTools {
     target,
     tokenAmount,
     signer,
+    turboCreditDestinationAddress,
   }: TokenCreateTxParams): Promise<{
     id: string;
     target: string;
   }> {
-    // convert wei to eth
-    const eth = tokenAmount.shiftedBy(-18);
-    const txId = await signer.sendTransaction({
-      target,
-      amount: eth,
-      gatewayUrl: this.gatewayUrl,
-    });
+    try {
+      // convert wei to eth
+      const eth = tokenAmount.shiftedBy(-18);
 
-    return {
-      id: txId,
-      target,
-    };
+      const txId = await signer.sendTransaction({
+        target,
+        amount: eth,
+        gatewayUrl: this.gatewayUrl,
+        turboCreditDestinationAddress,
+      });
+
+      return {
+        id: txId,
+        target,
+      };
+    } catch (e) {
+      this.logger.error('Error creating and submitting Ethereum tx', {
+        error: e instanceof Error ? e.message : e,
+        target,
+        tokenAmount,
+        rpcEndpoint: this.gatewayUrl,
+      });
+      throw e;
+    }
   }
 
   protected async getTxAvailability(txId: string): Promise<boolean> {

@@ -53,6 +53,7 @@ import {
   UserAddress,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
+import { isAnyValidUserAddress } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
@@ -448,9 +449,18 @@ export class TurboAuthenticatedPaymentService
   public async topUpWithTokens({
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
+    turboCreditDestinationAddress,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
     if (!this.tokenTools) {
       throw new Error(`Token type not supported for crypto fund ${this.token}`);
+    }
+
+    if (turboCreditDestinationAddress !== undefined) {
+      if (isAnyValidUserAddress(turboCreditDestinationAddress) === false) {
+        throw new Error(
+          `Invalid turboCreditDestinationAddress provided: ${turboCreditDestinationAddress}`,
+        );
+      }
     }
 
     const tokenAmount = new BigNumber(tokenAmountV);
@@ -467,6 +477,7 @@ export class TurboAuthenticatedPaymentService
       tokenAmount,
       feeMultiplier,
       signer: this.signer,
+      turboCreditDestinationAddress,
     });
 
     const txId = fundTx.id;
