@@ -73,7 +73,7 @@ applyOptions(
 
 applyOptions(
   program.command('crypto-fund').description('Top up a wallet with crypto'),
-  [...walletOptions, optionMap.value, optionMap.txId],
+  [...walletOptions, optionMap.value, optionMap.txId, optionMap.address],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, cryptoFund);
 });

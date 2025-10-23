@@ -21,6 +21,7 @@ import {
   SignatureStatus,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
 } from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
@@ -66,6 +67,7 @@ export class SolanaToken implements TokenTools {
     target,
     tokenAmount,
     signer,
+    turboCreditDestinationAddress,
   }: TokenCreateTxParams): Promise<{
     id: string;
     target: string;
@@ -75,6 +77,7 @@ export class SolanaToken implements TokenTools {
         amount: tokenAmount,
         target,
         gatewayUrl: this.gatewayUrl,
+        turboCreditDestinationAddress,
       });
       return { target, id };
     }
@@ -93,6 +96,20 @@ export class SolanaToken implements TokenTools {
         lamports: +new BigNumber(tokenAmount),
       }),
     );
+
+    if (turboCreditDestinationAddress !== undefined) {
+      tx.add(
+        new TransactionInstruction({
+          programId: new PublicKey(
+            'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
+          ),
+          keys: [],
+          data: Buffer.from(
+            'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
+          ),
+        }),
+      );
+    }
 
     const serializedTx = tx.serializeMessage();
     const signature = await signer.signData(Uint8Array.from(serializedTx));

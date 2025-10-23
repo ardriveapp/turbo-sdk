@@ -386,6 +386,7 @@ export type TurboSubmitFundTxResponse = {
   winc: string;
   token: string;
   status: 'pending' | 'confirmed' | 'failed';
+  recipient?: string;
   block?: number;
 };
 
@@ -408,6 +409,7 @@ export type PendingPaymentTransaction = {
   winstonCreditAmount: string;
   destinationAddress: UserAddress;
   destinationAddressType: string;
+  transactionSenderAddress?: UserAddress;
 };
 
 export type FailedPaymentTransaction = PendingPaymentTransaction & {
@@ -841,7 +843,7 @@ export type SendFundTxParams = {
 export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
-
+  turboCreditDestinationAddress?: UserAddress;
   gatewayUrl: string;
 };
 
@@ -917,6 +919,7 @@ export type TurboFundWithTokensParams = {
   /** Amount of token in the smallest unit value. e.g value in Winston for "arweave" token */
   tokenAmount: BigNumber.Value;
   feeMultiplier?: number | undefined;
+  turboCreditDestinationAddress?: UserAddress;
 };
 
 export interface TurboAuthenticatedPaymentServiceInterface
@@ -979,6 +982,7 @@ export type TokenCreateTxParams = {
   tokenAmount: BigNumber;
   feeMultiplier: number;
   signer: TurboDataItemSigner;
+  turboCreditDestinationAddress?: UserAddress;
 };
 
 export interface TokenTools {

@@ -53,6 +53,7 @@ import {
   UserAddress,
 } from '../types.js';
 import { defaultRetryConfig } from '../utils/axiosClient.js';
+import { isAnyValidUserAddress } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
 import { TurboWinstonLogger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
@@ -258,29 +259,38 @@ export class TurboUnauthenticatedPaymentService
       return {
         id: response.creditedTransaction.transactionId,
         quantity: response.creditedTransaction.transactionQuantity,
-        owner: response.creditedTransaction.destinationAddress,
+        owner:
+          response.creditedTransaction.transactionSenderAddress ??
+          response.creditedTransaction.destinationAddress,
         winc: response.creditedTransaction.winstonCreditAmount,
         token: response.creditedTransaction.tokenType,
         status: 'confirmed',
         block: response.creditedTransaction.blockHeight,
+        recipient: response.creditedTransaction.destinationAddress,
       };
     } else if ('pendingTransaction' in response) {
       return {
         id: response.pendingTransaction.transactionId,
         quantity: response.pendingTransaction.transactionQuantity,
-        owner: response.pendingTransaction.destinationAddress,
+        owner:
+          response.pendingTransaction.transactionSenderAddress ??
+          response.pendingTransaction.destinationAddress,
         winc: response.pendingTransaction.winstonCreditAmount,
         token: response.pendingTransaction.tokenType,
         status: 'pending',
+        recipient: response.pendingTransaction.destinationAddress,
       };
     } else if ('failedTransaction' in response) {
       return {
         id: response.failedTransaction.transactionId,
         quantity: response.failedTransaction.transactionQuantity,
-        owner: response.failedTransaction.destinationAddress,
+        owner:
+          response.failedTransaction.transactionSenderAddress ??
+          response.failedTransaction.destinationAddress,
         winc: response.failedTransaction.winstonCreditAmount,
         token: response.failedTransaction.tokenType,
         status: 'failed',
+        recipient: response.failedTransaction.destinationAddress,
       };
     }
     throw new Error('Unknown response from payment service: ' + response);
@@ -448,9 +458,18 @@ export class TurboAuthenticatedPaymentService
   public async topUpWithTokens({
     feeMultiplier = 1,
     tokenAmount: tokenAmountV,
+    turboCreditDestinationAddress,
   }: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse> {
     if (!this.tokenTools) {
       throw new Error(`Token type not supported for crypto fund ${this.token}`);
+    }
+
+    if (turboCreditDestinationAddress !== undefined) {
+      if (isAnyValidUserAddress(turboCreditDestinationAddress) === false) {
+        throw new Error(
+          `Invalid turboCreditDestinationAddress provided: ${turboCreditDestinationAddress}`,
+        );
+      }
     }
 
     const tokenAmount = new BigNumber(tokenAmountV);
@@ -467,6 +486,7 @@ export class TurboAuthenticatedPaymentService
       tokenAmount,
       feeMultiplier,
       signer: this.signer,
+      turboCreditDestinationAddress,
     });
 
     const txId = fundTx.id;
