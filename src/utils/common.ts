@@ -25,7 +25,7 @@ import {
 import { arrayify } from '@ethersproject/bytes';
 import { recoverPublicKey } from '@ethersproject/signing-key';
 import { PublicKey } from '@solana/web3.js';
-import { hashMessage, hexlify, toUtf8Bytes } from 'ethers';
+import { hashMessage } from 'ethers';
 
 import {
   TokenType,
@@ -218,17 +218,4 @@ export function isAnyValidUserAddress(address: string): TokenType | false {
     }
   }
   return false;
-}
-
-export function ethDataFromTurboCreditDestinationAddress(
-  turboCreditDestinationAddress: UserAddress | undefined,
-): string | undefined {
-  if (turboCreditDestinationAddress !== undefined) {
-    return hexlify(
-      toUtf8Bytes(
-        'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
-      ),
-    );
-  }
-  return undefined;
 }

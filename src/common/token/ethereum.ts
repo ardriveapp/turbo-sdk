@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { BigNumber } from 'bignumber.js';
-import { ethers } from 'ethers';
+import { ethers, hexlify, toUtf8Bytes } from 'ethers';
 
 import {
   TokenConfig,
@@ -22,6 +22,7 @@ import {
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
+  UserAddress,
 } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
@@ -124,4 +125,17 @@ export class EthereumToken implements TokenTools {
 
     throw new Error(`Transaction ${txId} not found after polling!`);
   }
+}
+
+export function ethDataFromTurboCreditDestinationAddress(
+  turboCreditDestinationAddress: UserAddress | undefined,
+): string | undefined {
+  if (turboCreditDestinationAddress !== undefined) {
+    return hexlify(
+      toUtf8Bytes(
+        'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
+      ),
+    );
+  }
+  return undefined;
 }

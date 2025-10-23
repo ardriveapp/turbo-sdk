@@ -52,8 +52,8 @@ import {
   ownerToAddress as ownerToB64Address,
   toB64Url,
 } from '../utils/base64.js';
-import { ethDataFromTurboCreditDestinationAddress } from '../utils/common.js';
 import { TurboWinstonLogger } from './logger.js';
+import { ethDataFromTurboCreditDestinationAddress } from './token/ethereum.js';
 
 /**
  * Abstract class for signing TurboDataItems.
