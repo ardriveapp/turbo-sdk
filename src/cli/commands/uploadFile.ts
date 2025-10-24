@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { basename } from 'path';
 import { createReadStream, statSync } from 'fs';
 
 import { turboCliTags } from '../constants.js';
+import { FileUploadProgress } from '../progress.js';
 import { UploadFileOptions } from '../types.js';
 import {
   getChunkingOptions,
@@ -35,14 +37,40 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
   const paidBy = await paidByFromOptions(options, turbo);
   const customTags = getTagsFromOptions(options);
   const fileSize = statSync(filePath).size;
+  const fileName = basename(filePath);
+  const showProgress = options.showProgress;
 
-  const result = await turbo.uploadFile({
-    fileStreamFactory: () => createReadStream(filePath),
-    fileSizeFactory: () => fileSize,
-    dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
-    ...getChunkingOptions(options),
-    ...onDemandOptionsFromOptions(options),
-  });
+  // Create progress tracker
+  const progress = new FileUploadProgress(showProgress);
+  progress.start(fileSize, fileName);
 
-  console.log('Uploaded file:', JSON.stringify(result, null, 2));
+  try {
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
+      ...getChunkingOptions(options),
+      ...onDemandOptionsFromOptions(options),
+      events: {
+        onProgress: ({ processedBytes }) => {
+          progress.update(processedBytes);
+        },
+        onSuccess: () => {
+          progress.complete();
+        },
+        onError: (error) => {
+          progress.error(error);
+        },
+      },
+    });
+
+    progress.stop();
+
+    // Add newline before output only if progress was shown
+    const prefix = showProgress ? '\n' : '';
+    console.log(`${prefix}Uploaded file:`, JSON.stringify(result, null, 2));
+  } catch (error) {
+    progress.stop();
+    throw error;
+  }
 }
