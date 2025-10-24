@@ -95,6 +95,9 @@ export abstract class TurboDataItemAbstractSigner
       case 'matic':
       case 'pol':
       case 'base-eth':
+      case 'usdc':
+      case 'base-usdc':
+      case 'polygon-usdc':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':

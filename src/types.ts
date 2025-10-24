@@ -69,6 +69,9 @@ export const tokenTypes = [
   'matic',
   'pol',
   'base-eth',
+  'usdc',
+  'base-usdc',
+  'polygon-usdc',
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 

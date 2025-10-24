@@ -29,6 +29,7 @@ import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 import { KYVEToTokenAmount, KyveToken } from './kyve.js';
 import { POLToTokenAmount, PolygonToken } from './polygon.js';
 import { SOLToTokenAmount, SolanaToken } from './solana.js';
+import { USDCToTokenAmount, USDCToken } from './usdc.js';
 
 export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
@@ -39,9 +40,16 @@ export const defaultTokenMap: TokenFactory = {
   kyve: (config: TokenConfig) => new KyveToken(config),
   matic: (config: TokenConfig) => new PolygonToken(config),
   pol: (config: TokenConfig) => new PolygonToken(config),
+  usdc: (config: TokenConfig) =>
+    new USDCToken({ network: 'ethereum', ...config }),
+  'base-usdc': (config: TokenConfig) =>
+    new USDCToken({ network: 'base', ...config }),
+  'polygon-usdc': (config: TokenConfig) =>
+    new USDCToken({ network: 'polygon', ...config }),
 } as const;
 
 const ethExponent = 18;
+const usdcExponent = 6;
 
 export const exponentMap: Record<TokenType, number> = {
   arweave: 12,
@@ -52,6 +60,9 @@ export const exponentMap: Record<TokenType, number> = {
   kyve: 6,
   matic: ethExponent,
   pol: ethExponent,
+  usdc: usdcExponent,
+  'base-usdc': usdcExponent,
+  'polygon-usdc': usdcExponent,
 } as const;
 
 export const tokenToBaseMap: Record<
@@ -66,6 +77,9 @@ export const tokenToBaseMap: Record<
   kyve: (a: BigNumber.Value) => KYVEToTokenAmount(a),
   matic: (a: BigNumber.Value) => POLToTokenAmount(a),
   pol: (a: BigNumber.Value) => POLToTokenAmount(a),
+  usdc: (a: BigNumber.Value) => USDCToTokenAmount(a),
+  'base-usdc': (a: BigNumber.Value) => USDCToTokenAmount(a),
+  'polygon-usdc': (a: BigNumber.Value) => USDCToTokenAmount(a),
 } as const;
 
 export function isTokenType(token: string): token is TokenType {
