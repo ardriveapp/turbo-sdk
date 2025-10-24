@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { basename } from 'path';
 import { createReadStream, statSync } from 'fs';
+import { basename } from 'path';
 
 import { turboCliTags } from '../constants.js';
 import { FileUploadProgress } from '../progress.js';

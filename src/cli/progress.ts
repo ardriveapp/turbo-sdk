@@ -72,7 +72,9 @@ export class FolderUploadProgress {
       // Fallback to simple console output
       if (this.enabled) {
         console.log(
-          `[${fileIndex + 1}/${totalFiles}] Uploading: ${fileName} (${formatBytes(fileSize)})`,
+          `[${
+            fileIndex + 1
+          }/${totalFiles}] Uploading: ${fileName} (${formatBytes(fileSize)})`,
         );
       }
       return;
@@ -117,7 +119,9 @@ export class FolderUploadProgress {
     if (!this.enabled || !this.isTTY || !this.fileBar) {
       // Fallback to simple console output
       if (this.enabled) {
-        console.log(`✓ [${fileIndex + 1}/${totalFiles}] Completed: ${fileName}`);
+        console.log(
+          `✓ [${fileIndex + 1}/${totalFiles}] Completed: ${fileName}`,
+        );
       }
       return;
     }
@@ -169,11 +173,15 @@ export class FolderUploadProgress {
     // Create folder progress bar on first call
     if (!this.folderBar) {
       this.folderBar = this.multibar.create(totalFiles, processedFiles, {
-        status: `Overall: ${processedFiles}/${totalFiles} files (${formatBytes(processedBytes)}/${formatBytes(totalBytes)})`,
+        status: `Overall: ${processedFiles}/${totalFiles} files (${formatBytes(
+          processedBytes,
+        )}/${formatBytes(totalBytes)})`,
       });
     } else {
       this.folderBar.update(processedFiles, {
-        status: `Overall: ${processedFiles}/${totalFiles} files (${formatBytes(processedBytes)}/${formatBytes(totalBytes)})`,
+        status: `Overall: ${processedFiles}/${totalFiles} files (${formatBytes(
+          processedBytes,
+        )}/${formatBytes(totalBytes)})`,
       });
     }
   }
@@ -181,7 +189,9 @@ export class FolderUploadProgress {
   /**
    * Handle folder error event
    */
-  onFolderError(error: TurboFolderUploadEventsAndPayloads['folder-error']): void {
+  onFolderError(
+    error: TurboFolderUploadEventsAndPayloads['folder-error'],
+  ): void {
     if (!this.enabled) {
       return;
     }
@@ -197,7 +207,9 @@ export class FolderUploadProgress {
     if (!this.enabled || !this.isTTY) {
       if (this.enabled) {
         console.log(
-          `\n✓ Folder upload complete! (${this.totalFiles} files, ${formatBytes(this.totalBytes)})`,
+          `\n✓ Folder upload complete! (${this.totalFiles} files, ${formatBytes(
+            this.totalBytes,
+          )})`,
         );
       }
       return;
@@ -206,7 +218,9 @@ export class FolderUploadProgress {
     // Complete all progress bars
     if (this.folderBar) {
       this.folderBar.update(this.totalFiles, {
-        status: `✓ Complete: ${this.totalFiles} files (${formatBytes(this.totalBytes)})`,
+        status: `✓ Complete: ${this.totalFiles} files (${formatBytes(
+          this.totalBytes,
+        )})`,
       });
     }
   }
