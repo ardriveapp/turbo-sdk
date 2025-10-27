@@ -1795,14 +1795,17 @@ describe('Node environment', () => {
 
     describe('fund()', function () {
       it('should succeed to fund account using arweave tokens', async () => {
-        const [{ winc }] = await Promise.all([
+        const [{ winc, recipient, owner }] = await Promise.all([
           turbo.topUpWithTokens({
             tokenAmount: WinstonToTokenAmount(10),
+            turboCreditDestinationAddress: testSolNativeAddress,
           }),
           delayedBlockMining(),
         ]);
 
         assert.equal(winc, '7');
+        assert.equal(owner, testArweaveNativeB64Address);
+        assert.equal(recipient, testSolNativeAddress);
       });
 
       it('should fail to submit fund tx when arweave fund tx is stubbed to succeed but wont exist on chain', async () => {

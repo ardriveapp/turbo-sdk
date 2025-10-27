@@ -24,6 +24,7 @@ import {
 } from '@dha-team/arbundles';
 import { arrayify } from '@ethersproject/bytes';
 import { recoverPublicKey } from '@ethersproject/signing-key';
+import { PublicKey } from '@solana/web3.js';
 import { hashMessage } from 'ethers';
 
 import {
@@ -33,6 +34,7 @@ import {
   isEthPrivateKey,
   isJWK,
   isKyvePrivateKey,
+  tokenTypes,
 } from '../types.js';
 
 export function sleep(ms: number): Promise<void> {
@@ -165,4 +167,54 @@ export async function signerFromKyveMnemonic(
 
 export function isBlob(val: unknown): val is Blob {
   return typeof Blob !== 'undefined' && val instanceof Blob;
+}
+
+// check if it is a valid arweave base64url for a wallet public address, transaction id or smartweave contract
+export function isValidArweaveBase64URL(base64URL: string) {
+  const base64URLRegex = new RegExp('^[a-zA-Z0-9_-]{43}$');
+  return base64URLRegex.test(base64URL);
+}
+
+export function isValidSolanaAddress(address: string) {
+  try {
+    return PublicKey.isOnCurve(address);
+  } catch {
+    return false;
+  }
+}
+
+export function isValidECDSAAddress(address: string) {
+  const ethAddressRegex = new RegExp('^0x[a-fA-F0-9]{40}$');
+  return ethAddressRegex.test(address);
+}
+
+export function isValidKyveAddress(address: string) {
+  const kyveAddressRegex = new RegExp('^kyve[a-zA-Z0-9]{39}$');
+  return kyveAddressRegex.test(address);
+}
+
+export function isValidUserAddress(address: string, type: TokenType): boolean {
+  switch (type) {
+    case 'arweave':
+    case 'ario':
+      return isValidArweaveBase64URL(address);
+    case 'solana':
+      return isValidSolanaAddress(address);
+    case 'ethereum':
+    case 'base-eth':
+    case 'matic':
+    case 'pol':
+      return isValidECDSAAddress(address);
+    case 'kyve':
+      return isValidKyveAddress(address);
+  }
+}
+
+export function isAnyValidUserAddress(address: string): TokenType | false {
+  for (const type of tokenTypes) {
+    if (isValidUserAddress(address, type)) {
+      return type;
+    }
+  }
+  return false;
 }

@@ -869,12 +869,13 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 });
 ```
 
-#### `topUpWithTokens({ tokenAmount, feeMultiplier })`
+#### `topUpWithTokens({ tokenAmount, feeMultiplier, turboCreditDestinationAddress })`
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -884,6 +885,7 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
 });
 ```
 
@@ -1185,6 +1187,7 @@ Command Options:
 
 - `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
 - `-i, --tx-id <txId>` - Transaction ID of an existing funding transaction
+- `-a, --address <nativeAddress>` - Optional native address to send the Turbo credits to
 
 e.g:
 
@@ -1203,6 +1206,11 @@ turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wall
 ```shell
 # Use a custom AO process ID and compute unit:
 turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
+```
+
+```shell
+# Send to custom destination address
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json --address 'Any-Valid-AR-EVM-SOL-KYVE-Native-Address'
 ```
 
 ##### `upload-folder`
