@@ -213,7 +213,7 @@ export abstract class TurboBaseFactory {
       }
       return new HexInjectedSolanaSigner(walletAdapter);
     }
-    const ethTokens = new Set(['ethereum', 'base-eth']);
+    const ethTokens = new Set(['ethereum', 'base-eth', 'matic', 'pol']);
     if (ethTokens.has(token)) {
       if (!isEthereumWalletAdapter(walletAdapter)) {
         throw new Error(
