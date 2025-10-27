@@ -1208,9 +1208,10 @@ turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wall
 turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
 ```
 
-````shell
+```shell
 # Send to custom destination address
-turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json--address '0xSome-Valid-Custom-destination-EVM-address'
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json --address 'Any-Valid-AR-EVM-SOL-KYVE-Native-Address'
+```
 
 ##### `upload-folder`
 
@@ -1231,7 +1232,7 @@ e.g:
 
 ```shell
 turbo upload-folder --folder-path '../path/to/my/folder' --token solana --wallet-file ../path/to/sol/sec/key.json
-````
+```
 
 ##### `upload-file`
 
