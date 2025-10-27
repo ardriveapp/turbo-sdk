@@ -40,6 +40,7 @@ import { TurboWinstonLogger } from '../logger.js';
 export const lamportToTokenAmount = (winston: BigNumber.Value) => winston;
 export const SOLToTokenAmount = (sol: BigNumber.Value) =>
   new BigNumber(sol).times(1e9).valueOf();
+export const memoProgramId = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
 export class SolanaToken implements TokenTools {
   protected logger: TurboLogger;
@@ -100,9 +101,7 @@ export class SolanaToken implements TokenTools {
     if (turboCreditDestinationAddress !== undefined) {
       tx.add(
         new TransactionInstruction({
-          programId: new PublicKey(
-            'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
-          ),
+          programId: new PublicKey(memoProgramId),
           keys: [],
           data: Buffer.from(
             'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
