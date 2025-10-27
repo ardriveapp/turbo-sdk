@@ -1,9 +1,9 @@
-# [1.34.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.1-alpha.1...v1.34.0-alpha.1) (2025-10-27)
+## [1.33.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.0...v1.33.1) (2025-10-27)
 
 
-### Features
+### Bug Fixes
 
-* **cross chain tx:** init crypto payments to custom destination addresses PE-6013 ([2352f24](https://github.com/ardriveapp/turbo-sdk/commit/2352f248122e3a7a62e4597f3a4dce4b64d3eaff))
+* **factory:** enable POL browser wallet support via walletAdapter ([5dcb108](https://github.com/ardriveapp/turbo-sdk/commit/5dcb108e13d6de5c58bb9749a0851cfc898b61b7))
 
 # [1.33.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.1...v1.33.0) (2025-10-22)
 
