@@ -31,7 +31,6 @@ import {
   TokenType,
   TurboSigner,
   TurboWallet,
-  UserAddress,
   isEthPrivateKey,
   isJWK,
   isKyvePrivateKey,
