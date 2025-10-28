@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.1...v1.34.0) (2025-10-28)
+
+
+### Features
+
+* **cross chain tx:** init crypto payments to custom destination addresses PE-6013 ([2352f24](https://github.com/ardriveapp/turbo-sdk/commit/2352f248122e3a7a62e4597f3a4dce4b64d3eaff))
+
 ## [1.33.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.0...v1.33.1) (2025-10-27)
 
 
