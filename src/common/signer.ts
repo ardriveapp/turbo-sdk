@@ -54,6 +54,7 @@ import {
 } from '../utils/base64.js';
 import { TurboWinstonLogger } from './logger.js';
 import { ethDataFromTurboCreditDestinationAddress } from './token/ethereum.js';
+import { memoProgramId } from './token/solana.js';
 
 /**
  * Abstract class for signing TurboDataItems.
@@ -170,9 +171,7 @@ export abstract class TurboDataItemAbstractSigner
         if (turboCreditDestinationAddress !== undefined) {
           tx.add(
             new TransactionInstruction({
-              programId: new PublicKey(
-                'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
-              ),
+              programId: new PublicKey(memoProgramId),
               keys: [],
               data: Buffer.from(
                 'turboCreditDestinationAddress=' +

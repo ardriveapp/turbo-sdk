@@ -1,3 +1,10 @@
+## [1.33.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.0...v1.33.1) (2025-10-27)
+
+
+### Bug Fixes
+
+* **factory:** enable POL browser wallet support via walletAdapter ([5dcb108](https://github.com/ardriveapp/turbo-sdk/commit/5dcb108e13d6de5c58bb9749a0851cfc898b61b7))
+
 # [1.33.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.1...v1.33.0) (2025-10-22)
 
 
