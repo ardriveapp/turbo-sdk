@@ -72,38 +72,47 @@ export class ARIOToken implements TokenTools {
     target,
     signer: { signer },
     tokenAmount,
+    turboCreditDestinationAddress,
   }: TokenCreateTxParams): Promise<{
     id: string;
     target: string;
     reward: string;
   }> {
+    const tags = [
+      {
+        name: 'Action',
+        value: 'Transfer',
+      },
+      {
+        name: 'Recipient',
+        value: target,
+      },
+      {
+        name: 'Quantity',
+        value: tokenAmount.toString(),
+      },
+      {
+        name: 'Turbo-SDK',
+        value: version,
+      },
+    ];
+    if (turboCreditDestinationAddress !== undefined) {
+      tags.push({
+        name: 'Turbo-Credit-Destination-Address',
+        value: turboCreditDestinationAddress,
+      });
+    }
     const txId = await this.ao.message({
       signer: createAoSigner(signer),
       process: this.processId,
-      tags: [
-        {
-          name: 'Action',
-          value: 'Transfer',
-        },
-        {
-          name: 'Recipient',
-          value: target,
-        },
-        {
-          name: 'Quantity',
-          value: tokenAmount.toString(),
-        },
-        {
-          name: 'Turbo-SDK',
-          value: version,
-        },
-      ],
+      tags,
     });
     this.logger.debug('Submitted Transfer message to ARIO process...', {
       id: txId,
       target,
       tokenAmount,
       processId: this.processId,
+      tags,
     });
 
     return { id: txId, target, reward: '0' };
