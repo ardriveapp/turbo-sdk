@@ -15,57 +15,86 @@
  */
 import { BigNumber } from 'bignumber.js';
 
-import { TokenPollingOptions, TurboLogger } from '../../types.js';
-import { defaultProdGatewayUrls } from '../../utils/common.js';
+import { TokenConfig } from '../../types.js';
+import {
+  defaultProdGatewayUrls,
+  tokenToDevGatewayMap,
+} from '../../utils/common.js';
 import { ERC20Token } from './erc20.js';
 
 /**
  * Known USDC contract addresses and default RPCs by network
  */
-export const usdcNetworks: Record<
+export const usdcNetworks: (useDevnet?: boolean) => Record<
   string,
   {
-    tokenAddress: string;
-    endpoint: string;
+    tokenContractAddress: string;
+    rpcEndpoint: string;
   }
-> = {
+> = (useDevnet = false) => ({
   ethereum: {
-    tokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    endpoint: defaultProdGatewayUrls.ethereum,
+    tokenContractAddress: useDevnet
+      ? ethSepoliaUsdcAddress
+      : ethMainnetUsdcAddress,
+    rpcEndpoint: useDevnet
+      ? tokenToDevGatewayMap.ethereum
+      : defaultProdGatewayUrls.ethereum,
   },
   base: {
-    tokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-    endpoint: defaultProdGatewayUrls['base-eth'],
+    tokenContractAddress: useDevnet
+      ? baseSepoliaUsdcAddress
+      : baseMainnetUsdcAddress,
+    rpcEndpoint: useDevnet
+      ? tokenToDevGatewayMap['base-eth']
+      : defaultProdGatewayUrls['base-eth'],
   },
   polygon: {
-    tokenAddress: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-    endpoint: defaultProdGatewayUrls.pol,
+    tokenContractAddress: useDevnet
+      ? polygonAmoyUsdcAddress
+      : polygonMainnetUsdcAddress,
+    rpcEndpoint: useDevnet
+      ? tokenToDevGatewayMap.pol
+      : defaultProdGatewayUrls.pol,
   },
-};
+});
+
+const ethMainnetUsdcAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const baseMainnetUsdcAddress = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const polygonMainnetUsdcAddress = '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+
+const ethSepoliaUsdcAddress = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
+const baseSepoliaUsdcAddress = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+const polygonAmoyUsdcAddress = '0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582';
 
 export const mUSDCToTokenAmount = (mUSDC: BigNumber.Value) => mUSDC;
 export const USDCToTokenAmount = (usdc: BigNumber.Value) =>
   new BigNumber(usdc).times(1e6).valueOf();
-
-// TODO: Check for testnet RPCs and use the correct token addresses
 
 export class USDCToken extends ERC20Token {
   constructor({
     network = 'ethereum',
     logger,
     gatewayUrl,
+    tokenContractAddress,
     pollingOptions,
-  }: {
+    useDevnet,
+  }: TokenConfig & {
     network?: 'ethereum' | 'base' | 'polygon';
-    logger?: TurboLogger;
-    gatewayUrl?: string;
-    pollingOptions?: TokenPollingOptions;
+    useDevnet?: boolean;
+    tokenContractAddress?: string;
   } = {}) {
-    const { tokenAddress, endpoint } = usdcNetworks[network];
+    if (useDevnet === undefined) {
+      const keywords = ['sepolia', 'amoy'];
+      useDevnet = keywords.some((keyword) =>
+        (gatewayUrl ?? '').toLowerCase().includes(keyword),
+      );
+    }
+    const { tokenContractAddress: usdcContractAddress, rpcEndpoint } =
+      usdcNetworks(useDevnet)[network];
     super({
-      tokenAddress,
+      tokenContractAddress: tokenContractAddress ?? usdcContractAddress,
       logger,
-      gatewayUrl: gatewayUrl ?? endpoint,
+      gatewayUrl: gatewayUrl ?? rpcEndpoint,
       pollingOptions,
     });
   }

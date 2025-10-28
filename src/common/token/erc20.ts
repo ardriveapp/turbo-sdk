@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { EthereumSigner } from '@dha-team/arbundles';
-import { BigNumber } from 'bignumber.js';
 import { Wallet as EthereumWallet, JsonRpcProvider, ethers } from 'ethers';
 
 import { TokenConfig, TokenCreateTxParams } from '../../types.js';
@@ -39,14 +38,14 @@ export class ERC20Token extends EthereumToken {
   private tokenContract: ERC20Contract;
 
   constructor({
-    tokenAddress,
+    tokenContractAddress,
     logger = TurboWinstonLogger.default,
     gatewayUrl = defaultProdGatewayUrls.ethereum,
     pollingOptions,
-  }: TokenConfig & { tokenAddress: string }) {
+  }: TokenConfig & { tokenContractAddress: string }) {
     super({ logger, gatewayUrl, pollingOptions });
     this.tokenContract = new ethers.Contract(
-      tokenAddress,
+      tokenContractAddress,
       [
         'function decimals() view returns (uint8)',
         'function balanceOf(address) view returns (uint256)',
@@ -80,25 +79,40 @@ export class ERC20Token extends EthereumToken {
         ethWalletAndProvider,
       ) as ERC20Contract;
 
-      const decimals = await connected.decimals();
+      // Encode transfer data
+      const baseTransferData = connected.interface.encodeFunctionData(
+        'transfer',
+        [target, tokenAmount.toString()],
+      );
 
-      // Convert tokenAmount (which may already be BigNumber.js) to raw integer value
-      const rawAmount = new BigNumber(tokenAmount)
-        .shiftedBy(decimals)
-        .toFixed(0);
+      let finalData = baseTransferData;
 
-      // Prepare transaction data (with optional memo)
+      // Append optional memo data with turbo credit destination address
       const memoData = ethDataFromTurboCreditDestinationAddress(
         turboCreditDestinationAddress,
       );
+      if (memoData !== undefined) {
+        // remove the "0x" prefix and append
+        finalData += memoData.slice(2);
+      }
 
-      const tx = await connected.transfer(target, rawAmount, {
-        data: memoData, // optional memo data
+      const txRequest = {
+        to: await connected.getAddress(),
+        data: finalData,
+      };
+
+      this.logger.debug('Submitting ERC20 transfer', {
+        target,
+        tokenAmount: tokenAmount.toString(),
+        rpcEndpoint: this.gatewayUrl,
+        txRequest,
       });
+      const tx = await ethWalletAndProvider.sendTransaction(txRequest);
 
       this.logger.debug('ERC20 transfer submitted', {
         txHash: tx.hash,
         target,
+        tx,
       });
 
       return { id: tx.hash, target };
@@ -111,11 +125,5 @@ export class ERC20Token extends EthereumToken {
       });
       throw e;
     }
-  }
-
-  public async getTokenBalance(address: string): Promise<BigNumber> {
-    const decimals = await this.tokenContract.decimals();
-    const balance = await this.tokenContract.balanceOf(address);
-    return new BigNumber(balance.toString()).shiftedBy(-decimals);
   }
 }
