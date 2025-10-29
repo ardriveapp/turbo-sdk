@@ -15,12 +15,15 @@
  */
 import { BigNumber } from 'bignumber.js';
 
-import { TokenConfig } from '../../types.js';
+import { TokenConfig, TokenPollingOptions } from '../../types.js';
 import {
   defaultProdGatewayUrls,
   tokenToDevGatewayMap,
 } from '../../utils/common.js';
+import { defaultBaseNetworkPollingOptions } from './baseEth.js';
 import { ERC20Token } from './erc20.js';
+import { defaultEthereumPollingOptions } from './ethereum.js';
+import { defaultPolygonPollingOptions } from './polygon.js';
 
 /**
  * Known USDC contract addresses and default RPCs by network
@@ -30,6 +33,7 @@ export const usdcNetworks: (useDevnet?: boolean) => Record<
   {
     tokenContractAddress: string;
     rpcEndpoint: string;
+    defaultPollingOptions: TokenPollingOptions;
   }
 > = (useDevnet = false) => ({
   ethereum: {
@@ -39,6 +43,7 @@ export const usdcNetworks: (useDevnet?: boolean) => Record<
     rpcEndpoint: useDevnet
       ? tokenToDevGatewayMap.ethereum
       : defaultProdGatewayUrls.ethereum,
+    defaultPollingOptions: defaultEthereumPollingOptions,
   },
   base: {
     tokenContractAddress: useDevnet
@@ -47,6 +52,7 @@ export const usdcNetworks: (useDevnet?: boolean) => Record<
     rpcEndpoint: useDevnet
       ? tokenToDevGatewayMap['base-eth']
       : defaultProdGatewayUrls['base-eth'],
+    defaultPollingOptions: defaultBaseNetworkPollingOptions,
   },
   polygon: {
     tokenContractAddress: useDevnet
@@ -55,6 +61,7 @@ export const usdcNetworks: (useDevnet?: boolean) => Record<
     rpcEndpoint: useDevnet
       ? tokenToDevGatewayMap.pol
       : defaultProdGatewayUrls.pol,
+    defaultPollingOptions: defaultPolygonPollingOptions,
   },
 });
 
@@ -89,13 +96,16 @@ export class USDCToken extends ERC20Token {
         (gatewayUrl ?? '').toLowerCase().includes(keyword),
       );
     }
-    const { tokenContractAddress: usdcContractAddress, rpcEndpoint } =
-      usdcNetworks(useDevnet)[network];
+    const {
+      tokenContractAddress: usdcContractAddress,
+      rpcEndpoint,
+      defaultPollingOptions,
+    } = usdcNetworks(useDevnet)[network];
     super({
       tokenContractAddress: tokenContractAddress ?? usdcContractAddress,
       logger,
       gatewayUrl: gatewayUrl ?? rpcEndpoint,
-      pollingOptions,
+      pollingOptions: pollingOptions ?? defaultPollingOptions,
     });
   }
 }

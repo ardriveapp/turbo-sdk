@@ -31,6 +31,12 @@ export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
 export const ETHToTokenAmount = (eth: BigNumber.Value) =>
   new BigNumber(eth).times(1e18).valueOf();
 
+export const defaultEthereumPollingOptions: TokenPollingOptions = {
+  initialBackoffMs: 25_000,
+  maxAttempts: 10,
+  pollingIntervalMs: 4_000,
+};
+
 export class EthereumToken implements TokenTools {
   protected logger: TurboLogger;
   protected gatewayUrl: string;
@@ -41,11 +47,7 @@ export class EthereumToken implements TokenTools {
   constructor({
     logger = TurboWinstonLogger.default,
     gatewayUrl = defaultProdGatewayUrls.ethereum,
-    pollingOptions = {
-      maxAttempts: 10,
-      pollingIntervalMs: 4_000,
-      initialBackoffMs: 25_000,
-    },
+    pollingOptions = defaultEthereumPollingOptions,
   }: TokenConfig = {}) {
     this.logger = logger;
     this.gatewayUrl = gatewayUrl;
