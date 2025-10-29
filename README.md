@@ -730,7 +730,7 @@ With the upload methods, you can choose to Top Up with selected crypto token on 
 
 This is done by providing the `OnDemandFunding` class to the `fundingMode` parameter on upload methods. The `maxTokenAmount` (optional) is the maximum amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with. The `topUpBufferMultiplier` (optional) is the multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations on longer uploads. Defaults to 1.1, meaning a 10% buffer.
 
-Note: On demand API currently only available networks for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`) and $USDC on Base Network (`base-usdc`) token types.
+Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`) and $USDC on Base Network (`base-usdc`) token types.
 
 ```typescript
 const turbo = TurboFactory.authenticated({
