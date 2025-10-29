@@ -97,6 +97,9 @@ describe('Node environment', () => {
       kyve: [new EthereumSigner(testKyvePrivatekey), testKyveNativeAddress],
       matic: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       pol: [new EthereumSigner(testEthWallet), testEthNativeAddress],
+      'base-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
+      usdc: [new EthereumSigner(testEthWallet), testEthNativeAddress],
+      'polygon-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
     };
 
     for (const [token, [signer, expectedNativeAddress]] of Object.entries(
