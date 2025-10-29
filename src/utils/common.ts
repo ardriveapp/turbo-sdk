@@ -45,18 +45,22 @@ export function isWeb() {
   return typeof window !== 'undefined';
 }
 
+const ethTestnetRpc = 'https://eth-sepolia.public.blastapi.io';
+const baseTestnetRpc = 'https://sepolia.base.org';
+const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
+
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://arweave.net', // No arweave test net
   ario: 'https://arweave.net', // No arweave test net
   solana: 'https://api.devnet.solana.com',
-  ethereum: 'https://ethereum-sepolia.rpc.publicnode.com',
-  'base-eth': 'https://sepolia.base.org',
+  ethereum: ethTestnetRpc,
+  'base-eth': baseTestnetRpc,
   kyve: 'https://api.korellia.kyve.network',
-  matic: 'https://rpc-amoy.polygon.technology',
-  pol: 'https://rpc-amoy.polygon.technology',
-  usdc: 'https://ethereum-sepolia.rpc.publicnode.com',
-  'base-usdc': 'https://sepolia.base.org',
-  'polygon-usdc': 'https://rpc-amoy.polygon.technology',
+  matic: polygonTestnetRpc,
+  pol: polygonTestnetRpc,
+  usdc: ethTestnetRpc,
+  'base-usdc': baseTestnetRpc,
+  'polygon-usdc': polygonTestnetRpc,
 };
 
 export const tokenToDevAoConfigMap: {
