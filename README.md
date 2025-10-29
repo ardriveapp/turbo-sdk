@@ -1222,6 +1222,11 @@ Command Options:
 e.g:
 
 ```shell
+# Fund any valid destination wallet with 10 USDC worth of Turbo Credits on Base Network
+turbo crypto-fund --value 10 --token base-usdc --private-key '0xabc...123' --address 'any-valid-evm-sol-ar-kyve-native-address'
+```
+
+```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
 ```
 
