@@ -20,7 +20,7 @@ import { EthereumToken } from './ethereum.js';
 export const defaultBaseNetworkPollingOptions = {
   initialBackoffMs: 2_500,
   maxAttempts: 10,
-  pollingIntervalMs: 2_500,
+  pollingIntervalMs: 750,
 };
 
 export class BaseEthToken extends EthereumToken {

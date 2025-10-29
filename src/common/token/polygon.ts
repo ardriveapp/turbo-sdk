@@ -22,8 +22,8 @@ export const POLToTokenAmount = ETHToTokenAmount;
 
 export const defaultPolygonPollingOptions = {
   maxAttempts: 10,
-  pollingIntervalMs: 4_000,
   initialBackoffMs: 5_000,
+  pollingIntervalMs: 1_000,
 };
 
 export class PolygonToken extends EthereumToken {

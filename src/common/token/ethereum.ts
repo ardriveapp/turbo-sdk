@@ -34,7 +34,7 @@ export const ETHToTokenAmount = (eth: BigNumber.Value) =>
 export const defaultEthereumPollingOptions: TokenPollingOptions = {
   initialBackoffMs: 25_000,
   maxAttempts: 10,
-  pollingIntervalMs: 4_000,
+  pollingIntervalMs: 1_500,
 };
 
 export class EthereumToken implements TokenTools {
