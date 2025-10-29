@@ -16,7 +16,12 @@
 import { EthereumSigner } from '@dha-team/arbundles';
 import { Wallet as EthereumWallet, JsonRpcProvider, ethers } from 'ethers';
 
-import { TokenConfig, TokenCreateTxParams } from '../../types.js';
+import {
+  EthereumWalletSigner,
+  TokenConfig,
+  TokenCreateTxParams,
+  isEthereumWalletAdapter,
+} from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { TurboWinstonLogger } from '../logger.js';
 import {
@@ -62,22 +67,26 @@ export class ERC20Token extends EthereumToken {
     turboCreditDestinationAddress,
   }: TokenCreateTxParams): Promise<{ id: string; target: string }> {
     try {
-      if (!(signer.signer instanceof EthereumSigner)) {
+      let connected: ERC20Contract;
+      let walletOrSigner: EthereumWallet | EthereumWalletSigner;
+
+      if (signer.signer instanceof EthereumSigner) {
+        const provider = new JsonRpcProvider(this.gatewayUrl);
+        // 🧩 CLI / Node path
+        const keyHex = Buffer.from(signer.signer.key).toString('hex');
+        walletOrSigner = new EthereumWallet(keyHex, provider);
+        connected = this.tokenContract.connect(walletOrSigner) as ERC20Contract;
+      } else if (
+        signer.walletAdapter !== undefined &&
+        isEthereumWalletAdapter(signer.walletAdapter)
+      ) {
+        walletOrSigner = signer.walletAdapter.getSigner();
+        connected = this.tokenContract.connect(walletOrSigner) as ERC20Contract;
+      } else {
         throw new Error(
-          'Only EthereumSigner is supported for ERC20 token transfers.',
+          'Unsupported signer -- must be EthereumSigner or have a walletAdapter implementing getSigner',
         );
       }
-      const keyAsStringFromUint8Array = Buffer.from(signer.signer.key).toString(
-        'hex',
-      );
-      const provider = new JsonRpcProvider(this.gatewayUrl);
-      const ethWalletAndProvider = new EthereumWallet(
-        keyAsStringFromUint8Array,
-        provider,
-      );
-      const connected = this.tokenContract.connect(
-        ethWalletAndProvider,
-      ) as ERC20Contract;
 
       // Encode transfer data
       const baseTransferData = connected.interface.encodeFunctionData(
@@ -107,7 +116,7 @@ export class ERC20Token extends EthereumToken {
         rpcEndpoint: this.gatewayUrl,
         txRequest,
       });
-      const tx = await ethWalletAndProvider.sendTransaction(txRequest);
+      const tx = await walletOrSigner.sendTransaction(txRequest);
 
       this.logger.debug('ERC20 transfer submitted', {
         txHash: tx.hash,

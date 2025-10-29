@@ -63,10 +63,10 @@ export abstract class TurboDataItemAbstractSigner
   implements TurboDataItemSigner
 {
   public signer: TurboSigner;
+  public walletAdapter: WalletAdapter | undefined;
 
   protected logger: TurboLogger;
   protected token: TokenType;
-  protected walletAdapter: WalletAdapter | undefined;
 
   constructor({
     signer,
