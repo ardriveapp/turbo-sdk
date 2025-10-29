@@ -769,7 +769,12 @@ export abstract class TurboAuthenticatedBaseUploadService
     return revokedApprovals;
   }
 
-  private enabledOnDemandTokens: TokenType[] = ['ario', 'solana', 'base-eth'];
+  private enabledOnDemandTokens: TokenType[] = [
+    'ario',
+    'solana',
+    'base-eth',
+    'base-usdc',
+  ];
 
   /**
    * Triggers an upload that will top-up the wallet with Credits for the amount before uploading.
