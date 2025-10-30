@@ -1,9 +1,9 @@
-# [1.34.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.34.0-alpha.1...v1.34.0-alpha.2) (2025-10-30)
+# [1.34.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.1...v1.34.0) (2025-10-28)
 
 
 ### Features
 
-* **usdc:** init usdc for eth, polygon, base networks PE-7482 ([8fafe6e](https://github.com/ardriveapp/turbo-sdk/commit/8fafe6eed4c8845562d387e1f9be93e1774d476a))
+* **cross chain tx:** init crypto payments to custom destination addresses PE-6013 ([2352f24](https://github.com/ardriveapp/turbo-sdk/commit/2352f248122e3a7a62e4597f3a4dce4b64d3eaff))
 
 ## [1.33.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.0...v1.33.1) (2025-10-27)
 
