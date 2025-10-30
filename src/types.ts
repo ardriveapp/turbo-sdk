@@ -69,6 +69,9 @@ export const tokenTypes = [
   'matic',
   'pol',
   'base-eth',
+  'usdc',
+  'base-usdc',
+  'polygon-usdc',
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
@@ -700,7 +703,7 @@ export type WalletAdapter = SolanaWalletAdapter | EthereumWalletAdapter;
 
 export type EthereumWalletSigner = Pick<
   JsonRpcSigner,
-  'signMessage' | 'sendTransaction'
+  'signMessage' | 'sendTransaction' | 'provider'
 >;
 
 export type EthereumWalletAdapter = {
@@ -869,6 +872,7 @@ export interface TurboDataItemSigner {
   getPublicKey(): Promise<Buffer>;
   getNativeAddress(): Promise<string>;
   signer: TurboSigner;
+  walletAdapter?: WalletAdapter;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
