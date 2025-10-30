@@ -340,11 +340,11 @@ const turbo = TurboFactory.authenticated({
   }
 });
 
-// Ethereum Holesky
+// Ethereum Sepolia
 const turbo = TurboFactory.authenticated({
-  privateKey: process.env.HOLESKY_PRIVATE_KEY,
+  privateKey: process.env.SEPOLIA_PRIVATE_KEY,
   token: 'ethereum',
-  gatewayUrl: 'https://ethereum-holesky-rpc.publicnode.com',
+  gatewayUrl: 'https://eth-sepolia.public.blastapi.io',
   paymentServiceConfig: {
     url: 'https://payment.ardrive.dev',
   },
@@ -358,7 +358,7 @@ const turbo = TurboFactory.authenticated({
 
 - **Base Sepolia** (`base-eth`) - Supports on-demand funding
 - **Solana Devnet** (`solana`) - Supports on-demand funding
-- **Ethereum Holesky** (`ethereum`) - Manual top-up only
+- **Ethereum Sepolia** (`ethereum`) - Manual top-up only
 - **Polygon Amoy** (`pol`) - Manual top-up only
 
 ### TurboUnauthenticatedClient

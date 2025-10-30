@@ -192,7 +192,7 @@ services:
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984} # AR local gateway
       SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com} # SOL devnet gateway
-      ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://ethereum-holesky-rpc.publicnode.com} # ETH holesky testnet gateway
+      ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://eth-sepolia.public.blastapi.io} # ETH sepolia testnet gateway
       KYVE_GATEWAY: ${KYVE_GATEWAY:-https://api.korellia.kyve.network} # KYVE testnet gateway
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
