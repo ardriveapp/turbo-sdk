@@ -1,17 +1,3 @@
-# [1.35.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.35.0-alpha.1...v1.35.0-alpha.2) (2025-10-31)
-
-
-### Features
-
-* **usdc:** include usdc in supported Eth Token types for wallet adapter compatibility ([75f443c](https://github.com/ardriveapp/turbo-sdk/commit/75f443c34c5d700f6c923899853ffdd08c024734))
-
-# [1.35.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.34.0...v1.35.0-alpha.1) (2025-10-30)
-
-
-### Features
-
-* **usdc:** init usdc for eth, polygon, base networks PE-7482 ([8fafe6e](https://github.com/ardriveapp/turbo-sdk/commit/8fafe6eed4c8845562d387e1f9be93e1774d476a))
-
 # [1.34.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.1...v1.34.0) (2025-10-28)
 
 
