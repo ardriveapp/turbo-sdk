@@ -75,6 +75,16 @@ export const tokenTypes = [
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
+export const supportedEvmSignerTokens = new Set([
+  'ethereum',
+  'base-eth',
+  'matic',
+  'pol',
+  'polygon-usdc',
+  'usdc',
+  'base-usdc',
+]);
+
 export type Adjustment = {
   name: string;
   description: string;
