@@ -29,6 +29,7 @@ import {
   WalletAdapter,
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
+  supportedEvmSignerTokens,
 } from '../types.js';
 import { TurboWinstonLogger } from './logger.js';
 import {
@@ -213,8 +214,8 @@ export abstract class TurboBaseFactory {
       }
       return new HexInjectedSolanaSigner(walletAdapter);
     }
-    const ethTokens = new Set(['ethereum', 'base-eth', 'matic', 'pol']);
-    if (ethTokens.has(token)) {
+
+    if (supportedEvmSignerTokens.has(token)) {
       if (!isEthereumWalletAdapter(walletAdapter)) {
         throw new Error(
           'Unsupported wallet adapter -- must implement getSigner',
