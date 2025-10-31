@@ -19,13 +19,6 @@
 
 * add folder upload progress events ([35f4ab6](https://github.com/ardriveapp/turbo-sdk/commit/35f4ab6763a7538ad8b8bdad4246f6d3bddd5c8c))
 
-# [1.33.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.1...v1.33.0-alpha.1) (2025-10-15)
-
-
-### Features
-
-* add folder upload progress events ([35f4ab6](https://github.com/ardriveapp/turbo-sdk/commit/35f4ab6763a7538ad8b8bdad4246f6d3bddd5c8c))
-
 ## [1.32.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.0...v1.32.1) (2025-10-13)
 
 

@@ -45,15 +45,22 @@ export function isWeb() {
   return typeof window !== 'undefined';
 }
 
+const ethTestnetRpc = 'https://eth-sepolia.public.blastapi.io';
+const baseTestnetRpc = 'https://sepolia.base.org';
+const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
+
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://arweave.net', // No arweave test net
   ario: 'https://arweave.net', // No arweave test net
   solana: 'https://api.devnet.solana.com',
-  ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
-  'base-eth': 'https://sepolia.base.org',
+  ethereum: ethTestnetRpc,
+  'base-eth': baseTestnetRpc,
   kyve: 'https://api.korellia.kyve.network',
-  matic: 'https://rpc-amoy.polygon.technology',
-  pol: 'https://rpc-amoy.polygon.technology',
+  matic: polygonTestnetRpc,
+  pol: polygonTestnetRpc,
+  usdc: ethTestnetRpc,
+  'base-usdc': baseTestnetRpc,
+  'polygon-usdc': polygonTestnetRpc,
 };
 
 export const tokenToDevAoConfigMap: {
@@ -74,6 +81,9 @@ export const defaultProdGatewayUrls: Record<TokenType, string> = {
   kyve: 'https://api.kyve.network/',
   matic: 'https://polygon-rpc.com/',
   pol: 'https://polygon-rpc.com/',
+  usdc: 'https://cloudflare-eth.com/',
+  'base-usdc': 'https://mainnet.base.org',
+  'polygon-usdc': 'https://polygon-rpc.com/',
 };
 
 export const defaultProdAoConfigs: {
@@ -120,6 +130,9 @@ export function createTurboSigner({
     case 'pol':
     case 'matic':
     case 'base-eth':
+    case 'usdc':
+    case 'base-usdc':
+    case 'polygon-usdc':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
           'A valid Ethereum private key must be provided for EthereumSigner.',
@@ -204,6 +217,9 @@ export function isValidUserAddress(address: string, type: TokenType): boolean {
     case 'base-eth':
     case 'matic':
     case 'pol':
+    case 'base-usdc':
+    case 'usdc':
+    case 'polygon-usdc':
       return isValidECDSAAddress(address);
     case 'kyve':
       return isValidKyveAddress(address);

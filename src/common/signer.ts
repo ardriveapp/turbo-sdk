@@ -63,10 +63,10 @@ export abstract class TurboDataItemAbstractSigner
   implements TurboDataItemSigner
 {
   public signer: TurboSigner;
+  public walletAdapter: WalletAdapter | undefined;
 
   protected logger: TurboLogger;
   protected token: TokenType;
-  protected walletAdapter: WalletAdapter | undefined;
 
   constructor({
     signer,
@@ -96,6 +96,9 @@ export abstract class TurboDataItemAbstractSigner
       case 'matic':
       case 'pol':
       case 'base-eth':
+      case 'usdc':
+      case 'base-usdc':
+      case 'polygon-usdc':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':

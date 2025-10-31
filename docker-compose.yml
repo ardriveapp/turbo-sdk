@@ -2,9 +2,9 @@ services:
   arlocal:
     image: textury/arlocal:v1.1.66
     ports:
-      - '1984:1984'
+      - "1984:1984"
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:1984/']
+      test: ["CMD", "curl", "-f", "http://localhost:1984/"]
       interval: 10s
       timeout: 10s
       retries: 3
@@ -25,9 +25,9 @@ services:
   upload-service:
     image: ghcr.io/ardriveapp/upload-service:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     ports:
-      - '3000:3000'
+      - "3000:3000"
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -38,7 +38,7 @@ services:
       DB_PASSWORD: postgres
       PAYMENT_SERVICE_BASE_URL: payment-service:4000
       PAYMENT_SERVICE_PROTOCOL: http
-      MIGRATE_ON_STARTUP: 'true'
+      MIGRATE_ON_STARTUP: "true"
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ALLOW_LISTED_ADDRESSES: sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4
@@ -62,8 +62,8 @@ services:
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
       DATA_ITEM_S3_PREFIX: ${DATA_ITEM_S3_PREFIX:-data}
       BUNDLE_PAYLOAD_S3_PREFIX: ${BUNDLE_PAYLOAD_S3_PREFIX:-data}
-      FREE_UPLOAD_LIMIT: '107520'
-      ALLOW_ARFS_DATA: 'true'
+      FREE_UPLOAD_LIMIT: "107520"
+      ALLOW_ARFS_DATA: "true"
     volumes:
       - upload-service-data-items:/temp
       - ./tests/wallets:/usr/src/app/wallets
@@ -79,12 +79,12 @@ services:
     container_name: redis
     restart: unless-stopped
     ports:
-      - '6379:6379'
-    command: ['redis-server']
+      - "6379:6379"
+    command: ["redis-server"]
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -120,7 +120,7 @@ services:
       ELASTICACHE_HOST: ${ELASTICACHE_HOST:-redis}
       ELASTICACHE_NO_CLUSTERING: ${ELASTICACHE_NO_CLUSTERING:-true}
     ports:
-      - '${FULFILLMENT_PORT:-4001}:${FULFILLMENT_PORT:-4001}'
+      - "${FULFILLMENT_PORT:-4001}:${FULFILLMENT_PORT:-4001}"
     depends_on:
       upload-service:
         condition: service_started
@@ -136,7 +136,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - upload-service-data:/var/lib/postgresql/data
 
@@ -144,7 +144,7 @@ services:
     image: ghcr.io/ardriveapp/upload-service-localstack-image:${UPLOAD_SERVICE_IMAGE_TAG:-latest}
     restart: on-failure
     ports:
-      - '4566:4566'
+      - "4566:4566"
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
       - SERVICES=${SERVICES:-s3,sqs,secretsmanager,dynamodb}
@@ -155,13 +155,13 @@ services:
       - PERSIST_DEFAULT=${PERSIST_LOCALSTACK:-1} # set to 0 to disable persistence of resources and s3 objects between restarts
       - DATA_ITEM_BUCKET=${AWS_S3_BUCKET:-turbo-sdk}
     volumes:
-      - '${LOCALSTACK_VOLUME_DIR:-./data/localstack}:/var/lib/localstack'
-      - '${LOCALSTACK_VOLUME_DIR:-./data/localstack}:/persisted-data'
-      - '/var/run/docker.sock:/var/run/docker.sock'
+      - "${LOCALSTACK_VOLUME_DIR:-./data/localstack}:/var/lib/localstack"
+      - "${LOCALSTACK_VOLUME_DIR:-./data/localstack}:/persisted-data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     healthcheck:
       test:
         [
-          'CMD-SHELL',
+          "CMD-SHELL",
           'if curl -s http://localhost:4566/_localstack/health | grep -q ''"secretsmanager": "running"''; then echo ''Localstack is ready''; exit 0; else echo ''Localstack is not ready''; exit 1; fi',
         ]
       interval: 10s
@@ -172,9 +172,9 @@ services:
   payment-service:
     image: ghcr.io/ardriveapp/payment-service:latest
     ports:
-      - '4000:4000'
+      - "4000:4000"
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:4000/health']
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -184,7 +184,7 @@ services:
       DB_PORT: 5433
       DB_PASSWORD: postgres
       PORT: 4000
-      MIGRATE_ON_STARTUP: 'true'
+      MIGRATE_ON_STARTUP: "true"
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-secret-key}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-webhook-secret-key}
       JWT_SECRET: ${JWT_SECRET:-test-secret-key}
@@ -192,7 +192,7 @@ services:
       ARWEAVE_ADDRESS: ByQEA5jhJvzlhfI4sFgB23kjGpxDK6OIE0i3sSnmTGU
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984} # AR local gateway
       SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com} # SOL devnet gateway
-      ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://ethereum-holesky-rpc.publicnode.com} # ETH holesky testnet gateway
+      ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://eth-sepolia.public.blastapi.io} # ETH sepolia testnet gateway
       KYVE_GATEWAY: ${KYVE_GATEWAY:-https://api.korellia.kyve.network} # KYVE testnet gateway
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
@@ -207,7 +207,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - '5433:5433'
+      - "5433:5433"
     volumes:
       - payment-service-data:/var/lib/postgresql/data
 
