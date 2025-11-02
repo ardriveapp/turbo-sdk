@@ -15,15 +15,18 @@
  */
 import cliProgress from 'cli-progress';
 
-import { TurboFolderUploadEventsAndPayloads } from '../types.js';
+import {
+  TurboFolderUploadEmitterEventArgs,
+  TurboFolderUploadEventsAndPayloads,
+} from '../types.js';
 
 /**
- * Formats bytes to human-readable format (KB, MB, GB)
+ * Formats bytes to human-readable format (KiB, MiB, GiB)
  */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ['B', 'KiB', 'MiB', 'GiB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
@@ -35,14 +38,30 @@ export class FolderUploadProgress {
   private multibar?: cliProgress.MultiBar;
   private folderBar?: cliProgress.SingleBar;
   private fileBar?: cliProgress.SingleBar;
-  private enabled: boolean;
-  private isTTY: boolean;
-  private totalFiles: number = 0;
-  private totalBytes: number = 0;
+  private readonly enabled: boolean;
+  private readonly isTTY: boolean;
+  private totalFiles = 0;
+  private totalBytes = 0;
 
-  constructor(enabled: boolean = true) {
+  /**
+   * Event handlers that can be passed directly to uploadFolder
+   */
+  public readonly events: Required<TurboFolderUploadEmitterEventArgs>;
+
+  constructor(enabled = true) {
     this.enabled = enabled;
     this.isTTY = process.stdout.isTTY ?? false;
+
+    // Initialize event handlers
+    this.events = {
+      onFileStart: this.onFileStart.bind(this),
+      onFileProgress: this.onFileProgress.bind(this),
+      onFileComplete: this.onFileComplete.bind(this),
+      onFileError: this.onFileError.bind(this),
+      onFolderProgress: this.onFolderProgress.bind(this),
+      onFolderError: this.onFolderError.bind(this),
+      onFolderSuccess: this.onFolderSuccess.bind(this),
+    };
 
     // Only create progress bars if enabled and we have a TTY
     if (this.enabled && this.isTTY) {
@@ -240,13 +259,35 @@ export class FolderUploadProgress {
  */
 export class FileUploadProgress {
   private bar?: cliProgress.SingleBar;
-  private enabled: boolean;
-  private isTTY: boolean;
-  private totalBytes: number = 0;
+  private readonly enabled: boolean;
+  private readonly isTTY: boolean;
+  private totalBytes = 0;
 
-  constructor(enabled: boolean = true) {
+  /**
+   * Event handlers that can be passed directly to uploadFile
+   */
+  public readonly events: {
+    onProgress: (event: { totalBytes: number; processedBytes: number }) => void;
+    onSuccess: () => void;
+    onError: (error: Error) => void;
+  };
+
+  constructor(enabled = true) {
     this.enabled = enabled;
     this.isTTY = process.stdout.isTTY ?? false;
+
+    // Initialize event handlers
+    this.events = {
+      onProgress: ({ processedBytes }) => {
+        this.update(processedBytes);
+      },
+      onSuccess: () => {
+        this.complete();
+      },
+      onError: (error) => {
+        this.error(error);
+      },
+    };
   }
 
   /**
@@ -256,7 +297,7 @@ export class FileUploadProgress {
     this.totalBytes = totalBytes;
 
     if (!this.enabled || !this.isTTY) {
-      if (this.enabled && fileName) {
+      if (this.enabled && fileName !== undefined && fileName !== '') {
         console.log(`Uploading: ${fileName} (${formatBytes(totalBytes)})`);
       }
       return;
@@ -273,9 +314,10 @@ export class FileUploadProgress {
     );
 
     this.bar.start(totalBytes, 0, {
-      status: fileName
-        ? `Uploading: ${fileName} (${formatBytes(totalBytes)})`
-        : `Uploading (${formatBytes(totalBytes)})`,
+      status:
+        fileName !== undefined && fileName !== ''
+          ? `Uploading: ${fileName} (${formatBytes(totalBytes)})`
+          : `Uploading (${formatBytes(totalBytes)})`,
     });
   }
 

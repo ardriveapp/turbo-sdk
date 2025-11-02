@@ -51,17 +51,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<void> {
       dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
       ...getChunkingOptions(options),
       ...onDemandOptionsFromOptions(options),
-      events: {
-        onProgress: ({ processedBytes }) => {
-          progress.update(processedBytes);
-        },
-        onSuccess: () => {
-          progress.complete();
-        },
-        onError: (error) => {
-          progress.error(error);
-        },
-      },
+      events: progress.events,
     });
 
     progress.stop();

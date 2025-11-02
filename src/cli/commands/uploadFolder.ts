@@ -62,29 +62,7 @@ export async function uploadFolder(
     maxChunkConcurrency,
     maxFinalizeMs,
     ...onDemandOptionsFromOptions(options),
-    events: {
-      onFileStart: (event) => {
-        progress.onFileStart(event);
-      },
-      onFileProgress: (event) => {
-        progress.onFileProgress(event);
-      },
-      onFileComplete: (event) => {
-        progress.onFileComplete(event);
-      },
-      onFileError: (event) => {
-        progress.onFileError(event);
-      },
-      onFolderProgress: (event) => {
-        progress.onFolderProgress(event);
-      },
-      onFolderError: (error) => {
-        progress.onFolderError(error);
-      },
-      onFolderSuccess: () => {
-        progress.onFolderSuccess();
-      },
-    },
+    events: progress.events,
   });
 
   progress.stop();
