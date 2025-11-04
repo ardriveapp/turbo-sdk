@@ -45,7 +45,7 @@ export function isWeb() {
   return typeof window !== 'undefined';
 }
 
-const ethTestnetRpc = 'https://eth-sepolia.public.blastapi.io';
+const ethTestnetRpc = 'https://sepolia.gateway.tenderly.co';
 const baseTestnetRpc = 'https://sepolia.base.org';
 const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
 
