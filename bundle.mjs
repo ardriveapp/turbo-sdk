@@ -20,7 +20,7 @@ const bundle = () => {
         },
       }),
     ],
-    external: ['commander'],
+    external: ['commander', 'cli-progress'],
     tsconfig: './tsconfig.web.json',
     outfile: './bundles/web.bundle.min.js',
   })

@@ -344,7 +344,7 @@ const turbo = TurboFactory.authenticated({
 const turbo = TurboFactory.authenticated({
   privateKey: process.env.SEPOLIA_PRIVATE_KEY,
   token: 'ethereum',
-  gatewayUrl: 'https://eth-sepolia.public.blastapi.io',
+  gatewayUrl: 'https://sepolia.gateway.tenderly.co',
   paymentServiceConfig: {
     url: 'https://payment.ardrive.dev',
   },

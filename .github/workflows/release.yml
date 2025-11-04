@@ -27,7 +27,7 @@ jobs:
         with:
           token: ${{ secrets.CI_GITHUB_TOKEN }}
       - name: Set Up node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           cache: 'yarn'
           node-version-file: .nvmrc
@@ -41,5 +41,4 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.npm_token }}
         run: yarn semantic-release

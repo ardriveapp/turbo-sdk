@@ -146,7 +146,7 @@ export const solanaUrlString = // TODO: Local SOL net in integration test
   process.env.SOLANA_GATEWAY ?? 'https://api.devnet.solana.com';
 
 export const ethereumGatewayUrl = // TODO: Local ETH net in integration test -- 'http://localhost:8545'
-  process.env.ETHEREUM_GATEWAY ?? 'https://eth-sepolia.public.blastapi.io'; // sepolia testnet rpc
+  process.env.ETHEREUM_GATEWAY ?? 'https://sepolia.gateway.tenderly.co'; // sepolia testnet rpc
 
 export const kyveUrlString = // TODO: Local KYVE net in integration test
   process.env.KYVE_GATEWAY ?? 'https://api.korellia.kyve.network';
