@@ -27,9 +27,9 @@ jobs:
         with:
           token: ${{ secrets.CI_GITHUB_TOKEN }}
       - name: Set Up node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
-          cache: 'yarn'
+          cache: "yarn"
           node-version-file: .nvmrc
 
       - name: Install dependencies
