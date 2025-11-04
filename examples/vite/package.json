@@ -19,7 +19,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "starknet": "^6.11.0",
     "typescript": "^5.3.3",
-    "vite": "^5.2.14",
+    "vite": "^5.4.21",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-node-polyfills": "^0.17.0"
   },
