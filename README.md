@@ -319,6 +319,12 @@ const turbo = TurboFactory.authenticated({
   privateKey: process.env.BASE_SEPOLIA_PRIVATE_KEY,
   token: 'base-eth',
   gatewayUrl: 'https://sepolia.base.org', // Required for testnet
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev', // Dev payment service
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev', // Dev upload service
+  }
 });
 
 // Solana Devnet
@@ -326,13 +332,25 @@ const turbo = TurboFactory.authenticated({
   privateKey: bs58.encode(secretKey),
   token: 'solana',
   gatewayUrl: 'https://api.devnet.solana.com',
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+  }
 });
 
-// Ethereum Holesky
+// Ethereum Sepolia
 const turbo = TurboFactory.authenticated({
-  privateKey: process.env.HOLESKY_PRIVATE_KEY,
+  privateKey: process.env.SEPOLIA_PRIVATE_KEY,
   token: 'ethereum',
-  gatewayUrl: 'https://ethereum-holesky-rpc.publicnode.com',
+  gatewayUrl: 'https://eth-sepolia.public.blastapi.io',
+  paymentServiceConfig: {
+    url: 'https://payment.ardrive.dev',
+  },
+  uploadServiceConfig: {
+    url: 'https://upload.ardrive.dev',
+
 });
 ```
 
@@ -340,7 +358,7 @@ const turbo = TurboFactory.authenticated({
 
 - **Base Sepolia** (`base-eth`) - Supports on-demand funding
 - **Solana Devnet** (`solana`) - Supports on-demand funding
-- **Ethereum Holesky** (`ethereum`) - Manual top-up only
+- **Ethereum Sepolia** (`ethereum`) - Manual top-up only
 - **Polygon Amoy** (`pol`) - Manual top-up only
 
 ### TurboUnauthenticatedClient
@@ -712,7 +730,7 @@ With the upload methods, you can choose to Top Up with selected crypto token on 
 
 This is done by providing the `OnDemandFunding` class to the `fundingMode` parameter on upload methods. The `maxTokenAmount` (optional) is the maximum amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with. The `topUpBufferMultiplier` (optional) is the multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations on longer uploads. Defaults to 1.1, meaning a 10% buffer.
 
-Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), and $ETH on Base Network (`base-eth`) token types.
+Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`) and $USDC on Base Network (`base-usdc`) token types.
 
 ```typescript
 const turbo = TurboFactory.authenticated({
@@ -851,12 +869,13 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 });
 ```
 
-#### `topUpWithTokens({ tokenAmount, feeMultiplier })`
+#### `topUpWithTokens({ tokenAmount, feeMultiplier, turboCreditDestinationAddress })`
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -866,6 +885,7 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
 });
 ```
 
@@ -876,6 +896,36 @@ const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
+});
+```
+
+##### USDC Crypto Top Up
+
+```typescript
+
+// USDC on Ethereum Mainnet
+const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
+  signer,
+  token: 'usdc',
+}).topUpWithTokens({
+  tokenAmount: USDCToTokenAmount(1), // 1 USDC
+});
+
+// USDC on Base Network
+const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
+  signer,
+  token: 'base-usdc',
+}).topUpWithTokens({
+  tokenAmount: USDCToTokenAmount(1), // 1 USDC
+});
+
+
+// USDC on Polygon Network
+const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
+  signer,
+  token: 'polygon-usdc',
+}).topUpWithTokens({
+  tokenAmount: USDCToTokenAmount(1), // 1 USDC
 });
 ```
 
@@ -1167,8 +1217,14 @@ Command Options:
 
 - `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
 - `-i, --tx-id <txId>` - Transaction ID of an existing funding transaction
+- `-a, --address <nativeAddress>` - Optional native address to send the Turbo credits to
 
 e.g:
+
+```shell
+# Fund any valid destination wallet with 10 USDC worth of Turbo Credits on Base Network
+turbo crypto-fund --value 10 --token base-usdc --private-key '0xabc...123' --address 'any-valid-evm-sol-ar-kyve-native-address'
+```
 
 ```shell
 turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
@@ -1185,6 +1241,11 @@ turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wall
 ```shell
 # Use a custom AO process ID and compute unit:
 turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
+```
+
+```shell
+# Send to custom destination address
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json --address 'Any-Valid-AR-EVM-SOL-KYVE-Native-Address'
 ```
 
 ##### `upload-folder`

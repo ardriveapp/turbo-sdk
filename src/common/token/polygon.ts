@@ -20,15 +20,17 @@ import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 
 export const POLToTokenAmount = ETHToTokenAmount;
 
+export const defaultPolygonPollingOptions = {
+  maxAttempts: 10,
+  initialBackoffMs: 5_000,
+  pollingIntervalMs: 1_000,
+};
+
 export class PolygonToken extends EthereumToken {
   constructor({
     logger = TurboWinstonLogger.default,
     gatewayUrl = defaultProdGatewayUrls.pol,
-    pollingOptions = {
-      maxAttempts: 10,
-      pollingIntervalMs: 4_000,
-      initialBackoffMs: 5_000,
-    },
+    pollingOptions = defaultPolygonPollingOptions,
   }: TokenConfig = {}) {
     super({ logger, gatewayUrl, pollingOptions });
   }

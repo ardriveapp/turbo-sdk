@@ -7,7 +7,7 @@ import {
 } from '@dha-team/arbundles';
 import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
-import { TransactionResponse } from 'ethers';
+import { JsonRpcProvider, TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
 import { strict as assert } from 'node:assert';
 import { randomBytes } from 'node:crypto';
@@ -128,6 +128,7 @@ describe('Browser environment', () => {
                 signMessage: (m) => Promise.resolve(m as string),
                 sendTransaction: () =>
                   Promise.resolve({ hash: 'hash' } as TransactionResponse),
+                provider: new JsonRpcProvider(ethereumGatewayUrl),
               }),
             },
           }),
@@ -143,6 +144,7 @@ describe('Browser environment', () => {
             signMessage: (m) => Promise.resolve(m as string),
             sendTransaction: () =>
               Promise.resolve({ hash: 'hash' } as TransactionResponse),
+            provider: new JsonRpcProvider(ethereumGatewayUrl),
           }),
         },
       });
@@ -842,7 +844,12 @@ describe('Browser environment', () => {
           events: {
             onFileStart: ({ fileName, fileIndex, totalFiles, fileSize }) => {
               fileStartCalled++;
-              fileStartEvents.push({ fileName, fileIndex, totalFiles, fileSize });
+              fileStartEvents.push({
+                fileName,
+                fileIndex,
+                totalFiles,
+                fileSize,
+              });
               assert.ok(typeof fileName === 'string');
               assert.ok(typeof fileSize === 'number');
               assert.ok(typeof fileIndex === 'number');

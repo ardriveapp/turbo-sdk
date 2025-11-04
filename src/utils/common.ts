@@ -24,6 +24,7 @@ import {
 } from '@dha-team/arbundles';
 import { arrayify } from '@ethersproject/bytes';
 import { recoverPublicKey } from '@ethersproject/signing-key';
+import { PublicKey } from '@solana/web3.js';
 import { hashMessage } from 'ethers';
 
 import {
@@ -33,6 +34,7 @@ import {
   isEthPrivateKey,
   isJWK,
   isKyvePrivateKey,
+  tokenTypes,
 } from '../types.js';
 
 export function sleep(ms: number): Promise<void> {
@@ -43,15 +45,22 @@ export function isWeb() {
   return typeof window !== 'undefined';
 }
 
+const ethTestnetRpc = 'https://eth-sepolia.public.blastapi.io';
+const baseTestnetRpc = 'https://sepolia.base.org';
+const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
+
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://arweave.net', // No arweave test net
   ario: 'https://arweave.net', // No arweave test net
   solana: 'https://api.devnet.solana.com',
-  ethereum: 'https://ethereum-holesky-rpc.publicnode.com',
-  'base-eth': 'https://sepolia.base.org',
+  ethereum: ethTestnetRpc,
+  'base-eth': baseTestnetRpc,
   kyve: 'https://api.korellia.kyve.network',
-  matic: 'https://rpc-amoy.polygon.technology',
-  pol: 'https://rpc-amoy.polygon.technology',
+  matic: polygonTestnetRpc,
+  pol: polygonTestnetRpc,
+  usdc: ethTestnetRpc,
+  'base-usdc': baseTestnetRpc,
+  'polygon-usdc': polygonTestnetRpc,
 };
 
 export const tokenToDevAoConfigMap: {
@@ -72,6 +81,9 @@ export const defaultProdGatewayUrls: Record<TokenType, string> = {
   kyve: 'https://api.kyve.network/',
   matic: 'https://polygon-rpc.com/',
   pol: 'https://polygon-rpc.com/',
+  usdc: 'https://cloudflare-eth.com/',
+  'base-usdc': 'https://mainnet.base.org',
+  'polygon-usdc': 'https://polygon-rpc.com/',
 };
 
 export const defaultProdAoConfigs: {
@@ -118,6 +130,9 @@ export function createTurboSigner({
     case 'pol':
     case 'matic':
     case 'base-eth':
+    case 'usdc':
+    case 'base-usdc':
+    case 'polygon-usdc':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
           'A valid Ethereum private key must be provided for EthereumSigner.',
@@ -165,4 +180,57 @@ export async function signerFromKyveMnemonic(
 
 export function isBlob(val: unknown): val is Blob {
   return typeof Blob !== 'undefined' && val instanceof Blob;
+}
+
+// check if it is a valid arweave base64url for a wallet public address, transaction id or smartweave contract
+export function isValidArweaveBase64URL(base64URL: string) {
+  const base64URLRegex = new RegExp('^[a-zA-Z0-9_-]{43}$');
+  return base64URLRegex.test(base64URL);
+}
+
+export function isValidSolanaAddress(address: string) {
+  try {
+    return PublicKey.isOnCurve(address);
+  } catch {
+    return false;
+  }
+}
+
+export function isValidECDSAAddress(address: string) {
+  const ethAddressRegex = new RegExp('^0x[a-fA-F0-9]{40}$');
+  return ethAddressRegex.test(address);
+}
+
+export function isValidKyveAddress(address: string) {
+  const kyveAddressRegex = new RegExp('^kyve[a-zA-Z0-9]{39}$');
+  return kyveAddressRegex.test(address);
+}
+
+export function isValidUserAddress(address: string, type: TokenType): boolean {
+  switch (type) {
+    case 'arweave':
+    case 'ario':
+      return isValidArweaveBase64URL(address);
+    case 'solana':
+      return isValidSolanaAddress(address);
+    case 'ethereum':
+    case 'base-eth':
+    case 'matic':
+    case 'pol':
+    case 'base-usdc':
+    case 'usdc':
+    case 'polygon-usdc':
+      return isValidECDSAAddress(address);
+    case 'kyve':
+      return isValidKyveAddress(address);
+  }
+}
+
+export function isAnyValidUserAddress(address: string): TokenType | false {
+  for (const type of tokenTypes) {
+    if (isValidUserAddress(address, type)) {
+      return type;
+    }
+  }
+  return false;
 }

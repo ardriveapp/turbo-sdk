@@ -1,3 +1,32 @@
+# [1.34.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.1...v1.34.0) (2025-10-28)
+
+
+### Features
+
+* **cross chain tx:** init crypto payments to custom destination addresses PE-6013 ([2352f24](https://github.com/ardriveapp/turbo-sdk/commit/2352f248122e3a7a62e4597f3a4dce4b64d3eaff))
+
+## [1.33.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.33.0...v1.33.1) (2025-10-27)
+
+
+### Bug Fixes
+
+* **factory:** enable POL browser wallet support via walletAdapter ([5dcb108](https://github.com/ardriveapp/turbo-sdk/commit/5dcb108e13d6de5c58bb9749a0851cfc898b61b7))
+
+# [1.33.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.1...v1.33.0) (2025-10-22)
+
+
+### Features
+
+* add folder upload progress events ([35f4ab6](https://github.com/ardriveapp/turbo-sdk/commit/35f4ab6763a7538ad8b8bdad4246f6d3bddd5c8c))
+
+## [1.32.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.32.0...v1.32.1) (2025-10-13)
+
+
+### Bug Fixes
+
+* **sol:** allow window.solana to be passed to walletAdapter PE-8557 ([c0f7ba1](https://github.com/ardriveapp/turbo-sdk/commit/c0f7ba15a1853beab1064858144483de446b1fa5))
+* **sol:** fulfill signMessage and toString in arbundles compatible way PE-8557 ([37f6448](https://github.com/ardriveapp/turbo-sdk/commit/37f6448fa6781cb2a06dfd22b4faca31102946e6))
+
 # [1.32.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.31.1...v1.32.0) (2025-09-29)
 
 

@@ -90,6 +90,7 @@ export type PriceOptions = TokenPriceOptions & {
 export type CryptoFundOptions = WalletOptions & {
   value: string | undefined;
   txId: string | undefined;
+  address: string | undefined;
 };
 
 export type ShareCreditsOptions = WalletOptions & {

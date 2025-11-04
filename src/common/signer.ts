@@ -23,6 +23,7 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
 } from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
@@ -52,6 +53,8 @@ import {
   toB64Url,
 } from '../utils/base64.js';
 import { TurboWinstonLogger } from './logger.js';
+import { ethDataFromTurboCreditDestinationAddress } from './token/ethereum.js';
+import { memoProgramId } from './token/solana.js';
 
 /**
  * Abstract class for signing TurboDataItems.
@@ -60,10 +63,10 @@ export abstract class TurboDataItemAbstractSigner
   implements TurboDataItemSigner
 {
   public signer: TurboSigner;
+  public walletAdapter: WalletAdapter | undefined;
 
   protected logger: TurboLogger;
   protected token: TokenType;
-  protected walletAdapter: WalletAdapter | undefined;
 
   constructor({
     signer,
@@ -93,6 +96,9 @@ export abstract class TurboDataItemAbstractSigner
       case 'matic':
       case 'pol':
       case 'base-eth':
+      case 'usdc':
+      case 'base-usdc':
+      case 'polygon-usdc':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
       case 'kyve':
@@ -140,6 +146,7 @@ export abstract class TurboDataItemAbstractSigner
     target,
     amount,
     gatewayUrl,
+    turboCreditDestinationAddress,
   }: SendTxWithSignerParams): Promise<string> {
     if (this.walletAdapter) {
       if (isSolanaWalletAdapter(this.walletAdapter)) {
@@ -160,6 +167,20 @@ export abstract class TurboDataItemAbstractSigner
             lamports: +new BigNumber(amount),
           }),
         );
+
+        if (turboCreditDestinationAddress !== undefined) {
+          tx.add(
+            new TransactionInstruction({
+              programId: new PublicKey(memoProgramId),
+              keys: [],
+              data: Buffer.from(
+                'turboCreditDestinationAddress=' +
+                  turboCreditDestinationAddress,
+              ),
+            }),
+          );
+        }
+
         const signedTx = await this.walletAdapter.signTransaction(tx);
         const id = await connection.sendRawTransaction(signedTx.serialize());
         return id;
@@ -179,6 +200,9 @@ export abstract class TurboDataItemAbstractSigner
       const { hash } = await signer.sendTransaction({
         to: target,
         value: parseEther(amount.toFixed(18)),
+        data: ethDataFromTurboCreditDestinationAddress(
+          turboCreditDestinationAddress,
+        ),
       });
       return hash;
     }
@@ -201,6 +225,9 @@ export abstract class TurboDataItemAbstractSigner
     const tx = await ethWalletAndProvider.sendTransaction({
       to: target,
       value: parseEther(amount.toFixed(18)),
+      data: ethDataFromTurboCreditDestinationAddress(
+        turboCreditDestinationAddress,
+      ),
     });
     this.logger.debug('Sent transaction', { tx });
 

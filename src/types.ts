@@ -69,8 +69,21 @@ export const tokenTypes = [
   'matic',
   'pol',
   'base-eth',
+  'usdc',
+  'base-usdc',
+  'polygon-usdc',
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
+
+export const supportedEvmSignerTokens = new Set([
+  'ethereum',
+  'base-eth',
+  'matic',
+  'pol',
+  'polygon-usdc',
+  'usdc',
+  'base-usdc',
+]);
 
 export type Adjustment = {
   name: string;
@@ -386,6 +399,7 @@ export type TurboSubmitFundTxResponse = {
   winc: string;
   token: string;
   status: 'pending' | 'confirmed' | 'failed';
+  recipient?: string;
   block?: number;
 };
 
@@ -408,6 +422,7 @@ export type PendingPaymentTransaction = {
   winstonCreditAmount: string;
   destinationAddress: UserAddress;
   destinationAddressType: string;
+  transactionSenderAddress?: UserAddress;
 };
 
 export type FailedPaymentTransaction = PendingPaymentTransaction & {
@@ -698,7 +713,7 @@ export type WalletAdapter = SolanaWalletAdapter | EthereumWalletAdapter;
 
 export type EthereumWalletSigner = Pick<
   JsonRpcSigner,
-  'signMessage' | 'sendTransaction'
+  'signMessage' | 'sendTransaction' | 'provider'
 >;
 
 export type EthereumWalletAdapter = {
@@ -841,7 +856,7 @@ export type SendFundTxParams = {
 export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
-
+  turboCreditDestinationAddress?: UserAddress;
   gatewayUrl: string;
 };
 
@@ -867,6 +882,7 @@ export interface TurboDataItemSigner {
   getPublicKey(): Promise<Buffer>;
   getNativeAddress(): Promise<string>;
   signer: TurboSigner;
+  walletAdapter?: WalletAdapter;
 }
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
@@ -917,6 +933,7 @@ export type TurboFundWithTokensParams = {
   /** Amount of token in the smallest unit value. e.g value in Winston for "arweave" token */
   tokenAmount: BigNumber.Value;
   feeMultiplier?: number | undefined;
+  turboCreditDestinationAddress?: UserAddress;
 };
 
 export interface TurboAuthenticatedPaymentServiceInterface
@@ -979,6 +996,7 @@ export type TokenCreateTxParams = {
   tokenAmount: BigNumber;
   feeMultiplier: number;
   signer: TurboDataItemSigner;
+  turboCreditDestinationAddress?: UserAddress;
 };
 
 export interface TokenTools {

@@ -73,6 +73,7 @@ export class ArweaveToken implements TokenTools {
     target,
     tokenAmount,
     signer,
+    turboCreditDestinationAddress,
   }: TokenCreateTxParams): Promise<{
     id: string;
     target: string;
@@ -95,6 +96,13 @@ export class ArweaveToken implements TokenTools {
       tx.addTag('App-Version', '0.3.0'); // cspell:disable
       tx.addTag('Contract', 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw'); // cspell:enable
       tx.addTag('Input', JSON.stringify({ function: 'mint' }));
+    }
+
+    if (turboCreditDestinationAddress !== undefined) {
+      tx.addTag(
+        'Turbo-Credit-Destination-Address',
+        turboCreditDestinationAddress,
+      );
     }
 
     const publicKeyB64Url = toB64Url(await signer.getPublicKey());
