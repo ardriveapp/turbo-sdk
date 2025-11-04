@@ -108,6 +108,11 @@ export const optionMap = {
     description: 'Disable logging',
     default: false,
   },
+  showProgress: {
+    alias: '--show-progress',
+    description: 'Display progress bars during upload operations',
+    default: false,
+  },
   skipConfirmation: {
     alias: '--skip-confirmation',
     description: 'Skip all confirmation prompts',
@@ -235,6 +240,7 @@ export const uploadOptions = [
   optionMap.maxFinalizeMs,
   optionMap.chunkByteCount,
   optionMap.chunkingMode,
+  optionMap.showProgress,
   ...onDemandOptions,
 ];
 

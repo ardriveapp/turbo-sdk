@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { turboCliTags } from '../constants.js';
+import { FolderUploadProgress } from '../progress.js';
 import { UploadFolderOptions } from '../types.js';
 import {
   getTagsFromOptions,
@@ -28,6 +29,7 @@ export async function uploadFolder(
 ): Promise<void> {
   const turbo = await turboFromOptions(options);
   const paidBy = await paidByFromOptions(options, turbo);
+  const showProgress = options.showProgress;
 
   const {
     disableManifest,
@@ -43,6 +45,9 @@ export async function uploadFolder(
 
   const customTags = getTagsFromOptions(options);
 
+  // Create progress tracker
+  const progress = new FolderUploadProgress(showProgress);
+
   const result = await turbo.uploadFolder({
     folderPath: folderPath,
     dataItemOpts: { tags: [...turboCliTags, ...customTags], paidBy },
@@ -57,7 +62,12 @@ export async function uploadFolder(
     maxChunkConcurrency,
     maxFinalizeMs,
     ...onDemandOptionsFromOptions(options),
+    events: progress.events,
   });
 
-  console.log('Uploaded folder:', JSON.stringify(result, null, 2));
+  progress.stop();
+
+  // Add newline before output only if progress was shown
+  const prefix = showProgress ? '\n' : '';
+  console.log(`${prefix}Uploaded folder:`, JSON.stringify(result, null, 2));
 }
