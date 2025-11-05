@@ -1,3 +1,15 @@
+# [1.36.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.35.0...v1.36.0) (2025-11-04)
+
+
+### Bug Fixes
+
+* **cli:** address PR [#320](https://github.com/ardriveapp/turbo-sdk/issues/320) review comments ([c723226](https://github.com/ardriveapp/turbo-sdk/commit/c72322697596a36072217e7880a96554443e4611))
+
+
+### Features
+
+* **cli:** add --show-progress flag for upload operations PE-8644 ([f7c7ea2](https://github.com/ardriveapp/turbo-sdk/commit/f7c7ea2c3b0dfd0b58d974c6b02344895132ced8))
+
 # [1.36.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.35.0...v1.36.0-alpha.1) (2025-11-04)
 
 
