@@ -295,13 +295,18 @@ export class OnDemandFunding {
 }
 
 export class X402Funding {
-  public signer: x402Signer;
+  public signer: x402Signer | undefined;
   public maxMUSDCAmount: BigNumber | undefined;
+
   constructor({
     signer,
     maxMUSDCAmount,
   }: {
-    signer: x402Signer;
+    /**
+     * Optionally provide a custom signer for X402 funding.
+     * One will be created from the provided Turbo signer if not provided.
+     */
+    signer?: x402Signer;
     maxMUSDCAmount?: BigNumber.Value;
   }) {
     this.signer = signer;

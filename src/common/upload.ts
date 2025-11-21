@@ -379,7 +379,8 @@ export abstract class TurboAuthenticatedBaseUploadService
         const x402Options =
           fundingMode instanceof X402Funding
             ? {
-                signer: makeX402Signer(this.signer.signer),
+                signer:
+                  fundingMode.signer ?? makeX402Signer(this.signer.signer),
                 maxMUSDCAmount: fundingMode.maxMUSDCAmount,
               }
             : undefined;
