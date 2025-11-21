@@ -262,7 +262,8 @@ export function makeX402Signer(arbundlesSigner: ArbundleSigner): x402Signer {
   if (arbundlesSigner instanceof EthereumSigner) {
     return createWalletClient({
       account: privateKeyToAccount(
-        arbundlesSigner.key.toString() as `0x${string}`,
+        ('0x' +
+          Buffer.from(arbundlesSigner.key).toString('hex')) as `0x${string}`,
       ),
       chain: baseSepolia,
       transport: http(),
