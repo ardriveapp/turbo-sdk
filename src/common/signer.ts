@@ -35,7 +35,7 @@ import nacl from 'tweetnacl';
 import { createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { wrapFetchWithPayment, Signer as x402Signer } from 'x402-fetch';
+import { Signer as x402Signer } from 'x402-fetch';
 
 import {
   FileStreamFactory,
