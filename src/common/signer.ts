@@ -17,6 +17,7 @@ import { pubkeyToAddress } from '@cosmjs/amino';
 import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
 import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
+import { Signer as ArbundleSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
 import {
   Connection,
@@ -31,6 +32,10 @@ import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
 import { computeAddress } from 'ethers';
 import nacl from 'tweetnacl';
+import { createWalletClient, custom, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+import { wrapFetchWithPayment, Signer as x402Signer } from 'x402-fetch';
 
 import {
   FileStreamFactory,
@@ -250,4 +255,29 @@ export abstract class TurboDataItemAbstractSigner
 
     return this.signer.sign(dataToSign);
   }
+}
+
+export function makeX402Signer(arbundlesSigner: ArbundleSigner): x402Signer {
+  // Node: our SDK uses EthereumSigner with a raw private key
+  if (arbundlesSigner instanceof EthereumSigner) {
+    return createWalletClient({
+      account: privateKeyToAccount(
+        arbundlesSigner.key.toString() as `0x${string}`,
+      ),
+      chain: baseSepolia,
+      transport: http(),
+    }) as unknown as x402Signer;
+  }
+
+  // Browser fallback: create from window.ethereum if present
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof window !== 'undefined' && (window as any).ethereum) {
+    return createWalletClient({
+      chain: baseSepolia,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transport: custom((window as any).ethereum),
+    }) as unknown as x402Signer;
+  }
+
+  throw new Error('Unable to construct x402 signer for x402 options');
 }

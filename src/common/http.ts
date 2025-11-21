@@ -15,11 +15,13 @@
  */
 import { AxiosError, AxiosInstance, AxiosResponse, CanceledError } from 'axios';
 import { Readable } from 'node:stream';
+import { wrapFetchWithPayment } from 'x402-fetch';
 
 import {
   TurboHTTPServiceInterface,
   TurboLogger,
   TurboSignedRequestHeaders,
+  X402RequestCredentials,
 } from '../types.js';
 import {
   RetryConfig,
@@ -77,15 +79,17 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     allowedStatuses = [200, 202],
     headers,
     data,
+    x402Options,
   }: {
     endpoint: string;
     signal?: AbortSignal;
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream | Uint8Array;
+    x402Options?: X402RequestCredentials;
   }): Promise<T> {
     // Buffer and Readable → keep Axios (streams work fine there)
-    if (!(data instanceof ReadableStream)) {
+    if (!(data instanceof ReadableStream) && x402Options === undefined) {
       if (data instanceof Readable) {
         return this.tryRequest(
           // Can't retry a Readable stream that has already been partially consumed
@@ -106,15 +110,46 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     const { body, duplex } = await toFetchBody(data);
 
     try {
-      this.logger.debug('Posting data via fetch', { endpoint, headers });
-      const res = await fetch(this.axios.defaults.baseURL + endpoint, {
-        method: 'POST',
-        headers,
-        body,
-        signal,
-        ...(duplex ? { duplex } : {}), // Use duplex only where streams are working
-      });
+      let res: Response;
+      // Handle 402 Payment Required with X402Options
+      if (x402Options !== undefined) {
+        this.logger.debug(
+          'Handling 402 Payment Required with fetchWithPayment',
+          {
+            endpoint,
+            x402Options,
+          },
+        );
 
+        const maxMUSDCAmount =
+          x402Options.maxMUSDCAmount !== undefined
+            ? BigInt(x402Options.maxMUSDCAmount.toString())
+            : undefined;
+        const fetchWithPay = wrapFetchWithPayment(
+          fetch,
+          x402Options.signer,
+          maxMUSDCAmount,
+        );
+        res = await fetchWithPay(
+          this.axios.defaults.baseURL + '/x402/data-item/signed',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            body,
+          },
+        );
+      } else {
+        this.logger.debug('Posting data via fetch', { endpoint, headers });
+        res = await fetch(this.axios.defaults.baseURL + endpoint, {
+          method: 'POST',
+          headers,
+          body,
+          signal,
+          ...(duplex ? { duplex } : {}), // Use duplex only where streams are working
+        });
+      }
       if (!allowedStatuses.includes(res.status)) {
         const errorText = await res.text();
         throw new FailedRequestError(
@@ -209,8 +244,30 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
 }
 
 async function toFetchBody(
-  data: ReadableStream<Uint8Array>,
+  data: ReadableStream<Uint8Array> | Readable | Buffer | Uint8Array,
 ): Promise<{ body: BodyInit; duplex?: 'half' }> {
+  if (!(data instanceof ReadableStream)) {
+    // Node.js Readable / Buffer / Uint8Array → convert to ReadableStream
+    const nodeStream = data instanceof Readable ? data : Readable.from(data); // Buffer or Uint8Array
+    const webStream = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        const chunk = nodeStream.read();
+        if (chunk === null) {
+          nodeStream.once('readable', () =>
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            controller.enqueue(nodeStream.read()!),
+          );
+        } else {
+          controller.enqueue(chunk);
+        }
+      },
+      cancel() {
+        nodeStream.destroy();
+      },
+    });
+    data = webStream;
+  }
+
   if (
     !navigator.userAgent.includes('Firefox') &&
     !navigator.userAgent.includes('Safari')
