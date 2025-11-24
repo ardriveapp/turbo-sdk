@@ -746,6 +746,21 @@ await turbo.upload({
 });
 ```
 
+#### x402 Uploads
+
+Another method of uploading files is via the x402 protocol. This method is optimized for agent workflows and allows for direct uploads to Arweave gateways that support the x402 protocol using an EVM wallet and base-usdc token type.
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  signer: ethereumSignerWithBaseUSDC,
+  token: 'base-usdc',
+});
+await turbo.uploadFile({
+  ...params,
+  fundingMode: new X402Funding({ maxMUSDCAmount: 1_000_000 }), // Max 1 USDC. Opt out if too expensive
+});
+```
+
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
