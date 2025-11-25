@@ -32,7 +32,7 @@ import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
 import { computeAddress } from 'ethers';
 import nacl from 'tweetnacl';
-import { createWalletClient, custom, http } from 'viem';
+import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 import { Signer as x402Signer } from 'x402-fetch';
@@ -257,7 +257,9 @@ export abstract class TurboDataItemAbstractSigner
   }
 }
 
-export function makeX402Signer(arbundlesSigner: ArbundleSigner): x402Signer {
+export async function makeX402Signer(
+  arbundlesSigner: ArbundleSigner,
+): Promise<x402Signer> {
   // Node: our SDK uses EthereumSigner with a raw private key
   if (arbundlesSigner instanceof EthereumSigner) {
     return createWalletClient({
@@ -270,13 +272,27 @@ export function makeX402Signer(arbundlesSigner: ArbundleSigner): x402Signer {
     }) as unknown as x402Signer;
   }
 
-  // Browser fallback: create from window.ethereum if present
+  // Browser: use injected wallet + selected account
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== 'undefined' && (window as any).ethereum) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = (window as any).ethereum as EIP1193Provider;
+
+    // ask wallet for an account
+    const accounts = (await provider.request({
+      method: 'eth_requestAccounts',
+    })) as `0x${string}`[];
+
+    if (accounts === undefined || accounts.length === 0) {
+      throw new Error('No accounts returned from wallet');
+    }
+
+    const account = accounts[0];
+
     return createWalletClient({
+      account,
       chain: baseSepolia,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transport: custom((window as any).ethereum),
+      transport: custom(provider),
     }) as unknown as x402Signer;
   }
 

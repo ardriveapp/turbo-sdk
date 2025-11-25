@@ -293,6 +293,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       fundingMode = new ExistingBalanceFunding(),
     } = this.resolveUploadFileConfig(params);
 
+    console.log('params', params);
     if (
       fundingMode instanceof X402Funding &&
       !this.x402EnabledTokens.includes(this.token)
@@ -307,6 +308,8 @@ export abstract class TurboAuthenticatedBaseUploadService
         "Chunking mode 'force' is not supported when x402 is enabled",
       );
     }
+
+    this.logger.debug('Starting file upload', { params });
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -380,7 +383,8 @@ export abstract class TurboAuthenticatedBaseUploadService
           fundingMode instanceof X402Funding
             ? {
                 signer:
-                  fundingMode.signer ?? makeX402Signer(this.signer.signer),
+                  fundingMode.signer ??
+                  (await makeX402Signer(this.signer.signer)),
                 maxMUSDCAmount: fundingMode.maxMUSDCAmount,
               }
             : undefined;
