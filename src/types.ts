@@ -25,6 +25,7 @@ import {
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
+import { Signer as x402Signer } from 'x402-fetch';
 
 import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
@@ -262,7 +263,7 @@ export type TurboUploadDataItemResponse = {
 };
 
 export type FundingOptions = {
-  fundingMode?: OnDemandFunding | ExistingBalanceFunding; // TODO: SharedCreditsFunding helper (can be used with paidBy currently)
+  fundingMode?: X402Funding | OnDemandFunding | ExistingBalanceFunding; // TODO: SharedCreditsFunding helper (can be used with paidBy currently)
 };
 
 export class ExistingBalanceFunding {}
@@ -290,6 +291,27 @@ export class OnDemandFunding {
       throw new Error('topUpBufferMultiplier must be >= 1');
     }
     this.topUpBufferMultiplier = topUpBufferMultiplier;
+  }
+}
+
+export class X402Funding {
+  public signer: x402Signer | undefined;
+  public maxMUSDCAmount: BigNumber | undefined;
+
+  constructor({
+    signer,
+    maxMUSDCAmount,
+  }: {
+    /**
+     * Optionally provide a custom signer for X402 funding.
+     * One will be created from the provided Turbo signer if not provided.
+     */
+    signer?: x402Signer;
+    maxMUSDCAmount?: BigNumber.Value;
+  }) {
+    this.signer = signer;
+    this.maxMUSDCAmount =
+      maxMUSDCAmount !== undefined ? new BigNumber(maxMUSDCAmount) : undefined;
   }
 }
 
@@ -1029,6 +1051,13 @@ export type TokenFactory = Record<
   (config: TokenConfig | AoProcessConfig) => TokenTools
 >;
 
+export type X402RequestCredentials = {
+  signer: x402Signer;
+  maxMUSDCAmount?: BigNumber.Value;
+};
+
 export type UploadSignedDataItemParams = TurboSignedDataItemFactory &
   TurboAbortSignal &
-  TurboUploadEmitterEvents;
+  TurboUploadEmitterEvents & {
+    x402Options?: X402RequestCredentials;
+  };

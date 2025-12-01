@@ -26,6 +26,7 @@ import {
   TurboChunkingParams,
   TurboFactory,
   TurboUnauthenticatedConfiguration,
+  X402Funding,
   defaultTurboConfiguration,
   developmentTurboConfiguration,
   fiatCurrencyTypes,
@@ -361,7 +362,11 @@ export function getTagsFromOptions(
 export function onDemandOptionsFromOptions(options: UploadOptions): {
   fundingMode: OnDemandFunding | ExistingBalanceFunding;
 } {
-  if (!options.onDemand) {
+  if (options.x402 && options.onDemand) {
+    throw new Error('Cannot use both --x402 and --on-demand flags');
+  }
+
+  if (!options.onDemand && !options.x402) {
     return { fundingMode: new ExistingBalanceFunding() };
   }
 
@@ -374,6 +379,12 @@ export function onDemandOptionsFromOptions(options: UploadOptions): {
     }
     const token = tokenFromOptions(options);
     maxTokenAmount = tokenToBaseMap[token](value).toString();
+  }
+
+  if (options.x402) {
+    return {
+      fundingMode: new X402Funding({ maxMUSDCAmount: maxTokenAmount }),
+    };
   }
 
   if (

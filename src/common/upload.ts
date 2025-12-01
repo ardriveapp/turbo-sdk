@@ -48,6 +48,7 @@ import {
   TurboUploadFolderResponse,
   UploadDataInput,
   UploadSignedDataItemParams,
+  X402Funding,
 } from '../types.js';
 import { RetryConfig, defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
@@ -58,6 +59,7 @@ import { TurboHTTPService } from './http.js';
 import { exponentMap, tokenToBaseMap } from './index.js';
 import { TurboWinstonLogger } from './logger.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
+import { makeX402Signer } from './signer.js';
 
 export type TurboUploadConfig = TurboFileFactory &
   TurboAbortSignal &
@@ -115,6 +117,7 @@ export class TurboUnauthenticatedUploadService
     dataItemOpts,
     signal,
     events = {},
+    x402Options,
   }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
     const dataItemSize = dataItemSizeFactory();
     this.logger.debug('Uploading signed data item...');
@@ -152,6 +155,7 @@ export class TurboUnauthenticatedUploadService
       signal,
       data: streamWithUploadEvents,
       headers,
+      x402Options,
     });
 
     // resume the stream so events start flowing to the post
@@ -275,6 +279,8 @@ export abstract class TurboAuthenticatedBaseUploadService
     };
   }
 
+  private x402EnabledTokens: TokenType[] = ['base-usdc'];
+
   async uploadFile(
     params: TurboUploadFileParams,
   ): Promise<TurboUploadDataItemResponse> {
@@ -286,6 +292,24 @@ export abstract class TurboAuthenticatedBaseUploadService
       fileSizeFactory,
       fundingMode = new ExistingBalanceFunding(),
     } = this.resolveUploadFileConfig(params);
+
+    console.log('params', params);
+    if (
+      fundingMode instanceof X402Funding &&
+      !this.x402EnabledTokens.includes(this.token)
+    ) {
+      throw new Error(
+        'x402 uploads are not supported for token: ' + this.token,
+      );
+    }
+
+    if (params.chunkingMode === 'force' && fundingMode instanceof X402Funding) {
+      throw new Error(
+        "Chunking mode 'force' is not supported when x402 is enabled",
+      );
+    }
+
+    this.logger.debug('Starting file upload', { params });
 
     let retries = 0;
     const maxRetries = this.retryConfig.retries ?? 3;
@@ -341,7 +365,10 @@ export abstract class TurboAuthenticatedBaseUploadService
           chunkingMode: params.chunkingMode,
           maxFinalizeMs: params.maxFinalizeMs,
         });
-        if (chunkedUploader.shouldUseChunkUploader) {
+        if (
+          chunkedUploader.shouldUseChunkUploader &&
+          !(fundingMode instanceof X402Funding)
+        ) {
           const response = await chunkedUploader.upload({
             dataItemStreamFactory,
             dataItemSizeFactory,
@@ -351,12 +378,24 @@ export abstract class TurboAuthenticatedBaseUploadService
           });
           return { ...response, cryptoFundResult };
         }
+
+        const x402Options =
+          fundingMode instanceof X402Funding
+            ? {
+                signer:
+                  fundingMode.signer ??
+                  (await makeX402Signer(this.signer.signer)),
+                maxMUSDCAmount: fundingMode.maxMUSDCAmount,
+              }
+            : undefined;
+
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,
           dataItemSizeFactory,
           dataItemOpts,
           signal,
           events,
+          x402Options,
         });
         return { ...response, cryptoFundResult };
       } catch (error) {
@@ -580,6 +619,7 @@ export abstract class TurboAuthenticatedBaseUploadService
               });
             },
           },
+          fundingMode,
         });
 
         const relativePath = this.getRelativePath(file, params);
@@ -689,6 +729,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       maxChunkConcurrency,
       maxFinalizeMs,
       chunkingMode,
+      fundingMode,
     });
 
     emitter.emit('folder-success');
