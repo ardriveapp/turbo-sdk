@@ -293,7 +293,6 @@ export abstract class TurboAuthenticatedBaseUploadService
       fundingMode = new ExistingBalanceFunding(),
     } = this.resolveUploadFileConfig(params);
 
-    console.log('params', params);
     if (
       fundingMode instanceof X402Funding &&
       !this.x402EnabledTokens.includes(this.token)
