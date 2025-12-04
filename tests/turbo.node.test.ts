@@ -1470,7 +1470,9 @@ describe('Node environment', () => {
       });
 
       it('should return proper error when http throws an unrecognized error', async () => {
-        stub((turbo as any)['uploadService']['httpService'], 'post').throws(Error);
+        stub((turbo as any)['uploadService']['httpService'], 'post').throws(
+          Error,
+        );
         const error = await turbo
           .uploadFile({
             fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
