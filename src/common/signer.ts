@@ -57,7 +57,7 @@ import {
   ownerToAddress as ownerToB64Address,
   toB64Url,
 } from '../utils/base64.js';
-import { TurboWinstonLogger } from './logger.js';
+import { Logger } from './logger.js';
 import { ethDataFromTurboCreditDestinationAddress } from './token/ethereum.js';
 import { memoProgramId } from './token/solana.js';
 
@@ -75,7 +75,7 @@ export abstract class TurboDataItemAbstractSigner
 
   constructor({
     signer,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     token,
     walletAdapter,
   }: TurboDataItemSignerParams) {

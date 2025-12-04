@@ -35,7 +35,7 @@ import {
 } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { sleep } from '../../utils/common.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { Logger } from '../logger.js';
 
 export const lamportToTokenAmount = (winston: BigNumber.Value) => winston;
 export const SOLToTokenAmount = (sol: BigNumber.Value) =>
@@ -49,7 +49,7 @@ export class SolanaToken implements TokenTools {
   protected pollingOptions: TokenPollingOptions;
 
   constructor({
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     gatewayUrl = defaultProdGatewayUrls.solana,
     pollingOptions = {
       maxAttempts: 10,

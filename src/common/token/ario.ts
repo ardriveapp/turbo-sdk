@@ -35,7 +35,7 @@ import {
 } from '../../types.js';
 import { defaultProdAoConfigs, sleep } from '../../utils/common.js';
 import { version } from '../../version.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { Logger } from '../logger.js';
 
 export class ARIOToken implements TokenTools {
   protected logger: TurboLogger;
@@ -46,7 +46,7 @@ export class ARIOToken implements TokenTools {
 
   constructor({
     cuUrl = defaultProdAoConfigs.ario.cuUrl,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     pollingOptions = {
       initialBackoffMs: 500,
       pollingIntervalMs: 0, // no polling for ARIO process

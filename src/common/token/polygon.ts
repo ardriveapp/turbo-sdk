@@ -15,7 +15,7 @@
  */
 import { TokenConfig } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { Logger } from '../logger.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 
 export const POLToTokenAmount = ETHToTokenAmount;
@@ -28,7 +28,7 @@ export const defaultPolygonPollingOptions = {
 
 export class PolygonToken extends EthereumToken {
   constructor({
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     gatewayUrl = defaultProdGatewayUrls.pol,
     pollingOptions = defaultPolygonPollingOptions,
   }: TokenConfig = {}) {

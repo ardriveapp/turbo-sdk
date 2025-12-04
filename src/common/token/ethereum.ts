@@ -25,7 +25,7 @@ import {
   UserAddress,
 } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { Logger } from '../logger.js';
 
 export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
 export const ETHToTokenAmount = (eth: BigNumber.Value) =>
@@ -45,7 +45,7 @@ export class EthereumToken implements TokenTools {
   protected rpcProvider: ethers.JsonRpcProvider;
 
   constructor({
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     gatewayUrl = defaultProdGatewayUrls.ethereum,
     pollingOptions = defaultEthereumPollingOptions,
   }: TokenConfig = {}) {

@@ -30,7 +30,7 @@ import { Signer as x402Signer } from 'x402-fetch';
 import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
 import { JWKInterface } from './common/jwk.js';
-import { TurboWinstonLogger } from './common/logger.js';
+import { ILogger, Logger } from './common/logger.js';
 import { RetryConfig } from './utils/axiosClient.js';
 
 export type Base64String = string;
@@ -679,14 +679,7 @@ export type TurboUnauthenticatedConfiguration = {
   cuUrl?: string;
 };
 
-export interface TurboLogger {
-  setLogLevel: (level: string) => void;
-  setLogFormat: (logFormat: string) => void;
-  info: (message: string, ...args: unknown[]) => void;
-  warn: (message: string, ...args: unknown[]) => void;
-  error: (message: string, ...args: unknown[]) => void;
-  debug: (message: string, ...args: unknown[]) => void;
-}
+export type TurboLogger = ILogger;
 
 export type DataItemOptions = DataItemCreateOptions & {
   paidBy?: UserAddress | UserAddress[];
@@ -753,7 +746,7 @@ export type GetTurboSignerParams = {
   providedPrivateKey: TurboWallet | undefined;
   providedWalletAdapter: WalletAdapter | undefined;
   token: TokenType;
-  logger: TurboWinstonLogger;
+  logger: Logger;
 };
 
 export function isEthereumWalletAdapter(
