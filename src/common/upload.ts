@@ -57,7 +57,7 @@ import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
 import { exponentMap, tokenToBaseMap } from './index.js';
-import { TurboWinstonLogger } from './logger.js';
+import { Logger } from './logger.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
 import { makeX402Signer } from './signer.js';
 
@@ -97,7 +97,7 @@ export class TurboUnauthenticatedUploadService
   protected retryConfig: RetryConfig;
   constructor({
     url = defaultUploadServiceURL,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     retryConfig = defaultRetryConfig(logger),
     token = 'arweave',
   }: TurboUnauthenticatedUploadServiceConfiguration) {

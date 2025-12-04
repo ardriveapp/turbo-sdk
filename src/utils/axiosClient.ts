@@ -15,7 +15,7 @@
  */
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-import { TurboWinstonLogger } from '../common/logger.js';
+import { Logger } from '../common/logger.js';
 import { TurboLogger } from '../types.js';
 import { version } from '../version.js';
 
@@ -37,7 +37,7 @@ export type RetryConfig = {
 };
 
 export const defaultRetryConfig: (logger?: TurboLogger) => RetryConfig = (
-  logger = TurboWinstonLogger.default,
+  logger = Logger.default,
 ) => ({
   retryDelay: (retryCount) => Math.min(1000 * 2 ** (retryCount - 1), 30 * 1000), // exponential backoff up to 30s
   retries: 5,

@@ -23,7 +23,7 @@ import {
 } from '../src/common/chunked.js';
 import { JPY, USD } from '../src/common/currency.js';
 import { TurboHTTPService } from '../src/common/http.js';
-import { TurboWinstonLogger } from '../src/common/logger.js';
+import { Logger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
   ARToTokenAmount,
@@ -143,7 +143,7 @@ describe('Node environment', () => {
         await turbo.signer.getNativeAddress(),
         testArweaveNativeB64Address,
       );
-      assert.equal(turbo['uploadService']['token'], 'arweave');
+      assert.equal((turbo as any)['uploadService']['token'], 'arweave');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and an EthereumSigner', async () => {
@@ -153,7 +153,7 @@ describe('Node environment', () => {
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), testEthNativeAddress);
-      assert.equal(turbo['uploadService']['token'], 'ethereum');
+      assert.equal((turbo as any)['uploadService']['token'], 'ethereum');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a KyveSigner', async () => {
@@ -166,7 +166,7 @@ describe('Node environment', () => {
         await turbo.signer.getNativeAddress(),
         testKyveNativeAddress,
       );
-      assert.equal(turbo['uploadService']['token'], 'kyve');
+      assert.equal((turbo as any)['uploadService']['token'], 'kyve');
     });
 
     it('should return a token of arweave when given an unrecognizable signatureType', async () => {
@@ -179,7 +179,7 @@ describe('Node environment', () => {
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), base64KyveAddress);
-      assert.equal(turbo['uploadService']['token'], 'arweave');
+      assert.equal((turbo as any)['uploadService']['token'], 'arweave');
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
@@ -280,7 +280,7 @@ describe('Node environment', () => {
       const signer = new ArweaveSigner(testJwk);
       const turboSigner = new TurboNodeSigner({
         signer,
-        logger: TurboWinstonLogger.default,
+        logger: Logger.default,
         token: 'arweave',
       });
       const error = await turboSigner
@@ -896,7 +896,9 @@ describe('Node environment', () => {
       });
 
       it('should return proper error when http throws an unrecognized error', async () => {
-        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        stub((turbo as any)['uploadService']['httpService'], 'post').throws(
+          Error,
+        );
         const error = await turbo
           .upload({
             data: 'a test string',
@@ -910,7 +912,9 @@ describe('Node environment', () => {
       });
 
       it('should return proper error when http throws an unrecognized error with chunking forced', async () => {
-        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        stub((turbo as any)['uploadService']['httpService'], 'post').throws(
+          Error,
+        );
         const error = await turbo
           .upload({
             data: 'a test string',
@@ -946,7 +950,8 @@ describe('Node environment', () => {
       });
 
       it('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
-        stub(turbo['uploadService']['httpService'], 'get').callsFake(
+        stub((turbo as any)['uploadService']['httpService'], 'get').callsFake(
+          // @ts-ignore -- ignore ts error for test stub
           async ({ endpoint }) => {
             if (endpoint.includes('-1')) {
               return { chunkSize: 6 * 1024 * 1024 };
@@ -958,7 +963,7 @@ describe('Node environment', () => {
           },
         );
 
-        stub(turbo['uploadService']['httpService'], 'post').resolves({
+        stub((turbo as any)['uploadService']['httpService'], 'post').resolves({
           id: 'stub',
         });
         const fileSize = fs.statSync(oneKiBFilePath).size;
@@ -976,7 +981,8 @@ describe('Node environment', () => {
       });
 
       it('should fail with a canceled error when uploading a Readable with chunking forced and server never returns FINALIZED before maxWaitTime', async () => {
-        stub(turbo['uploadService']['httpService'], 'get').callsFake(
+        stub((turbo as any)['uploadService']['httpService'], 'get').callsFake(
+          // @ts-ignore -- ignore ts error for test stub
           async ({ endpoint }) => {
             if (endpoint.includes('-1')) {
               return { chunkSize: 5 * 1024 * 1024 };
@@ -988,7 +994,7 @@ describe('Node environment', () => {
           },
         );
 
-        stub(turbo['uploadService']['httpService'], 'post').resolves({
+        stub((turbo as any)['uploadService']['httpService'], 'post').resolves({
           id: 'stub',
         });
 
@@ -1464,7 +1470,7 @@ describe('Node environment', () => {
       });
 
       it('should return proper error when http throws an unrecognized error', async () => {
-        stub(turbo['uploadService']['httpService'], 'post').throws(Error);
+        stub((turbo as any)['uploadService']['httpService'], 'post').throws(Error);
         const error = await turbo
           .uploadFile({
             fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),

@@ -99,8 +99,15 @@
     "prompts": "^2.4.2",
     "starknet": "^6.11.0",
     "tweetnacl": "^1.0.3",
-    "winston": "^3.14.1",
     "x402-fetch": "^0.7.0"
+  },
+  "peerDependencies": {
+    "winston": "^3.14.1"
+  },
+  "peerDependenciesMeta": {
+    "winston": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",

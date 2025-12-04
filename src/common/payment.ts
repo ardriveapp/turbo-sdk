@@ -55,7 +55,7 @@ import {
 import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isAnyValidUserAddress } from '../utils/common.js';
 import { TurboHTTPService } from './http.js';
-import { TurboWinstonLogger } from './logger.js';
+import { Logger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
 
 export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
@@ -70,7 +70,7 @@ export class TurboUnauthenticatedPaymentService
 
   constructor({
     url = defaultPaymentServiceURL,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     retryConfig = defaultRetryConfig(logger),
     token = 'arweave',
   }: TurboUnauthenticatedPaymentServiceConfiguration) {
@@ -403,7 +403,7 @@ export class TurboAuthenticatedPaymentService
     url = defaultPaymentServiceURL,
     retryConfig,
     signer,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     token = 'arweave',
     tokenTools,
   }: TurboAuthenticatedPaymentServiceConfiguration) {
