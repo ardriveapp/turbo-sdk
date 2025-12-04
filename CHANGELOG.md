@@ -1,3 +1,10 @@
+# [1.38.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.37.0...v1.38.0-alpha.1) (2025-12-04)
+
+
+### Features
+
+* **logger:** default to non-dependency driven logger class PE-8777 ([f2bdff2](https://github.com/ardriveapp/turbo-sdk/commit/f2bdff2239ea2b93f2dc07193a943168f17b03d6))
+
 # [1.37.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.36.0...v1.37.0) (2025-12-04)
 
 ### Features
