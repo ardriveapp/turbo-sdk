@@ -1,9 +1,8 @@
-# [1.37.0-alpha.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.37.0-alpha.1...v1.37.0-alpha.2) (2025-12-04)
-
+# [1.37.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.36.0...v1.37.0) (2025-12-04)
 
 ### Features
 
-* **logger:** default to non-dependency driven logger class PE-8777 ([f2bdff2](https://github.com/ardriveapp/turbo-sdk/commit/f2bdff2239ea2b93f2dc07193a943168f17b03d6))
+* **x402:** init base-usdc x402 route PE-8587 ([dda977f](https://github.com/ardriveapp/turbo-sdk/commit/dda977f684051fa92ad61cebfeff771660654015))
 
 # [1.36.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.35.0...v1.36.0) (2025-11-04)
 
