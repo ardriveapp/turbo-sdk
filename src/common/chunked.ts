@@ -32,7 +32,7 @@ import { sleep } from '../utils/common.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
-import { TurboWinstonLogger } from './logger.js';
+import { Logger } from './logger.js';
 
 const fiveMiB = 5 * 1024 * 1024; // 5 MiB
 const fiveHundredMiB = fiveMiB * 100; // 500 MiB
@@ -69,7 +69,7 @@ export class ChunkedUploader {
     maxChunkConcurrency = defaultMaxChunkConcurrency,
     maxFinalizeMs,
     chunkByteCount = defaultChunkByteCount,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
   }: {

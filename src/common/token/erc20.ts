@@ -23,7 +23,7 @@ import {
   isEthereumWalletAdapter,
 } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
-import { TurboWinstonLogger } from '../logger.js';
+import { Logger } from '../logger.js';
 import {
   EthereumToken,
   ethDataFromTurboCreditDestinationAddress,
@@ -44,7 +44,7 @@ export class ERC20Token extends EthereumToken {
 
   constructor({
     tokenContractAddress,
-    logger = TurboWinstonLogger.default,
+    logger = Logger.default,
     gatewayUrl = defaultProdGatewayUrls.ethereum,
     pollingOptions,
   }: TokenConfig & { tokenContractAddress: string }) {
