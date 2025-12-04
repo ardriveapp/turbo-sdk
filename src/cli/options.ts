@@ -194,6 +194,12 @@ export const optionMap = {
       'Enable on-demand crypto top-ups during upload if balance is insufficient',
     default: false,
   },
+  x402: {
+    alias: '--x402',
+    description:
+      'Pay for the action using x402 funding (if available). Requires token `base-usdc`.',
+    default: false,
+  },
   topUpBufferMultiplier: {
     alias: '--top-up-buffer-multiplier <topUpBufferMultiplier>',
     description:
@@ -228,6 +234,7 @@ const onDemandOptions = [
   optionMap.onDemand,
   optionMap.topUpBufferMultiplier,
   optionMap.maxCryptoTopUpValue,
+  optionMap.x402,
 ];
 
 export const uploadOptions = [
