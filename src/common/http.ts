@@ -97,8 +97,6 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       const { body, duplex } = await toX402FetchBody(data);
 
       try {
-        // Handle 402 Payment Required with X402Options
-
         const maxMUSDCAmount =
           x402Options.maxMUSDCAmount !== undefined
             ? BigInt(x402Options.maxMUSDCAmount.toString())
@@ -168,8 +166,6 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     const { body, duplex } = await toFetchBody(data);
 
     try {
-      // Handle 402 Payment Required with X402Options
-
       this.logger.debug('Posting data via fetch', { endpoint, headers });
       const res = await fetch(this.axios.defaults.baseURL + endpoint, {
         method: 'POST',
