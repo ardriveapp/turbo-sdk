@@ -1,3 +1,10 @@
+## [1.38.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.0...v1.38.1-alpha.1) (2025-12-08)
+
+
+### Bug Fixes
+
+* **bundle:** remove web bundle from npm package, serve via GitHub releases ([1e8ab07](https://github.com/ardriveapp/turbo-sdk/commit/1e8ab076363b187adf42547a2a3d9e6c68d71446))
+
 # [1.38.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.37.0...v1.38.0) (2025-12-08)
 
 
