@@ -34,10 +34,12 @@
       </form>
     </div>
     <script type="module">
+      // For local development, use relative path to built bundle
+      // For production, use: https://cdn.jsdelivr.net/gh/ardriveapp/turbo-sdk@latest/bundles/web.bundle.min.js
       import {
         TurboFactory,
         developmentTurboConfiguration,
-      } from 'https://unpkg.com/@ardrive/turbo-sdk';
+      } from '../../bundles/web.bundle.min.js';
 
       /**
        * Set up our authenticated client factory

@@ -149,14 +149,18 @@ const rates = await turbo.getFiatRates();
 
 #### Browser
 
+The web bundle is available as a GitHub release artifact. You can reference it directly via jsDelivr CDN:
+
 ```html
 <script type="module">
-  import { TurboFactory } from 'https://unpkg.com/@ardrive/turbo-sdk';
+  import { TurboFactory } from 'https://cdn.jsdelivr.net/gh/ardriveapp/turbo-sdk@latest/bundles/web.bundle.min.js';
 
   const turbo = TurboFactory.unauthenticated();
   const rates = await turbo.getFiatRates();
 </script>
 ```
+
+Or download the bundle from [GitHub Releases](https://github.com/ardriveapp/turbo-sdk/releases) and serve it locally.
 
 ### NodeJS
 
