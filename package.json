@@ -101,14 +101,6 @@
     "tweetnacl": "^1.0.3",
     "x402-fetch": "^0.7.0"
   },
-  "peerDependencies": {
-    "winston": "^3.14.1"
-  },
-  "peerDependenciesMeta": {
-    "winston": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
