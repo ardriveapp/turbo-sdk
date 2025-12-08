@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.37.0",
+  "version": "1.38.0-alpha.1",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -99,7 +99,6 @@
     "prompts": "^2.4.2",
     "starknet": "^6.11.0",
     "tweetnacl": "^1.0.3",
-    "winston": "^3.14.1",
     "x402-fetch": "^0.7.0"
   },
   "devDependencies": {

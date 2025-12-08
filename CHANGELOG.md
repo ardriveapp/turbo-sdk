@@ -1,6 +1,5 @@
 # [1.37.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.36.0...v1.37.0) (2025-12-04)
 
-
 ### Features
 
 * **x402:** init base-usdc x402 route PE-8587 ([dda977f](https://github.com/ardriveapp/turbo-sdk/commit/dda977f684051fa92ad61cebfeff771660654015))
