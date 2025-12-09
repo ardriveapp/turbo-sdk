@@ -1,9 +1,10 @@
-## [1.38.1-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.0...v1.38.1-alpha.1) (2025-12-08)
+## [1.38.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.0...v1.38.1) (2025-12-09)
 
 
 ### Bug Fixes
 
 * **bundle:** remove web bundle from npm package, serve via GitHub releases ([1e8ab07](https://github.com/ardriveapp/turbo-sdk/commit/1e8ab076363b187adf42547a2a3d9e6c68d71446))
+
 
 # [1.38.0](https://github.com/ardriveapp/turbo-sdk/compare/v1.37.0...v1.38.0) (2025-12-08)
 
@@ -29,13 +30,6 @@
 ### Features
 
 * **cli:** add --show-progress flag for upload operations PE-8644 ([f7c7ea2](https://github.com/ardriveapp/turbo-sdk/commit/f7c7ea2c3b0dfd0b58d974c6b02344895132ced8))
-
-# [1.36.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.35.0...v1.36.0-alpha.1) (2025-11-04)
-
-
-### Bug Fixes
-
-* **cli:** address PR [#320](https://github.com/ardriveapp/turbo-sdk/issues/320) review comments ([c723226](https://github.com/ardriveapp/turbo-sdk/commit/c72322697596a36072217e7880a96554443e4611))
 
 
 ### Features
