@@ -103,6 +103,7 @@ export abstract class TurboDataItemAbstractSigner
       case 'base-eth':
       case 'usdc':
       case 'base-usdc':
+      case 'base-ario':
       case 'polygon-usdc':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 

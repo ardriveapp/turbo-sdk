@@ -171,12 +171,14 @@ export abstract class TurboBaseFactory {
       if (tokenMap && token === 'arweave') {
         tokenTools = tokenMap.arweave;
       }
+      console.log('gatewayUrl', gatewayUrl);
       tokenTools = defaultTokenMap[token]?.({
         cuUrl,
         processId,
         gatewayUrl,
         logger,
       });
+      console.log('tokenTools', tokenTools);
     }
 
     const paymentService = new TurboAuthenticatedPaymentService({

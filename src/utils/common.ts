@@ -48,10 +48,12 @@ export function isWeb() {
 const ethTestnetRpc = 'https://sepolia.gateway.tenderly.co';
 const baseTestnetRpc = 'https://sepolia.base.org';
 const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
+const baseMainnetRpc = 'https://mainnet.base.org';
 
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://arweave.net', // No arweave test net
   ario: 'https://arweave.net', // No arweave test net
+  'base-ario': baseMainnetRpc, // No base-ario test net contract deployed
   solana: 'https://api.devnet.solana.com',
   ethereum: ethTestnetRpc,
   'base-eth': baseTestnetRpc,
@@ -75,14 +77,15 @@ export const tokenToDevAoConfigMap: {
 export const defaultProdGatewayUrls: Record<TokenType, string> = {
   arweave: 'https://arweave.net',
   ario: 'https://arweave.net',
+  'base-ario': baseMainnetRpc,
   solana: 'https://api.mainnet-beta.solana.com',
   ethereum: 'https://cloudflare-eth.com/',
-  'base-eth': 'https://mainnet.base.org',
+  'base-eth': baseMainnetRpc,
   kyve: 'https://api.kyve.network/',
   matic: 'https://polygon-rpc.com/',
   pol: 'https://polygon-rpc.com/',
   usdc: 'https://cloudflare-eth.com/',
-  'base-usdc': 'https://mainnet.base.org',
+  'base-usdc': baseMainnetRpc,
   'polygon-usdc': 'https://polygon-rpc.com/',
 };
 
@@ -132,6 +135,7 @@ export function createTurboSigner({
     case 'base-eth':
     case 'usdc':
     case 'base-usdc':
+    case 'base-ario':
     case 'polygon-usdc':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
@@ -218,6 +222,7 @@ export function isValidUserAddress(address: string, type: TokenType): boolean {
     case 'matic':
     case 'pol':
     case 'base-usdc':
+    case 'base-ario':
     case 'usdc':
     case 'polygon-usdc':
       return isValidECDSAAddress(address);
