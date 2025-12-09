@@ -1,3 +1,10 @@
+## [1.38.2-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.1...v1.38.2-alpha.1) (2025-12-09)
+
+
+### Bug Fixes
+
+* **deps:** bump several dependencies above known security vulnerabilities PE-8785 ([fc8df83](https://github.com/ardriveapp/turbo-sdk/commit/fc8df8391e4ce7e28a01632bc35d696e29fb785f))
+
 ## [1.38.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.0...v1.38.1) (2025-12-09)
 
 
