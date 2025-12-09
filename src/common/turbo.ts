@@ -85,7 +85,6 @@ export const developmentTurboConfiguration = {
     url: developmentUploadServiceURL,
   },
 };
-
 /**
  * Production configuration.
  */
