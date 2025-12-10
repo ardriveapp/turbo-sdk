@@ -51,5 +51,5 @@ jobs:
           git add lib/** bundles/** README.md LICENSE.md package.json -f
           git commit -m "chore(dist): release version v${VERSION} [skip ci]" --no-verify
           git push origin dist --force
-          git tag dist-v${VERSION}
-          git push origin dist-v${VERSION}
+          git tag v${VERSION}-dist
+          git push origin v${VERSION}-dist
