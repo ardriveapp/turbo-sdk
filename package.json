@@ -93,7 +93,6 @@
     "mime-types": "^2.1.35",
     "plimit-lit": "^3.0.1",
     "prompts": "^2.4.2",
-    "starknet": "^6.11.0",
     "tweetnacl": "^1.0.3",
     "x402-fetch": "^0.7.0"
   },
