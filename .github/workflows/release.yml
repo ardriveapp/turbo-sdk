@@ -42,3 +42,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         run: yarn semantic-release
+
+      - name: Publish Dist Tag
+        run: |
+          VERSION=$(cat package.json | jq -r .version)
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "Error: Failed to extract version from package.json"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan dist
+          git reset
+          git add lib/** bundles/** README.md LICENSE.md package.json -f
+          git commit -m "chore(dist): release version v${VERSION} [skip ci]" --no-verify
+          git push origin dist --force
+          git tag v${VERSION}-dist --force
+          git push origin v${VERSION}-dist --force

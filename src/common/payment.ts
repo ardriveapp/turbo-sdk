@@ -479,6 +479,9 @@ export class TurboAuthenticatedPaymentService
       feeMultiplier,
       tokenAmount,
       target,
+      token: this.token,
+      turboCreditDestinationAddress,
+      tokenTools: this.tokenTools,
     });
 
     const fundTx = await this.tokenTools.createAndSubmitTx({
