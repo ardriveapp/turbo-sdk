@@ -53,4 +53,3 @@ jobs:
           git push origin dist --force
           git tag dist-v${VERSION}
           git push origin dist-v${VERSION}
-          git push origin --delete dist
