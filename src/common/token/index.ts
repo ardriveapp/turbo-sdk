@@ -22,14 +22,18 @@ import {
   TokenType,
   tokenTypes,
 } from '../../types.js';
+import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { ARIOToTokenAmount, ARIOToken } from './ario.js';
 import { ARToTokenAmount, ArweaveToken } from './arweave.js';
-import { BaseEthToken } from './baseEth.js';
+import { BaseEthToken, defaultBaseNetworkPollingOptions } from './baseEth.js';
+import { ERC20Token } from './erc20.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 import { KYVEToTokenAmount, KyveToken } from './kyve.js';
 import { POLToTokenAmount, PolygonToken } from './polygon.js';
 import { SOLToTokenAmount, SolanaToken } from './solana.js';
 import { USDCToTokenAmount, USDCToken } from './usdc.js';
+
+const baseARIOContractAddress = '0x138746adfA52909E5920def027f5a8dc1C7EfFb6';
 
 export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
@@ -46,14 +50,23 @@ export const defaultTokenMap: TokenFactory = {
     new USDCToken({ network: 'base', ...config }),
   'polygon-usdc': (config: TokenConfig) =>
     new USDCToken({ network: 'polygon', ...config }),
+  'base-ario': (config: TokenConfig) =>
+    new ERC20Token({
+      ...config,
+      pollingOptions: config.pollingOptions ?? defaultBaseNetworkPollingOptions,
+      tokenContractAddress: baseARIOContractAddress,
+      gatewayUrl: config.gatewayUrl ?? defaultProdGatewayUrls['base-ario'],
+    }),
 } as const;
 
 const ethExponent = 18;
 const usdcExponent = 6;
+const arioExponent = 6;
 
 export const exponentMap: Record<TokenType, number> = {
   arweave: 12,
-  ario: 6,
+  ario: arioExponent,
+  'base-ario': arioExponent,
   solana: 9,
   ethereum: ethExponent,
   'base-eth': ethExponent,
@@ -71,6 +84,7 @@ export const tokenToBaseMap: Record<
 > = {
   arweave: (a: BigNumber.Value) => ARToTokenAmount(a),
   ario: (a: BigNumber.Value) => ARIOToTokenAmount(a),
+  'base-ario': (a: BigNumber.Value) => USDCToTokenAmount(a),
   solana: (a: BigNumber.Value) => SOLToTokenAmount(a),
   ethereum: (a: BigNumber.Value) => ETHToTokenAmount(a),
   'base-eth': (a: BigNumber.Value) => ETHToTokenAmount(a),

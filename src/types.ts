@@ -64,6 +64,7 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 export const tokenTypes = [
   'arweave',
   'ario',
+  'base-ario',
   'solana',
   'ethereum',
   'kyve',
@@ -84,6 +85,7 @@ export const supportedEvmSignerTokens = new Set([
   'polygon-usdc',
   'usdc',
   'base-usdc',
+  'base-ario',
 ]);
 
 export type Adjustment = {
