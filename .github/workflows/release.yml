@@ -29,7 +29,7 @@ jobs:
       - name: Set Up node
         uses: actions/setup-node@v6
         with:
-          cache: 'yarn'
+          cache: "yarn"
           node-version-file: .nvmrc
 
       - name: Install dependencies
@@ -42,3 +42,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         run: yarn semantic-release
+
+      - name: Publish Dist Branch and Tag
+        run: |
+          VERSION=$(cat package.json | jq -r .version)
+          git checkout --orphan dist
+          git add dist/** bundles/** README.md LICENSE package.json -f
+          git commit -m "chore(dist): release version v${VERSION} [skip ci]"
+          git push origin dist --force
+          git tag dist-v${VERSION}
+          git push origin dist-v${VERSION}
