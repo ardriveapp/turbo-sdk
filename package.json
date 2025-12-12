@@ -81,7 +81,7 @@
     "@dha-team/arbundles": "^1.0.1",
     "@ethersproject/signing-key": "^5.7.0",
     "@permaweb/aoconnect": "0.0.57",
-    "@solana/web3.js": "^1.98.4",
+    "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
     "axios": "^1.12.0",
     "bignumber.js": "^9.1.2",
@@ -143,8 +143,7 @@
     "elliptic": "6.6.1",
     "base-x": "4.0.1",
     "ws": "8.17.1",
-    "cross-spawn": "7.0.5",
-    "brace-expansion": "1.1.12"
+    "cross-spawn": "7.0.5"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
