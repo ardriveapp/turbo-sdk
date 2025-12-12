@@ -10,18 +10,6 @@
 
 * **base-ario:** init SDK and CLI base-ario implementation PE-8763 ([db2c745](https://github.com/ardriveapp/turbo-sdk/commit/db2c745c3ade1b6e1921d433388f38e324b8f44d))
 
-# [1.39.0-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.2...v1.39.0-alpha.1) (2025-12-10)
-
-
-### Bug Fixes
-
-* **git:** add post publish step to produce dist tag with web bundle for jsdeliver ([0dff815](https://github.com/ardriveapp/turbo-sdk/commit/0dff8150ee936fbb1adfa35e437d8bd63451411b))
-
-
-### Features
-
-* **base-ario:** init SDK and CLI base-ario implementation PE-8763 ([db2c745](https://github.com/ardriveapp/turbo-sdk/commit/db2c745c3ade1b6e1921d433388f38e324b8f44d))
-
 ## [1.38.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.38.1...v1.38.2) (2025-12-09)
 
 
