@@ -481,7 +481,6 @@ export class TurboAuthenticatedPaymentService
       target,
       token: this.token,
       turboCreditDestinationAddress,
-      tokenTools: this.tokenTools,
     });
 
     const fundTx = await this.tokenTools.createAndSubmitTx({
