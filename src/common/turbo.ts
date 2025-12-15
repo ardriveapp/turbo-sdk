@@ -407,7 +407,6 @@ export class TurboAuthenticatedClient
   ): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadFile(params);
   }
-
   uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse> {
     return this.uploadService.uploadFolder(p);
   }
