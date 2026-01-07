@@ -23,6 +23,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 - [Signers](#signers)
   - [Arweave](#arweave)
   - [Ethereum](#ethereum)
+  - [Base](#base)
   - [Solana](#solana)
   - [KYVE](#kyve)
 - [Events](#events)
@@ -1010,6 +1011,35 @@ const turbo = TurboFactory.authenticated({
 const turbo = TurboFactory.authenticated({
   privateKey: ethHexadecimalPrivateKey,
   token: 'pol',
+});
+```
+
+### Base
+
+#### Base ETH Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'base-eth',
+});
+```
+
+#### Base USDC Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'base-usdc',
+});
+```
+
+#### Base ARIO Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'base-ario',
 });
 ```
 
