@@ -20,6 +20,11 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboFactory](#turbofactory)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
+- [Signers](#signers)
+  - [Arweave](#arweave)
+  - [Ethereum](#ethereum)
+  - [Solana](#solana)
+  - [KYVE](#kyve)
 - [Events](#events)
   - [File Upload Events](#file-upload-events)
   - [Folder Upload Events](#folder-upload-events)
@@ -218,97 +223,11 @@ const turbo = TurboFactory.unauthenticated();
 
 #### `authenticated()`
 
-Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
-
-##### Arweave JWK
-
-```typescript
-const jwk = await arweave.crypto.generateJWK();
-const turbo = TurboFactory.authenticated({ privateKey: jwk });
-```
-
-##### ArweaveSigner
+Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided. See the [Signers] section for all supported signers and authentication methods.
 
 ```typescript
 const signer = new ArweaveSigner(jwk);
 const turbo = TurboFactory.authenticated({ signer });
-```
-
-##### ArconnectSigner
-
-```typescript
-const signer = new ArconnectSigner(window.arweaveWallet);
-const turbo = TurboFactory.authenticated({ signer });
-```
-
-##### EthereumSigner
-
-```typescript
-const signer = new EthereumSigner(privateKey);
-const turbo = TurboFactory.authenticated({ signer });
-```
-
-##### Ethereum Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: ethHexadecimalPrivateKey,
-  token: 'ethereum',
-});
-```
-
-##### POL (MATIC) Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: ethHexadecimalPrivateKey,
-  token: 'pol',
-});
-```
-
-##### HexSolanaSigner
-
-```typescript
-const signer = new HexSolanaSigner(bs58.encode(secretKey));
-const turbo = TurboFactory.authenticated({ signer });
-```
-
-##### Solana Web Wallet Adapter
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  walletAdapter: window.solana,
-  token: 'solana',
-});
-```
-
-##### Solana Secret Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: bs58.encode(secretKey),
-  token: 'solana',
-});
-```
-
-##### KYVE Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: kyveHexadecimalPrivateKey,
-  token: 'kyve',
-});
-```
-
-##### KYVE Mnemonic
-
-```typescript
-import { privateKeyFromKyveMnemonic } from '@ardrive/turbo-sdk';
-
-const turbo = TurboFactory.authenticated({
-  privateKey: privateKeyFromKyveMnemonic(mnemonic),
-  token: 'kyve',
-});
 ```
 
 #### Testnet Configuration
@@ -1040,6 +959,109 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
+## Signers
+
+The SDK supports multiple wallet types and signing methods across different blockchains. You can authenticate using either a signer instance or a private key depending on your use case.
+
+### Arweave
+
+#### Arweave JWK
+
+```typescript
+const jwk = await arweave.crypto.generateJWK();
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+```
+
+#### ArweaveSigner
+
+```typescript
+const signer = new ArweaveSigner(jwk);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+#### ArconnectSigner
+
+```typescript
+const signer = new ArconnectSigner(window.arweaveWallet);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+### Ethereum
+
+#### EthereumSigner
+
+```typescript
+const signer = new EthereumSigner(privateKey);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+#### Ethereum Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'ethereum',
+});
+```
+
+#### POL (MATIC) Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'pol',
+});
+```
+
+### Solana
+
+#### HexSolanaSigner
+
+```typescript
+const signer = new HexSolanaSigner(bs58.encode(secretKey));
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+#### Solana Web Wallet Adapter
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  walletAdapter: window.solana,
+  token: 'solana',
+});
+```
+
+#### Solana Secret Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana',
+});
+```
+
+### KYVE
+
+#### KYVE Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: kyveHexadecimalPrivateKey,
+  token: 'kyve',
+});
+```
+
+#### KYVE Mnemonic
+
+```typescript
+import { privateKeyFromKyveMnemonic } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.authenticated({
+  privateKey: privateKeyFromKyveMnemonic(mnemonic),
+  token: 'kyve',
+});
+```
+
 ## Events
 
 The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, `uploadFolder`, and `uploadSignedDataItem` methods.
@@ -1057,6 +1079,45 @@ These events are available for `upload`, `uploadFile`, and `uploadSignedDataItem
 - `onUploadProgress` - emitted when the upload progress changes
 - `onUploadError` - emitted when the upload fails
 - `onUploadSuccess` - emitted when the upload succeeds
+
+```typescript
+const uploadResult = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(filePath),
+  fileSizeFactory: () => fileSize,
+  events: {
+    // overall events (includes signing and upload events)
+    onProgress: ({ totalBytes, processedBytes, step }) => {
+      console.log('Overall progress:', { totalBytes, processedBytes, step });
+    },
+    onError: ({ error, step }) => {
+      console.log('Overall error:', { error, step });
+    },
+    onSuccess: () => {
+      console.log('Overall success!');
+    },
+    // signing events
+    onSigningProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Signing progress:', { totalBytes, processedBytes });
+    },
+    onSigningError: (error) => {
+      console.log('Signing error:', { error });
+    },
+    onSigningSuccess: () => {
+      console.log('Signing success!');
+    },
+    // upload events
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+  },
+});
+```
 
 ### Folder Upload Events
 
@@ -1485,3 +1546,4 @@ For more information on how to contribute, please see [CONTRIBUTING.md].
 [CONTRIBUTING.md]: ./CONTRIBUTING.md
 [docs/native-address]: https://docs.ar.io/glossary.html#native-address
 [Events]: #events
+[Signers]: #signers
