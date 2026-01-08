@@ -23,7 +23,6 @@ import {
   calculateFee,
 } from '@cosmjs/stargate';
 import { EthereumSigner } from '@dha-team/arbundles';
-import { AxiosResponse } from 'axios';
 import { BigNumber } from 'bignumber.js';
 
 import {
@@ -34,7 +33,6 @@ import {
   TurboLogger,
   TurboSigner,
 } from '../../types.js';
-import { createAxiosInstance } from '../../utils/axiosClient.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { sleep } from '../../utils/common.js';
 import { Logger } from '../logger.js';
@@ -145,21 +143,20 @@ export class KyveToken implements TokenTools {
 
     let attempts = 0;
     while (attempts < maxAttempts) {
-      let res: AxiosResponse<KyveApiResponse> | undefined = undefined;
+      let data: KyveApiResponse | undefined = undefined;
       attempts++;
 
-      const axios = createAxiosInstance({
-        axiosConfig: { baseURL: this.gatewayUrl },
-      });
-
       try {
-        res = await axios.get<KyveApiResponse>('cosmos/tx/v1beta1/txs/' + txId);
+        const res = await fetch(
+          this.gatewayUrl + '/cosmos/tx/v1beta1/txs/' + txId,
+        );
+        if (res.ok) {
+          data = await res.json();
+        }
       } catch (err) {
         // Continue retries when request errors
         this.logger.debug('Failed to poll for transaction...', { err });
       }
-
-      const data = res?.data;
 
       if (data !== undefined && hasKyveTxResponse(data)) {
         if (data.tx_response.code !== 0) {

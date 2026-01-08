@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CanceledError } from 'axios';
 import { pLimit } from 'plimit-lit';
 import { Readable } from 'stream';
 
@@ -29,6 +28,7 @@ import {
   validChunkingModes,
 } from '../types.js';
 import { sleep } from '../utils/common.js';
+import { AbortError } from '../utils/errors.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { TurboHTTPService } from './http.js';
@@ -247,7 +247,7 @@ export class ChunkedUploader {
       if (combinedSignal?.aborted) {
         internalAbort.abort();
         await Promise.allSettled(inFlight);
-        firstError ??= new CanceledError();
+        firstError ??= new AbortError();
         break;
       }
 
@@ -305,7 +305,7 @@ export class ChunkedUploader {
         if (combinedSignal?.aborted) {
           internalAbort.abort();
           await Promise.allSettled(inFlight);
-          firstError ??= new CanceledError();
+          firstError ??= new AbortError();
           break;
         }
       }
@@ -393,7 +393,7 @@ export class ChunkedUploader {
 
       if (signal?.aborted) {
         this.logger.warn(`Upload finalization aborted by signal.`);
-        throw new CanceledError();
+        throw new AbortError();
       }
 
       const response = await this.http.get<TurboMultiPartStatusResponse>({

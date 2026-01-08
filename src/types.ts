@@ -29,9 +29,9 @@ import { Signer as x402Signer } from 'x402-fetch';
 
 import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
+import { RetryConfig } from './common/http.js';
 import { JWKInterface } from './common/jwk.js';
 import { ILogger, Logger } from './common/logger.js';
-import { RetryConfig } from './utils/axiosClient.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
@@ -844,7 +844,7 @@ export interface TurboHTTPServiceInterface {
     headers,
     allowedStatuses,
   }: {
-    endpoint: string;
+    endpoint: `/${string}`;
     signal?: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
@@ -856,8 +856,8 @@ export interface TurboHTTPServiceInterface {
     allowedStatuses,
     data,
   }: {
-    endpoint: string;
-    signal: AbortSignal;
+    endpoint: `/${string}`;
+    signal?: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
     data: Readable | ReadableStream | Buffer;
