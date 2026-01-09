@@ -24,10 +24,7 @@ import {
 } from '../types.js';
 import { sleep } from '../utils/common.js';
 import { AbortError, FailedRequestError } from '../utils/errors.js';
-import {
-  bufferToReadableStream,
-  readableToReadableStream,
-} from '../utils/readableStream.js';
+import { readableToReadableStream } from '../utils/readableStream.js';
 import { version } from '../version.js';
 
 export interface RetryConfig {
@@ -152,7 +149,14 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         throw new FailedRequestError(errorText || statusText, status);
       }
 
-      return (await response.json()) as T;
+      // check the content-type header to see if json
+      const contentType = response.headers.get('content-type');
+
+      if (contentType !== null && contentType.includes('application/json')) {
+        return response.json() as Promise<T>;
+      }
+
+      return response.text() as Promise<T>;
     } catch (error) {
       if (error.name === 'AbortError' || error.message.includes('aborted')) {
         throw new AbortError('Request was aborted');
@@ -279,9 +283,7 @@ async function toFetchBody(
     return { body: new Blob([new Uint8Array(data)]) };
   }
 
-  // For Node.js, use ReadableStream with duplex
-  const stream = bufferToReadableStream(data);
-  return { body: stream, duplex: 'half' };
+  return { body: Uint8Array.from(data) };
 }
 
 function isFirefoxOrSafari(): boolean {

@@ -183,6 +183,10 @@ export async function getRawBalance(address: string): Promise<string> {
   const res = await fetch(
     `${turboDevelopmentConfigurations.paymentServiceConfig.url}/v1/account/balance?address=${address}`,
   );
+  // return 0 if 404
+  if (res.status === 404) {
+    return '0';
+  }
   const data = await res.json();
   return data?.winc ?? '0';
 }
