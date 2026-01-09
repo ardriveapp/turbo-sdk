@@ -5,7 +5,6 @@ import {
   KyveSigner,
   createData,
 } from '@dha-team/arbundles';
-import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import fs from 'fs';
 import { strict as assert } from 'node:assert';
@@ -52,6 +51,7 @@ import {
   validChunkingModes,
 } from '../src/types.js';
 import { signerFromKyveMnemonic, sleep } from '../src/utils/common.js';
+import { AbortError } from '../src/utils/errors.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   base64KyveAddress,
@@ -471,7 +471,7 @@ describe('Node environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
-        assert.ok(error instanceof CanceledError);
+        assert.ok(error instanceof AbortError);
       });
 
       it('should return FailedRequestError for incorrectly signed data item', async () => {
@@ -864,7 +864,7 @@ describe('Node environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((error) => error);
-        assert.ok(error instanceof CanceledError);
+        assert.ok(error instanceof AbortError);
       });
 
       it('should abort the upload when AbortController.signal is triggered with chunking forced', async () => {
@@ -876,7 +876,7 @@ describe('Node environment', () => {
             maxFinalizeMs: 5_000,
           })
           .catch((error) => error);
-        assert.ok(error instanceof CanceledError);
+        assert.ok(error instanceof AbortError);
       });
 
       it('should return a FailedRequestError when the data is larger than the free limit and wallet is underfunded', async () => {
@@ -1429,7 +1429,7 @@ describe('Node environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((error) => error);
-        assert.ok(error instanceof CanceledError);
+        assert.ok(error instanceof AbortError);
       });
 
       it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded', async () => {

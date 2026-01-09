@@ -80,6 +80,33 @@ export function ensureChunkedStream(
   });
 }
 
+export function bufferToReadableStream(
+  data: Buffer | Uint8Array,
+): ReadableStream {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+}
+
+export function readableToReadableStream(
+  readable: import('stream').Readable,
+): ReadableStream {
+  return new ReadableStream({
+    async start(controller) {
+      for await (const chunk of readable) {
+        controller.enqueue(
+          Buffer.isBuffer(chunk) ? new Uint8Array(chunk) : chunk,
+        );
+      }
+      controller.close();
+    },
+  });
+}
+
 export function createUint8ArrayReadableStreamFactory({
   data,
   maxChunkSize = DEFAULT_STREAM_CHUNK_SIZE,

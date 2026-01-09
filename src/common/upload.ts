@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { Readable } from 'node:stream';
 import { pLimit } from 'plimit-lit';
@@ -50,11 +49,12 @@ import {
   UploadSignedDataItemParams,
   X402Funding,
 } from '../types.js';
-import { RetryConfig, defaultRetryConfig } from '../utils/axiosClient.js';
 import { isBlob, sleep } from '../utils/common.js';
+import { AbortError } from '../utils/errors.js';
 import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
+import { RetryConfig, defaultRetryConfig } from './http.js';
 import { TurboHTTPService } from './http.js';
 import { exponentMap, tokenToBaseMap } from './index.js';
 import { Logger } from './logger.js';
@@ -326,7 +326,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     while (retries < maxRetries) {
       if (signal?.aborted) {
-        throw new CanceledError();
+        throw new AbortError();
       }
 
       // TODO: create a SigningError class and throw that instead of the generic Error

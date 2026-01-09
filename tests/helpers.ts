@@ -1,11 +1,10 @@
 import Arweave from 'arweave';
-import axios from 'axios';
 import bs58 from 'bs58';
 import { JsonRpcProvider, parseEther } from 'ethers';
 import * as fs from 'fs';
 import { strict as assert } from 'node:assert';
 
-import { defaultRetryConfig } from '../src/utils/axiosClient.js';
+import { defaultRetryConfig } from '../src/common/http.js';
 import { sleep } from '../src/utils/common.js';
 
 interface expectAsyncErrorThrowParams {
@@ -166,7 +165,9 @@ export async function sendFundTransaction(
   const paymentUrl = new URL(
     turboDevelopmentConfigurations.paymentServiceConfig.url,
   );
-  const target = (await axios.get(`${paymentUrl}info`)).data.addresses.arweave;
+  const res = await fetch(`${paymentUrl}info`);
+  const data = await res.json();
+  const target = data.addresses.arweave;
   const tx = await testArweave.createTransaction({
     quantity: `${quantity}`,
     target,
@@ -179,14 +180,15 @@ export async function sendFundTransaction(
 }
 
 export async function getRawBalance(address: string): Promise<string> {
-  return (
-    (
-      await axios.get(
-        `${turboDevelopmentConfigurations.paymentServiceConfig.url}/v1/account/balance?address=${address}`,
-        { validateStatus: () => true },
-      )
-    ).data?.winc ?? '0'
+  const res = await fetch(
+    `${turboDevelopmentConfigurations.paymentServiceConfig.url}/v1/account/balance?address=${address}`,
   );
+  // return 0 if 404
+  if (res.status === 404) {
+    return '0';
+  }
+  const data = await res.json();
+  return data?.winc ?? '0';
 }
 
 export async function delayedBlockMining(

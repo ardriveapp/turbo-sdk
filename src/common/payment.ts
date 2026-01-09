@@ -52,8 +52,8 @@ import {
   TurboWincForTokenResponse,
   UserAddress,
 } from '../types.js';
-import { defaultRetryConfig } from '../utils/axiosClient.js';
 import { isAnyValidUserAddress } from '../utils/common.js';
+import { defaultRetryConfig } from './http.js';
 import { TurboHTTPService } from './http.js';
 import { Logger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
@@ -217,7 +217,7 @@ export class TurboUnauthenticatedPaymentService
       queryParams.append('returnUrl', callbackUrls.returnUrl);
     }
 
-    const endpoint = `/top-up/${type}/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
+    const endpoint: `/${string}` = `/top-up/${type}/${owner}/${currencyType}/${paymentAmount}?${queryParams.toString()}`;
 
     const { adjustments, paymentSession, topUpQuote, fees } =
       await this.httpService.get<TopUpRawResponse>({

@@ -21,19 +21,19 @@
   },
   "exports": {
     ".": {
+      "types": "./lib/types/node/index.d.ts",
       "import": "./lib/esm/node/index.js",
-      "require": "./lib/cjs/node/index.js",
-      "types": "./lib/types/node/index.d.ts"
+      "require": "./lib/cjs/node/index.js"
     },
     "./node": {
+      "types": "./lib/types/node/index.d.ts",
       "import": "./lib/esm/node/index.js",
-      "require": "./lib/cjs/node/index.js",
-      "types": "./lib/types/node/index.d.ts"
+      "require": "./lib/cjs/node/index.js"
     },
     "./web": {
+      "types": "./lib/types/web/index.d.ts",
       "import": "./lib/esm/web/index.js",
-      "require": "./lib/cjs/web/index.js",
-      "types": "./lib/types/web/index.d.ts"
+      "require": "./lib/cjs/web/index.js"
     }
   },
   "bin": {
@@ -83,7 +83,6 @@
     "@permaweb/aoconnect": "0.0.57",
     "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
-    "axios": "^1.13.2",
     "bignumber.js": "^9.1.2",
     "bs58": "^5.0.0",
     "cli-progress": "^3.12.0",

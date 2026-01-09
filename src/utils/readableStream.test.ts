@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 import { strict as assert } from 'node:assert';
+import { Readable } from 'node:stream';
 import { describe, it } from 'node:test';
 
 import {
+  bufferToReadableStream,
   createUint8ArrayReadableStreamFactory,
   ensureChunkedStream,
   readableStreamToBuffer,
+  readableToReadableStream,
 } from './readableStream.js';
 
 describe('readableStreamToBuffer', () => {
@@ -176,5 +179,143 @@ describe('ensureChunkedStream', () => {
     }
 
     assert(error, 'Expected error when reading from stream');
+  });
+});
+
+describe('bufferToReadableStream', () => {
+  it('should convert a Buffer to a ReadableStream', async () => {
+    const data = Buffer.from('hello world');
+    const stream = bufferToReadableStream(data);
+
+    assert(stream instanceof ReadableStream, 'Expected ReadableStream');
+
+    const buffer = await readableStreamToBuffer({
+      stream,
+      size: data.length,
+    });
+
+    assert.equal(buffer.toString(), data.toString());
+  });
+
+  it('should convert a Uint8Array to a ReadableStream', async () => {
+    const data = new Uint8Array([104, 101, 108, 108, 111]); // "hello"
+    const stream = bufferToReadableStream(data);
+
+    assert(stream instanceof ReadableStream, 'Expected ReadableStream');
+
+    const buffer = await readableStreamToBuffer({
+      stream,
+      size: data.length,
+    });
+
+    assert.equal(buffer.toString(), Buffer.from(data).toString());
+  });
+
+  it('should create a single-chunk stream', async () => {
+    const data = Buffer.from('test data');
+    const stream = bufferToReadableStream(data);
+    const reader = stream.getReader();
+
+    const { value, done } = await reader.read();
+    assert(!done, 'Should not be done after first read');
+    assert(value instanceof Uint8Array, 'Value should be Uint8Array');
+    assert.equal(value.length, data.length, 'Value length should match');
+    assert.equal(
+      Buffer.from(value).toString(),
+      data.toString(),
+      'Content should match',
+    );
+
+    const { done: secondDone } = await reader.read();
+    assert(secondDone, 'Should be done after second read');
+  });
+});
+
+describe('readableToReadableStream', () => {
+  it('should convert a Node.js Readable to a ReadableStream', async () => {
+    const data = Buffer.from('hello world');
+    const readable = Readable.from([data]);
+    const stream = readableToReadableStream(readable);
+
+    assert(stream instanceof ReadableStream, 'Expected ReadableStream');
+
+    const buffer = await readableStreamToBuffer({
+      stream,
+      size: data.length,
+    });
+
+    assert.equal(buffer.toString(), data.toString());
+  });
+
+  it('should handle multiple chunks', async () => {
+    const chunks = [
+      Buffer.from('hello'),
+      Buffer.from(' '),
+      Buffer.from('world'),
+    ];
+    const readable = Readable.from(chunks);
+    const stream = readableToReadableStream(readable);
+
+    const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const buffer = await readableStreamToBuffer({
+      stream,
+      size: totalSize,
+    });
+
+    assert.equal(buffer.toString(), 'hello world');
+  });
+
+  it('should handle mixed chunk types', async () => {
+    const chunks = [
+      Buffer.from('buffer'),
+      new Uint8Array([32]), // space
+      'string',
+    ];
+    const readable = Readable.from(chunks);
+    const stream = readableToReadableStream(readable);
+
+    // Read all chunks
+    const reader = stream.getReader();
+    const result: any[] = [];
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      result.push(value);
+    }
+
+    assert.equal(result.length, 3, 'Expected 3 chunks');
+    assert(
+      result[0] instanceof Uint8Array,
+      'First chunk should be Uint8Array (from Buffer)',
+    );
+    assert(
+      result[1] instanceof Uint8Array,
+      'Second chunk should be Uint8Array',
+    );
+    assert.equal(
+      typeof result[2],
+      'string',
+      'Third chunk should remain a string',
+    );
+
+    // Convert all to buffers for comparison
+    const buffers = result.map((chunk) =>
+      chunk instanceof Uint8Array ? Buffer.from(chunk) : Buffer.from(chunk),
+    );
+    assert.equal(
+      Buffer.concat(buffers).toString(),
+      'buffer string',
+      'Combined result should match input',
+    );
+  });
+
+  it('should handle empty readable stream', async () => {
+    const readable = Readable.from([]);
+    const stream = readableToReadableStream(readable);
+    const reader = stream.getReader();
+
+    const { done } = await reader.read();
+    assert(done, 'Should be done immediately for empty stream');
   });
 });

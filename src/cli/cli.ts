@@ -164,8 +164,6 @@ applyOptions(
     // read directory /maybe-broken-data-items and check all files within to see if can read
     const dir = readdirSync(folderPath);
 
-    // const data = await axios.get('https://arweave.net/raw/' + options.txId); // TODO: Gateway that gives raw data items
-
     const validDataItemStats: {
       id: string;
       size: number;
