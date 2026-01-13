@@ -8,5 +8,8 @@
     "**/tests/**",
     "**/lib/**",
     "**/examples/**"
-  ]
+  ],
+  "rules": {
+    "header/header": ["error", "../../resources/license.header.js"]
+  }
 }
