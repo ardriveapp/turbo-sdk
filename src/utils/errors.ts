@@ -43,3 +43,9 @@ export class ProvidedInputError extends BaseError {
     super(message ?? `User has provided an invalid input`);
   }
 }
+
+export class AbortError extends BaseError {
+  constructor(message = 'Request was aborted') {
+    super(message);
+  }
+}
