@@ -14,7 +14,7 @@
   },
   "rules": {
     "mocha/no-mocha-arrows": "off",
-    "header/header": ["error", "packages/turbo-sdk/resources/license.header.js"],
+    "header/header": ["error", "./resources/license.header.js"],
     "@typescript-eslint/consistent-type-imports": "off",
     "@typescript-eslint/strict-boolean-expressions": [
       "error",
