@@ -36,6 +36,7 @@
     "build": "echo 'Placeholder - not implemented yet'",
     "clean": "echo 'Placeholder - not implemented yet'",
     "lint": "echo 'Placeholder - not implemented yet'",
+    "lint:fix": "echo 'Placeholder - not implemented yet'",
     "test": "echo 'Placeholder - not implemented yet'"
   },
   "dependencies": {
