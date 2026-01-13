@@ -15,16 +15,21 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "./update-version.sh ${nextRelease.version}"
+        "prepareCmd": "./packages/turbo-sdk/update-version.sh ${nextRelease.version}"
       }
     ],
-    "@semantic-release/npm",
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "packages/turbo-sdk"
+      }
+    ],
     [
       "@semantic-release/github",
       {
         "assets": [
           {
-            "path": "bundles/web.bundle.min.js",
+            "path": "packages/turbo-sdk/bundles/web.bundle.min.js",
             "label": "Web Bundle (${nextRelease.version})"
           }
         ]
@@ -34,8 +39,8 @@
       "@semantic-release/git",
       {
         "assets": [
-          "src/version.ts",
-          "package.json",
+          "packages/turbo-sdk/src/version.ts",
+          "packages/turbo-sdk/package.json",
           "CHANGELOG.md"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
