@@ -1,3 +1,11 @@
+## [1.39.3-alpha.1](https://github.com/ardriveapp/turbo-sdk/compare/v1.39.2...v1.39.3-alpha.1) (2026-01-13)
+
+
+### Bug Fixes
+
+* **deps:** remove axios dependency and migrate to native fetch API ([bade6f7](https://github.com/ardriveapp/turbo-sdk/commit/bade6f7605709d9735a98792b858736cec44646a))
+* improve fetch response parsing and Content-Length handling ([08f3824](https://github.com/ardriveapp/turbo-sdk/commit/08f382410a853c856f692d3e79773d978342a0cc))
+
 ## [1.39.2](https://github.com/ardriveapp/turbo-sdk/compare/v1.39.1...v1.39.2) (2025-12-15)
 
 
