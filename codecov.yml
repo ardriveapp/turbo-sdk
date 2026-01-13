@@ -5,6 +5,6 @@ coverage:
         target: 80%
         threshold: 1%
   ignore:
-    - 'src/cli/*'
-    - 'src/cli/commands/*'
-    - 'src/common/token/*'
+    - 'packages/turbo-sdk/src/cli/*'
+    - 'packages/turbo-sdk/src/cli/commands/*'
+    - 'packages/turbo-sdk/src/common/token/*'

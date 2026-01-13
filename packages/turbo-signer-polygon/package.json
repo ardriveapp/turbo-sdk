@@ -33,17 +33,13 @@
   },
   "license": "Apache-2.0",
   "scripts": {
-    "build:esm": "yarn tsc -p tsconfig.json",
-    "build:cjs": "yarn tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > lib/cjs/package.json",
-    "build:types": "yarn tsc -p tsconfig.types.json",
-    "build": "yarn clean && yarn build:esm && yarn build:cjs && yarn build:types",
-    "clean": "rimraf lib",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "test": "echo 'No tests yet'"
+    "build": "echo 'Placeholder - not implemented yet'",
+    "clean": "echo 'Placeholder - not implemented yet'",
+    "lint": "echo 'Placeholder - not implemented yet'",
+    "test": "echo 'Placeholder - not implemented yet'"
   },
   "dependencies": {
-    "@ardrive/turbo-sdk": "workspace:*"
+    "@ardrive/turbo-sdk": "*"
   },
   "peerDependencies": {
     "@dha-team/arbundles": "^1.0.1",
