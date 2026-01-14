@@ -999,6 +999,20 @@ export interface TurboAuthenticatedUploadServiceInterface
   ): Promise<CreditShareApproval>;
 
   revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]>;
+
+  uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    events,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    events?: TurboUploadEmitterEvents;
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboUnauthenticatedClientInterface
@@ -1049,6 +1063,7 @@ export type TokenFactory = Record<
 export type X402RequestCredentials = {
   signer: x402Signer;
   maxMUSDCAmount?: BigNumber.Value;
+  unsignedData?: boolean;
 };
 
 export type UploadSignedDataItemParams = TurboSignedDataItemFactory &

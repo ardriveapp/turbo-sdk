@@ -216,8 +216,11 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     data: Readable | Buffer | ReadableStream | Uint8Array;
     x402Options: X402RequestCredentials;
   }): Promise<T> {
+    const endpoint =
+      '/x402/data-item/' + (x402Options.unsignedData ? 'unsigned' : 'signed');
+
     this.logger.debug('Using X402 options for POST request', {
-      endpoint: '/x402/data-item/signed',
+      endpoint,
       x402Options,
     });
 
@@ -235,7 +238,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         maxMUSDCAmount,
       );
 
-      const res = await fetchWithPay(this.baseURL + '/x402/data-item/signed', {
+      const res = await fetchWithPay(this.baseURL + endpoint, {
         method: 'POST',
         headers: { ...defaultHeaders, ...headers },
         body,

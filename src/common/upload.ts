@@ -46,6 +46,7 @@ import {
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
   UploadDataInput,
+  UploadDataType,
   UploadSignedDataItemParams,
   X402Funding,
 } from '../types.js';
@@ -942,5 +943,57 @@ export abstract class TurboAuthenticatedBaseUploadService
       );
     }
     return topUpResponse;
+  }
+
+  public async uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    events?: TurboUploadAndSigningEmitterEvents;
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse> {
+    if (!this.x402EnabledTokens.includes(this.token)) {
+      throw new Error(
+        'x402 uploads are not supported for token: ' + this.token,
+      );
+    }
+
+    this.logger.debug('Uploading raw x402 data...', {
+      maxMUSDCAmount: maxMUSDCAmount?.toString(),
+    });
+
+    // convert to stream/buffer if needed
+    let dataBuffer: Buffer;
+    if (Buffer.isBuffer(data)) {
+      dataBuffer = data;
+    } else if (typeof data === 'string' || data instanceof Uint8Array) {
+      dataBuffer = Buffer.from(data);
+    } else if (isBlob(data)) {
+      dataBuffer = Buffer.from(await data.arrayBuffer());
+    } else {
+      throw new TypeError('Invalid data type for x402 upload');
+    }
+
+    const x402Options = {
+      signer: await makeX402Signer(this.signer.signer),
+      maxMUSDCAmount,
+      unsignedData: true,
+    };
+
+    return this.httpService.post({
+      data: dataBuffer,
+      endpoint: '/x402/data-item/unsigned',
+      signal,
+      headers:
+        tags !== undefined
+          ? { 'x-data-item-tags': JSON.stringify(tags) }
+          : undefined,
+      x402Options,
+    });
   }
 }
