@@ -954,7 +954,6 @@ export abstract class TurboAuthenticatedBaseUploadService
     data: UploadDataType;
     signal?: AbortSignal;
     tags?: { name: string; value: string }[];
-    events?: TurboUploadAndSigningEmitterEvents;
     maxMUSDCAmount?: BigNumber;
   }): Promise<TurboUploadDataItemResponse> {
     if (!this.x402EnabledTokens.includes(this.token)) {

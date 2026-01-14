@@ -685,6 +685,23 @@ await turbo.uploadFile({
 });
 ```
 
+#### Raw x402 Data Uploads
+
+Using the x402 protocol, you can also upload raw data to Turbo without signing a data item. This method is ideal for quick agent workflows where the ownership of the data is not required to be tied to a specific wallet. The eventual data item on chain will be signed by Turbo's x402 EVM signer.
+
+NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature from the connected wallet.
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  signer: ethereumSignerWithBaseUSDC,
+  token: 'base-usdc',
+});
+await turbo.uploadRawX402Data({
+  ...params,
+  maxMUSDCAmount: 1_000_000, // Max 1 USDC. Opt out if too expensive
+});
+```
+
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
