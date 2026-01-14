@@ -5,7 +5,6 @@ import {
   HexSolanaSigner,
   createData,
 } from '@dha-team/arbundles';
-import { CanceledError } from 'axios';
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcProvider, TransactionResponse } from 'ethers';
 import { File } from 'node-fetch';
@@ -21,6 +20,7 @@ import {
   TurboAuthenticatedClient,
   TurboUnauthenticatedClient,
 } from '../src/common/turbo.js';
+import { AbortError } from '../src/utils/errors.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
   ARToTokenAmount,
@@ -405,7 +405,7 @@ describe('Browser environment', () => {
               signal: AbortSignal.timeout(0), // abort the request right away
             })
             .catch((err) => err);
-          assert.ok(error instanceof CanceledError);
+          assert.ok(error instanceof AbortError);
         });
 
         it('should return FailedRequestError for incorrectly signed data item', async () => {
@@ -623,7 +623,7 @@ describe('Browser environment', () => {
               signal: AbortSignal.timeout(0), // abort the request right away
             })
             .catch((err) => err);
-          assert.ok(error instanceof CanceledError);
+          assert.ok(error instanceof AbortError);
         });
       }
 
@@ -712,7 +712,7 @@ describe('Browser environment', () => {
             signal: AbortSignal.timeout(0), // abort the request right away
           })
           .catch((err) => err);
-        assert.ok(error instanceof CanceledError);
+        assert.ok(error instanceof AbortError);
       });
 
       it('should properly upload a ReadableStream with chunking forced', async () => {

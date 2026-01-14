@@ -1,6 +1,6 @@
 {
   "name": "@ardrive/turbo-sdk",
-  "version": "1.39.2",
+  "version": "1.39.3-alpha.2",
   "main": "./lib/cjs/node/index.js",
   "types": "./lib/types/node/index.d.ts",
   "module": "./lib/esm/node/index.js",
@@ -21,19 +21,19 @@
   },
   "exports": {
     ".": {
+      "types": "./lib/types/node/index.d.ts",
       "import": "./lib/esm/node/index.js",
-      "require": "./lib/cjs/node/index.js",
-      "types": "./lib/types/node/index.d.ts"
+      "require": "./lib/cjs/node/index.js"
     },
     "./node": {
+      "types": "./lib/types/node/index.d.ts",
       "import": "./lib/esm/node/index.js",
-      "require": "./lib/cjs/node/index.js",
-      "types": "./lib/types/node/index.d.ts"
+      "require": "./lib/cjs/node/index.js"
     },
     "./web": {
+      "types": "./lib/types/web/index.d.ts",
       "import": "./lib/esm/web/index.js",
-      "require": "./lib/cjs/web/index.js",
-      "types": "./lib/types/web/index.d.ts"
+      "require": "./lib/cjs/web/index.js"
     }
   },
   "bin": {
@@ -83,7 +83,6 @@
     "@permaweb/aoconnect": "0.0.57",
     "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
-    "axios": "^1.13.2",
     "bignumber.js": "^9.1.2",
     "bs58": "^5.0.0",
     "cli-progress": "^3.12.0",
@@ -117,7 +116,7 @@
     "c8": "^8.0.1",
     "dotenv": "^16.4.5",
     "dotenv-cli": "^7.4.1",
-    "esbuild": "^0.27.1",
+    "esbuild": "^0.27.2",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.47.0",
     "eslint-config-prettier": "^9.0.0",
