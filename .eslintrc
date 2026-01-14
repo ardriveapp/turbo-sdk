@@ -10,11 +10,11 @@
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": "./packages/*/tsconfig.json"
   },
   "rules": {
     "mocha/no-mocha-arrows": "off",
-    "header/header": ["error", "resources/license.header.js"],
+    "header/header": ["error", "./resources/license.header.js"],
     "@typescript-eslint/consistent-type-imports": "off",
     "@typescript-eslint/strict-boolean-expressions": [
       "error",

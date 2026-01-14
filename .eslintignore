@@ -1,6 +1,6 @@
-tests
-src/**/*.test.ts
-lib
+**/tests
+**/*.test.ts
+**/lib
 **/*.cjs
 **/*.mjs
-examples
+**/examples

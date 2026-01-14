@@ -3,15 +3,17 @@
     "target": "es2021",
     "allowSyntheticDefaultImports": true,
     "lib": ["esnext", "dom"],
+    "outDir": "./lib/esm",
     "listEmittedFiles": false,
     "listFiles": false,
     "moduleResolution": "nodenext",
     "module": "nodenext",
     "alwaysStrict": true,
-    "types": ["node"],
+    "types": ["node", "mocha"],
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    /* Additional Checks */
     "pretty": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -20,13 +22,6 @@
     "skipLibCheck": true,
     "strictNullChecks": true
   },
-  "references": [
-    { "path": "packages/turbo-sdk" },
-    { "path": "packages/turbo-signer-ethereum" },
-    { "path": "packages/turbo-signer-polygon" },
-    { "path": "packages/turbo-signer-base" },
-    { "path": "packages/turbo-signer-solana" },
-    { "path": "packages/turbo-signer-kyve" }
-  ],
-  "files": []
+  "include": ["src"],
+  "exclude": ["lib", "node_modules", "src/**/*.test.ts"]
 }
