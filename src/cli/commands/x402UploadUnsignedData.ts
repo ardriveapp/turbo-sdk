@@ -64,7 +64,6 @@ export async function x402UploadUnsignedFile(
     const result = await turbo.uploadRawX402Data({
       data: readFileSync(filePath),
       tags: [...turboCliTags, ...customTags],
-      // events: progress.events,
     });
 
     progress.stop();
