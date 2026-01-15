@@ -278,7 +278,8 @@ async function toFetchBody(
   // Handle Node.js Readable
   if (data instanceof Readable) {
     const stream = readableToReadableStream(data);
-    return isBrowser ? { body: stream } : { body: stream, duplex: 'half' };
+    // recursively call toFetchBody to now hit the ReadableStream case
+    return toFetchBody(stream);
   }
 
   // Handle Buffer or Uint8Array
@@ -292,5 +293,10 @@ async function toFetchBody(
 function isFirefoxOrSafari(): boolean {
   if (!isBrowser) return false;
   const ua = navigator.userAgent;
-  return ua.includes('Firefox') || ua.includes('Safari');
+  return (
+    ua.includes('Firefox') ||
+    (ua.includes('Safari') &&
+      !ua.includes('Chrome') &&
+      !ua.includes('Chromium'))
+  );
 }
