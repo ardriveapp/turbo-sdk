@@ -689,16 +689,24 @@ await turbo.uploadFile({
 
 Using the x402 protocol, you can also upload raw data to Turbo without signing a data item. This method is ideal for quick agent workflows where the ownership of the data is not required to be tied to a specific wallet. The eventual data item on chain will be signed by Turbo's x402 EVM signer.
 
-NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature from the connected wallet.
-
 ```typescript
 const turbo = TurboFactory.authenticated({
   signer: ethereumSignerWithBaseUSDC,
   token: 'base-usdc',
 });
 await turbo.uploadRawX402Data({
-  ...params,
+  data: myRawData,
   maxMUSDCAmount: 1_000_000, // Max 1 USDC. Opt out if too expensive
+});
+```
+
+NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+
+```ts
+// Unsigned free upload of raw data under 100 KiB
+const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
+await turbo.uploadRawX402Data({
+  data: myRawData,
 });
 ```
 
