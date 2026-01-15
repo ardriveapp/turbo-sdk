@@ -981,13 +981,11 @@ export interface TurboUnauthenticatedUploadServiceInterface {
     data,
     tags,
     signal,
-    events,
     maxMUSDCAmount,
   }: {
     data: UploadDataType;
     signal?: AbortSignal;
     tags?: { name: string; value: string }[];
-    events?: TurboUploadEmitterEvents;
     maxMUSDCAmount?: BigNumber;
   }): Promise<TurboUploadDataItemResponse>;
 }

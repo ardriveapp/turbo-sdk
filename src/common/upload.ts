@@ -189,7 +189,6 @@ export class TurboUnauthenticatedUploadService
       maxMUSDCAmount: maxMUSDCAmount?.toString(),
     });
 
-    // convert to stream/buffer if needed
     let dataBuffer: Buffer;
     if (Buffer.isBuffer(data)) {
       dataBuffer = data;
@@ -197,6 +196,8 @@ export class TurboUnauthenticatedUploadService
       dataBuffer = Buffer.from(data);
     } else if (isBlob(data)) {
       dataBuffer = Buffer.from(await data.arrayBuffer());
+    } else if (data instanceof ArrayBuffer) {
+      dataBuffer = Buffer.from(data);
     } else {
       throw new TypeError('Invalid data type for x402 upload');
     }
