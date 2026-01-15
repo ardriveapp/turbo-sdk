@@ -16,10 +16,15 @@
 import { readFileSync, statSync } from 'fs';
 import { basename } from 'path';
 
+import { TurboFactory } from '../../node/factory.js';
 import { turboCliTags } from '../constants.js';
 import { FileUploadProgress } from '../progress.js';
 import { UploadFileOptions } from '../types.js';
-import { getTagsFromOptions, turboFromOptions } from '../utils.js';
+import {
+  configFromOptions,
+  getTagsFromOptions,
+  optionalPrivateKeyFromOptions,
+} from '../utils.js';
 
 export async function x402UploadUnsignedFile(
   options: UploadFileOptions,
@@ -29,7 +34,23 @@ export async function x402UploadUnsignedFile(
     throw new Error('Must provide a --file-path to upload');
   }
 
-  const turbo = await turboFromOptions(options);
+  const privateKey = await optionalPrivateKeyFromOptions(options);
+
+  if (options.debug) {
+    TurboFactory.setLogLevel('debug');
+  }
+  if (options.quiet) {
+    TurboFactory.setLogLevel('none');
+  }
+
+  const config = configFromOptions(options);
+  const turbo =
+    privateKey !== undefined
+      ? TurboFactory.authenticated({
+          ...config,
+          privateKey,
+        })
+      : TurboFactory.unauthenticated(config);
   const customTags = getTagsFromOptions(options);
   const fileSize = statSync(filePath).size;
   const fileName = basename(filePath);

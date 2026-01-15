@@ -275,6 +275,25 @@ export class TurboUnauthenticatedClient
   }): Promise<GetCreditShareApprovalsResponse> {
     return this.paymentService.getCreditShareApprovals(p);
   }
+
+  uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadRawX402Data({
+      data,
+      tags,
+      signal,
+      maxMUSDCAmount,
+    });
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -449,20 +468,17 @@ export class TurboAuthenticatedClient
     data,
     tags,
     signal,
-    events,
     maxMUSDCAmount,
   }: {
     data: UploadDataType;
     signal?: AbortSignal;
     tags?: { name: string; value: string }[];
-    events?: TurboUploadAndSigningEmitterEvents;
     maxMUSDCAmount?: BigNumber;
   }): Promise<TurboUploadDataItemResponse> {
     return this.uploadService.uploadRawX402Data({
       data,
       tags,
       signal,
-      events,
       maxMUSDCAmount,
     });
   }

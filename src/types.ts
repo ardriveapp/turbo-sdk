@@ -976,6 +976,20 @@ export interface TurboUnauthenticatedUploadServiceInterface {
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+
+  uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    events,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    events?: TurboUploadEmitterEvents;
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
@@ -999,20 +1013,6 @@ export interface TurboAuthenticatedUploadServiceInterface
   ): Promise<CreditShareApproval>;
 
   revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]>;
-
-  uploadRawX402Data({
-    data,
-    tags,
-    signal,
-    events,
-    maxMUSDCAmount,
-  }: {
-    data: UploadDataType;
-    signal?: AbortSignal;
-    tags?: { name: string; value: string }[];
-    events?: TurboUploadEmitterEvents;
-    maxMUSDCAmount?: BigNumber;
-  }): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboUnauthenticatedClientInterface
