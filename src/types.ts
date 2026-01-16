@@ -976,6 +976,18 @@ export interface TurboUnauthenticatedUploadServiceInterface {
   }: TurboSignedDataItemFactory &
     TurboAbortSignal &
     TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+
+  uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
@@ -1049,6 +1061,7 @@ export type TokenFactory = Record<
 export type X402RequestCredentials = {
   signer: x402Signer;
   maxMUSDCAmount?: BigNumber.Value;
+  unsignedData?: boolean;
 };
 
 export type UploadSignedDataItemParams = TurboSignedDataItemFactory &

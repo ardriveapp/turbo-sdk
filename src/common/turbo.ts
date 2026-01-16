@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { BigNumber } from 'bignumber.js';
+
 import {
   CreditShareApproval,
   Currency,
@@ -62,6 +64,7 @@ import {
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
   UploadDataInput,
+  UploadDataType,
 } from '../types.js';
 import {
   TurboUnauthenticatedPaymentService,
@@ -272,6 +275,25 @@ export class TurboUnauthenticatedClient
   }): Promise<GetCreditShareApprovalsResponse> {
     return this.paymentService.getCreditShareApprovals(p);
   }
+
+  uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadRawX402Data({
+      data,
+      tags,
+      signal,
+      maxMUSDCAmount,
+    });
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -440,5 +462,24 @@ export class TurboAuthenticatedClient
    */
   revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]> {
     return this.uploadService.revokeCredits(p);
+  }
+
+  uploadRawX402Data({
+    data,
+    tags,
+    signal,
+    maxMUSDCAmount,
+  }: {
+    data: UploadDataType;
+    signal?: AbortSignal;
+    tags?: { name: string; value: string }[];
+    maxMUSDCAmount?: BigNumber;
+  }): Promise<TurboUploadDataItemResponse> {
+    return this.uploadService.uploadRawX402Data({
+      data,
+      tags,
+      signal,
+      maxMUSDCAmount,
+    });
   }
 }

@@ -35,6 +35,7 @@ import { listShares } from './commands/listShares.js';
 import { revokeCredits } from './commands/revokeCredits.js';
 import { shareCredits } from './commands/shareCredits.js';
 import { tokenPrice } from './commands/tokenPrice.js';
+import { x402UploadUnsignedFile } from './commands/x402UploadUnsignedData.js';
 import {
   globalOptions,
   listSharesOptions,
@@ -90,6 +91,17 @@ applyOptions(
   uploadFileOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, uploadFile);
+});
+
+applyOptions(
+  program
+    .command('x402-unsigned-upload')
+    .description(
+      'Upload a file via Turbo using x402 protocol with unsigned data.',
+    ),
+  uploadFileOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, x402UploadUnsignedFile);
 });
 
 applyOptions(
