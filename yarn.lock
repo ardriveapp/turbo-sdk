@@ -45,6 +45,30 @@
   resolved "https://registry.yarnpkg.com/@adraffy/ens-normalize/-/ens-normalize-1.11.1.tgz#6c2d657d4b2dfb37f8ea811dcb3e60843d4ac24a"
   integrity sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==
 
+"@ardrive/turbo-sdk@*":
+  version "1.40.0"
+  resolved "https://registry.yarnpkg.com/@ardrive/turbo-sdk/-/turbo-sdk-1.40.0.tgz#92308899b73ea9b67348e4f766e8bca5b62b2f2f"
+  integrity sha512-ePOLLasvXpz0glj+C2UmM3CVW4kSXPeJfaxZ0l3uXvEwYmLY4NBpKPpNnxXz03+wc5pHiXCN2VVoZ6OnRuq4Zw==
+  dependencies:
+    "@cosmjs/proto-signing" "^0.33.1"
+    "@cosmjs/stargate" "^0.33.1"
+    "@dha-team/arbundles" "^1.0.1"
+    "@ethersproject/signing-key" "^5.7.0"
+    "@permaweb/aoconnect" "0.0.57"
+    "@solana/web3.js" "^1.91.7"
+    arweave "^1.15.1"
+    bignumber.js "^9.1.2"
+    bs58 "^5.0.0"
+    cli-progress "^3.12.0"
+    commander "^12.1.0"
+    ethers "^6.12.0"
+    eventemitter3 "^5.0.1"
+    mime-types "^2.1.35"
+    plimit-lit "^3.0.1"
+    prompts "^2.4.2"
+    tweetnacl "^1.0.3"
+    x402-fetch "^1.0.0"
+
 "@babel/code-frame@^7.0.0":
   version "7.22.10"
   resolved "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.22.10.tgz"

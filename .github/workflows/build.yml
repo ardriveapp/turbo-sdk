@@ -49,7 +49,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run integration tests
-        run: yarn test:docker
+        run: yarn workspace @ardrive/turbo-sdk test:docker
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           BUNDLER_ARWEAVE_WALLET: ${{ secrets.BUNDLER_ARWEAVE_WALLET }}
