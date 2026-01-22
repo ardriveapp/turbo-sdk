@@ -769,7 +769,6 @@ export type TurboAuthenticatedClientConfiguration = {
 };
 
 export type UploadDataType = string | Uint8Array | ArrayBuffer | Buffer | Blob;
-
 export type UploadDataInput = {
   data: UploadDataType;
   dataItemOpts?: DataItemOptions;
