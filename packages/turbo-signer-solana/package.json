@@ -2,10 +2,9 @@
   "name": "@ardrive/turbo-signer-solana",
   "version": "0.0.1",
   "description": "Solana signer for Turbo SDK",
-  "main": "./lib/cjs/index.js",
-  "types": "./lib/types/index.d.ts",
-  "module": "./lib/esm/index.js",
   "type": "module",
+  "main": "./lib/esm/index.js",
+  "types": "./lib/types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/ardriveapp/turbo-sdk.git",
@@ -24,8 +23,7 @@
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
-      "import": "./lib/esm/index.js",
-      "require": "./lib/cjs/index.js"
+      "import": "./lib/esm/index.js"
     }
   },
   "engines": {
@@ -33,22 +31,18 @@
   },
   "license": "Apache-2.0",
   "scripts": {
-    "build": "echo 'Placeholder - not implemented yet'",
-    "clean": "echo 'Placeholder - not implemented yet'",
-    "lint": "echo 'Placeholder - not implemented yet'",
-    "lint:fix": "echo 'Placeholder - not implemented yet'",
-    "test": "echo 'Placeholder - not implemented yet'"
-  },
-  "dependencies": {
-    "@ardrive/turbo-sdk": "*"
+    "build:esm": "tsc -p tsconfig.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build": "yarn build:esm && yarn build:types",
+    "clean": "rimraf lib",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "test": "node --test --experimental-test-coverage --test-reporter spec lib/esm/*.test.js"
   },
   "peerDependencies": {
-    "@dha-team/arbundles": "^1.0.1",
+    "@ardrive/turbo-sdk": "^1.0.0",
     "@solana/web3.js": "^1.91.7",
+    "bs58": "^5.0.0",
     "tweetnacl": "^1.0.3"
-  },
-  "devDependencies": {
-    "@types/node": "^20.4.8",
-    "typescript": "^5.5.4"
   }
 }
