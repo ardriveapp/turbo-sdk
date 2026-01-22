@@ -287,7 +287,7 @@ export const SUPPORTED_CHAIN_CONFIGS = {
     coin: 'KYVE',
     coinDenom: 'ukyve',
     coinDecimals: 6,
-    gasPrice: 2,
+    gasPrice: 62.5,
   },
   'kaon-1': {
     chainId: 'kaon-1',
@@ -297,7 +297,7 @@ export const SUPPORTED_CHAIN_CONFIGS = {
     coin: 'KYVE',
     coinDenom: 'tkyve',
     coinDecimals: 6,
-    gasPrice: 2,
+    gasPrice: 0.02,
   },
   'korellia-2': {
     chainId: 'korellia-2',
@@ -307,7 +307,7 @@ export const SUPPORTED_CHAIN_CONFIGS = {
     coin: 'KYVE',
     coinDenom: 'tkyve',
     coinDecimals: 6,
-    gasPrice: 2,
+    gasPrice: 62.5,
   },
   'kyve-beta': {
     chainId: 'kyve-beta',
