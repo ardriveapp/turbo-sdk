@@ -1,0 +1,130 @@
+{
+  "name": "@ardrive/turbo-sdk",
+  "version": "1.40.2",
+  "main": "./lib/cjs/node/index.js",
+  "types": "./lib/types/node/index.d.ts",
+  "module": "./lib/esm/node/index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ardriveapp/turbo-sdk.git",
+    "directory": "packages/turbo-sdk"
+  },
+  "files": [
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "author": {
+    "name": "Permanent Data Solutions Inc",
+    "email": "info@ardrive.io",
+    "website": "https://ardrive.io"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/node/index.d.ts",
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js"
+    },
+    "./node": {
+      "types": "./lib/types/node/index.d.ts",
+      "import": "./lib/esm/node/index.js",
+      "require": "./lib/cjs/node/index.js"
+    },
+    "./web": {
+      "types": "./lib/types/web/index.d.ts",
+      "import": "./lib/esm/web/index.js",
+      "require": "./lib/cjs/web/index.js"
+    }
+  },
+  "bin": {
+    "turbo": "./lib/esm/cli/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "Apache-2.0",
+  "scripts": {
+    "build:web": "node bundle.mjs",
+    "build:esm": "yarn tsc -p tsconfig.json",
+    "build:cjs": "yarn tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > lib/cjs/package.json",
+    "build:types": "yarn tsc -p tsconfig.types.json",
+    "build": "yarn clean && yarn build:web && yarn build:esm && yarn build:cjs && yarn build:types",
+    "clean": "rimraf [ lib coverage bundles ]",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "test": "c8 node --import=./register.mjs --test --test-timeout=500000 --enable-source-maps \"{src,tests}/**/*.{test,web.test,node.test}.ts\"",
+    "test:only": "c8 node --import=./register.mjs --test --test-only --test-timeout=500000 --enable-source-maps \"{src,tests}/**/*.{test,web.test,node.test}.ts\"",
+    "test:unit": "c8 node --import=./register.mjs --test --test-timeout=500000 --enable-source-maps src/**/*.test.ts",
+    "test:unit:only": "c8 node --import=./register.mjs --test --test-only --test-timeout=500000 --enable-source-maps src/**/*.test.ts",
+    "test:web": "c8 node --import=./register.mjs --test --test-timeout=500000 --enable-source-maps tests/**/*.web.test.ts",
+    "test:node": "c8 node --import=./register.mjs --test --test-timeout=500000 --enable-source-maps tests/**/*.node.test.ts",
+    "test:node:only": "c8 node --import=./register.mjs --test --test-only --test-timeout=500000 --enable-source-maps tests/**/*.node.test.ts",
+    "test:docker": "./run-tests.sh",
+    "test:docker:only": "./run-tests.sh --only",
+    "examples": "yarn example:esm & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
+    "example:vite": "cd examples/vite && yarn && yarn start",
+    "example:esm": "cd examples/esm && yarn && node index.mjs",
+    "example:cjs": "cd examples/cjs && yarn && node index.cjs",
+    "example:web": "http-server --port 8080 --host -o examples/web",
+    "example:ts:esm": "cd examples/typescript/esm && yarn && yarn test",
+    "example:ts:cjs": "cd examples/typescript/cjs && yarn && yarn test",
+    "docker:up": "docker compose up --quiet-pull -d",
+    "docker:down": "docker compose down -v",
+    "docs": "markdown-toc-gen insert README.md --max-depth 3"
+  },
+  "dependencies": {
+    "@cosmjs/proto-signing": "^0.33.1",
+    "@cosmjs/stargate": "^0.33.1",
+    "@dha-team/arbundles": "^1.0.1",
+    "@ethersproject/signing-key": "^5.7.0",
+    "@permaweb/aoconnect": "0.0.57",
+    "@solana/web3.js": "^1.91.7",
+    "arweave": "^1.15.1",
+    "bignumber.js": "^9.1.2",
+    "bs58": "^5.0.0",
+    "cli-progress": "^3.12.0",
+    "commander": "^12.1.0",
+    "ethers": "^6.12.0",
+    "eventemitter3": "^5.0.1",
+    "mime-types": "^2.1.35",
+    "plimit-lit": "^3.0.1",
+    "prompts": "^2.4.2",
+    "tweetnacl": "^1.0.3",
+    "x402-fetch": "^1.0.0"
+  },
+  "devDependencies": {
+    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@types/chai": "^4.3.5",
+    "@types/cli-progress": "^3.11.6",
+    "@types/eventemitter3": "^2.0.4",
+    "@types/mime-types": "^2.1.4",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^20.4.8",
+    "@types/prompts": "^2.4.9",
+    "@types/sinon": "^10.0.15",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "c8": "^8.0.1",
+    "dotenv": "^16.4.5",
+    "dotenv-cli": "^7.4.1",
+    "esbuild": "^0.27.2",
+    "esbuild-plugin-polyfill-node": "^0.3.0",
+    "eslint-config-standard-with-typescript": "^37.0.0",
+    "eslint-plugin-header": "^3.1.1",
+    "eslint-plugin-import": "^2.28.0",
+    "eslint-plugin-mocha": "^10.1.0",
+    "eslint-plugin-n": "^16.0.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "http-server": "^14.1.1",
+    "husky": "^8.0.3",
+    "markdown-toc-gen": "^1.0.1",
+    "node-fetch": "^3.3.2",
+    "semantic-release": "^25.0.1",
+    "sinon": "^15.2.0",
+    "ts-node": "^10.9.1"
+  }
+}
