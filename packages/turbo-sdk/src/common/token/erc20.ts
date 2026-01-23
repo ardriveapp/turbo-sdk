@@ -24,10 +24,8 @@ import {
 } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { Logger } from '../logger.js';
-import {
-  EthereumToken,
-  ethDataFromTurboCreditDestinationAddress,
-} from './ethereum.js';
+import { turboCreditDestinationAddressToData } from '../signer.js';
+import { EthereumToken } from './ethereum.js';
 
 export type ERC20Contract = ethers.Contract & {
   decimals(): Promise<number>;
@@ -97,12 +95,12 @@ export class ERC20Token extends EthereumToken {
       let finalData = baseTransferData;
 
       // Append optional memo data with turbo credit destination address
-      const memoData = ethDataFromTurboCreditDestinationAddress(
+      const memoData = turboCreditDestinationAddressToData(
         turboCreditDestinationAddress,
       );
       if (memoData !== undefined) {
-        // remove the "0x" prefix and append
-        finalData += memoData.slice(2);
+        // Convert to hex and append (no 0x prefix needed since we're appending)
+        finalData += Buffer.from(memoData).toString('hex');
       }
 
       const txRequest = {
