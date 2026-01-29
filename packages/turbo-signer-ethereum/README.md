@@ -23,16 +23,25 @@ npm install @ardrive/turbo-sdk ethers @ethersproject/signing-key
 ### Creating a Signer
 
 ```typescript
-import { createEthereumSigner, TurboEthereumSigner } from '@ardrive/turbo-signer-ethereum';
+import {
+  TurboEthereumSigner,
+  createEthereumSigner,
+} from '@ardrive/turbo-signer-ethereum';
 
 // From a hex string (with or without 0x prefix)
-const signer = createEthereumSigner('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+const signer = createEthereumSigner(
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+);
 
 // Or without the 0x prefix
-const signer2 = createEthereumSigner('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+const signer2 = createEthereumSigner(
+  'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+);
 
 // From a Uint8Array
-const privateKeyBytes = new Uint8Array([/* 32 bytes */]);
+const privateKeyBytes = new Uint8Array([
+  /* 32 bytes */
+]);
 const signer3 = createEthereumSigner(privateKeyBytes);
 
 // Using the class directly
@@ -82,8 +91,8 @@ const txHash = await signer.sendTransaction({
 });
 
 // Access public key and constants
-console.log(signer.publicKey);       // Uint8Array (65 bytes)
-console.log(signer.ownerLength);     // 65
+console.log(signer.publicKey); // Uint8Array (65 bytes)
+console.log(signer.ownerLength); // 65
 console.log(signer.signatureLength); // 65
 ```
 
@@ -91,22 +100,22 @@ console.log(signer.signatureLength); // 65
 
 This signer supports native token transfers on Ethereum-compatible networks:
 
-| Token | Network | Crypto Top-ups |
-|-------|---------|----------------|
-| `ethereum` | Ethereum Mainnet | ✅ |
-| `base-eth` | Base L2 | ✅ |
-| `pol` / `matic` | Polygon | ✅ |
+| Token           | Network          | Crypto Top-ups |
+| --------------- | ---------------- | -------------- |
+| `ethereum`      | Ethereum Mainnet | ✅             |
+| `base-eth`      | Base L2          | ✅             |
+| `pol` / `matic` | Polygon          | ✅             |
 
 ### ERC20 Tokens
 
 For ERC20 token transfers (USDC, ARIO), you need to use a wallet adapter instead of this signer:
 
-| Token | Network | Requires Wallet Adapter |
-|-------|---------|------------------------|
-| `usdc` | USDC on Ethereum | Yes |
-| `base-usdc` | USDC on Base | Yes |
-| `polygon-usdc` | USDC on Polygon | Yes |
-| `base-ario` | ARIO on Base | Yes |
+| Token          | Network          | Requires Wallet Adapter |
+| -------------- | ---------------- | ----------------------- |
+| `usdc`         | USDC on Ethereum | Yes                     |
+| `base-usdc`    | USDC on Base     | Yes                     |
+| `polygon-usdc` | USDC on Polygon  | Yes                     |
+| `base-ario`    | ARIO on Base     | Yes                     |
 
 ## License
 

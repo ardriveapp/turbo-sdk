@@ -1,0 +1,15 @@
+{
+  "extends": "../../.eslintrc",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "ignorePatterns": [
+    "**/*.test.ts",
+    "**/tests/**",
+    "**/lib/**",
+    "**/examples/**"
+  ],
+  "rules": {
+    "header/header": ["error", "../../resources/license.header.js"]
+  }
+}

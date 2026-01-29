@@ -142,7 +142,9 @@ export abstract class TurboDataItemAbstractSigner
     const buffer = Buffer.from(nonce);
     const signature = await this.signer.sign(Uint8Array.from(buffer));
     const pk = this.signer.publicKey;
-    const publicKey = toB64Url(Buffer.from(pk.buffer, pk.byteOffset, pk.byteLength));
+    const publicKey = toB64Url(
+      Buffer.from(pk.buffer, pk.byteOffset, pk.byteLength),
+    );
     return {
       'x-public-key': publicKey,
       'x-nonce': nonce,
@@ -178,7 +180,8 @@ export abstract class TurboDataItemAbstractSigner
   }: SendTxWithSignerParams): Promise<string> {
     // Support both new `data` param and deprecated `turboCreditDestinationAddress`
     const txData =
-      data ?? turboCreditDestinationAddressToData(turboCreditDestinationAddress);
+      data ??
+      turboCreditDestinationAddressToData(turboCreditDestinationAddress);
 
     if (this.walletAdapter) {
       if (isSolanaWalletAdapter(this.walletAdapter)) {
@@ -229,7 +232,7 @@ export abstract class TurboDataItemAbstractSigner
       const { hash } = await signer.sendTransaction({
         to: target,
         value: parseEther(amount.toFixed(18)),
-        data: txData ? ('0x' + Buffer.from(txData).toString('hex')) : undefined,
+        data: txData ? '0x' + Buffer.from(txData).toString('hex') : undefined,
       });
       return hash;
     }
@@ -264,7 +267,7 @@ export abstract class TurboDataItemAbstractSigner
     const tx = await ethWalletAndProvider.sendTransaction({
       to: target,
       value: parseEther(amount.toFixed(18)),
-      data: txData ? ('0x' + Buffer.from(txData).toString('hex')) : undefined,
+      data: txData ? '0x' + Buffer.from(txData).toString('hex') : undefined,
     });
     this.logger.debug('Sent transaction', { tx });
 

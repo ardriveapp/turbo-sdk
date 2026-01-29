@@ -155,7 +155,7 @@ export class TurboEthereumSigner implements TurboSignerInterface {
     // Support both new `data` param and deprecated `turboCreditDestinationAddress`
     const txData =
       data !== undefined
-        ? ('0x' + uint8ArrayToHex(data))
+        ? '0x' + uint8ArrayToHex(data)
         : this.encodeDestinationAddress(turboCreditDestinationAddress);
 
     const tx = await wallet.sendTransaction({

@@ -74,7 +74,9 @@ export class EthereumToken implements TokenTools {
         target,
         amount: eth,
         gatewayUrl: this.gatewayUrl,
-        data: turboCreditDestinationAddressToData(turboCreditDestinationAddress),
+        data: turboCreditDestinationAddressToData(
+          turboCreditDestinationAddress,
+        ),
       });
 
       return {
