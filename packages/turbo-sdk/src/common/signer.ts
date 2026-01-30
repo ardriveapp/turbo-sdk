@@ -17,7 +17,6 @@ import { pubkeyToAddress } from '@cosmjs/amino';
 import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
 import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
-import { Signer as ArbundleSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
 import {
   Connection,
@@ -292,15 +291,12 @@ export abstract class TurboDataItemAbstractSigner
   }
 }
 
-export async function makeX402Signer(
-  arbundlesSigner: ArbundleSigner,
-): Promise<x402Signer> {
+export async function makeX402Signer(signer: TurboSigner): Promise<x402Signer> {
   // Node: our SDK uses EthereumSigner with a raw private key
-  if (arbundlesSigner instanceof EthereumSigner) {
+  if (signer instanceof EthereumSigner) {
     return createWalletClient({
       account: privateKeyToAccount(
-        ('0x' +
-          Buffer.from(arbundlesSigner.key).toString('hex')) as `0x${string}`,
+        ('0x' + Buffer.from(signer.key).toString('hex')) as `0x${string}`,
       ),
       chain: baseSepolia,
       transport: http(),

@@ -215,6 +215,8 @@ function createReadableWithEvents({
 
 /**
  * Creates an eventing stream from the input data that emits progress and error events
+ *
+ * Consider only returning a ReadableStream in future versions to simplify the codebase.
  */
 export function createStreamWithEvents({
   data,

@@ -32,6 +32,7 @@ import {
   TokenTools,
   TurboLogger,
   TurboSigner,
+  isTurboSignerInterface,
 } from '../../types.js';
 import { defaultProdAoConfigs, sleep } from '../../utils/common.js';
 import { version } from '../../version.js';
@@ -151,7 +152,7 @@ type AoSigner = (args: {
 }) => Promise<{ id: string; raw: ArrayBuffer }>;
 
 function createAoSigner(signer: TurboSigner): AoSigner {
-  if (!('publicKey' in signer)) {
+  if (!('publicKey' in signer) || isTurboSignerInterface(signer)) {
     return createDataItemSigner(signer) as AoSigner;
   }
 
@@ -178,7 +179,6 @@ function createAoSigner(signer: TurboSigner): AoSigner {
         raw: dataItem.getRaw(),
       };
     }
-
     const dataItem = createData(data ?? '', signer, { tags, target, anchor });
     await dataItem.sign(signer);
     const signedData = {

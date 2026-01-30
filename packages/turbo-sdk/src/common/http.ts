@@ -153,12 +153,15 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       const contentType = response.headers.get('content-type');
 
       if (contentType !== null && contentType.includes('application/json')) {
-        return response.json() as Promise<T>;
+        return (await response.json()) as T;
       }
 
-      return response.text() as Promise<T>;
-    } catch (error) {
-      if (error.name === 'AbortError' || error.message.includes('aborted')) {
+      return (await response.text()) as T;
+    } catch (error: unknown) {
+      if (
+        (error instanceof Error || error instanceof DOMException) &&
+        (error.name === 'AbortError' || error.message?.includes('aborted'))
+      ) {
         throw new AbortError('Request was aborted');
       }
       throw error;

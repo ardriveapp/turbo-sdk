@@ -32,6 +32,7 @@ import {
   TurboDataItemSignerParams,
   TurboSignedDataItemFactory,
   TurboSignedRequestHeaders,
+  TurboSigner,
   WebTurboFileFactory,
 } from '../types.js';
 import { createUint8ArrayReadableStreamFactory } from '../utils/readableStream.js';
@@ -134,7 +135,7 @@ export async function streamSignerReadableStream({
   emitter,
 }: {
   streamFactory: () => ReadableStream<Uint8Array>;
-  signer: Signer;
+  signer: TurboSigner;
   dataItemOpts?: DataItemCreateOptions;
   fileSize: number;
   emitter?: TurboEventEmitter;
@@ -143,7 +144,7 @@ export async function streamSignerReadableStream({
   signedDataItemSize: number;
 }> {
   try {
-    const header = createData('', signer, dataItemOpts);
+    const header = createData('', signer as Signer, dataItemOpts); // cast is here TurboSigners are compatible with arbundles Signer for header creation as they have sign(data: Uint8Array): Promise<Uint8Array>
     const headerSize = header.getRaw().byteLength;
 
     const totalDataItemSizeWithHeader = fileSize + headerSize;

@@ -66,17 +66,17 @@ function uint8ArrayToHex(data: Uint8Array): string {
 /**
  * Ethereum signature type for ANS-104 data items
  */
-export const ETHEREUM_SIGNATURE_TYPE = 3;
+const ETHEREUM_SIGNATURE_TYPE = 3;
 
 /**
  * Owner length for Ethereum signers (uncompressed public key without 0x04 prefix)
  */
-export const ETHEREUM_OWNER_LENGTH = 65;
+const ETHEREUM_OWNER_LENGTH = 65;
 
 /**
  * Signature length for Ethereum signers
  */
-export const ETHEREUM_SIGNATURE_LENGTH = 65;
+const ETHEREUM_SIGNATURE_LENGTH = 65;
 
 /**
  * TurboEthereumSigner implements TurboSignerInterface for Ethereum-based chains.
@@ -117,6 +117,10 @@ export class TurboEthereumSigner implements TurboSignerInterface {
     return ETHEREUM_SIGNATURE_LENGTH;
   }
 
+  get signatureType(): number {
+    return ETHEREUM_SIGNATURE_TYPE;
+  }
+
   /** Sign the provided data using Ethereum's personal_sign style */
   async sign(message: Uint8Array): Promise<Uint8Array> {
     const hash = hashMessage(message);
@@ -147,7 +151,7 @@ export class TurboEthereumSigner implements TurboSignerInterface {
     amount,
     gatewayUrl,
     data,
-    turboCreditDestinationAddress,
+    turboCreditDestinationAddress, // TODO: remove this once the turbo-sdk just uses `data`
   }: SendTxWithSignerParams): Promise<string> {
     const provider = new JsonRpcProvider(gatewayUrl);
     const wallet = new EthereumWallet(this.privateKeyHex, provider);

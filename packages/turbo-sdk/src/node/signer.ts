@@ -21,6 +21,7 @@ import {
   serializeTags,
   streamSigner,
 } from '@dha-team/arbundles';
+import type { Signer } from '@dha-team/arbundles';
 import { Readable } from 'stream';
 
 import { createStreamWithSigningEvents } from '../common/events.js';
@@ -36,6 +37,8 @@ import { fromB64Url } from '../utils/base64.js';
 
 /**
  * Utility exports to avoid clients having to install arbundles
+ *
+ * TODO: do not export these any more as we create separate packages for signers
  */
 export { ArconnectSigner, ArweaveSigner, EthereumSigner, HexSolanaSigner };
 
@@ -56,7 +59,7 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
     dataItemStreamFactory: () => Readable;
     dataItemSizeFactory: StreamSizeFactory;
   }> {
-    // TODO: replace with our own signer implementation
+    // TODO: continue to support TurboSigners here if needed
     this.logger.debug('Signing data item...');
 
     // TODO: we could just use tee or PassThrough rather than require a fileStreamFactory
@@ -76,10 +79,11 @@ export class TurboNodeSigner extends TurboDataItemAbstractSigner {
       });
 
     try {
+      // Once `createStreamWithSigningEvents` returns only a ReadableStream, we can use our native streamSignReadableStream function instead of arbundles streamSigner
       const signedDataItemPromise = streamSigner(
         streamWithSigningEvents as unknown as Readable, // TODO: use generics to avoid this cast
         stream2,
-        this.signer,
+        this.signer as Signer, // cast is here TurboSigners are compatible with arbundles Signer for stream signing as they have sign(data: Uint8Array): Promise<Uint8Array>
         dataItemOpts,
       );
 

@@ -694,6 +694,8 @@ export interface TurboSignerInterface {
   publicKey: Uint8Array;
   /** Length of the owner field in bytes */
   ownerLength: number;
+  /** The signature type of the signer */
+  signatureType: number;
   /** Length of the signature in bytes */
   signatureLength: number;
   /** Sign the provided data */
