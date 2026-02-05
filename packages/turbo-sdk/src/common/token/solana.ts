@@ -36,6 +36,7 @@ import {
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { sleep } from '../../utils/common.js';
 import { Logger } from '../logger.js';
+import { turboCreditDestinationAddressToData } from '../signer.js';
 
 export const lamportToTokenAmount = (winston: BigNumber.Value) => winston;
 export const SOLToTokenAmount = (sol: BigNumber.Value) =>
@@ -73,12 +74,16 @@ export class SolanaToken implements TokenTools {
     id: string;
     target: string;
   }> {
+    const txData = turboCreditDestinationAddressToData(
+      turboCreditDestinationAddress,
+    );
+
     if (signer.signer instanceof HexInjectedSolanaSigner) {
       const id = await signer.sendTransaction({
         amount: tokenAmount,
         target,
         gatewayUrl: this.gatewayUrl,
-        turboCreditDestinationAddress,
+        data: txData,
       });
       return { target, id };
     }
@@ -98,14 +103,12 @@ export class SolanaToken implements TokenTools {
       }),
     );
 
-    if (turboCreditDestinationAddress !== undefined) {
+    if (txData !== undefined) {
       tx.add(
         new TransactionInstruction({
           programId: new PublicKey(memoProgramId),
           keys: [],
-          data: Buffer.from(
-            'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
-          ),
+          data: Buffer.from(txData),
         }),
       );
     }
