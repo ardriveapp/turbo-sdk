@@ -35,9 +35,7 @@ import { ILogger, Logger } from './common/logger.js';
 
 export type Base64String = string;
 export type NativeAddress = string;
-
 export type ByteCount = number;
-
 export type PublicArweaveAddress = Base64String;
 export type TransactionId = Base64String;
 export type UserAddress = string | PublicArweaveAddress;
@@ -687,14 +685,54 @@ export type DataItemOptions = DataItemCreateOptions & {
   paidBy?: UserAddress | UserAddress[];
 };
 
-// Supported signers - we will continue to add more
-export type TurboSigner =
+/**
+ * Base interface for Turbo signers that support native address derivation
+ * and transaction sending. Signer packages should implement this interface.
+ */
+export interface TurboSignerInterface {
+  /** The public key of the signer */
+  publicKey: Uint8Array;
+  /** Length of the owner field in bytes */
+  ownerLength: number;
+  /** The signature type of the signer */
+  signatureType: number;
+  /** Length of the signature in bytes */
+  signatureLength: number;
+  /** Sign the provided data */
+  sign(message: Uint8Array): Promise<Uint8Array>;
+  /** Get the native address for the signer's blockchain */
+  getNativeAddress(): Promise<NativeAddress>;
+  /** Send a transaction on the signer's blockchain */
+  sendTransaction(params: SendTxWithSignerParams): Promise<string>;
+}
+
+// Supported signers from arbundles - maintained for backwards compatibility
+export type ArbundlesSigner =
   | ArconnectSigner
   | ArweaveSigner
   | EthereumSigner
   | InjectedEthereumSigner
   | HexSolanaSigner
   | HexInjectedSolanaSigner;
+
+/**
+ * A TurboSigner can be either:
+ * - A raw arbundles signer (for backwards compatibility)
+ * - A signer implementing the TurboSignerInterface (recommended)
+ */
+export type TurboSigner = ArbundlesSigner | TurboSignerInterface;
+
+/**
+ * Type guard to check if a signer implements TurboSignerInterface
+ */
+export function isTurboSignerInterface(
+  signer: TurboSigner,
+): signer is TurboSignerInterface {
+  return (
+    typeof (signer as TurboSignerInterface).getNativeAddress === 'function' &&
+    typeof (signer as TurboSignerInterface).sendTransaction === 'function'
+  );
+}
 
 export type TokenPollingOptions = {
   maxAttempts: number;
@@ -872,6 +910,12 @@ export type SendFundTxParams = {
 export type SendTxWithSignerParams = {
   amount: BigNumber;
   target: string;
+  /** Generic data/memo to include in the transaction */
+  data?: Uint8Array;
+  /**
+   * @deprecated Use `data` instead. Will be removed in a future version.
+   * The SDK will format this into the appropriate data field.
+   */
   turboCreditDestinationAddress?: UserAddress;
   gatewayUrl: string;
 };

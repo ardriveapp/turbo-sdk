@@ -35,6 +35,7 @@ import {
   TurboFileFactory,
   TurboLogger,
   TurboRevokeCreditsParams,
+  TurboSigner,
   TurboUnauthenticatedUploadServiceConfiguration,
   TurboUnauthenticatedUploadServiceInterface,
   TurboUploadAndSigningEmitterEvents,
@@ -177,7 +178,7 @@ export class TurboUnauthenticatedUploadService
     signal?: AbortSignal;
     tags?: { name: string; value: string }[];
     maxMUSDCAmount?: BigNumber;
-    signer?: TurboDataItemSigner;
+    signer?: TurboSigner;
   }): Promise<TurboUploadDataItemResponse> {
     if (!this.x402EnabledTokens.includes(this.token)) {
       throw new Error(
@@ -206,7 +207,7 @@ export class TurboUnauthenticatedUploadService
       signer === undefined
         ? undefined
         : {
-            signer: await makeX402Signer(signer.signer),
+            signer: await makeX402Signer(signer),
             maxMUSDCAmount,
             unsignedData: true,
           };
@@ -1017,7 +1018,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       tags,
       signal,
       maxMUSDCAmount,
-      signer: this.signer,
+      signer: this.signer.signer,
     });
   }
 }

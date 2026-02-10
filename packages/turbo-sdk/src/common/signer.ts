@@ -17,7 +17,6 @@ import { pubkeyToAddress } from '@cosmjs/amino';
 import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
 import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
-import { Signer as ArbundleSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
 import {
   Connection,
@@ -48,9 +47,11 @@ import {
   TurboLogger,
   TurboSignedDataItemFactory,
   TurboSigner,
+  UserAddress,
   WalletAdapter,
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
+  isTurboSignerInterface,
 } from '../types.js';
 import {
   fromB64Url,
@@ -58,8 +59,22 @@ import {
   toB64Url,
 } from '../utils/base64.js';
 import { Logger } from './logger.js';
-import { ethDataFromTurboCreditDestinationAddress } from './token/ethereum.js';
 import { memoProgramId } from './token/solana.js';
+
+/**
+ * Converts a turboCreditDestinationAddress to transaction data bytes.
+ * Exported for use by SDK callers who want to format data themselves.
+ */
+export function turboCreditDestinationAddressToData(
+  turboCreditDestinationAddress: UserAddress | undefined,
+): Uint8Array | undefined {
+  if (turboCreditDestinationAddress === undefined) {
+    return undefined;
+  }
+  return new TextEncoder().encode(
+    'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
+  );
+}
 
 /**
  * Abstract class for signing TurboDataItems.
@@ -96,7 +111,6 @@ export abstract class TurboDataItemAbstractSigner
     switch (token) {
       case 'solana':
         return bs58.encode(Uint8Array.from(fromB64Url(owner)));
-
       case 'ethereum':
       case 'matic':
       case 'pol':
@@ -106,7 +120,6 @@ export abstract class TurboDataItemAbstractSigner
       case 'base-ario':
       case 'polygon-usdc':
         return computeAddress(computePublicKey(fromB64Url(owner)));
-
       case 'kyve':
         return pubkeyToAddress(
           {
@@ -117,7 +130,6 @@ export abstract class TurboDataItemAbstractSigner
           },
           'kyve',
         );
-
       case 'arweave':
       case 'ario':
         return ownerToB64Address(owner);
@@ -128,7 +140,10 @@ export abstract class TurboDataItemAbstractSigner
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await this.signer.sign(Uint8Array.from(buffer));
-    const publicKey = toB64Url(this.signer.publicKey);
+    const pk = this.signer.publicKey;
+    const publicKey = toB64Url(
+      Buffer.from(pk.buffer, pk.byteOffset, pk.byteLength),
+    );
     return {
       'x-public-key': publicKey,
       'x-nonce': nonce,
@@ -137,10 +152,17 @@ export abstract class TurboDataItemAbstractSigner
   }
 
   public async getPublicKey(): Promise<Buffer> {
-    return this.signer.publicKey;
+    // Handle both Buffer and Uint8Array from signers
+    const pk = this.signer.publicKey;
+    return Buffer.from(pk.buffer, pk.byteOffset, pk.byteLength);
   }
 
   public async getNativeAddress(): Promise<NativeAddress> {
+    // Delegate to signer if it implements TurboSignerInterface
+    if (isTurboSignerInterface(this.signer)) {
+      return this.signer.getNativeAddress();
+    }
+    // Fallback for legacy arbundles signers
     return this.ownerToNativeAddress(
       toB64Url(await this.getPublicKey()),
       this.token,
@@ -152,8 +174,14 @@ export abstract class TurboDataItemAbstractSigner
     target,
     amount,
     gatewayUrl,
+    data,
     turboCreditDestinationAddress,
   }: SendTxWithSignerParams): Promise<string> {
+    // Support both new `data` param and deprecated `turboCreditDestinationAddress`
+    const txData =
+      data ??
+      turboCreditDestinationAddressToData(turboCreditDestinationAddress);
+
     if (this.walletAdapter) {
       if (isSolanaWalletAdapter(this.walletAdapter)) {
         const connection = new Connection(gatewayUrl, 'confirmed');
@@ -174,15 +202,12 @@ export abstract class TurboDataItemAbstractSigner
           }),
         );
 
-        if (turboCreditDestinationAddress !== undefined) {
+        if (txData !== undefined) {
           tx.add(
             new TransactionInstruction({
               programId: new PublicKey(memoProgramId),
               keys: [],
-              data: Buffer.from(
-                'turboCreditDestinationAddress=' +
-                  turboCreditDestinationAddress,
-              ),
+              data: Buffer.from(txData),
             }),
           );
         }
@@ -206,13 +231,23 @@ export abstract class TurboDataItemAbstractSigner
       const { hash } = await signer.sendTransaction({
         to: target,
         value: parseEther(amount.toFixed(18)),
-        data: ethDataFromTurboCreditDestinationAddress(
-          turboCreditDestinationAddress,
-        ),
+        data: txData ? '0x' + Buffer.from(txData).toString('hex') : undefined,
       });
       return hash;
     }
 
+    // Delegate to signer if it implements TurboSignerInterface
+    if (isTurboSignerInterface(this.signer)) {
+      return this.signer.sendTransaction({
+        target,
+        amount,
+        gatewayUrl,
+        data: txData,
+        turboCreditDestinationAddress,
+      });
+    }
+
+    // Fallback for legacy arbundles EthereumSigner
     if (!(this.signer instanceof EthereumSigner)) {
       throw new Error(
         'Only EthereumSigner is supported for sendTransaction API currently!',
@@ -231,9 +266,7 @@ export abstract class TurboDataItemAbstractSigner
     const tx = await ethWalletAndProvider.sendTransaction({
       to: target,
       value: parseEther(amount.toFixed(18)),
-      data: ethDataFromTurboCreditDestinationAddress(
-        turboCreditDestinationAddress,
-      ),
+      data: txData ? '0x' + Buffer.from(txData).toString('hex') : undefined,
     });
     this.logger.debug('Sent transaction', { tx });
 
@@ -258,15 +291,12 @@ export abstract class TurboDataItemAbstractSigner
   }
 }
 
-export async function makeX402Signer(
-  arbundlesSigner: ArbundleSigner,
-): Promise<x402Signer> {
+export async function makeX402Signer(signer: TurboSigner): Promise<x402Signer> {
   // Node: our SDK uses EthereumSigner with a raw private key
-  if (arbundlesSigner instanceof EthereumSigner) {
+  if (signer instanceof EthereumSigner) {
     return createWalletClient({
       account: privateKeyToAccount(
-        ('0x' +
-          Buffer.from(arbundlesSigner.key).toString('hex')) as `0x${string}`,
+        ('0x' + Buffer.from(signer.key).toString('hex')) as `0x${string}`,
       ),
       chain: baseSepolia,
       transport: http(),

@@ -26,6 +26,7 @@ import {
 } from '../../types.js';
 import { defaultProdGatewayUrls } from '../../utils/common.js';
 import { Logger } from '../logger.js';
+import { turboCreditDestinationAddressToData } from '../signer.js';
 
 export const weiToTokenAmount = (wei: BigNumber.Value) => wei;
 export const ETHToTokenAmount = (eth: BigNumber.Value) =>
@@ -73,7 +74,9 @@ export class EthereumToken implements TokenTools {
         target,
         amount: eth,
         gatewayUrl: this.gatewayUrl,
-        turboCreditDestinationAddress,
+        data: turboCreditDestinationAddressToData(
+          turboCreditDestinationAddress,
+        ),
       });
 
       return {
@@ -129,6 +132,10 @@ export class EthereumToken implements TokenTools {
   }
 }
 
+/**
+ * @deprecated Use `turboCreditDestinationAddressToData` from '../signer.js' instead.
+ * This function will be removed in a future version.
+ */
 export function ethDataFromTurboCreditDestinationAddress(
   turboCreditDestinationAddress: UserAddress | undefined,
 ): string | undefined {
