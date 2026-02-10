@@ -111,7 +111,7 @@
     "c8": "^8.0.1",
     "dotenv": "^16.4.5",
     "dotenv-cli": "^7.4.1",
-    "esbuild": "^0.27.2",
+    "esbuild": "^0.27.3",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint-config-standard-with-typescript": "^37.0.0",
     "eslint-plugin-header": "^3.1.1",
