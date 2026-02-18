@@ -25,11 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.CI_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set Up node
         uses: actions/setup-node@v6
         with:
-          cache: 'yarn'
+          cache: "yarn"
           node-version-file: .nvmrc
 
       - name: Install dependencies
@@ -40,7 +40,7 @@ jobs:
 
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: yarn workspace @ardrive/turbo-sdk semantic-release
 
       - name: Publish Dist Tag
