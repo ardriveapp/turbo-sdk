@@ -51,8 +51,8 @@ const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
 const baseMainnetRpc = 'https://mainnet.base.org';
 
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
-  arweave: 'https://arweave.net', // No arweave test net
-  ario: 'https://arweave.net', // No arweave test net
+  arweave: 'https://turbo-gateway.com', // No arweave test net
+  ario: 'https://turbo-gateway.com', // No arweave test net
   'base-ario': baseMainnetRpc, // No base-ario test net contract deployed
   solana: 'https://api.devnet.solana.com',
   ethereum: ethTestnetRpc,
@@ -75,8 +75,8 @@ export const tokenToDevAoConfigMap: {
 };
 
 export const defaultProdGatewayUrls: Record<TokenType, string> = {
-  arweave: 'https://arweave.net',
-  ario: 'https://arweave.net',
+  arweave: 'https://turbo-gateway.com',
+  ario: 'https://turbo-gateway.com',
   'base-ario': baseMainnetRpc,
   solana: 'https://api.mainnet-beta.solana.com',
   ethereum: 'https://cloudflare-eth.com/',
