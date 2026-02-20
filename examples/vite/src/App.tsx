@@ -14,7 +14,7 @@ import './App.css';
 TurboFactory.setLogLevel('debug');
 
 const arweave = new Arweave({
-  host: 'arweave.net',
+  host: 'turbo-gateway.com',
   port: 443,
   protocol: 'https',
 });

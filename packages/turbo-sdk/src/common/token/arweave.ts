@@ -38,14 +38,14 @@ export class ArweaveToken implements TokenTools {
   protected pollingOptions: TokenPollingOptions;
 
   constructor({
-    gatewayUrl = 'https://arweave.net',
+    gatewayUrl = 'https://turbo-gateway.com',
     arweave,
     logger = Logger.default,
     mintU = true,
     pollingOptions = {
       maxAttempts: 10,
-      pollingIntervalMs: 3_000,
-      initialBackoffMs: 7_000,
+      pollingIntervalMs: 5_000,
+      initialBackoffMs: 15_000,
     },
   }: {
     gatewayUrl?: string;
@@ -133,7 +133,12 @@ export class ArweaveToken implements TokenTools {
     const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
       this.pollingOptions;
 
-    this.logger.debug('Polling for transaction...', { txId });
+    this.logger.debug('Polling for transaction...', {
+      txId,
+      maxAttempts,
+      pollingIntervalMs,
+      gatewayUrl: this.arweave.api.getConfig().host,
+    });
     await sleep(initialBackoffMs);
 
     let attempts = 0;
