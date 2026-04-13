@@ -161,6 +161,11 @@ describe('Credit Sharing', () => {
         fastFinalityIndexes: [],
         id: 'id',
         owner: 'owner',
+        signature: 'signature',
+        public: 'public',
+        deadlineHeight: 123,
+        timestamp: Date.now(),
+        version: '1.0.0',
       });
       await expectAsyncErrorThrow({
         promiseToError: turbo.shareCredits({
@@ -253,6 +258,11 @@ describe('Credit Sharing', () => {
         fastFinalityIndexes: [],
         id: 'id',
         owner: 'owner',
+        signature: 'signature',
+        public: 'public',
+        deadlineHeight: 123,
+        timestamp: Date.now(),
+        version: '1.0.0',
       });
       await expectAsyncErrorThrow({
         promiseToError: turbo.revokeCredits({
