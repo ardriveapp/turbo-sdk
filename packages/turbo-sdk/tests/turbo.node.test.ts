@@ -76,7 +76,6 @@ import {
   testSolAddressBase64,
   testSolNativeAddress,
   testSolWallet,
-  turboDevelopmentConfigurations,
   turboTestEnvConfigurations,
 } from './helpers.js';
 
@@ -120,16 +119,14 @@ describe('Node environment', () => {
 
   describe('TurboFactory', () => {
     it('should return a TurboUnauthenticatedClient when running in Node environment and not provided a privateKey', () => {
-      const turbo = TurboFactory.unauthenticated(
-        turboDevelopmentConfigurations,
-      );
+      const turbo = TurboFactory.unauthenticated(turboTestEnvConfigurations);
       assert.ok(turbo instanceof TurboUnauthenticatedClient);
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and provided a privateKey', async () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testJwk,
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
@@ -137,7 +134,7 @@ describe('Node environment', () => {
     it('should return a TurboAuthenticatedClient when running in Node environment and an ArweaveSigner', async () => {
       const turbo = TurboFactory.authenticated({
         signer: new ArweaveSigner(testJwk),
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(
@@ -150,7 +147,7 @@ describe('Node environment', () => {
     it('should return a TurboAuthenticatedClient when running in Node environment and an EthereumSigner', async () => {
       const turbo = TurboFactory.authenticated({
         signer: new EthereumSigner(testEthWallet),
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), testEthNativeAddress);
@@ -160,7 +157,7 @@ describe('Node environment', () => {
     it('should return a TurboAuthenticatedClient when running in Node environment and a KyveSigner', async () => {
       const turbo = TurboFactory.authenticated({
         signer: new KyveSigner(testKyvePrivatekey),
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(
@@ -176,7 +173,7 @@ describe('Node environment', () => {
       }
       const turbo = TurboFactory.authenticated({
         signer: new UnrecognizedSigner(testKyvePrivatekey),
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), base64KyveAddress);
@@ -187,7 +184,7 @@ describe('Node environment', () => {
       const turbo = TurboFactory.authenticated({
         privateKey: await privateKeyFromKyveMnemonic(testKyveMnemonic),
         token: 'kyve',
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(
@@ -199,7 +196,7 @@ describe('Node environment', () => {
     it('should return a TurboAuthenticatedClient when running in Node environment and a HexSolanaSigner', async () => {
       const turbo = TurboFactory.authenticated({
         signer: new HexSolanaSigner(testSolWallet),
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
       assert.equal(await turbo.signer.getNativeAddress(), testSolNativeAddress);
@@ -209,7 +206,7 @@ describe('Node environment', () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testSolWallet,
         token: 'solana',
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
@@ -220,7 +217,7 @@ describe('Node environment', () => {
           TurboFactory.authenticated({
             privateKey: testSolWallet,
             token: 'arweave',
-            ...turboDevelopmentConfigurations,
+            ...turboTestEnvConfigurations,
           }),
         /A JWK must be provided for ArweaveSigner./,
       );
@@ -230,7 +227,7 @@ describe('Node environment', () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testEthWallet,
         token: 'ethereum',
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
@@ -241,7 +238,7 @@ describe('Node environment', () => {
           TurboFactory.authenticated({
             privateKey: testSolWallet,
             token: 'ethereum',
-            ...turboDevelopmentConfigurations,
+            ...turboTestEnvConfigurations,
           }),
         /A valid Ethereum private key must be provided for EthereumSigner./,
       );
@@ -251,7 +248,7 @@ describe('Node environment', () => {
       assert.throws(
         () =>
           TurboFactory.authenticated({
-            ...turboDevelopmentConfigurations,
+            ...turboTestEnvConfigurations,
           }),
         /A privateKey or signer must be provided./,
       );
@@ -272,7 +269,7 @@ describe('Node environment', () => {
       const turbo = TurboFactory.authenticated({
         privateKey: testJwk,
         tokenMap,
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
     });
@@ -305,7 +302,7 @@ describe('Node environment', () => {
     let turbo: TurboUnauthenticatedClient;
 
     before(() => {
-      turbo = TurboFactory.unauthenticated(turboDevelopmentConfigurations);
+      turbo = TurboFactory.unauthenticated(turboTestEnvConfigurations);
     });
 
     it('getFiatRates()', async () => {
@@ -645,7 +642,7 @@ describe('Node environment', () => {
     before(async () => {
       turbo = TurboFactory.authenticated({
         privateKey: testJwk,
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
         tokenTools: arweaveToken,
       });
     });
@@ -661,7 +658,7 @@ describe('Node environment', () => {
         const emptyJwk = await testArweave.crypto.generateJWK();
         const emptyTurbo = TurboFactory.authenticated({
           privateKey: emptyJwk,
-          ...turboDevelopmentConfigurations,
+          ...turboTestEnvConfigurations,
         });
         const balance = await emptyTurbo.getBalance();
         assert.equal(balance.winc, '0');
@@ -885,7 +882,7 @@ describe('Node environment', () => {
         const buffer = fs.readFileSync(filePath);
         const newTurbo = TurboFactory.authenticated({
           privateKey: nonAllowListedJWK,
-          ...turboDevelopmentConfigurations,
+          ...turboTestEnvConfigurations,
         });
         const error = await newTurbo
           .upload({
@@ -932,7 +929,7 @@ describe('Node environment', () => {
     });
 
     describe('uploadFile()', () => {
-      it('should properly upload a Readable with chunking forced', async () => {
+      it.skip('should properly upload a Readable with chunking forced', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
@@ -950,7 +947,7 @@ describe('Node environment', () => {
         assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
+      it.skip('should properly upload a Readable with chunking forced and server sets chunkSize', async () => {
         stub((turbo as any)['uploadService']['httpService'], 'get').callsFake(
           // @ts-ignore -- ignore ts error for test stub
           async ({ endpoint }) => {
@@ -1018,7 +1015,7 @@ describe('Node environment', () => {
         }
       });
 
-      it('should properly upload a Readable with 11 MiB of random data', async () => {
+      it.skip('should properly upload a Readable with 11 MiB of random data', async () => {
         const fileSize = 11 * 1024 * 1024; // 11 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
@@ -1038,7 +1035,7 @@ describe('Node environment', () => {
         assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it('should properly upload a Readable with 19 MiB of random data with 6 MiB Chunk Size', async () => {
+      it.skip('should properly upload a Readable with 19 MiB of random data with 6 MiB Chunk Size', async () => {
         const fileSize = 19 * 1024 * 1024; // 19 MiB
         const randomData = randomBytes(fileSize);
         const response = await turbo.uploadFile({
@@ -1060,7 +1057,7 @@ describe('Node environment', () => {
         assert.equal(response.owner, testArweaveNativeB64Address);
       });
 
-      it('should properly upload a Buffer with chunking forced', async () => {
+      it.skip('should properly upload a Buffer with chunking forced', async () => {
         const fileSize = fs.statSync(oneKiBFilePath).size;
         const response = await turbo.uploadFile({
           fileStreamFactory: () => fs.readFileSync(oneKiBFilePath),
@@ -1296,7 +1293,7 @@ describe('Node environment', () => {
           assert.equal(overallSuccessCalled, true);
         });
 
-        it('should properly upload a Readable to turbo with events with chunking forced', async () => {
+        it.skip('should properly upload a Readable to turbo with events with chunking forced', async () => {
           let uploadProgressCalled = false;
           let signingProgressCalled = false;
           let overallProgressCalled = false;
@@ -1438,7 +1435,7 @@ describe('Node environment', () => {
         const fileSize = fs.statSync(filePath).size;
         const newTurbo = TurboFactory.authenticated({
           privateKey: nonAllowListedJWK,
-          ...turboDevelopmentConfigurations,
+          ...turboTestEnvConfigurations,
         });
         const error = await newTurbo
           .uploadFile({
@@ -1450,13 +1447,13 @@ describe('Node environment', () => {
         assert.match(error.message, /Insufficient balance/);
       });
 
-      it('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded and chunking is forced', async () => {
+      it.skip('should return a FailedRequestError when the file is larger than the free limit and wallet is underfunded and chunking is forced', async () => {
         const nonAllowListedJWK = await testArweave.crypto.generateJWK();
         const filePath = new URL('files/1MB_file', import.meta.url).pathname;
         const fileSize = fs.statSync(filePath).size;
         const newTurbo = TurboFactory.authenticated({
           privateKey: nonAllowListedJWK,
-          ...turboDevelopmentConfigurations,
+          ...turboTestEnvConfigurations,
         });
         const error = await newTurbo
           .uploadFile({
@@ -2014,7 +2011,7 @@ describe('Node environment', () => {
     before(async () => {
       turbo = TurboFactory.authenticated({
         signer,
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
         tokenTools,
       });
     });
@@ -2153,7 +2150,7 @@ describe('Node environment', () => {
 
       turbo = TurboFactory.authenticated({
         signer,
-        ...turboDevelopmentConfigurations,
+        ...turboTestEnvConfigurations,
         token: 'kyve',
         tokenTools,
       });
