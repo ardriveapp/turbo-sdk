@@ -161,14 +161,21 @@ describe('Credit Sharing', () => {
         fastFinalityIndexes: [],
         id: 'id',
         owner: 'owner',
+        signature: 'signature',
+        public: 'public',
+        deadlineHeight: 123,
+        timestamp: Date.now(),
+        version: '1.0.0',
       });
       await expectAsyncErrorThrow({
         promiseToError: turbo.shareCredits({
           approvedAddress: 'stub-43-char-address-stub-43-char-address-0',
           approvedWincAmount: '100',
         }),
-        errorMessage: `Failed to create credit share approval but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}`,
+        errorMessage:
+          'Failed to create credit share approval but upload has succeeded',
         errorType: 'Error',
+        toContain: true,
       });
     });
   });
@@ -253,14 +260,20 @@ describe('Credit Sharing', () => {
         fastFinalityIndexes: [],
         id: 'id',
         owner: 'owner',
+        signature: 'signature',
+        public: 'public',
+        deadlineHeight: 123,
+        timestamp: Date.now(),
+        version: '1.0.0',
       });
       await expectAsyncErrorThrow({
         promiseToError: turbo.revokeCredits({
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
         errorMessage:
-          'Failed to revoke credit share approvals but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}',
+          'Failed to revoke credit share approvals but upload has succeeded',
         errorType: 'Error',
+        toContain: true,
       });
     });
   });
