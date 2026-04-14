@@ -259,11 +259,13 @@ export type TurboUploadDataItemResponse = {
   id: TransactionId;
   owner: PublicArweaveAddress;
   winc: string;
-  timestamp: number;
-  signature: string;
-  public: string;
-  version: string;
-  deadlineHeight: number;
+  // Receipt fields — always present in API responses but optional here
+  // for backward compatibility with existing consumers/mocks.
+  timestamp?: number;
+  signature?: string;
+  public?: string;
+  version?: string;
+  deadlineHeight?: number;
   createdApproval?: CreditShareApproval;
   revokedApprovals?: CreditShareApproval[];
   cryptoFundResult?: TurboCryptoFundResponse;
