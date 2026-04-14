@@ -13,6 +13,7 @@ interface expectAsyncErrorThrowParams {
   // errorType: 'Error' | 'TypeError' | ...
   errorType?: string;
   errorMessage?: string;
+  toContain?: boolean;
 }
 
 /**
@@ -26,6 +27,7 @@ export async function expectAsyncErrorThrow({
   promiseToError,
   errorType = 'Error',
   errorMessage,
+  toContain = false,
 }: expectAsyncErrorThrowParams): Promise<void> {
   let error: null | Error = null;
   try {
@@ -37,6 +39,13 @@ export async function expectAsyncErrorThrow({
   assert.equal(error?.name, errorType);
 
   if (errorMessage) {
+    if (toContain) {
+      assert.ok(
+        error?.message.includes(errorMessage),
+        `Expected error message to include "${errorMessage}", but got "${error?.message}"`,
+      );
+      return;
+    }
     assert.equal(error?.message, errorMessage);
   }
 }

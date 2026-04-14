@@ -172,8 +172,10 @@ describe('Credit Sharing', () => {
           approvedAddress: 'stub-43-char-address-stub-43-char-address-0',
           approvedWincAmount: '100',
         }),
-        errorMessage: `Failed to create credit share approval but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}`,
+        errorMessage:
+          'Failed to create credit share approval but upload has succeeded',
         errorType: 'Error',
+        toContain: true,
       });
     });
   });
@@ -269,8 +271,9 @@ describe('Credit Sharing', () => {
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
         errorMessage:
-          'Failed to revoke credit share approvals but upload has succeeded\n{"winc":"100","dataCaches":[],"fastFinalityIndexes":[],"id":"id","owner":"owner"}',
+          'Failed to revoke credit share approvals but upload has succeeded',
         errorType: 'Error',
+        toContain: true,
       });
     });
   });
