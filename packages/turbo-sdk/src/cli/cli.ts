@@ -32,6 +32,7 @@ import {
   uploadFolder,
 } from './commands/index.js';
 import { listShares } from './commands/listShares.js';
+import { reconstructDataItem } from './commands/reconstructDataItem.js';
 import { revokeCredits } from './commands/revokeCredits.js';
 import { shareCredits } from './commands/shareCredits.js';
 import { tokenPrice } from './commands/tokenPrice.js';
@@ -227,6 +228,17 @@ applyOptions(
       ),
     );
   });
+});
+
+applyOptions(
+  program
+    .command('reconstruct-data-item')
+    .description(
+      'Lists all given or received Turbo credit share approvals for specified address or connected wallet',
+    ),
+  [optionMap.folderPath],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, reconstructDataItem);
 });
 
 if (
