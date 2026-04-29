@@ -463,6 +463,11 @@ export class TurboAuthenticatedPaymentService
     if (!this.tokenTools) {
       throw new Error(`Token type not supported for crypto fund ${this.token}`);
     }
+    if (this.token === 'ario') {
+      throw new Error(
+        `Top up with tokens is not supported for ARIO until after SOL migration is complete`,
+      );
+    }
 
     if (turboCreditDestinationAddress !== undefined) {
       if (isAnyValidUserAddress(turboCreditDestinationAddress) === false) {
