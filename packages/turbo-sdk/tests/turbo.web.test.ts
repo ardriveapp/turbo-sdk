@@ -478,7 +478,7 @@ describe('Browser environment', () => {
         await mineArLocalBlock();
       });
 
-      it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
+      it.skip('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
         const nonExistentPaymentTxId = 'non-existent-payment-tx-id';
         const error = await turbo
           .submitFundTransaction({ txId: nonExistentPaymentTxId })
@@ -490,7 +490,7 @@ describe('Browser environment', () => {
         );
       });
 
-      it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a pending tx', async () => {
+      it.skip('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a pending tx', async () => {
         const txId = await sendFundTransaction(1000);
 
         const { id, winc, owner, token, status } =

@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { strict as assert } from 'node:assert';
 
 import { defaultRetryConfig } from '../src/common/http.js';
+import { TurboAuthenticatedConfiguration } from '../src/types.js';
 import { sleep } from '../src/utils/common.js';
 
 interface expectAsyncErrorThrowParams {
@@ -68,7 +69,7 @@ const testEnvRetryConfig = () => {
   return config;
 };
 
-export const turboTestEnvConfigurations = {
+export const turboTestEnvConfigurations: TurboAuthenticatedConfiguration = {
   paymentServiceConfig: {
     ...turboDevelopmentConfigurations.paymentServiceConfig,
     retryConfig: testEnvRetryConfig(),
