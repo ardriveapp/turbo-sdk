@@ -633,8 +633,8 @@ describe('Node environment', () => {
     const arweaveToken = new ArweaveToken({
       arweave: testArweave,
       pollingOptions: {
-        maxAttempts: 3,
-        pollingIntervalMs: 10,
+        maxAttempts: 1,
+        pollingIntervalMs: 5,
         initialBackoffMs: 0,
       },
     });
