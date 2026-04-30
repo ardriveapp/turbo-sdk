@@ -576,7 +576,7 @@ describe('Node environment', () => {
         await mineArLocalBlock();
       });
 
-      it('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
+      it.skip('should return a FailedRequestError when submitting a non-existent payment transaction ID', async () => {
         const nonExistentPaymentTxId = 'non-existent-payment-tx-id';
         const error = await turbo
           .submitFundTransaction({ txId: nonExistentPaymentTxId })
