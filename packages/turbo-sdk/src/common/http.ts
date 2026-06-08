@@ -265,13 +265,17 @@ async function toFetchBody(
 ): Promise<{ body: BodyInit; duplex?: 'half' }> {
   // Handle ReadableStream
   if (data instanceof ReadableStream) {
-    if (isFirefoxOrSafari()) {
-      // Convert stream to blob for Firefox/Safari
+    if (isBrowser) {
+      // Convert to Blob for all browser environments.
+      // Chrome's streaming fetch ({ body: ReadableStream, duplex: 'half' }) fails with
+      // "ReadableStream is disturbed" when the event-tracking wrapper locks the stream
+      // via getReader() before fetch consumes it. Firefox/Safari had the same issue and
+      // already used Blob conversion — this extends that fix to Chrome and all others.
       const blob = await new Response(data).blob();
       return { body: blob };
     }
 
-    // Chrome/Edge/Opera support streaming
+    // Node.js: use streaming with duplex: 'half'
     return { body: data, duplex: 'half' };
   }
 
@@ -290,13 +294,4 @@ async function toFetchBody(
   return { body: Uint8Array.from(data) };
 }
 
-function isFirefoxOrSafari(): boolean {
-  if (!isBrowser) return false;
-  const ua = navigator.userAgent;
-  return (
-    ua.includes('Firefox') ||
-    (ua.includes('Safari') &&
-      !ua.includes('Chrome') &&
-      !ua.includes('Chromium'))
-  );
-}
+
