@@ -13,64 +13,77 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ArconnectSigner, DataItem, createData } from '@dha-team/arbundles';
-import { connect, createDataItemSigner } from '@permaweb/aoconnect';
 import {
-  dryrun,
-  message,
-  monitor,
-  result,
-  results,
-  spawn,
-  unmonitor,
-} from '@permaweb/aoconnect';
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
+  getAssociatedTokenAddressSync,
+} from '@solana/spl-token';
+import {
+  Connection,
+  PublicKey,
+  RpcResponseAndContext,
+  SignatureStatus,
+  Transaction,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
+import bs58 from 'bs58';
 
 import {
+  AoProcessConfig,
+  TokenConfig,
   TokenCreateTxParams,
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
-  TurboSigner,
 } from '../../types.js';
-import { defaultProdAoConfigs, sleep } from '../../utils/common.js';
-import { version } from '../../version.js';
+import { defaultProdGatewayUrls, sleep } from '../../utils/common.js';
 import { Logger } from '../logger.js';
+import { memoProgramId } from './solana.js';
+
+const ARIO_SPL_MINT_ADDRESS = 'DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF';
+const DEVNET_ARIO_SPL_MINT_ADDRESS =
+  '6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN';
+const ARIO_TOKEN_DECIMALS = 6;
 
 export class ARIOToken implements TokenTools {
   protected logger: TurboLogger;
 
-  private ao: AoClient;
-  private processId: string;
+  protected connection: Connection;
+  protected gatewayUrl: string;
   private pollingOptions: TokenPollingOptions;
+  private mintAddress: string;
 
   constructor({
-    cuUrl = defaultProdAoConfigs.ario.cuUrl,
+    gatewayUrl = defaultProdGatewayUrls.solana,
     logger = Logger.default,
     pollingOptions = {
+      maxAttempts: 10,
+      pollingIntervalMs: 2_500,
       initialBackoffMs: 500,
-      pollingIntervalMs: 0, // no polling for ARIO process
-      maxAttempts: 0, // no polling for ARIO process
     },
-    processId = defaultProdAoConfigs.ario.processId,
   }: {
-    cuUrl?: string;
-    processId?: string;
+    gatewayUrl?: string;
     logger?: TurboLogger;
     pollingOptions?: TokenPollingOptions;
-  } = {}) {
-    this.ao = connect({
-      CU_URL: cuUrl,
-    });
-    this.processId = processId;
+  } & Partial<AoProcessConfig> &
+    TokenConfig = {}) {
+    this.gatewayUrl = gatewayUrl;
+    this.connection = new Connection(gatewayUrl, 'confirmed');
     this.pollingOptions = pollingOptions;
 
     this.logger = logger;
+
+    if (gatewayUrl.includes('devnet')) {
+      this.mintAddress = DEVNET_ARIO_SPL_MINT_ADDRESS;
+    } else {
+      this.mintAddress = ARIO_SPL_MINT_ADDRESS;
+    }
   }
 
   public async createAndSubmitTx({
     target,
-    signer: { signer },
+    signer,
     tokenAmount,
     turboCreditDestinationAddress,
   }: TokenCreateTxParams): Promise<{
@@ -78,117 +91,153 @@ export class ARIOToken implements TokenTools {
     target: string;
     reward: string;
   }> {
-    const tags = [
-      {
-        name: 'Action',
-        value: 'Transfer',
-      },
-      {
-        name: 'Recipient',
-        value: target,
-      },
-      {
-        name: 'Quantity',
-        value: tokenAmount.toString(),
-      },
-      {
-        name: 'Turbo-SDK',
-        value: version,
-      },
-    ];
-    if (turboCreditDestinationAddress !== undefined) {
-      tags.push({
-        name: 'Turbo-Credit-Destination-Address',
-        value: turboCreditDestinationAddress,
-      });
-    }
-    const txId = await this.ao.message({
-      signer: createAoSigner(signer),
-      process: this.processId,
-      tags,
+    const ownerPublicKey = new PublicKey(
+      bs58.encode(Uint8Array.from(await signer.getPublicKey())),
+    );
+    const recipient = new PublicKey(target);
+    const mint = new PublicKey(this.mintAddress);
+
+    const fromAta = getAssociatedTokenAddressSync(mint, ownerPublicKey);
+    const toAta = getAssociatedTokenAddressSync(mint, recipient);
+
+    const tx = new Transaction({
+      feePayer: ownerPublicKey,
+      ...(await this.connection.getLatestBlockhash()),
     });
-    this.logger.debug('Submitted Transfer message to ARIO process...', {
+
+    tx.add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        ownerPublicKey,
+        toAta,
+        recipient,
+        mint,
+      ),
+    );
+
+    tx.add(
+      createTransferCheckedInstruction(
+        fromAta,
+        mint,
+        toAta,
+        ownerPublicKey,
+        BigInt(new BigNumber(tokenAmount).toFixed(0)),
+        ARIO_TOKEN_DECIMALS,
+      ),
+    );
+
+    if (turboCreditDestinationAddress !== undefined) {
+      tx.add(
+        new TransactionInstruction({
+          programId: new PublicKey(memoProgramId),
+          keys: [],
+          data: Buffer.from(
+            'turboCreditDestinationAddress=' + turboCreditDestinationAddress,
+          ),
+        }),
+      );
+    }
+
+    const serializedTx = tx.serializeMessage();
+    const signature = await signer.signData(Uint8Array.from(serializedTx));
+    tx.addSignature(ownerPublicKey, Buffer.from(signature));
+
+    const txId = bs58.encode(signature);
+    await this.submitTx(tx, txId);
+
+    this.logger.debug('Submitted ARIO SPL transfer transaction...', {
       id: txId,
       target,
       tokenAmount,
-      processId: this.processId,
-      tags,
+      fromAta: fromAta.toBase58(),
+      toAta: toAta.toBase58(),
+      mint: mint.toBase58(),
     });
 
     return { id: txId, target, reward: '0' };
   }
 
-  public async pollTxAvailability(): Promise<void> {
-    // AO finality should be instant -- but we'll wait initial backoff to
-    // provide infra some time to crank without reading the whole result
-    return sleep(this.pollingOptions.initialBackoffMs);
+  private async submitTx(tx: Transaction, id: string): Promise<void> {
+    this.logger.debug('Submitting ARIO fund transaction...', { id });
+
+    await this.connection.sendRawTransaction(tx.serialize(), {
+      maxRetries: this.pollingOptions.maxAttempts,
+    });
+
+    if (
+      tx.recentBlockhash === undefined ||
+      tx.lastValidBlockHeight === undefined
+    ) {
+      throw new Error(
+        'Failed to submit Transaction -- missing blockhash or lastValidBlockHeight from transaction creation. Solana Gateway Url:' +
+          this.gatewayUrl,
+      );
+    }
+
+    await this.connection.confirmTransaction(
+      {
+        signature: id,
+        blockhash: tx.recentBlockhash,
+        lastValidBlockHeight: tx.lastValidBlockHeight,
+      },
+      'finalized',
+    );
+  }
+
+  public async pollTxAvailability({ txId }: { txId: string }): Promise<void> {
+    const { maxAttempts, pollingIntervalMs, initialBackoffMs } =
+      this.pollingOptions;
+
+    this.logger.debug('Polling for ARIO SPL transaction...', {
+      txId,
+      pollingOptions: this.pollingOptions,
+      gatewayUrl: this.gatewayUrl,
+    });
+
+    await sleep(initialBackoffMs);
+
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      let status: RpcResponseAndContext<SignatureStatus | null> | undefined;
+      attempts++;
+
+      try {
+        const statuses = await this.connection.getSignatureStatuses([txId], {
+          searchTransactionHistory: true,
+        });
+        status = {
+          context: statuses.context,
+          value: statuses.value[0],
+        };
+      } catch (err) {
+        this.logger.debug('Failed to poll ARIO SPL transaction...', { err });
+      }
+
+      if (status && status.value && status.value.err !== null) {
+        throw new Error(`Transaction failed: ${status.value.err}`);
+      }
+
+      if (status && status.value && status.value.slot !== null) {
+        this.logger.debug('Transaction found!', { txId, status });
+
+        return;
+      }
+
+      this.logger.debug('ARIO SPL transaction not found, polling...', {
+        txId,
+        attempts,
+        maxAttempts,
+        pollingIntervalMs,
+      });
+
+      await sleep(pollingIntervalMs);
+    }
+
+    throw new Error(
+      'Transaction not found after polling, transaction id: ' + txId,
+    );
   }
 }
 
 export const mARIOToTokenAmount = (mARIO: BigNumber.Value) => mARIO;
 export const ARIOToTokenAmount = (ario: BigNumber.Value) =>
   new BigNumber(ario).times(1e6).valueOf();
-
-/**
- * These types and functions are copied from ar-io/sdk.
- * Not importing here to avoid circular dependencies
- */
-interface AoClient {
-  result: typeof result;
-  results: typeof results;
-  message: typeof message;
-  spawn: typeof spawn;
-  monitor: typeof monitor;
-  unmonitor: typeof unmonitor;
-  dryrun: typeof dryrun;
-}
-
-type AoSigner = (args: {
-  data: string | Buffer;
-  tags?: { name: string; value: string }[];
-  target?: string;
-  anchor?: string;
-}) => Promise<{ id: string; raw: ArrayBuffer }>;
-
-function createAoSigner(signer: TurboSigner): AoSigner {
-  if (!('publicKey' in signer)) {
-    return createDataItemSigner(signer) as AoSigner;
-  }
-
-  const aoSigner = async ({ data, tags, target, anchor }) => {
-    // ensure appropriate permissions are granted with injected signers.
-    if (
-      signer.publicKey === undefined &&
-      'setPublicKey' in signer &&
-      typeof signer.setPublicKey === 'function'
-    ) {
-      await signer.setPublicKey();
-    }
-    if (signer instanceof ArconnectSigner) {
-      // Sign using Arconnect signDataItem API
-      const signedDataItem = await signer['signer'].signDataItem({
-        data,
-        tags,
-        target,
-        anchor,
-      });
-      const dataItem = new DataItem(Buffer.from(signedDataItem));
-      return {
-        id: dataItem.id,
-        raw: dataItem.getRaw(),
-      };
-    }
-
-    const dataItem = createData(data ?? '', signer, { tags, target, anchor });
-    await dataItem.sign(signer);
-    const signedData = {
-      id: dataItem.id,
-      raw: dataItem.getRaw(),
-    };
-    return signedData;
-  };
-
-  // eslint-disable-next-line
-  // @ts-ignore Buffer vs ArrayBuffer type mismatch
-  return aoSigner;
-}

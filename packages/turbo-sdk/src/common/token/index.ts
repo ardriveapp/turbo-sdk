@@ -16,7 +16,6 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
-  AoProcessConfig,
   TokenConfig,
   TokenFactory,
   TokenType,
@@ -37,7 +36,7 @@ const baseARIOContractAddress = '0x138746adfA52909E5920def027f5a8dc1C7EfFb6';
 
 export const defaultTokenMap: TokenFactory = {
   arweave: (config: TokenConfig) => new ArweaveToken(config),
-  ario: (config: AoProcessConfig) => new ARIOToken(config),
+  ario: (config: TokenConfig) => new ARIOToken(config),
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
   'base-eth': (config: TokenConfig) => new BaseEthToken(config),

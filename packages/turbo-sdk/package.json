@@ -79,6 +79,7 @@
     "@dha-team/arbundles": "^1.0.1",
     "@ethersproject/signing-key": "^5.7.0",
     "@permaweb/aoconnect": "0.0.57",
+    "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.91.7",
     "arweave": "^1.15.1",
     "bignumber.js": "^9.1.2",
