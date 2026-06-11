@@ -67,6 +67,7 @@ export class TurboUnauthenticatedPaymentService
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected readonly token: TokenType;
+  private url: string;
 
   constructor({
     url = defaultPaymentServiceURL,
@@ -81,6 +82,7 @@ export class TurboUnauthenticatedPaymentService
       logger: this.logger,
     });
     this.token = token;
+    this.url = url;
   }
 
   public async getBalance(address: string): Promise<TurboBalanceResponse> {
@@ -250,6 +252,11 @@ export class TurboUnauthenticatedPaymentService
   }: {
     txId: string;
   }): Promise<TurboSubmitFundTxResponse> {
+    this.logger.debug('Submitting fund transaction to Turbo...', {
+      txId,
+      url: this.url,
+    });
+
     const response = await this.httpService.post<TurboPostBalanceResponse>({
       endpoint: `/account/balance/${this.token}`,
       data: Buffer.from(JSON.stringify({ tx_id: txId })),

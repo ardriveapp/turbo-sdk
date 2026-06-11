@@ -52,7 +52,7 @@ const baseMainnetRpc = 'https://mainnet.base.org';
 
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://turbo-gateway.com', // No arweave test net
-  ario: 'https://turbo-gateway.com', // No arweave test net
+  ario: 'https://api.devnet.solana.com',
   'base-ario': baseMainnetRpc, // No base-ario test net contract deployed
   solana: 'https://api.devnet.solana.com',
   ethereum: ethTestnetRpc,
@@ -65,18 +65,9 @@ export const tokenToDevGatewayMap: Record<TokenType, string> = {
   'polygon-usdc': polygonTestnetRpc,
 };
 
-export const tokenToDevAoConfigMap: {
-  ario: { processId: string; cuUrl: string };
-} = {
-  ario: {
-    processId: 'agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA',
-    cuUrl: 'https://cu.ardrive.io',
-  },
-};
-
 export const defaultProdGatewayUrls: Record<TokenType, string> = {
   arweave: 'https://turbo-gateway.com',
-  ario: 'https://turbo-gateway.com',
+  ario: 'https://api.mainnet-beta.solana.com',
   'base-ario': baseMainnetRpc,
   solana: 'https://api.mainnet-beta.solana.com',
   ethereum: 'https://cloudflare-eth.com/',
@@ -87,15 +78,6 @@ export const defaultProdGatewayUrls: Record<TokenType, string> = {
   usdc: 'https://cloudflare-eth.com/',
   'base-usdc': baseMainnetRpc,
   'polygon-usdc': 'https://polygon-rpc.com/',
-};
-
-export const defaultProdAoConfigs: {
-  ario: { processId: string; cuUrl: string };
-} = {
-  ario: {
-    processId: 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE',
-    cuUrl: 'https://cu.ardrive.io',
-  },
 };
 
 export function createTurboSigner({
@@ -128,6 +110,7 @@ export function createTurboSigner({
 
   switch (token) {
     case 'solana':
+    case 'ario':
       return new HexSolanaSigner(clientProvidedPrivateKey);
     case 'ethereum':
     case 'pol':
@@ -151,7 +134,6 @@ export function createTurboSigner({
       }
       return signerFromKyvePrivateKey(clientProvidedPrivateKey);
     case 'arweave':
-    case 'ario':
       if (!isJWK(clientProvidedPrivateKey)) {
         throw new Error('A JWK must be provided for ArweaveSigner.');
       }
@@ -213,8 +195,8 @@ export function isValidKyveAddress(address: string) {
 export function isValidUserAddress(address: string, type: TokenType): boolean {
   switch (type) {
     case 'arweave':
-    case 'ario':
       return isValidArweaveBase64URL(address);
+    case 'ario':
     case 'solana':
       return isValidSolanaAddress(address);
     case 'ethereum':

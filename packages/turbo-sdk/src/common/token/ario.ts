@@ -41,7 +41,9 @@ import { defaultProdGatewayUrls, sleep } from '../../utils/common.js';
 import { Logger } from '../logger.js';
 import { memoProgramId } from './solana.js';
 
-const ARIO_SPL_MINT_ADDRESS = 'REPLACE_ME';
+const ARIO_SPL_MINT_ADDRESS = 'DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF';
+const DEVNET_ARIO_SPL_MINT_ADDRESS =
+  '6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN';
 const ARIO_TOKEN_DECIMALS = 6;
 
 export class ARIOToken implements TokenTools {
@@ -50,6 +52,7 @@ export class ARIOToken implements TokenTools {
   protected connection: Connection;
   protected gatewayUrl: string;
   private pollingOptions: TokenPollingOptions;
+  private mintAddress: string;
 
   constructor({
     gatewayUrl = defaultProdGatewayUrls.solana,
@@ -70,6 +73,12 @@ export class ARIOToken implements TokenTools {
     this.pollingOptions = pollingOptions;
 
     this.logger = logger;
+
+    if (gatewayUrl.includes('devnet')) {
+      this.mintAddress = DEVNET_ARIO_SPL_MINT_ADDRESS;
+    } else {
+      this.mintAddress = ARIO_SPL_MINT_ADDRESS;
+    }
   }
 
   public async createAndSubmitTx({
@@ -86,7 +95,7 @@ export class ARIOToken implements TokenTools {
       bs58.encode(Uint8Array.from(await signer.getPublicKey())),
     );
     const recipient = new PublicKey(target);
-    const mint = new PublicKey(ARIO_SPL_MINT_ADDRESS);
+    const mint = new PublicKey(this.mintAddress);
 
     const fromAta = getAssociatedTokenAddressSync(mint, ownerPublicKey);
     const toAta = getAssociatedTokenAddressSync(mint, recipient);
@@ -181,6 +190,7 @@ export class ARIOToken implements TokenTools {
     this.logger.debug('Polling for ARIO SPL transaction...', {
       txId,
       pollingOptions: this.pollingOptions,
+      gatewayUrl: this.gatewayUrl,
     });
 
     await sleep(initialBackoffMs);
@@ -191,7 +201,13 @@ export class ARIOToken implements TokenTools {
       attempts++;
 
       try {
-        status = await this.connection.getSignatureStatus(txId);
+        const statuses = await this.connection.getSignatureStatuses([txId], {
+          searchTransactionHistory: true,
+        });
+        status = {
+          context: statuses.context,
+          value: statuses.value[0],
+        };
       } catch (err) {
         this.logger.debug('Failed to poll ARIO SPL transaction...', { err });
       }
@@ -201,6 +217,8 @@ export class ARIOToken implements TokenTools {
       }
 
       if (status && status.value && status.value.slot !== null) {
+        this.logger.debug('Transaction found!', { txId, status });
+
         return;
       }
 

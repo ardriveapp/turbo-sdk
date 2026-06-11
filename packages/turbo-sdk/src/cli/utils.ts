@@ -35,11 +35,7 @@ import {
   privateKeyFromKyveMnemonic,
   tokenToBaseMap,
 } from '../node/index.js';
-import {
-  defaultProdAoConfigs,
-  tokenToDevAoConfigMap,
-  tokenToDevGatewayMap,
-} from '../utils/common.js';
+import { tokenToDevGatewayMap } from '../utils/common.js';
 import { NoWalletProvidedError } from './errors.js';
 import {
   AddressOptions,
@@ -166,7 +162,9 @@ export async function privateKeyFromOptions({
   } else if (walletFile !== undefined) {
     const wallet = JSON.parse(readFileSync(walletFile, 'utf-8'));
 
-    return token === 'solana' ? bs58.encode(wallet) : wallet;
+    return token === 'solana' || token === 'ario'
+      ? bs58.encode(wallet)
+      : wallet;
   } else if (privateKey !== undefined) {
     return privateKey;
   }
@@ -184,8 +182,6 @@ export function configFromOptions(
   let paymentUrl: string | undefined = undefined;
   let uploadUrl: string | undefined = undefined;
   let gatewayUrl: string | undefined = undefined;
-  let processId: string | undefined = undefined;
-  let cuUrl: string | undefined = undefined;
 
   if (options.local && options.dev) {
     throw new Error('Cannot use both --local and --dev flags');
@@ -196,11 +192,6 @@ export function configFromOptions(
     paymentUrl = developmentTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = developmentTurboConfiguration.uploadServiceConfig.url;
     gatewayUrl = tokenToDevGatewayMap[token];
-
-    if (options.token === 'ario') {
-      processId = tokenToDevAoConfigMap[token].processId;
-      cuUrl = tokenToDevAoConfigMap[token].cuUrl;
-    }
   } else if (options.local) {
     // Use local endpoints
     paymentUrl = 'http://localhost:4000';
@@ -210,10 +201,6 @@ export function configFromOptions(
     // Use default endpoints
     paymentUrl = defaultTurboConfiguration.paymentServiceConfig.url;
     uploadUrl = defaultTurboConfiguration.uploadServiceConfig.url;
-    if (options.token === 'ario') {
-      processId = defaultProdAoConfigs[token].processId;
-      cuUrl = defaultProdAoConfigs[token].cuUrl;
-    }
   }
 
   // Override gateway, payment, and upload service default endpoints if provided
@@ -226,20 +213,12 @@ export function configFromOptions(
   if (options.uploadUrl !== undefined) {
     uploadUrl = options.uploadUrl;
   }
-  if (options.cuUrl !== undefined) {
-    cuUrl = options.cuUrl;
-  }
-  if (options.processId !== undefined) {
-    processId = options.processId;
-  }
 
   const config = {
     paymentServiceConfig: { url: paymentUrl },
     uploadServiceConfig: { url: uploadUrl },
     gatewayUrl,
     token,
-    processId,
-    cuUrl,
   };
 
   return config;

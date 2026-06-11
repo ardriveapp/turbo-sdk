@@ -176,6 +176,7 @@ export class SolanaToken implements TokenTools {
       }
 
       if (status && status.value && status.value.slot !== null) {
+        this.logger.debug('Transaction found!', { txId, status });
         return;
       }
 
