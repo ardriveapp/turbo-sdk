@@ -3202,7 +3202,7 @@
     "@wallet-standard/base" "^1.1.0"
     "@wallet-standard/features" "^1.1.0"
 
-"@solana/web3.js@^1.32.0", "@solana/web3.js@^1.91.7", "@solana/web3.js@^1.98.1":
+"@solana/web3.js@^1.32.0", "@solana/web3.js@^1.91.7", "@solana/web3.js@^1.95.5", "@solana/web3.js@^1.98.1":
   version "1.98.4"
   resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.98.4.tgz#df51d78be9d865181ec5138b4e699d48e6895bbe"
   integrity sha512-vv9lfnvjUsRiq//+j5pBdXig0IQdtzA0BRZ3bXEP4KaIyF1CcaydWqgyzQgfZMNIsWNWmG+AUHwPy4AHOD6gpw==
