@@ -1,7 +1,6 @@
 <html>
   <head>
     <style>
-      /* Center the button */
       body {
         padding: 10px;
       }
@@ -10,41 +9,50 @@
   <body>
     <div>
       <h1>Rates</h1>
-      <span id="rates">Fetching rates...</span>
+      <pre id="rates">Fetching rates...</pre>
     </div>
+
+    <div>
+      <h1>Wallet</h1>
+      <pre id="address">Generating wallet...</pre>
+      <button id="addWalletFromFile">Add Wallet from File</button>
+    </div>
+
     <div>
       <h1>Balance</h1>
-      <span id="balance">Fetching balance for generated wallet...</span>
+      <pre id="balance">Fetching balance for generated wallet...</pre>
     </div>
+
     <div>
       <h1>Upload File</h1>
 
-      <form
-        id="uploadForm"
-        action="/upload"
-        method="post"
-        enctype="multipart/form-data"
-      >
+      <form id="uploadForm">
         <label for="file">Choose file to upload:</label>
         <input type="file" id="file" name="file" />
         <br /><br />
-        <input type="submit" value="Upload File" />
+        <button type="submit">Upload File</button>
         <br /><br />
-        <span id="uploadStatus"></span>
+        <pre id="uploadStatus"></pre>
       </form>
     </div>
+
     <script type="module">
-      // For local development, use relative path to built bundle
-      // For production, use: https://cdn.jsdelivr.net/gh/ardriveapp/turbo-sdk@latest/bundles/web.bundle.min.js
+      // import Arweave from 'arweave';
       import {
         TurboFactory,
         developmentTurboConfiguration,
-      } from '../../bundles/web.bundle.min.js';
+      } from '../../packages/turbo-sdk/bundles/web.bundle.min.js';
 
-      /**
-       * Set up our authenticated client factory
-       */
-      const arweave = new Arweave({
+      TurboFactory.setLogLevel('debug');
+
+      const ratesEl = document.getElementById('rates');
+      const balanceEl = document.getElementById('balance');
+      const uploadStatusEl = document.getElementById('uploadStatus');
+      const uploadForm = document.getElementById('uploadForm');
+      const fileInput = document.getElementById('file');
+      const addressEl = document.getElementById('address');
+
+      const arweave = Arweave.init({
         host: 'ar-io.dev',
         port: 443,
         protocol: 'https',
@@ -52,75 +60,101 @@
 
       const jwk = await arweave.crypto.generateJWK();
       const address = await arweave.wallets.jwkToAddress(jwk);
-      const turbo = TurboFactory.authenticated({
+      addressEl.innerText = address;
+
+      let turbo = TurboFactory.authenticated({
         privateKey: jwk,
         ...developmentTurboConfiguration,
       });
 
-      /**
-       * Fetch fiat rates.
-       */
-      const rates = await turbo.getFiatRates().catch((err) => {
-        console.log('Error fetching rates!', err);
+      try {
+        const rates = await turbo.getFiatRates();
+
+        console.log('Successfully fetched rates!', rates);
+
+        ratesEl.innerText = Object.entries(rates.fiat)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n');
+      } catch (err) {
+        console.error('Error fetching rates!', err);
+        ratesEl.innerText = `Error fetching rates: ${err.message ?? err}`;
+      }
+
+      try {
+        const balance = await turbo.getBalance();
+
+        console.log('Successfully fetched balance!', balance);
+
+        balanceEl.innerText = JSON.stringify(balance, null, 2);
+      } catch (err) {
+        console.error('Error fetching balance!', err);
+        balanceEl.innerText = `Error fetching balance: ${err.message ?? err}`;
+      }
+
+      const addWalletFromFileButton =
+        document.getElementById('addWalletFromFile');
+      addWalletFromFileButton.addEventListener('click', async () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          try {
+            const fileContent = await file.text();
+            const jwkFromFile = JSON.parse(fileContent);
+            turbo = TurboFactory.authenticated({
+              privateKey: jwkFromFile,
+              ...developmentTurboConfiguration,
+            });
+            addressEl.innerText =
+              await arweave.wallets.jwkToAddress(jwkFromFile);
+            balanceEl.innerText = 'Fetching balance for new wallet...';
+            const balance = await turbo.getBalance();
+            balanceEl.innerText = JSON.stringify(balance, null, 2);
+          } catch (err) {
+            console.error('Error adding wallet from file!', err);
+            alert(`Error adding wallet from file: ${err.message ?? err}`);
+          }
+        };
+        fileInput.click();
       });
 
-      console.log(
-        'Successfully fetched rates!',
-        JSON.stringify(rates, null, 2),
-      );
+      uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-      const ratesString = Object.entries(rates['fiat'])
-        .map(([key, value]) => {
-          return `${key}: ${value}`;
-        })
-        .join('\n');
-      document.getElementById('rates').innerText = ratesString;
+        const selectedFiles = fileInput.files;
 
-      /**
-       * Fetch wallet balance.
-       */
-      const balance = await turbo.getBalance();
-      document.getElementById('balance').innerText = JSON.stringify(
-        balance,
-        null,
-        2,
-      ).catch((err) => console.log('Error fetching balance!', err));
+        if (!selectedFiles.length) {
+          uploadStatusEl.innerText = 'No file selected';
+          return;
+        }
 
-      /**
-       * Handle file upload
-       */
-      document
-        .getElementById('uploadForm')
-        .addEventListener('submit', function (e) {
-          e.preventDefault(); // Stop the form from submitting
+        uploadStatusEl.innerText = 'Uploading...';
 
-          const fileInput = document.getElementById('file');
-          const selectedFiles = fileInput.files;
+        try {
+          for (const file of selectedFiles) {
+            const res = await turbo.uploadFile({
+              fileStreamFactory: () => file.stream(),
+              fileSizeFactory: () => file.size,
+            });
 
-          if (selectedFiles.length) {
-            // TODO: make this concurrent
-            for (const file of selectedFiles) {
-              const response = turbo
-                .uploadFile({
-                  fileStreamFactory: () => file.stream(),
-                  fileSizeFactory: () => file.size,
-                })
-                .then((res) => {
-                  console.log('Successfully uploaded files!', res);
-                  document.getElementById(
-                    'uploadStatus',
-                  ).innerText = `Successfully uploaded file! ${JSON.stringify(
-                    res,
-                    null,
-                    2,
-                  )}`;
-                })
-                .catch((err) => console.log('Error uploading file!', err));
-            }
-          } else {
-            console.log('No file selected');
+            console.log('Successfully uploaded file!', res);
+
+            uploadStatusEl.innerText = `Successfully uploaded file!\n${JSON.stringify(
+              res,
+              null,
+              2,
+            )}`;
           }
-        });
+        } catch (err) {
+          console.error('Error uploading file!', err);
+          uploadStatusEl.innerText = `Error uploading file: ${
+            err.message ?? err
+          }`;
+        }
+      });
     </script>
   </body>
 </html>

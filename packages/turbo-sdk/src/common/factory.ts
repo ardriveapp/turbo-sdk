@@ -102,8 +102,6 @@ export abstract class TurboBaseFactory {
     tokenTools,
     logger,
     walletAdapter,
-    processId,
-    cuUrl,
   }: TurboAuthenticatedConfiguration & { logger: Logger }) {
     token = token === 'pol' ? 'matic' : token;
 
@@ -172,8 +170,6 @@ export abstract class TurboBaseFactory {
         tokenTools = tokenMap.arweave;
       }
       tokenTools = defaultTokenMap[token]?.({
-        cuUrl,
-        processId,
         gatewayUrl,
         logger,
       });

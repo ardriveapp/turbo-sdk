@@ -25,8 +25,6 @@ export type GlobalOptions = {
   token: string;
   paymentUrl: string | undefined;
   uploadUrl: string | undefined;
-  processId: string | undefined;
-  cuUrl: string | undefined;
 };
 
 export type WalletOptions = GlobalOptions & {
