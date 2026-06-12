@@ -13,6 +13,12 @@
     </div>
 
     <div>
+      <h1>Wallet</h1>
+      <pre id="address">Generating wallet...</pre>
+      <button id="addWalletFromFile">Add Wallet from File</button>
+    </div>
+
+    <div>
       <h1>Balance</h1>
       <pre id="balance">Fetching balance for generated wallet...</pre>
     </div>
@@ -37,11 +43,14 @@
         developmentTurboConfiguration,
       } from '../../packages/turbo-sdk/bundles/web.bundle.min.js';
 
+      TurboFactory.setLogLevel('debug');
+
       const ratesEl = document.getElementById('rates');
       const balanceEl = document.getElementById('balance');
       const uploadStatusEl = document.getElementById('uploadStatus');
       const uploadForm = document.getElementById('uploadForm');
       const fileInput = document.getElementById('file');
+      const addressEl = document.getElementById('address');
 
       const arweave = Arweave.init({
         host: 'ar-io.dev',
@@ -51,8 +60,9 @@
 
       const jwk = await arweave.crypto.generateJWK();
       const address = await arweave.wallets.jwkToAddress(jwk);
+      addressEl.innerText = address;
 
-      const turbo = TurboFactory.authenticated({
+      let turbo = TurboFactory.authenticated({
         privateKey: jwk,
         ...developmentTurboConfiguration,
       });
@@ -80,6 +90,36 @@
         console.error('Error fetching balance!', err);
         balanceEl.innerText = `Error fetching balance: ${err.message ?? err}`;
       }
+
+      const addWalletFromFileButton =
+        document.getElementById('addWalletFromFile');
+      addWalletFromFileButton.addEventListener('click', async () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          try {
+            const fileContent = await file.text();
+            const jwkFromFile = JSON.parse(fileContent);
+            turbo = TurboFactory.authenticated({
+              privateKey: jwkFromFile,
+              ...developmentTurboConfiguration,
+            });
+            addressEl.innerText =
+              await arweave.wallets.jwkToAddress(jwkFromFile);
+            balanceEl.innerText = 'Fetching balance for new wallet...';
+            const balance = await turbo.getBalance();
+            balanceEl.innerText = JSON.stringify(balance, null, 2);
+          } catch (err) {
+            console.error('Error adding wallet from file!', err);
+            alert(`Error adding wallet from file: ${err.message ?? err}`);
+          }
+        };
+        fileInput.click();
+      });
 
       uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
