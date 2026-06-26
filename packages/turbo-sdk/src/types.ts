@@ -504,6 +504,10 @@ export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
   'x-signature': string;
+  // arbundles SignatureConfig value (e.g. ARWEAVE=1, ETHEREUM=3, SOLANA=4).
+  // Lets the service select the correct signature-verification scheme;
+  // without it the server cannot distinguish a non-Arweave signed request.
+  'x-signature-type': string;
 };
 
 type TurboAuthConfiguration = {

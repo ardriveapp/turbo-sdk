@@ -133,6 +133,10 @@ export abstract class TurboDataItemAbstractSigner
       'x-public-key': publicKey,
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
+      // Advertise the signature scheme so the service verifies with the right
+      // algorithm. Absent this, the server defaults to Arweave and every
+      // non-Arweave signed request (Ethereum, Solana, …) fails verification.
+      'x-signature-type': this.signer.signatureType.toString(),
     };
   }
 
