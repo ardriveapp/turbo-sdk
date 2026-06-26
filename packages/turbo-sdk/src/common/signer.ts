@@ -47,6 +47,7 @@ import {
   TurboFileFactory,
   TurboLogger,
   TurboSignedDataItemFactory,
+  TurboSignedRequestHeaders,
   TurboSigner,
   WalletAdapter,
   isEthereumWalletAdapter,
@@ -124,7 +125,7 @@ export abstract class TurboDataItemAbstractSigner
     }
   }
 
-  public async generateSignedRequestHeaders() {
+  public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await this.signer.sign(Uint8Array.from(buffer));
@@ -133,6 +134,10 @@ export abstract class TurboDataItemAbstractSigner
       'x-public-key': publicKey,
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
+      // Advertise the signature scheme so the service verifies with the right
+      // algorithm. Absent this, the server defaults to Arweave and every
+      // non-Arweave signed request (Ethereum, Solana, …) fails verification.
+      'x-signature-type': this.signer.signatureType.toString(),
     };
   }
 
