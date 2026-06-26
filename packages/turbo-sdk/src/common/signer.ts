@@ -47,6 +47,7 @@ import {
   TurboFileFactory,
   TurboLogger,
   TurboSignedDataItemFactory,
+  TurboSignedRequestHeaders,
   TurboSigner,
   WalletAdapter,
   isEthereumWalletAdapter,
@@ -124,7 +125,7 @@ export abstract class TurboDataItemAbstractSigner
     }
   }
 
-  public async generateSignedRequestHeaders() {
+  public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {
     const nonce = randomBytes(16).toString('hex');
     const buffer = Buffer.from(nonce);
     const signature = await this.signer.sign(Uint8Array.from(buffer));
