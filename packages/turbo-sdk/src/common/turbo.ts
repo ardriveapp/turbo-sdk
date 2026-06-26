@@ -16,11 +16,16 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  ArNSBuyNameParams,
+  ArNSExtendLeaseParams,
+  ArNSIncreaseUndernameLimitParams,
+  ArNSPaidByParams,
   ArNSPriceParams,
   ArNSPriceResponse,
   ArNSPurchaseParams,
   ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
+  ArNSUpgradeNameParams,
   CreditShareApproval,
   Currency,
   FundingOptions,
@@ -352,35 +357,28 @@ export class TurboAuthenticatedClient
 
   /** Buys a new ArNS name (lease or permabuy). */
   buyArNSName(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'increaseQty'>,
+    params: Omit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.paymentService.buyArNSName(params);
   }
 
   /** Extends the lease on an existing ArNS name. */
   extendArNSLease(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'increaseQty'> & {
-      years: number;
-    },
+    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.paymentService.extendArNSLease(params);
   }
 
   /** Increases the undername limit on an existing ArNS name. */
   increaseArNSUndernameLimit(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'years'> & {
-      increaseQty: number;
-    },
+    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.paymentService.increaseArNSUndernameLimit(params);
   }
 
   /** Upgrades an ArNS lease to a permabuy. */
   upgradeArNSName(
-    params: Omit<
-      ArNSPurchaseParams,
-      'intent' | 'type' | 'years' | 'increaseQty'
-    >,
+    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.paymentService.upgradeArNSName(params);
   }

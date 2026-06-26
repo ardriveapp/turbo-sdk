@@ -16,12 +16,17 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  ArNSBuyNameParams,
+  ArNSExtendLeaseParams,
+  ArNSIncreaseUndernameLimitParams,
   ArNSNameType,
+  ArNSPaidByParams,
   ArNSPriceParams,
   ArNSPriceResponse,
   ArNSPurchaseParams,
   ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
+  ArNSUpgradeNameParams,
   Currency,
   GetCreditShareApprovalsResponse,
   RawWincForTokenResponse,
@@ -182,18 +187,13 @@ export class TurboUnauthenticatedPaymentService
     };
   }
 
-  public getArNSPriceForName({
-    intent,
-    name,
-    type,
-    years,
-    increaseQty,
-    processId,
-  }: ArNSPriceParams): Promise<ArNSPriceResponse> {
+  public getArNSPriceForName(
+    params: ArNSPriceParams,
+  ): Promise<ArNSPriceResponse> {
     return this.httpService.get<ArNSPriceResponse>({
-      endpoint: `/arns/price/${intent.toLowerCase()}/${name}${this.buildArNSPurchaseQuery(
-        { type, years, increaseQty, processId },
-      )}`,
+      endpoint: `/arns/price/${params.intent.toLowerCase()}/${
+        params.name
+      }${this.buildArNSPurchaseQuery(params)}`,
     });
   }
 
@@ -207,19 +207,15 @@ export class TurboUnauthenticatedPaymentService
     });
   }
 
-  protected buildArNSPurchaseQuery({
-    type,
-    years,
-    increaseQty,
-    processId,
-    paidBy,
-  }: {
-    type?: ArNSNameType;
-    years?: number;
-    increaseQty?: number;
-    processId?: string;
-    paidBy?: UserAddress | UserAddress[];
-  }): string {
+  protected buildArNSPurchaseQuery(input: ArNSPurchaseParams): string {
+    // The intent-specific union members each carry only their own fields; read
+    // them through a single widened view rather than narrowing per intent.
+    const { type, years, increaseQty, processId, paidBy } = input as {
+      type?: ArNSNameType;
+      years?: number;
+      increaseQty?: number;
+      processId?: string;
+    } & ArNSPaidByParams;
     const params = new URLSearchParams();
     if (type !== undefined) params.set('type', type);
     if (years !== undefined) params.set('years', `${years}`);
@@ -488,15 +484,9 @@ export class TurboAuthenticatedPaymentService
    * balance. The bundler performs the on-chain ARIO purchase and debits credits;
    * a `402` (FailedRequestError.status === 402) indicates insufficient credits.
    */
-  public async purchaseArNSName({
-    intent,
-    name,
-    type,
-    years,
-    increaseQty,
-    processId,
-    paidBy,
-  }: ArNSPurchaseParams): Promise<ArNSPurchaseResponse> {
+  public async purchaseArNSName(
+    params: ArNSPurchaseParams,
+  ): Promise<ArNSPurchaseResponse> {
     // The bundler requires the signed nonce to be a UUID; it also doubles as
     // the idempotency + status-lookup key (`getArNSPurchaseStatus`).
     const nonce = uuidV4();
@@ -504,35 +494,40 @@ export class TurboAuthenticatedPaymentService
     const response = await this.httpService.post<
       Omit<ArNSPurchaseResponse, 'nonce'>
     >({
-      endpoint: `/arns/purchase/${intent.toLowerCase()}/${name}${this.buildArNSPurchaseQuery(
-        { type, years, increaseQty, processId, paidBy },
-      )}`,
+      endpoint: `/arns/purchase/${params.intent.toLowerCase()}/${
+        params.name
+      }${this.buildArNSPurchaseQuery(params)}`,
       headers,
       // Params travel in the query string + signed headers; the service reads no
       // body, but the HTTP layer requires a `data` field.
       data: Buffer.from([]),
     });
-    return { ...response, nonce };
+    // Normalize both nonce fields to the one we signed so callers can poll with
+    // either `response.nonce` or `response.purchaseReceipt.nonce`.
+    return {
+      ...response,
+      nonce,
+      purchaseReceipt: { ...response.purchaseReceipt, nonce },
+    };
   }
 
   public buyArNSName(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'increaseQty'>,
+    params: Omit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
-    return this.purchaseArNSName({ ...params, intent: 'Buy-Name' });
+    return this.purchaseArNSName({
+      ...params,
+      intent: 'Buy-Name',
+    } as ArNSPurchaseParams);
   }
 
   public extendArNSLease(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'increaseQty'> & {
-      years: number;
-    },
+    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.purchaseArNSName({ ...params, intent: 'Extend-Lease' });
   }
 
   public increaseArNSUndernameLimit(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'years'> & {
-      increaseQty: number;
-    },
+    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.purchaseArNSName({
       ...params,
@@ -541,10 +536,7 @@ export class TurboAuthenticatedPaymentService
   }
 
   public upgradeArNSName(
-    params: Omit<
-      ArNSPurchaseParams,
-      'intent' | 'type' | 'years' | 'increaseQty'
-    >,
+    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse> {
     return this.purchaseArNSName({ ...params, intent: 'Upgrade-Name' });
   }

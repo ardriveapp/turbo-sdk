@@ -123,6 +123,9 @@ describe('ArNS purchase client', () => {
       // returned nonce is the one that was signed/sent
       assert.equal(res.nonce, http.last.headers['x-nonce']);
       assert.match(res.nonce, UUID_RE);
+      // both the top-level and nested receipt nonce are normalized to the
+      // signed nonce (the service echo of `purchaseReceipt.nonce` is ignored)
+      assert.equal(res.purchaseReceipt.nonce, res.nonce);
     });
 
     it('per-intent wrappers set the correct intent in the path', async () => {

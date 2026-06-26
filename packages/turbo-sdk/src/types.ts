@@ -914,18 +914,50 @@ export const arNSPurchaseIntents = [
 export type ArNSPurchaseIntent = (typeof arNSPurchaseIntents)[number];
 export type ArNSNameType = 'lease' | 'permabuy';
 
-export type ArNSPriceParams = {
-  intent: ArNSPurchaseIntent;
+// Intent-specific shapes so the required fields per intent are enforced at
+// compile time rather than surfacing as runtime 4xxs from the service.
+export type ArNSBuyNameLeaseParams = {
+  intent: 'Buy-Name';
   name: string;
-  /** Required for `Buy-Name` */
-  type?: ArNSNameType;
-  /** Required for `Buy-Name` leases and `Extend-Lease` */
-  years?: number;
-  /** Required for `Increase-Undername-Limit` */
-  increaseQty?: number;
-  /** ANT (Metaplex Core asset) the name points at — required for `Buy-Name` */
-  processId?: string;
+  type: 'lease';
+  /** Lease duration in years */
+  years: number;
+  /** ANT (Metaplex Core asset) the name resolves to */
+  processId: string;
 };
+export type ArNSBuyNamePermabuyParams = {
+  intent: 'Buy-Name';
+  name: string;
+  type: 'permabuy';
+  /** ANT (Metaplex Core asset) the name resolves to */
+  processId: string;
+};
+export type ArNSBuyNameParams =
+  | ArNSBuyNameLeaseParams
+  | ArNSBuyNamePermabuyParams;
+export type ArNSExtendLeaseParams = {
+  intent: 'Extend-Lease';
+  name: string;
+  years: number;
+};
+export type ArNSIncreaseUndernameLimitParams = {
+  intent: 'Increase-Undername-Limit';
+  name: string;
+  increaseQty: number;
+};
+export type ArNSUpgradeNameParams = {
+  intent: 'Upgrade-Name';
+  name: string;
+};
+
+export type ArNSPriceParams =
+  | ArNSBuyNameParams
+  | ArNSExtendLeaseParams
+  | ArNSIncreaseUndernameLimitParams
+  | ArNSUpgradeNameParams;
+
+/** Optional delegated payer address(es) whose credits cover a purchase */
+export type ArNSPaidByParams = { paidBy?: UserAddress | UserAddress[] };
 
 export type ArNSPriceResponse = {
   /** Price in Winston credits */
@@ -935,10 +967,7 @@ export type ArNSPriceResponse = {
   [key: string]: unknown;
 };
 
-export type ArNSPurchaseParams = ArNSPriceParams & {
-  /** Optional delegated payer address(es) whose credits cover the purchase */
-  paidBy?: UserAddress | UserAddress[];
-};
+export type ArNSPurchaseParams = ArNSPriceParams & ArNSPaidByParams;
 
 export type ArNSPurchaseReceipt = {
   name: string;
@@ -1041,23 +1070,16 @@ export interface TurboAuthenticatedPaymentServiceInterface
   /** Buy / extend / upgrade an ArNS name, debiting the signer's credit balance. */
   purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse>;
   buyArNSName(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'increaseQty'>,
+    params: Omit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse>;
   extendArNSLease(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'increaseQty'> & {
-      years: number;
-    },
+    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse>;
   increaseArNSUndernameLimit(
-    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'years'> & {
-      increaseQty: number;
-    },
+    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse>;
   upgradeArNSName(
-    params: Omit<
-      ArNSPurchaseParams,
-      'intent' | 'type' | 'years' | 'increaseQty'
-    >,
+    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse>;
 }
 
