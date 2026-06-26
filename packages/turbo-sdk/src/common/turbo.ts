@@ -16,6 +16,11 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  ArNSPriceParams,
+  ArNSPriceResponse,
+  ArNSPurchaseParams,
+  ArNSPurchaseResponse,
+  ArNSPurchaseStatusResponse,
   CreditShareApproval,
   Currency,
   FundingOptions,
@@ -145,6 +150,22 @@ export class TurboUnauthenticatedClient
 
   getBalance(address: NativeAddress): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance(address);
+  }
+
+  /**
+   * Returns the price in 'winc' (and mARIO) to buy/extend/upgrade an ArNS name.
+   */
+  getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse> {
+    return this.paymentService.getArNSPriceForName(params);
+  }
+
+  /**
+   * Returns the status of an ArNS purchase by its nonce.
+   */
+  getArNSPurchaseStatus(p: {
+    nonce: string;
+  }): Promise<ArNSPurchaseStatusResponse> {
+    return this.paymentService.getArNSPurchaseStatus(p);
   }
 
   /**
@@ -319,6 +340,49 @@ export class TurboAuthenticatedClient
    */
   getBalance(userAddress?: NativeAddress): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance(userAddress);
+  }
+
+  /**
+   * Buys, extends, or upgrades an ArNS name, paying with the signer's Turbo
+   * credit balance. Poll {@link getArNSPurchaseStatus} with the returned nonce.
+   */
+  purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse> {
+    return this.paymentService.purchaseArNSName(params);
+  }
+
+  /** Buys a new ArNS name (lease or permabuy). */
+  buyArNSName(
+    params: Omit<ArNSPurchaseParams, 'intent' | 'increaseQty'>,
+  ): Promise<ArNSPurchaseResponse> {
+    return this.paymentService.buyArNSName(params);
+  }
+
+  /** Extends the lease on an existing ArNS name. */
+  extendArNSLease(
+    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'increaseQty'> & {
+      years: number;
+    },
+  ): Promise<ArNSPurchaseResponse> {
+    return this.paymentService.extendArNSLease(params);
+  }
+
+  /** Increases the undername limit on an existing ArNS name. */
+  increaseArNSUndernameLimit(
+    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'years'> & {
+      increaseQty: number;
+    },
+  ): Promise<ArNSPurchaseResponse> {
+    return this.paymentService.increaseArNSUndernameLimit(params);
+  }
+
+  /** Upgrades an ArNS lease to a permabuy. */
+  upgradeArNSName(
+    params: Omit<
+      ArNSPurchaseParams,
+      'intent' | 'type' | 'years' | 'increaseQty'
+    >,
+  ): Promise<ArNSPurchaseResponse> {
+    return this.paymentService.upgradeArNSName(params);
   }
 
   /**

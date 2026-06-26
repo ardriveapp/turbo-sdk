@@ -892,7 +892,9 @@ export interface TurboDataItemSigner {
   }: TurboFileFactory & {
     emitter?: TurboEventEmitter;
   }): Promise<TurboSignedDataItemFactory>;
-  generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
+  generateSignedRequestHeaders(
+    nonce?: string,
+  ): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
   getPublicKey(): Promise<Buffer>;
@@ -901,8 +903,80 @@ export interface TurboDataItemSigner {
   walletAdapter?: WalletAdapter;
 }
 
+// ===== ArNS purchases paid with Turbo credits (via the bundler REST API) =====
+
+export const arNSPurchaseIntents = [
+  'Buy-Name',
+  'Extend-Lease',
+  'Increase-Undername-Limit',
+  'Upgrade-Name',
+] as const;
+export type ArNSPurchaseIntent = (typeof arNSPurchaseIntents)[number];
+export type ArNSNameType = 'lease' | 'permabuy';
+
+export type ArNSPriceParams = {
+  intent: ArNSPurchaseIntent;
+  name: string;
+  /** Required for `Buy-Name` */
+  type?: ArNSNameType;
+  /** Required for `Buy-Name` leases and `Extend-Lease` */
+  years?: number;
+  /** Required for `Increase-Undername-Limit` */
+  increaseQty?: number;
+  /** ANT (Metaplex Core asset) the name points at — required for `Buy-Name` */
+  processId?: string;
+};
+
+export type ArNSPriceResponse = {
+  /** Price in Winston credits */
+  winc: string;
+  /** Equivalent price in mARIO */
+  mARIO: string;
+  [key: string]: unknown;
+};
+
+export type ArNSPurchaseParams = ArNSPriceParams & {
+  /** Optional delegated payer address(es) whose credits cover the purchase */
+  paidBy?: UserAddress | UserAddress[];
+};
+
+export type ArNSPurchaseReceipt = {
+  name: string;
+  intent: ArNSPurchaseIntent;
+  type?: ArNSNameType;
+  years?: number;
+  increaseQty?: number;
+  processId?: string;
+  owner: UserAddress;
+  /** UUID that identifies this purchase (also the status-lookup key) */
+  nonce: string;
+  wincQty: string;
+  mARIOQty: string;
+  usdArRate: number;
+  usdArioRate: number;
+  paidBy: UserAddress[];
+  /** Solana transaction id of the on-chain ArNS write */
+  messageId: string;
+};
+
+export type ArNSPurchaseResponse = {
+  purchaseReceipt: ArNSPurchaseReceipt;
+  arioWriteResult: { id: string };
+  /** UUID nonce used for the purchase — poll `getArNSPurchaseStatus({ nonce })` with it */
+  nonce: string;
+};
+
+export type ArNSPurchaseStatusResponse = ArNSPurchaseReceipt & {
+  /** Present once the purchase has terminally failed */
+  failedDate?: string;
+};
+
 export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
+  getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
+  getArNSPurchaseStatus(p: {
+    nonce: string;
+  }): Promise<ArNSPurchaseStatusResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
@@ -963,6 +1037,28 @@ export interface TurboAuthenticatedPaymentServiceInterface
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
+
+  /** Buy / extend / upgrade an ArNS name, debiting the signer's credit balance. */
+  purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse>;
+  buyArNSName(
+    params: Omit<ArNSPurchaseParams, 'intent' | 'increaseQty'>,
+  ): Promise<ArNSPurchaseResponse>;
+  extendArNSLease(
+    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'increaseQty'> & {
+      years: number;
+    },
+  ): Promise<ArNSPurchaseResponse>;
+  increaseArNSUndernameLimit(
+    params: Omit<ArNSPurchaseParams, 'intent' | 'type' | 'years'> & {
+      increaseQty: number;
+    },
+  ): Promise<ArNSPurchaseResponse>;
+  upgradeArNSName(
+    params: Omit<
+      ArNSPurchaseParams,
+      'intent' | 'type' | 'years' | 'increaseQty'
+    >,
+  ): Promise<ArNSPurchaseResponse>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {
