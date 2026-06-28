@@ -541,6 +541,108 @@ export class TurboAuthenticatedPaymentService
     return this.purchaseArNSName({ ...params, intent: 'Upgrade-Name' });
   }
 
+  // ---- ArNS ANT custody: self-custody exit + manage records ----
+
+  // Canonical ACTION-BOUND message. MUST match the bundler's
+  // buildArNSCustodyMessage byte-for-byte (newline-delimited) or every signature
+  // is rejected. The bundler reconstructs this from the request and verifies the
+  // signature over `message + nonce`, so a captured signature can't be replayed
+  // against a different operation/params.
+  private buildArNSCustodyMessage(
+    action: 'transfer' | 'set-record' | 'remove-record',
+    fields: string[],
+  ): string {
+    return ['arns', action, ...fields].join('\n');
+  }
+
+  /**
+   * Self-custody exit: move a Turbo-custodied ANT to a Solana pubkey you control.
+   * Authenticated with an action-bound, single-use signature.
+   */
+  public async transferArNSAnt({
+    antId,
+    target,
+  }: {
+    antId: string;
+    target: string;
+  }): Promise<{
+    antId: string;
+    target: string;
+    name?: string;
+    messageId: string;
+  }> {
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(
+      nonce,
+      this.buildArNSCustodyMessage('transfer', [antId, target]),
+    );
+    return this.httpService.post({
+      endpoint: `/arns/transfer/${antId}?target=${encodeURIComponent(target)}`,
+      headers,
+      data: Buffer.from([]),
+    });
+  }
+
+  /** Set a resolution record on a custodied ANT (undername defaults to '@'). */
+  public async setArNSRecord({
+    antId,
+    undername = '@',
+    transactionId,
+    ttlSeconds,
+  }: {
+    antId: string;
+    undername?: string;
+    transactionId: string;
+    ttlSeconds: number;
+  }): Promise<{
+    antId: string;
+    undername: string;
+    transactionId: string;
+    ttlSeconds: number;
+    messageId: string;
+  }> {
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(
+      nonce,
+      this.buildArNSCustodyMessage('set-record', [
+        antId,
+        undername,
+        transactionId,
+        String(ttlSeconds),
+      ]),
+    );
+    const query = `?undername=${encodeURIComponent(
+      undername,
+    )}&transactionId=${transactionId}&ttlSeconds=${ttlSeconds}`;
+    return this.httpService.post({
+      endpoint: `/arns/manage/${antId}/set-record${query}`,
+      headers,
+      data: Buffer.from([]),
+    });
+  }
+
+  /** Remove a resolution record (an undername) from a custodied ANT. */
+  public async removeArNSRecord({
+    antId,
+    undername,
+  }: {
+    antId: string;
+    undername: string;
+  }): Promise<{ antId: string; undername: string; messageId: string }> {
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(
+      nonce,
+      this.buildArNSCustodyMessage('remove-record', [antId, undername]),
+    );
+    return this.httpService.post({
+      endpoint: `/arns/manage/${antId}/remove-record?undername=${encodeURIComponent(
+        undername,
+      )}`,
+      headers,
+      data: Buffer.from([]),
+    });
+  }
+
   public async getCreditShareApprovals({
     userAddress,
   }: {

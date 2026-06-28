@@ -160,5 +160,57 @@ describe('ArNS purchase client', () => {
       assert.ok(http.last.endpoint.includes('paidBy=payer-a'));
       assert.ok(http.last.endpoint.includes('paidBy=payer-b'));
     });
+
+    // The custody methods send a signed, UUID-nonced request to the bound
+    // endpoint. (Cross-system binding correctness — that the signed message
+    // equals the bundler's canonical string — is enforced by both sides using
+    // the identical newline-delimited builder + the bundler's binding tests.)
+    const assertSignedHeaders = () => {
+      assert.match(http.last.headers['x-nonce'], UUID_RE);
+      assert.ok(http.last.headers['x-public-key']?.length > 0);
+      assert.ok(http.last.headers['x-signature']?.length > 0);
+      assert.equal(http.last.headers['x-signature-type'], '1'); // arweave
+      assert.ok(Buffer.isBuffer(http.last.data));
+    };
+
+    it('transferArNSAnt posts to the transfer endpoint with a signed request', async () => {
+      http.response = { antId: 'ant-1', target: 'tgt-1', messageId: 'm' };
+      await service().transferArNSAnt({ antId: 'ant-1', target: 'tgt-1' });
+      assert.equal(http.last.method, 'POST');
+      assert.equal(http.last.endpoint, '/arns/transfer/ant-1?target=tgt-1');
+      assertSignedHeaders();
+    });
+
+    it('setArNSRecord posts the record op with a signed request', async () => {
+      await service().setArNSRecord({
+        antId: 'ant-1',
+        undername: 'docs',
+        transactionId: 'tx-1',
+        ttlSeconds: 900,
+      });
+      assert.equal(
+        http.last.endpoint,
+        '/arns/manage/ant-1/set-record?undername=docs&transactionId=tx-1&ttlSeconds=900',
+      );
+      assertSignedHeaders();
+    });
+
+    it('setArNSRecord defaults undername to @', async () => {
+      await service().setArNSRecord({
+        antId: 'ant-1',
+        transactionId: 'tx-1',
+        ttlSeconds: 900,
+      });
+      assert.ok(http.last.endpoint.includes('undername=%40'));
+    });
+
+    it('removeArNSRecord posts the remove op with a signed request', async () => {
+      await service().removeArNSRecord({ antId: 'ant-1', undername: 'docs' });
+      assert.equal(
+        http.last.endpoint,
+        '/arns/manage/ant-1/remove-record?undername=docs',
+      );
+      assertSignedHeaders();
+    });
   });
 });

@@ -894,6 +894,7 @@ export interface TurboDataItemSigner {
   }): Promise<TurboSignedDataItemFactory>;
   generateSignedRequestHeaders(
     nonce?: string,
+    additionalData?: string,
   ): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
@@ -1081,6 +1082,28 @@ export interface TurboAuthenticatedPaymentServiceInterface
   upgradeArNSName(
     params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse>;
+  transferArNSAnt(params: { antId: string; target: string }): Promise<{
+    antId: string;
+    target: string;
+    name?: string;
+    messageId: string;
+  }>;
+  setArNSRecord(params: {
+    antId: string;
+    undername?: string;
+    transactionId: string;
+    ttlSeconds: number;
+  }): Promise<{
+    antId: string;
+    undername: string;
+    transactionId: string;
+    ttlSeconds: number;
+    messageId: string;
+  }>;
+  removeArNSRecord(params: {
+    antId: string;
+    undername: string;
+  }): Promise<{ antId: string; undername: string; messageId: string }>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {
