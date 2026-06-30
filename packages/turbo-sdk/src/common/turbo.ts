@@ -383,6 +383,37 @@ export class TurboAuthenticatedClient
     return this.paymentService.upgradeArNSName(params);
   }
 
+  transferArNSAnt(params: { antId: string; target: string }): Promise<{
+    antId: string;
+    target: string;
+    name?: string;
+    messageId: string;
+  }> {
+    return this.paymentService.transferArNSAnt(params);
+  }
+
+  setArNSRecord(params: {
+    antId: string;
+    undername?: string;
+    transactionId: string;
+    ttlSeconds: number;
+  }): Promise<{
+    antId: string;
+    undername: string;
+    transactionId: string;
+    ttlSeconds: number;
+    messageId: string;
+  }> {
+    return this.paymentService.setArNSRecord(params);
+  }
+
+  removeArNSRecord(params: {
+    antId: string;
+    undername: string;
+  }): Promise<{ antId: string; undername: string; messageId: string }> {
+    return this.paymentService.removeArNSRecord(params);
+  }
+
   /**
    * Returns a list of all credit share approvals for the user.
    */
