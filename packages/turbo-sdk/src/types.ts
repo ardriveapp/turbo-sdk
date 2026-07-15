@@ -854,12 +854,18 @@ export interface TurboHTTPServiceInterface {
     headers,
     allowedStatuses,
     data,
+    retry,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
     data: Readable | ReadableStream | Buffer;
+    // Set false for NON-IDEMPOTENT signed writes (e.g. ArNS purchase/custody):
+    // the server treats the nonce as single-use, so an auto-retry after a slow
+    // (but landed) write is rejected as "already exists"/"nonce used" and
+    // surfaces a false failure. Callers poll status by nonce instead.
+    retry?: boolean;
   }): Promise<T>;
 }
 

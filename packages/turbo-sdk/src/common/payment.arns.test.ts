@@ -42,6 +42,7 @@ class FakeHttp {
     endpoint: string;
     headers?: any;
     data?: any;
+    retry?: boolean;
   }[] = [];
   public response: unknown = {};
   public error: unknown = undefined;
@@ -50,7 +51,12 @@ class FakeHttp {
     if (this.error) throw this.error;
     return this.response;
   }
-  async post(args: { endpoint: string; headers?: any; data?: any }) {
+  async post(args: {
+    endpoint: string;
+    headers?: any;
+    data?: any;
+    retry?: boolean;
+  }) {
     this.calls.push({ method: 'POST', ...args });
     if (this.error) throw this.error;
     return this.response;
@@ -225,6 +231,33 @@ describe('ArNS purchase client', () => {
       (s as unknown as { httpService: FakeHttp }).httpService = http;
       return s;
     };
+
+    // Regression: non-idempotent signed writes must NOT auto-retry — the nonce
+    // is single-use, so a retried-but-already-landed write 4xxs as
+    // "already exists"/"nonce used" and surfaces a false failure.
+    it('non-idempotent ArNS writes disable HTTP auto-retry (retry:false)', async () => {
+      http.response = {
+        purchaseReceipt: { name: 'foo' },
+        arioWriteResult: { id: 'x' },
+      };
+      const s = service();
+      await s.buyArNSName({ name: 'foo', type: 'permabuy', processId: 'ant' });
+      assert.equal(http.last.method, 'POST');
+      assert.equal(http.last.retry, false);
+
+      await s.transferArNSAnt({ antId: 'ant-1', target: 'tgt-1' });
+      assert.equal(http.last.retry, false);
+
+      await s.setArNSRecord({
+        antId: 'ant-1',
+        transactionId: 'tx-1',
+        ttlSeconds: 900,
+      });
+      assert.equal(http.last.retry, false);
+
+      await s.removeArNSRecord({ antId: 'ant-1', undername: 'docs' });
+      assert.equal(http.last.retry, false);
+    });
 
     it('purchaseArNSName signs a UUID nonce + sends signature-type, returns the nonce', async () => {
       http.response = {

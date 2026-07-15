@@ -580,6 +580,10 @@ export class TurboAuthenticatedPaymentService
         // Params travel in the query string + signed headers; the service reads
         // no body, but the HTTP layer requires a `data` field.
         data: Buffer.from([]),
+        // Non-idempotent signed write: the nonce is single-use, so a retried
+        // (but already-landed) purchase would 4xx as "already exists". Poll
+        // status by nonce instead of retrying.
+        retry: false,
       });
     } catch (error) {
       // Surface a credit shortfall as a typed, catchable error so callers can
@@ -669,6 +673,7 @@ export class TurboAuthenticatedPaymentService
       endpoint: `/arns/transfer/${antId}?target=${encodeURIComponent(target)}`,
       headers,
       data: Buffer.from([]),
+      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
     });
   }
 
@@ -707,6 +712,7 @@ export class TurboAuthenticatedPaymentService
       endpoint: `/arns/manage/${antId}/set-record${query}`,
       headers,
       data: Buffer.from([]),
+      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
     });
   }
 
@@ -729,6 +735,7 @@ export class TurboAuthenticatedPaymentService
       )}`,
       headers,
       data: Buffer.from([]),
+      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
     });
   }
 

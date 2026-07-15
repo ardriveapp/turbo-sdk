@@ -96,6 +96,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers,
     data,
     x402Options,
+    retry = true,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
@@ -103,6 +104,10 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream | Uint8Array;
     x402Options?: X402RequestCredentials;
+    // See TurboHTTPServiceInterface.post — false disables auto-retry for
+    // non-idempotent signed writes (a retried-but-already-landed write would
+    // otherwise surface a false "already exists"/"nonce used" failure).
+    retry?: boolean;
   }): Promise<T> {
     if (x402Options !== undefined) {
       return this.x402Post({
@@ -117,11 +122,13 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     // Convert all data types to fetch-compatible body
     const { body, duplex } = await toFetchBody(data);
 
-    // Use retry for Buffer/Uint8Array, tryRequest for streams
+    // Use retry for Buffer/Uint8Array, tryRequest for streams. Callers can opt
+    // out of retry for non-idempotent signed writes via `retry: false`.
     const isReusableData = data instanceof Buffer || data instanceof Uint8Array;
-    const requestFn = isReusableData
-      ? this.withRetry.bind(this)
-      : this.tryRequest.bind(this);
+    const requestFn =
+      isReusableData && retry
+        ? this.withRetry.bind(this)
+        : this.tryRequest.bind(this);
 
     return requestFn(
       () =>
