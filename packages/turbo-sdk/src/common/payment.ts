@@ -62,8 +62,14 @@ import {
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
   UserAddress,
+  arNSPurchaseIntents,
 } from '../types.js';
 import { isAnyValidUserAddress } from '../utils/common.js';
+import {
+  FailedRequestError,
+  InsufficientCreditsError,
+  ProvidedInputError,
+} from '../utils/errors.js';
 import { uuidV4 } from '../utils/uuid.js';
 import { defaultRetryConfig } from './http.js';
 import { TurboHTTPService } from './http.js';
@@ -187,14 +193,84 @@ export class TurboUnauthenticatedPaymentService
     };
   }
 
-  public getArNSPriceForName(
+  public async getArNSPriceForName(
     params: ArNSPriceParams,
   ): Promise<ArNSPriceResponse> {
+    // `async` so a validation failure surfaces as a rejected promise (consistent
+    // with `purchaseArNSName`) rather than a synchronous throw.
+    this.validateArNSPurchaseParams(params);
     return this.httpService.get<ArNSPriceResponse>({
       endpoint: `/arns/price/${params.intent.toLowerCase()}/${
         params.name
       }${this.buildArNSPurchaseQuery(params)}`,
     });
+  }
+
+  /**
+   * Fail fast (client-side) on malformed ArNS requests so JS callers that bypass
+   * the compile-time intent unions get a clear `ProvidedInputError` instead of an
+   * opaque service 4xx. Enforces the required fields per intent:
+   *  - `Buy-Name`: `type` ('lease' | 'permabuy') + `processId`; leases also need `years`
+   *  - `Extend-Lease`: positive `years`
+   *  - `Increase-Undername-Limit`: positive `increaseQty`
+   *  - `Upgrade-Name`: just `name`
+   */
+  protected validateArNSPurchaseParams(params: ArNSPriceParams): void {
+    const p = params as {
+      intent?: string;
+      name?: string;
+      type?: string;
+      years?: number;
+      increaseQty?: number;
+      processId?: string;
+    };
+    if (!arNSPurchaseIntents.includes(p.intent as never)) {
+      throw new ProvidedInputError(
+        `Invalid ArNS intent '${
+          p.intent
+        }'. Expected one of: ${arNSPurchaseIntents.join(', ')}.`,
+      );
+    }
+    if (typeof p.name !== 'string' || p.name.length === 0) {
+      throw new ProvidedInputError('An ArNS `name` is required.');
+    }
+    const isPositiveNumber = (v: unknown): boolean =>
+      typeof v === 'number' && Number.isFinite(v) && v > 0;
+    switch (p.intent) {
+      case 'Buy-Name':
+        if (p.type !== 'lease' && p.type !== 'permabuy') {
+          throw new ProvidedInputError(
+            "Buy-Name requires a `type` of 'lease' or 'permabuy'.",
+          );
+        }
+        if (typeof p.processId !== 'string' || p.processId.length === 0) {
+          throw new ProvidedInputError(
+            'Buy-Name requires a `processId` (the ANT the name resolves to).',
+          );
+        }
+        if (p.type === 'lease' && !isPositiveNumber(p.years)) {
+          throw new ProvidedInputError(
+            'A lease `Buy-Name` requires a positive `years`.',
+          );
+        }
+        break;
+      case 'Extend-Lease':
+        if (!isPositiveNumber(p.years)) {
+          throw new ProvidedInputError(
+            'Extend-Lease requires a positive `years`.',
+          );
+        }
+        break;
+      case 'Increase-Undername-Limit':
+        if (!isPositiveNumber(p.increaseQty)) {
+          throw new ProvidedInputError(
+            'Increase-Undername-Limit requires a positive `increaseQty`.',
+          );
+        }
+        break;
+      case 'Upgrade-Name':
+        break;
+    }
   }
 
   public getArNSPurchaseStatus({
@@ -487,21 +563,34 @@ export class TurboAuthenticatedPaymentService
   public async purchaseArNSName(
     params: ArNSPurchaseParams,
   ): Promise<ArNSPurchaseResponse> {
+    this.validateArNSPurchaseParams(params);
     // The bundler requires the signed nonce to be a UUID; it also doubles as
     // the idempotency + status-lookup key (`getArNSPurchaseStatus`).
     const nonce = uuidV4();
     const headers = await this.signer.generateSignedRequestHeaders(nonce);
-    const response = await this.httpService.post<
-      Omit<ArNSPurchaseResponse, 'nonce'>
-    >({
-      endpoint: `/arns/purchase/${params.intent.toLowerCase()}/${
-        params.name
-      }${this.buildArNSPurchaseQuery(params)}`,
-      headers,
-      // Params travel in the query string + signed headers; the service reads no
-      // body, but the HTTP layer requires a `data` field.
-      data: Buffer.from([]),
-    });
+    let response: Omit<ArNSPurchaseResponse, 'nonce'>;
+    try {
+      response = await this.httpService.post<
+        Omit<ArNSPurchaseResponse, 'nonce'>
+      >({
+        endpoint: `/arns/purchase/${params.intent.toLowerCase()}/${
+          params.name
+        }${this.buildArNSPurchaseQuery(params)}`,
+        headers,
+        // Params travel in the query string + signed headers; the service reads
+        // no body, but the HTTP layer requires a `data` field.
+        data: Buffer.from([]),
+      });
+    } catch (error) {
+      // Surface a credit shortfall as a typed, catchable error so callers can
+      // prompt a top-up. The `nonce` is the idempotency key: after topping up,
+      // retry the same purchase (a fresh nonce is fine — the service dedupes by
+      // the on-chain effect, and a captured nonce lets you poll status).
+      if (error instanceof FailedRequestError && error.status === 402) {
+        throw new InsufficientCreditsError(error.message);
+      }
+      throw error;
+    }
     // Normalize both nonce fields to the one we signed so callers can poll with
     // either `response.nonce` or `response.purchaseReceipt.nonce`.
     return {

@@ -18,3 +18,6 @@ export * from './payment.js';
 export * from './turbo.js';
 export * from './currency.js';
 export * from './token/index.js';
+// Typed errors so consumers can `catch (e) { if (e instanceof InsufficientCreditsError) ... }`
+// e.g. to prompt a top-up on a 402 ArNS purchase.
+export * from '../utils/errors.js';
