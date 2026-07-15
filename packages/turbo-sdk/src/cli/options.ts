@@ -200,6 +200,51 @@ export const optionMap = {
     description:
       'Maximum crypto top-up value to use for the upload. Defaults to no limit.',
   },
+  // ---- ArNS (paid with Turbo Credits) ----
+  arnsName: {
+    alias: '--name <name>',
+    description: 'ArNS name to price, buy, or manage',
+  },
+  arnsType: {
+    alias: '--type <type>',
+    description: "ArNS purchase type for Buy-Name: 'lease' or 'permabuy'",
+  },
+  arnsYears: {
+    alias: '--years <years>',
+    description: 'Lease duration in years (Buy-Name lease / Extend-Lease)',
+  },
+  arnsIncreaseQty: {
+    alias: '--increase-qty <qty>',
+    description: 'Number of additional undernames (Increase-Undername-Limit)',
+  },
+  arnsProcessId: {
+    alias: '--process-id <processId>',
+    description: 'ANT process ID the ArNS name resolves to (Buy-Name)',
+  },
+  arnsNonce: {
+    alias: '--nonce <nonce>',
+    description: 'ArNS purchase nonce to look up the status for',
+  },
+  arnsAntId: {
+    alias: '--ant-id <antId>',
+    description: 'ANT (Metaplex Core asset) ID to transfer or manage',
+  },
+  arnsTarget: {
+    alias: '--target <address>',
+    description: 'Target Solana pubkey to transfer the ANT to',
+  },
+  arnsUndername: {
+    alias: '--undername <undername>',
+    description: "ArNS undername record to set or remove (defaults to '@')",
+  },
+  arnsTransactionId: {
+    alias: '--transaction-id <transactionId>',
+    description: 'Arweave transaction ID the ArNS record resolves to',
+  },
+  arnsTtlSeconds: {
+    alias: '--ttl-seconds <ttlSeconds>',
+    description: 'TTL in seconds for the ArNS record',
+  },
 } as const;
 
 export const walletOptions = [
@@ -262,3 +307,64 @@ export const shareCreditsOptions = [
 export const revokeCreditsOptions = [...walletOptions, optionMap.address];
 
 export const listSharesOptions = revokeCreditsOptions;
+
+// ---- ArNS command option sets (token + --payment-url come from globalOptions) ----
+
+export const arnsPriceOptions = [
+  optionMap.arnsName,
+  optionMap.arnsType,
+  optionMap.arnsYears,
+  optionMap.arnsIncreaseQty,
+  optionMap.arnsProcessId,
+];
+
+export const buyArNSNameOptions = [
+  ...walletOptions,
+  optionMap.arnsName,
+  optionMap.arnsType,
+  optionMap.arnsYears,
+  optionMap.arnsProcessId,
+  optionMap.paidBy,
+];
+
+export const extendArNSLeaseOptions = [
+  ...walletOptions,
+  optionMap.arnsName,
+  optionMap.arnsYears,
+  optionMap.paidBy,
+];
+
+export const increaseArNSUndernamesOptions = [
+  ...walletOptions,
+  optionMap.arnsName,
+  optionMap.arnsIncreaseQty,
+  optionMap.paidBy,
+];
+
+export const upgradeArNSNameOptions = [
+  ...walletOptions,
+  optionMap.arnsName,
+  optionMap.paidBy,
+];
+
+export const arnsPurchaseStatusOptions = [optionMap.arnsNonce];
+
+export const transferArNSAntOptions = [
+  ...walletOptions,
+  optionMap.arnsAntId,
+  optionMap.arnsTarget,
+];
+
+export const setArNSRecordOptions = [
+  ...walletOptions,
+  optionMap.arnsAntId,
+  optionMap.arnsUndername,
+  optionMap.arnsTransactionId,
+  optionMap.arnsTtlSeconds,
+];
+
+export const removeArNSRecordOptions = [
+  ...walletOptions,
+  optionMap.arnsAntId,
+  optionMap.arnsUndername,
+];

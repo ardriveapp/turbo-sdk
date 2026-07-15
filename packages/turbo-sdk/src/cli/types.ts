@@ -103,3 +103,39 @@ export type RevokeCreditsOptions = WalletOptions & {
 };
 
 export type ListSharesOptions = RevokeCreditsOptions;
+
+// ---- ArNS CLI options ----
+
+export type ArNSPriceOptions = GlobalOptions & {
+  name: string | undefined;
+  type: string | undefined;
+  years: string | undefined;
+  increaseQty: string | undefined;
+  processId: string | undefined;
+};
+
+export type ArNSPurchaseOptions = WalletOptions &
+  ArNSPriceOptions & {
+    paidBy: string[] | undefined;
+  };
+
+export type ArNSPurchaseStatusOptions = GlobalOptions & {
+  nonce: string | undefined;
+};
+
+export type TransferArNSAntOptions = WalletOptions & {
+  antId: string | undefined;
+  target: string | undefined;
+};
+
+export type SetArNSRecordOptions = WalletOptions & {
+  antId: string | undefined;
+  undername: string | undefined;
+  transactionId: string | undefined;
+  ttlSeconds: string | undefined;
+};
+
+export type RemoveArNSRecordOptions = WalletOptions & {
+  antId: string | undefined;
+  undername: string | undefined;
+};

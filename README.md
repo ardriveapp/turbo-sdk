@@ -1744,6 +1744,185 @@ e.g:
 turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
 
+#### ArNS Commands
+
+Buy and manage [ArNS](#arns-names-paid-with-turbo-credits) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
+
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`) do not.
+
+When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
+
+##### `arns-price`
+
+Get the Turbo Credit price (in `winc` + `mARIO`, plus the equivalent Credits) to buy, extend, increase undernames on, or upgrade an ArNS name. The intent is inferred from the flags you pass:
+
+- `--type <lease|permabuy>` → Buy-Name (a lease also needs `--years`)
+- `--increase-qty <qty>` → Increase-Undername-Limit
+- `--years <years>` (without `--type`) → Extend-Lease
+- only `--name` → Upgrade-Name
+
+Command Options:
+
+- `--name <name>` - ArNS name to price
+- `--type <lease|permabuy>` - Purchase type for a Buy-Name price
+- `--years <years>` - Lease duration in years (Buy-Name lease / Extend-Lease)
+- `--increase-qty <qty>` - Number of additional undernames to price
+- `--process-id <processId>` - ANT process ID (optional for pricing; only needed for an actual purchase)
+
+e.g:
+
+```shell
+# Price a 1-year lease against a local bundler
+turbo arns-price --name my-name --type lease --years 1 --payment-url http://localhost:4001
+```
+
+```shell
+# Price a permabuy
+turbo arns-price --name my-name --type permabuy
+```
+
+```shell
+# Price extending an existing lease by 2 years
+turbo arns-price --name my-name --years 2
+```
+
+##### `buy-arns-name`
+
+Buy an ArNS name (lease or permabuy) paying with Turbo Credits. Prints the purchase receipt and a `nonce` to track the on-chain write.
+
+Command Options:
+
+- `--name <name>` - ArNS name to buy
+- `--type <lease|permabuy>` - Purchase type
+- `--years <years>` - Lease duration in years (required for `lease`)
+- `--process-id <processId>` - ANT process ID the name resolves to
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose credits cover the purchase
+
+e.g:
+
+```shell
+# Lease a name for 1 year with an Arweave wallet against a local bundler
+turbo buy-arns-name --name my-name --type lease --years 1 \
+  --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA \
+  --wallet-file ../path/to/my/wallet.json --payment-url http://localhost:4001
+```
+
+```shell
+# Permabuy a name using a Solana wallet
+turbo buy-arns-name --name my-name --type permabuy \
+  --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA \
+  --token solana --wallet-file ../path/to/sol/secret-key.json
+```
+
+##### `extend-arns-lease`
+
+Extend an existing ArNS name lease with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name whose lease to extend
+- `--years <years>` - Number of years to extend by
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo extend-arns-lease --name my-name --years 2 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `increase-arns-undernames`
+
+Increase the undername limit of an ArNS name with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name to modify
+- `--increase-qty <qty>` - Number of additional undernames
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo increase-arns-undernames --name my-name --increase-qty 10 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `upgrade-arns-name`
+
+Upgrade an ArNS leased name to a permanent (permabuy) name with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name to upgrade
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo upgrade-arns-name --name my-name --wallet-file ../path/to/my/wallet.json
+```
+
+##### `arns-purchase-status`
+
+Get the status of an ArNS purchase by its nonce (returned by the buy/extend/upgrade commands). The response includes a `state` of `pending`, `success`, or `failed`.
+
+Command Options:
+
+- `--nonce <nonce>` - The purchase nonce to look up
+
+e.g:
+
+```shell
+turbo arns-purchase-status --nonce 3f8c...e21 --payment-url http://localhost:4001
+```
+
+##### `transfer-arns-ant`
+
+Self-custody exit: transfer a Turbo-custodied ANT to a Solana public key you control. Authenticated with an action-bound, single-use signature.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
+- `--target <address>` - Target Solana pubkey to transfer the ANT to
+
+e.g:
+
+```shell
+turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+```
+
+##### `set-arns-record`
+
+Set a resolution record on a Turbo-custodied ANT.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to set a record on
+- `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
+- `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
+- `--ttl-seconds <ttlSeconds>` - TTL in seconds for the record
+
+e.g:
+
+```shell
+turbo set-arns-record --ant-id ant-123 --undername docs \
+  --transaction-id A1b2...Xyz --ttl-seconds 900 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-record`
+
+Remove a resolution record (undername) from a Turbo-custodied ANT.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to remove a record from
+- `--undername <undername>` - Undername record to remove
+
+e.g:
+
+```shell
+turbo remove-arns-record --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+```
+
 ## Turbo Credit Sharing
 
 Users can share their purchased Credits with other users' wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with tags indicating the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
