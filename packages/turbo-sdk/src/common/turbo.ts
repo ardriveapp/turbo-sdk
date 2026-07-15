@@ -16,7 +16,7 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
-  ArNSBuyNameParams,
+  ArNSBuyNameArgs,
   ArNSExtendLeaseParams,
   ArNSIncreaseUndernameLimitParams,
   ArNSPaidByParams,
@@ -356,9 +356,7 @@ export class TurboAuthenticatedClient
   }
 
   /** Buys a new ArNS name (lease or permabuy). */
-  buyArNSName(
-    params: Omit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
+  buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse> {
     return this.paymentService.buyArNSName(params);
   }
 

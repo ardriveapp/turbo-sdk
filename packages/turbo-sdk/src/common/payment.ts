@@ -16,7 +16,7 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
-  ArNSBuyNameParams,
+  ArNSBuyNameArgs,
   ArNSExtendLeaseParams,
   ArNSIncreaseUndernameLimitParams,
   ArNSNameType,
@@ -210,7 +210,9 @@ export class TurboUnauthenticatedPaymentService
    * Fail fast (client-side) on malformed ArNS requests so JS callers that bypass
    * the compile-time intent unions get a clear `ProvidedInputError` instead of an
    * opaque service 4xx. Enforces the required fields per intent:
-   *  - `Buy-Name`: `type` ('lease' | 'permabuy') + `processId`; leases also need `years`
+   *  - `Buy-Name`: `type` ('lease' | 'permabuy'); leases also need `years`.
+   *    `processId` is OPTIONAL — omit it to have the bundler custodially
+   *    provision the ANT (Turbo owns it), supply it for a user-owned ANT.
    *  - `Extend-Lease`: positive `years`
    *  - `Increase-Undername-Limit`: positive `increaseQty`
    *  - `Upgrade-Name`: just `name`
@@ -243,9 +245,15 @@ export class TurboUnauthenticatedPaymentService
             "Buy-Name requires a `type` of 'lease' or 'permabuy'.",
           );
         }
-        if (typeof p.processId !== 'string' || p.processId.length === 0) {
+        // `processId` is optional for Buy-Name: omitting it drives the
+        // bundler's custodial provisioning path (Turbo spawns + owns the ANT).
+        // If supplied it must be a non-empty string (user-owned ANT).
+        if (
+          p.processId !== undefined &&
+          (typeof p.processId !== 'string' || p.processId.length === 0)
+        ) {
           throw new ProvidedInputError(
-            'Buy-Name requires a `processId` (the ANT the name resolves to).',
+            'Buy-Name `processId`, when provided, must be a non-empty string (the ANT the name resolves to).',
           );
         }
         if (p.type === 'lease' && !isPositiveNumber(p.years)) {
@@ -604,9 +612,7 @@ export class TurboAuthenticatedPaymentService
     };
   }
 
-  public buyArNSName(
-    params: Omit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
+  public buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse> {
     return this.purchaseArNSName({
       ...params,
       intent: 'Buy-Name',

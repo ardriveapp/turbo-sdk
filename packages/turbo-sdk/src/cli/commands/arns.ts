@@ -52,7 +52,7 @@ export type ArNSPurchaseClient = {
     name: string;
     type: ArNSNameType;
     years?: number;
-    processId: string;
+    processId?: string;
     paidBy?: string[];
   }): Promise<ArNSPurchaseResponse>;
   extendArNSLease(params: {
@@ -254,10 +254,10 @@ export async function buyArNSName(
 ): Promise<void> {
   const name = requiredNameFromOptions(options);
   const type = typeFromOptions(options.type);
-  if (options.processId === undefined) {
-    throw new Error('Must provide a --process-id (the ANT ID) to buy a name');
-  }
   const paidBy = paidByFromArNSOptions(options.paidBy);
+  // `--process-id` is OPTIONAL: omit it to have Turbo custodially provision the
+  // ANT (Turbo spawns + owns it — Model A); supply it to point the name at a
+  // user-owned ANT (Model B). When omitted, no `processId` is sent.
   const processId = options.processId;
 
   const client = turbo ?? (await turboFromOptions(options));

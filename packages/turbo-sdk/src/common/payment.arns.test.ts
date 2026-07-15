@@ -170,17 +170,32 @@ describe('ArNS purchase client', () => {
       await assert.rejects(
         () =>
           service().getArNSPriceForName({
-            // missing processId
+            // lease missing `years`
             intent: 'Buy-Name',
             name: 'my-name',
             type: 'lease',
-            years: 1,
           } as never),
         (err: unknown) =>
           err instanceof ProvidedInputError &&
-          /processId/.test((err as Error).message),
+          /years/.test((err as Error).message),
       );
       assert.equal(http.calls.length, 0, 'no request should be issued');
+    });
+
+    it('getArNSPriceForName omits processId from the query when not supplied (custodial)', async () => {
+      await service().getArNSPriceForName({
+        intent: 'Buy-Name',
+        name: 'my-name',
+        type: 'permabuy',
+      });
+      assert.equal(
+        http.last.endpoint,
+        '/arns/price/buy-name/my-name?type=permabuy',
+      );
+      assert.ok(
+        !http.last.endpoint.includes('processId'),
+        'no processId query param should be sent',
+      );
     });
 
     it('getArNSPurchaseStatus uses the nonce path', async () => {
@@ -342,6 +357,74 @@ describe('ArNS purchase client', () => {
       assert.equal(
         http.last.endpoint,
         '/arns/purchase/buy-name/foo?type=permabuy&processId=ant-p',
+      );
+    });
+
+    // Custodial provisioning (Model A): omitting processId must send NO
+    // processId query param so the bundler spawns + owns the ANT.
+    it('buyArNSName WITHOUT processId omits it from the query (custodial permabuy)', async () => {
+      http.response = {
+        purchaseReceipt: { name: 'foo' },
+        arioWriteResult: { id: 'x' },
+      };
+      await service().buyArNSName({ name: 'foo', type: 'permabuy' });
+      assert.equal(
+        http.last.endpoint,
+        '/arns/purchase/buy-name/foo?type=permabuy',
+      );
+      assert.ok(
+        !http.last.endpoint.includes('processId'),
+        'no processId query param should be sent for a custodial buy',
+      );
+    });
+
+    it('buyArNSName WITHOUT processId omits it from the query (custodial lease)', async () => {
+      http.response = {
+        purchaseReceipt: { name: 'foo' },
+        arioWriteResult: { id: 'x' },
+      };
+      await service().buyArNSName({ name: 'foo', type: 'lease', years: 2 });
+      assert.equal(
+        http.last.endpoint,
+        '/arns/purchase/buy-name/foo?type=lease&years=2',
+      );
+      assert.ok(!http.last.endpoint.includes('processId'));
+    });
+
+    it('buyArNSName WITH processId still includes it in the query (user-owned ANT)', async () => {
+      http.response = {
+        purchaseReceipt: { name: 'foo' },
+        arioWriteResult: { id: 'x' },
+      };
+      await service().buyArNSName({
+        name: 'foo',
+        type: 'permabuy',
+        processId: 'ant',
+      });
+      assert.ok(http.last.endpoint.includes('processId=ant'));
+    });
+
+    it('validateArNSPurchaseParams no longer rejects a Buy-Name missing processId', async () => {
+      http.response = {
+        purchaseReceipt: { name: 'foo' },
+        arioWriteResult: { id: 'x' },
+      };
+      // Must NOT throw a ProvidedInputError; a request should be issued.
+      await service().buyArNSName({ name: 'foo', type: 'permabuy' });
+      assert.equal(http.last.method, 'POST');
+    });
+
+    it('rejects a Buy-Name with an explicit empty-string processId', async () => {
+      await assert.rejects(
+        () =>
+          service().buyArNSName({
+            name: 'foo',
+            type: 'permabuy',
+            processId: '',
+          }),
+        (err: unknown) =>
+          err instanceof ProvidedInputError &&
+          /processId/.test((err as Error).message),
       );
     });
 

@@ -299,16 +299,33 @@ describe('ArNS CLI commands', () => {
       });
     });
 
-    it('requires --process-id', async () => {
-      await assert.rejects(
-        () =>
-          buyArNSName(
-            purchaseOptions({ name: 'foo', type: 'permabuy' }),
-            turbo,
-          ),
-        /process-id/,
+    it('builds a custodial permabuy request when --process-id is omitted', async () => {
+      await buyArNSName(
+        purchaseOptions({ name: 'foo', type: 'permabuy' }),
+        turbo,
       );
-      assert.equal(turbo.calls.length, 0);
+      assert.equal(turbo.last.method, 'buyArNSName');
+      // No processId is forwarded -> the bundler custodially provisions the ANT.
+      assert.deepEqual(turbo.last.params, {
+        name: 'foo',
+        type: 'permabuy',
+        processId: undefined,
+        paidBy: undefined,
+      });
+    });
+
+    it('builds a custodial lease request when --process-id is omitted', async () => {
+      await buyArNSName(
+        purchaseOptions({ name: 'foo', type: 'lease', years: '1' }),
+        turbo,
+      );
+      assert.deepEqual(turbo.last.params, {
+        name: 'foo',
+        type: 'lease',
+        years: 1,
+        processId: undefined,
+        paidBy: undefined,
+      });
     });
 
     it('requires a valid --type', async () => {

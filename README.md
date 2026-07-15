@@ -1064,8 +1064,20 @@ const { winc, mARIO } = await turbo.getArNSPriceForName({
 
 `buyArNSName(params)` is the `Buy-Name` convenience wrapper over `purchaseArNSName`. Optionally, `paidBy` delegates the charge to one or more addresses that have shared credits with you.
 
+**`processId` is optional**, and it selects who owns the ANT (Metaplex Core asset) the name resolves to:
+
+- **Omit `processId`** → **Turbo custodial provisioning** (Model A): Turbo spawns and _owns_ the ANT for you. You can take self-custody later via `transferArNSAnt` (see "ANT custody" below).
+- **Supply `processId`** → **user-owned ANT** (Model B): the name points at an ANT you already own; Turbo never takes custody.
+
 ```typescript
-// Lease for 1 year
+// Custodial lease (Model A): omit processId → Turbo owns the ANT
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+});
+
+// Lease against your own ANT (Model B) for 1 year
 const receipt = await turbo.buyArNSName({
   name: 'my-name',
   type: 'lease',
@@ -1077,7 +1089,7 @@ const receipt = await turbo.buyArNSName({
 const receipt = await turbo.buyArNSName({
   name: 'my-name',
   type: 'permabuy',
-  processId: 'ant-process-id',
+  processId: 'ant-process-id', // optional — omit for Turbo custodial provisioning
   paidBy: '<delegated-payer-address>', // or an array of addresses
 });
 
@@ -1795,13 +1807,19 @@ Command Options:
 - `--name <name>` - ArNS name to buy
 - `--type <lease|permabuy>` - Purchase type
 - `--years <years>` - Lease duration in years (required for `lease`)
-- `--process-id <processId>` - ANT process ID the name resolves to
+- `--process-id <processId>` - ANT process ID the name resolves to. **Optional**: omit it for Turbo custodial provisioning (Turbo spawns + owns the ANT — Model A; take self-custody later via `transfer-arns-ant`); supply it to point the name at a user-owned ANT (Model B).
 - `--paid-by <paidBy...>` - Optional delegated payer address(es) whose credits cover the purchase
 
 e.g:
 
 ```shell
-# Lease a name for 1 year with an Arweave wallet against a local bundler
+# Custodial lease (Model A): omit --process-id → Turbo provisions + owns the ANT
+turbo buy-arns-name --name my-name --type lease --years 1 \
+  --wallet-file ../path/to/my/wallet.json --payment-url http://localhost:4001
+```
+
+```shell
+# Lease a name for 1 year against your own ANT (Model B) with an Arweave wallet
 turbo buy-arns-name --name my-name --type lease --years 1 \
   --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA \
   --wallet-file ../path/to/my/wallet.json --payment-url http://localhost:4001

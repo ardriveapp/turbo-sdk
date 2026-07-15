@@ -219,7 +219,8 @@ export const optionMap = {
   },
   arnsProcessId: {
     alias: '--process-id <processId>',
-    description: 'ANT process ID the ArNS name resolves to (Buy-Name)',
+    description:
+      'ANT process ID the ArNS name resolves to (Buy-Name). Optional: omit for Turbo custodial provisioning (Turbo owns the ANT); supply for a user-owned ANT',
   },
   arnsNonce: {
     alias: '--nonce <nonce>',

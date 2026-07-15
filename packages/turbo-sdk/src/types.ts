@@ -929,15 +929,23 @@ export type ArNSBuyNameLeaseParams = {
   type: 'lease';
   /** Lease duration in years */
   years: number;
-  /** ANT (Metaplex Core asset) the name resolves to */
-  processId: string;
+  /**
+   * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+   * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+   * supply to point the name at a user-owned ANT (Model B).
+   */
+  processId?: string;
 };
 export type ArNSBuyNamePermabuyParams = {
   intent: 'Buy-Name';
   name: string;
   type: 'permabuy';
-  /** ANT (Metaplex Core asset) the name resolves to */
-  processId: string;
+  /**
+   * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+   * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+   * supply to point the name at a user-owned ANT (Model B).
+   */
+  processId?: string;
 };
 export type ArNSBuyNameParams =
   | ArNSBuyNameLeaseParams
@@ -975,6 +983,19 @@ export type ArNSPriceResponse = {
 };
 
 export type ArNSPurchaseParams = ArNSPriceParams & ArNSPaidByParams;
+
+/**
+ * Distributive `Omit` so a discriminated union keeps its per-branch fields.
+ * The built-in `Omit<A | B, K>` collapses to only the keys common to every
+ * member (dropping e.g. a lease's `years`); this maps over each member instead.
+ */
+export type DistributiveOmit<T, K extends keyof never> = T extends unknown
+  ? Omit<T, K>
+  : never;
+
+/** `buyArNSName` params: any Buy-Name variant minus the (implied) `intent`. */
+export type ArNSBuyNameArgs = DistributiveOmit<ArNSBuyNameParams, 'intent'> &
+  ArNSPaidByParams;
 
 export type ArNSPurchaseReceipt = {
   name: string;
@@ -1076,9 +1097,7 @@ export interface TurboAuthenticatedPaymentServiceInterface
 
   /** Buy / extend / upgrade an ArNS name, debiting the signer's credit balance. */
   purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse>;
-  buyArNSName(
-    params: Omit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse>;
+  buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse>;
   extendArNSLease(
     params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
   ): Promise<ArNSPurchaseResponse>;
