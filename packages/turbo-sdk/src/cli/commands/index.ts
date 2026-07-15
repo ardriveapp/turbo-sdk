@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+export * from './arns.js';
 export * from './balance.js';
 export * from './cryptoFund.js';
 export * from './price.js';

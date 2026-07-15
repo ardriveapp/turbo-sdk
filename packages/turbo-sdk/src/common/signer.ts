@@ -125,9 +125,18 @@ export abstract class TurboDataItemAbstractSigner
     }
   }
 
-  public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {
-    const nonce = randomBytes(16).toString('hex');
-    const buffer = Buffer.from(nonce);
+  public async generateSignedRequestHeaders(
+    // Callers may supply the nonce (e.g. a UUID required by some routes); the
+    // nonce round-trips to the service in `x-nonce` unchanged.
+    nonce: string = randomBytes(16).toString('hex'),
+    // Optional ACTION-BINDING data prepended to the nonce for SIGNING only (not
+    // sent): the service reconstructs the same string from the request and
+    // verifies the signature over `additionalData + nonce`. This binds the
+    // signature to a specific operation + params so it can't be replayed against
+    // a different request. Omitted → signs the bare nonce (unchanged behavior).
+    additionalData?: string,
+  ): Promise<TurboSignedRequestHeaders> {
+    const buffer = Buffer.from((additionalData ?? '') + nonce);
     const signature = await this.signer.sign(Uint8Array.from(buffer));
     const publicKey = toB64Url(this.signer.publicKey);
     return {

@@ -44,6 +44,26 @@ export class ProvidedInputError extends BaseError {
   }
 }
 
+/**
+ * Raised when a credit-paid operation (e.g. an ArNS purchase) is rejected by the
+ * service because the paying wallet does not hold enough Turbo credits. Maps the
+ * bundler's HTTP `402 Payment Required` response to a typed, catchable error so
+ * callers can prompt a top-up without string-matching on messages.
+ *
+ * Recovery: top up the balance, then retry the SAME operation reusing the
+ * captured `nonce` (the nonce is the idempotency key), or mint a fresh request.
+ */
+export class InsufficientCreditsError extends BaseError {
+  /** Always the HTTP status that produced this error. */
+  public readonly status = 402;
+  constructor(message?: string) {
+    super(
+      message ??
+        'Insufficient Turbo credits to complete this purchase. Top up your balance and retry.',
+    );
+  }
+}
+
 export class AbortError extends BaseError {
   constructor(message = 'Request was aborted') {
     super(message);

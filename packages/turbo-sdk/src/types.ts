@@ -854,12 +854,18 @@ export interface TurboHTTPServiceInterface {
     headers,
     allowedStatuses,
     data,
+    retry,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
     data: Readable | ReadableStream | Buffer;
+    // Set false for NON-IDEMPOTENT signed writes (e.g. ArNS purchase/custody):
+    // the server treats the nonce as single-use, so an auto-retry after a slow
+    // (but landed) write is rejected as "already exists"/"nonce used" and
+    // surfaces a false failure. Callers poll status by nonce instead.
+    retry?: boolean;
   }): Promise<T>;
 }
 
@@ -892,7 +898,10 @@ export interface TurboDataItemSigner {
   }: TurboFileFactory & {
     emitter?: TurboEventEmitter;
   }): Promise<TurboSignedDataItemFactory>;
-  generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
+  generateSignedRequestHeaders(
+    nonce?: string,
+    additionalData?: string,
+  ): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
   getPublicKey(): Promise<Buffer>;
@@ -901,8 +910,130 @@ export interface TurboDataItemSigner {
   walletAdapter?: WalletAdapter;
 }
 
+// ===== ArNS purchases paid with Turbo credits (via the bundler REST API) =====
+
+export const arNSPurchaseIntents = [
+  'Buy-Name',
+  'Extend-Lease',
+  'Increase-Undername-Limit',
+  'Upgrade-Name',
+] as const;
+export type ArNSPurchaseIntent = (typeof arNSPurchaseIntents)[number];
+export type ArNSNameType = 'lease' | 'permabuy';
+
+// Intent-specific shapes so the required fields per intent are enforced at
+// compile time rather than surfacing as runtime 4xxs from the service.
+export type ArNSBuyNameLeaseParams = {
+  intent: 'Buy-Name';
+  name: string;
+  type: 'lease';
+  /** Lease duration in years */
+  years: number;
+  /**
+   * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+   * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+   * supply to point the name at a user-owned ANT (Model B).
+   */
+  processId?: string;
+};
+export type ArNSBuyNamePermabuyParams = {
+  intent: 'Buy-Name';
+  name: string;
+  type: 'permabuy';
+  /**
+   * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+   * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+   * supply to point the name at a user-owned ANT (Model B).
+   */
+  processId?: string;
+};
+export type ArNSBuyNameParams =
+  | ArNSBuyNameLeaseParams
+  | ArNSBuyNamePermabuyParams;
+export type ArNSExtendLeaseParams = {
+  intent: 'Extend-Lease';
+  name: string;
+  years: number;
+};
+export type ArNSIncreaseUndernameLimitParams = {
+  intent: 'Increase-Undername-Limit';
+  name: string;
+  increaseQty: number;
+};
+export type ArNSUpgradeNameParams = {
+  intent: 'Upgrade-Name';
+  name: string;
+};
+
+export type ArNSPriceParams =
+  | ArNSBuyNameParams
+  | ArNSExtendLeaseParams
+  | ArNSIncreaseUndernameLimitParams
+  | ArNSUpgradeNameParams;
+
+/** Optional delegated payer address(es) whose credits cover a purchase */
+export type ArNSPaidByParams = { paidBy?: UserAddress | UserAddress[] };
+
+export type ArNSPriceResponse = {
+  /** Price in Winston credits */
+  winc: string;
+  /** Equivalent price in mARIO */
+  mARIO: string;
+  [key: string]: unknown;
+};
+
+export type ArNSPurchaseParams = ArNSPriceParams & ArNSPaidByParams;
+
+/**
+ * Distributive `Omit` so a discriminated union keeps its per-branch fields.
+ * The built-in `Omit<A | B, K>` collapses to only the keys common to every
+ * member (dropping e.g. a lease's `years`); this maps over each member instead.
+ */
+export type DistributiveOmit<T, K extends keyof never> = T extends unknown
+  ? Omit<T, K>
+  : never;
+
+/** `buyArNSName` params: any Buy-Name variant minus the (implied) `intent`. */
+export type ArNSBuyNameArgs = DistributiveOmit<ArNSBuyNameParams, 'intent'> &
+  ArNSPaidByParams;
+
+export type ArNSPurchaseReceipt = {
+  name: string;
+  intent: ArNSPurchaseIntent;
+  type?: ArNSNameType;
+  years?: number;
+  increaseQty?: number;
+  processId?: string;
+  owner: UserAddress;
+  /** UUID that identifies this purchase (also the status-lookup key) */
+  nonce: string;
+  wincQty: string;
+  mARIOQty: string;
+  usdArRate: number;
+  usdArioRate: number;
+  paidBy: UserAddress[];
+  /** Solana transaction id of the on-chain ArNS write */
+  messageId: string;
+};
+
+export type ArNSPurchaseResponse = {
+  purchaseReceipt: ArNSPurchaseReceipt;
+  arioWriteResult: { id: string };
+  /** UUID nonce used for the purchase — poll `getArNSPurchaseStatus({ nonce })` with it */
+  nonce: string;
+};
+
+export type ArNSPurchaseStatusResponse = ArNSPurchaseReceipt & {
+  /** Present once the purchase has terminally failed */
+  failedDate?: string;
+};
+
 export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
+  getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
+  getArNSPurchaseStatus(p: {
+    nonce: string;
+  }): Promise<ArNSPurchaseStatusResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
@@ -963,6 +1094,41 @@ export interface TurboAuthenticatedPaymentServiceInterface
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
+
+  /** Buy / extend / upgrade an ArNS name, debiting the signer's credit balance. */
+  purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse>;
+  buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse>;
+  extendArNSLease(
+    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
+  ): Promise<ArNSPurchaseResponse>;
+  increaseArNSUndernameLimit(
+    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
+  ): Promise<ArNSPurchaseResponse>;
+  upgradeArNSName(
+    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
+  ): Promise<ArNSPurchaseResponse>;
+  transferArNSAnt(params: { antId: string; target: string }): Promise<{
+    antId: string;
+    target: string;
+    name?: string;
+    messageId: string;
+  }>;
+  setArNSRecord(params: {
+    antId: string;
+    undername?: string;
+    transactionId: string;
+    ttlSeconds: number;
+  }): Promise<{
+    antId: string;
+    undername: string;
+    transactionId: string;
+    ttlSeconds: number;
+    messageId: string;
+  }>;
+  removeArNSRecord(params: {
+    antId: string;
+    undername: string;
+  }): Promise<{ antId: string; undername: string; messageId: string }>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {

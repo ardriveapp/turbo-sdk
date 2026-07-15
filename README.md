@@ -20,6 +20,16 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboFactory](#turbofactory)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
+- [ArNS Names (paid with Turbo Credits)](#arns-names-paid-with-turbo-credits)
+  - [Purchase lifecycle](#purchase-lifecycle)
+  - [Connecting a signer](#connecting-a-signer)
+  - [Pricing a name](#pricing-a-name)
+  - [Buying a name](#buying-a-name)
+  - [Extend, increase undernames, upgrade](#extend-increase-undernames-upgrade)
+  - [Polling purchase status](#polling-purchase-status)
+  - [ANT custody: transfer & manage records](#ant-custody-transfer--manage-records)
+  - [Error handling & retries](#error-handling--retries)
+  - [Dependency note (@solana/codecs)](#dependency-note-solanacodecs)
 - [Signers](#signers)
   - [Arweave](#arweave)
   - [Ethereum](#ethereum)
@@ -985,6 +995,225 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
+## ArNS Names (paid with Turbo Credits)
+
+The authenticated client can buy and manage [ArNS](https://ar.io/arns) names and pay for them with the connected wallet's **Turbo Credits** — no on-chain ARIO token balance required. The bundler performs the on-chain ARIO purchase on your behalf and debits your credit balance.
+
+- **Purchases / management (charge credits):** `getArNSPriceForName`, `purchaseArNSName` (+ the intent wrappers `buyArNSName`, `extendArNSLease`, `increaseArNSUndernameLimit`, `upgradeArNSName`), and `getArNSPurchaseStatus`.
+- **ANT custody:** `transferArNSAnt`, `setArNSRecord`, `removeArNSRecord`.
+
+> Reads such as resolving a name or fetching a record are provided by [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and are intentionally out of scope for this client.
+
+### Purchase lifecycle
+
+Every purchase is identified by a client-minted **UUID `nonce`**. The nonce is:
+
+1. **Signed** by your wallet and sent to the bundler (proving intent).
+2. The **idempotency key** for the purchase.
+3. The **status-lookup key** — poll `getArNSPurchaseStatus({ nonce })` until the purchase reaches a terminal state.
+
+`purchaseArNSName` returns the `nonce` on **both** `response.nonce` and `response.purchaseReceipt.nonce`. A purchase is **terminal-success** once its status carries a `messageId` (the Solana transaction id of the on-chain ArNS write) and **terminal-failure** once it carries a `failedDate`.
+
+```
+buyArNSName() ──▶ POST /arns/purchase  ──▶ { nonce, purchaseReceipt, arioWriteResult }
+                                                     │
+                    poll getArNSPurchaseStatus({ nonce })
+                                                     │
+              ┌──────────────────────────────────────┴───────────────────────┐
+        messageId present (success)                                 failedDate present (failure)
+```
+
+### Connecting a signer
+
+ArNS purchases are authenticated per wallet. Construct the client with `TurboFactory.authenticated` using any supported identity — the credit balance is keyed to that wallet's native address:
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+// Arweave
+const turbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+
+// Ethereum
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'ethereum',
+});
+
+// Solana — request nonces are signed with arbundles' HexSolanaSigner (ed25519)
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58SolanaSecretKey,
+  token: 'solana',
+});
+```
+
+### Pricing a name
+
+`getArNSPriceForName(params)` returns the cost in both Turbo Credits (`winc`) and `mARIO`. Params are validated client-side per intent (a `ProvidedInputError` is thrown for missing/invalid fields before any request is sent).
+
+```typescript
+const { winc, mARIO } = await turbo.getArNSPriceForName({
+  intent: 'Buy-Name',
+  name: 'my-name',
+  type: 'lease', // 'lease' | 'permabuy'
+  years: 1, // required for leases
+  processId: 'ant-process-id', // the ANT the name resolves to
+});
+```
+
+### Buying a name
+
+`buyArNSName(params)` is the `Buy-Name` convenience wrapper over `purchaseArNSName`. Optionally, `paidBy` delegates the charge to one or more addresses that have shared credits with you.
+
+**`processId` is optional**, and it selects who owns the ANT (Metaplex Core asset) the name resolves to:
+
+- **Omit `processId`** → **Turbo custodial provisioning** (Model A): Turbo spawns and _owns_ the ANT for you. You can take self-custody later via `transferArNSAnt` (see "ANT custody" below).
+- **Supply `processId`** → **user-owned ANT** (Model B): the name points at an ANT you already own; Turbo never takes custody.
+
+```typescript
+// Custodial lease (Model A): omit processId → Turbo owns the ANT
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+});
+
+// Lease against your own ANT (Model B) for 1 year
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+  processId: 'ant-process-id',
+});
+
+// Permanent buy, charged to a delegated payer
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'permabuy',
+  processId: 'ant-process-id', // optional — omit for Turbo custodial provisioning
+  paidBy: '<delegated-payer-address>', // or an array of addresses
+});
+
+console.log(receipt.nonce); // capture this to poll status / retry idempotently
+```
+
+Full runnable example (buy → poll to terminal):
+
+```typescript
+import { InsufficientCreditsError, TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+
+async function buyName() {
+  try {
+    const { nonce } = await turbo.buyArNSName({
+      name: 'my-name',
+      type: 'lease',
+      years: 1,
+      processId: 'ant-process-id',
+    });
+
+    // Poll until terminal (success => messageId, failure => failedDate)
+    for (;;) {
+      const status = await turbo.getArNSPurchaseStatus({ nonce });
+      if (status.messageId) {
+        console.log('Purchased. ArNS write tx:', status.messageId);
+        return status;
+      }
+      if (status.failedDate) {
+        throw new Error(`Purchase failed at ${status.failedDate}`);
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      console.error('Not enough Turbo Credits — top up and retry.');
+    }
+    throw err;
+  }
+}
+```
+
+### Extend, increase undernames, upgrade
+
+Each intent has a typed wrapper that enforces its required fields:
+
+```typescript
+// Extend an existing lease by N years
+await turbo.extendArNSLease({ name: 'my-name', years: 2 });
+
+// Increase the undername limit
+await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
+
+// Upgrade a lease to a permanent name
+await turbo.upgradeArNSName({ name: 'my-name' });
+```
+
+All of them return the same `{ nonce, purchaseReceipt, arioWriteResult }` shape as `buyArNSName` and are polled the same way. `purchaseArNSName(params)` is the general form if you prefer to pass `intent` explicitly.
+
+### Polling purchase status
+
+`getArNSPurchaseStatus({ nonce })` is available on both the authenticated and unauthenticated clients:
+
+```typescript
+const status = await turbo.getArNSPurchaseStatus({ nonce });
+// status.messageId  -> present on terminal success (Solana ArNS write tx id)
+// status.failedDate -> present on terminal failure
+```
+
+### ANT custody: transfer & manage records
+
+Turbo can custody the ANT (Metaplex Core asset) backing your name. These methods let you take self-custody or manage resolution records. Each is authenticated with an **action-bound, single-use signature**: the wallet signs a canonical `arns\n<action>\n<fields…>` message plus the UUID nonce, so a captured signature can't be replayed against a different operation.
+
+```typescript
+// Self-custody exit: move the ANT to a Solana pubkey you control
+await turbo.transferArNSAnt({
+  antId: 'ant-id',
+  target: 'your-solana-pubkey',
+});
+
+// Set a resolution record (undername defaults to '@')
+await turbo.setArNSRecord({
+  antId: 'ant-id',
+  undername: 'docs', // omit for the apex '@' record
+  transactionId: 'arweave-tx-id',
+  ttlSeconds: 900,
+});
+
+// Remove a resolution record
+await turbo.removeArNSRecord({ antId: 'ant-id', undername: 'docs' });
+```
+
+### Error handling & retries
+
+- **`InsufficientCreditsError`** (HTTP `402`) — the wallet (or delegated payer) doesn't hold enough Turbo Credits. Prompt the user to top up, then retry. It exposes `.status === 402` and is exported from the package root.
+- **`ProvidedInputError`** — thrown client-side (before any network call) when required per-intent params are missing/invalid (e.g. a lease `Buy-Name` without `years`, or `Extend-Lease` without a positive `years`).
+- **`FailedRequestError`** — any other non-2xx response; inspect `.status` (e.g. `401`, `503`).
+
+**Idempotency / retry guidance:** the `nonce` is the idempotency key. Capture `response.nonce` up front; if the network drops after the request is sent, re-poll `getArNSPurchaseStatus({ nonce })` rather than blindly re-buying. On a `402`, top up and issue a fresh purchase — the captured nonce still lets you reconcile status.
+
+```typescript
+import { InsufficientCreditsError } from '@ardrive/turbo-sdk';
+
+try {
+  await turbo.buyArNSName({ name, type: 'permabuy', processId });
+} catch (err) {
+  if (err instanceof InsufficientCreditsError) {
+    // surface a top-up flow to the user
+  } else {
+    throw err;
+  }
+}
+```
+
+### Dependency note (@solana/codecs)
+
+ArNS/ARIO support pulls in `@solana/spl-token`, whose transitive `@solana/spl-token-metadata@0.1.6` imports `getDataEnumCodec` from `@solana/codecs@2.0.0-rc.1`. In `@solana/codecs@3+` that export was renamed to `getDiscriminatedUnionCodec`. If a web app **dedupes** `@solana/codecs` to `6.x` for its whole dependency graph, `spl-token-metadata`'s `getDataEnumCodec` import resolves to a version that no longer exports it, and the build breaks.
+
+There is no single codecs version that satisfies both `spl-token-metadata` (needs the old `getDataEnumCodec`) and `@solana/kit` (needs `5.x`), and `spl-token-metadata` has no release that uses the renamed API — so the fix belongs at the app's dependency-resolution layer, **not** at symbol-aliasing:
+
+- **Recommended:** stop deduping `@solana/codecs` so `@solana/spl-token-metadata` keeps its own nested `2.0.0-rc.1` copy. In Vite, ensure `@solana/codecs` is **not** in `resolve.dedupe`; with pnpm/yarn, allow the nested version (avoid a hoisted-to-`6.x` override for that subtree). This is cleaner than the `getDataEnumCodec → getDiscriminatedUnionCodec` alias plugin some apps use today, and removes the need for that shim.
+- If you must keep a single hoisted codecs copy, a build-time alias mapping `getDataEnumCodec` to `getDiscriminatedUnionCodec` remains the fallback.
+
 ## Signers
 
 The SDK supports multiple wallet types and signing methods across different blockchains. You can authenticate using either a signer instance or a private key depending on your use case.
@@ -1525,6 +1754,191 @@ e.g:
 
 ```shell
 turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
+```
+
+#### ArNS Commands
+
+Buy and manage [ArNS](#arns-names-paid-with-turbo-credits) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
+
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`) do not.
+
+When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
+
+##### `arns-price`
+
+Get the Turbo Credit price (in `winc` + `mARIO`, plus the equivalent Credits) to buy, extend, increase undernames on, or upgrade an ArNS name. The intent is inferred from the flags you pass:
+
+- `--type <lease|permabuy>` → Buy-Name (a lease also needs `--years`)
+- `--increase-qty <qty>` → Increase-Undername-Limit
+- `--years <years>` (without `--type`) → Extend-Lease
+- only `--name` → Upgrade-Name
+
+Command Options:
+
+- `--name <name>` - ArNS name to price
+- `--type <lease|permabuy>` - Purchase type for a Buy-Name price
+- `--years <years>` - Lease duration in years (Buy-Name lease / Extend-Lease)
+- `--increase-qty <qty>` - Number of additional undernames to price
+- `--process-id <processId>` - ANT process ID (optional for pricing; only needed for an actual purchase)
+
+e.g:
+
+```shell
+# Price a 1-year lease against a local bundler
+turbo arns-price --name my-name --type lease --years 1 --payment-url http://localhost:4001
+```
+
+```shell
+# Price a permabuy
+turbo arns-price --name my-name --type permabuy
+```
+
+```shell
+# Price extending an existing lease by 2 years
+turbo arns-price --name my-name --years 2
+```
+
+##### `buy-arns-name`
+
+Buy an ArNS name (lease or permabuy) paying with Turbo Credits. Prints the purchase receipt and a `nonce` to track the on-chain write.
+
+Command Options:
+
+- `--name <name>` - ArNS name to buy
+- `--type <lease|permabuy>` - Purchase type
+- `--years <years>` - Lease duration in years (required for `lease`)
+- `--process-id <processId>` - ANT process ID the name resolves to. **Optional**: omit it for Turbo custodial provisioning (Turbo spawns + owns the ANT — Model A; take self-custody later via `transfer-arns-ant`); supply it to point the name at a user-owned ANT (Model B).
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose credits cover the purchase
+
+e.g:
+
+```shell
+# Custodial lease (Model A): omit --process-id → Turbo provisions + owns the ANT
+turbo buy-arns-name --name my-name --type lease --years 1 \
+  --wallet-file ../path/to/my/wallet.json --payment-url http://localhost:4001
+```
+
+```shell
+# Lease a name for 1 year against your own ANT (Model B) with an Arweave wallet
+turbo buy-arns-name --name my-name --type lease --years 1 \
+  --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA \
+  --wallet-file ../path/to/my/wallet.json --payment-url http://localhost:4001
+```
+
+```shell
+# Permabuy a name using a Solana wallet
+turbo buy-arns-name --name my-name --type permabuy \
+  --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA \
+  --token solana --wallet-file ../path/to/sol/secret-key.json
+```
+
+##### `extend-arns-lease`
+
+Extend an existing ArNS name lease with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name whose lease to extend
+- `--years <years>` - Number of years to extend by
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo extend-arns-lease --name my-name --years 2 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `increase-arns-undernames`
+
+Increase the undername limit of an ArNS name with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name to modify
+- `--increase-qty <qty>` - Number of additional undernames
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo increase-arns-undernames --name my-name --increase-qty 10 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `upgrade-arns-name`
+
+Upgrade an ArNS leased name to a permanent (permabuy) name with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name to upgrade
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo upgrade-arns-name --name my-name --wallet-file ../path/to/my/wallet.json
+```
+
+##### `arns-purchase-status`
+
+Get the status of an ArNS purchase by its nonce (returned by the buy/extend/upgrade commands). The response includes a `state` of `pending`, `success`, or `failed`.
+
+Command Options:
+
+- `--nonce <nonce>` - The purchase nonce to look up
+
+e.g:
+
+```shell
+turbo arns-purchase-status --nonce 3f8c...e21 --payment-url http://localhost:4001
+```
+
+##### `transfer-arns-ant`
+
+Self-custody exit: transfer a Turbo-custodied ANT to a Solana public key you control. Authenticated with an action-bound, single-use signature.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
+- `--target <address>` - Target Solana pubkey to transfer the ANT to
+
+e.g:
+
+```shell
+turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+```
+
+##### `set-arns-record`
+
+Set a resolution record on a Turbo-custodied ANT.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to set a record on
+- `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
+- `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
+- `--ttl-seconds <ttlSeconds>` - TTL in seconds for the record
+
+e.g:
+
+```shell
+turbo set-arns-record --ant-id ant-123 --undername docs \
+  --transaction-id A1b2...Xyz --ttl-seconds 900 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-record`
+
+Remove a resolution record (undername) from a Turbo-custodied ANT.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to remove a record from
+- `--undername <undername>` - Undername record to remove
+
+e.g:
+
+```shell
+turbo remove-arns-record --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
 ```
 
 ## Turbo Credit Sharing

@@ -16,6 +16,17 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
+  ArNSBuyNameArgs,
+  ArNSExtendLeaseParams,
+  ArNSIncreaseUndernameLimitParams,
+  ArNSNameType,
+  ArNSPaidByParams,
+  ArNSPriceParams,
+  ArNSPriceResponse,
+  ArNSPurchaseParams,
+  ArNSPurchaseResponse,
+  ArNSPurchaseStatusResponse,
+  ArNSUpgradeNameParams,
   Currency,
   GetCreditShareApprovalsResponse,
   RawWincForTokenResponse,
@@ -51,8 +62,15 @@ import {
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
   UserAddress,
+  arNSPurchaseIntents,
 } from '../types.js';
 import { isAnyValidUserAddress } from '../utils/common.js';
+import {
+  FailedRequestError,
+  InsufficientCreditsError,
+  ProvidedInputError,
+} from '../utils/errors.js';
+import { uuidV4 } from '../utils/uuid.js';
 import { defaultRetryConfig } from './http.js';
 import { TurboHTTPService } from './http.js';
 import { Logger } from './logger.js';
@@ -173,6 +191,127 @@ export class TurboUnauthenticatedPaymentService
       actualTokenAmount: tokenAmount.toString(),
       equivalentWincTokenAmount: actualPaymentAmount.toString(),
     };
+  }
+
+  public async getArNSPriceForName(
+    params: ArNSPriceParams,
+  ): Promise<ArNSPriceResponse> {
+    // `async` so a validation failure surfaces as a rejected promise (consistent
+    // with `purchaseArNSName`) rather than a synchronous throw.
+    this.validateArNSPurchaseParams(params);
+    return this.httpService.get<ArNSPriceResponse>({
+      endpoint: `/arns/price/${params.intent.toLowerCase()}/${
+        params.name
+      }${this.buildArNSPurchaseQuery(params)}`,
+    });
+  }
+
+  /**
+   * Fail fast (client-side) on malformed ArNS requests so JS callers that bypass
+   * the compile-time intent unions get a clear `ProvidedInputError` instead of an
+   * opaque service 4xx. Enforces the required fields per intent:
+   *  - `Buy-Name`: `type` ('lease' | 'permabuy'); leases also need `years`.
+   *    `processId` is OPTIONAL — omit it to have the bundler custodially
+   *    provision the ANT (Turbo owns it), supply it for a user-owned ANT.
+   *  - `Extend-Lease`: positive `years`
+   *  - `Increase-Undername-Limit`: positive `increaseQty`
+   *  - `Upgrade-Name`: just `name`
+   */
+  protected validateArNSPurchaseParams(params: ArNSPriceParams): void {
+    const p = params as {
+      intent?: string;
+      name?: string;
+      type?: string;
+      years?: number;
+      increaseQty?: number;
+      processId?: string;
+    };
+    if (!arNSPurchaseIntents.includes(p.intent as never)) {
+      throw new ProvidedInputError(
+        `Invalid ArNS intent '${
+          p.intent
+        }'. Expected one of: ${arNSPurchaseIntents.join(', ')}.`,
+      );
+    }
+    if (typeof p.name !== 'string' || p.name.length === 0) {
+      throw new ProvidedInputError('An ArNS `name` is required.');
+    }
+    const isPositiveNumber = (v: unknown): boolean =>
+      typeof v === 'number' && Number.isFinite(v) && v > 0;
+    switch (p.intent) {
+      case 'Buy-Name':
+        if (p.type !== 'lease' && p.type !== 'permabuy') {
+          throw new ProvidedInputError(
+            "Buy-Name requires a `type` of 'lease' or 'permabuy'.",
+          );
+        }
+        // `processId` is optional for Buy-Name: omitting it drives the
+        // bundler's custodial provisioning path (Turbo spawns + owns the ANT).
+        // If supplied it must be a non-empty string (user-owned ANT).
+        if (
+          p.processId !== undefined &&
+          (typeof p.processId !== 'string' || p.processId.length === 0)
+        ) {
+          throw new ProvidedInputError(
+            'Buy-Name `processId`, when provided, must be a non-empty string (the ANT the name resolves to).',
+          );
+        }
+        if (p.type === 'lease' && !isPositiveNumber(p.years)) {
+          throw new ProvidedInputError(
+            'A lease `Buy-Name` requires a positive `years`.',
+          );
+        }
+        break;
+      case 'Extend-Lease':
+        if (!isPositiveNumber(p.years)) {
+          throw new ProvidedInputError(
+            'Extend-Lease requires a positive `years`.',
+          );
+        }
+        break;
+      case 'Increase-Undername-Limit':
+        if (!isPositiveNumber(p.increaseQty)) {
+          throw new ProvidedInputError(
+            'Increase-Undername-Limit requires a positive `increaseQty`.',
+          );
+        }
+        break;
+      case 'Upgrade-Name':
+        break;
+    }
+  }
+
+  public getArNSPurchaseStatus({
+    nonce,
+  }: {
+    nonce: string;
+  }): Promise<ArNSPurchaseStatusResponse> {
+    return this.httpService.get<ArNSPurchaseStatusResponse>({
+      endpoint: `/arns/purchase/${nonce}`,
+    });
+  }
+
+  protected buildArNSPurchaseQuery(input: ArNSPurchaseParams): string {
+    // The intent-specific union members each carry only their own fields; read
+    // them through a single widened view rather than narrowing per intent.
+    const { type, years, increaseQty, processId, paidBy } = input as {
+      type?: ArNSNameType;
+      years?: number;
+      increaseQty?: number;
+      processId?: string;
+    } & ArNSPaidByParams;
+    const params = new URLSearchParams();
+    if (type !== undefined) params.set('type', type);
+    if (years !== undefined) params.set('years', `${years}`);
+    if (increaseQty !== undefined) params.set('increaseQty', `${increaseQty}`);
+    if (processId !== undefined) params.set('processId', processId);
+    if (paidBy !== undefined) {
+      for (const payer of Array.isArray(paidBy) ? paidBy : [paidBy]) {
+        params.append('paidBy', payer);
+      }
+    }
+    const query = params.toString();
+    return query.length > 0 ? `?${query}` : '';
   }
 
   protected appendPromoCodesToQuery(promoCodes: string[]): string {
@@ -422,6 +561,188 @@ export class TurboAuthenticatedPaymentService
   public async getBalance(userAddress?: string): Promise<TurboBalanceResponse> {
     userAddress ??= await this.signer.getNativeAddress();
     return super.getBalance(userAddress);
+  }
+
+  /**
+   * Buy / extend / upgrade an ArNS name, paying with the signer's Turbo credit
+   * balance. The bundler performs the on-chain ARIO purchase and debits credits;
+   * a `402` (FailedRequestError.status === 402) indicates insufficient credits.
+   */
+  public async purchaseArNSName(
+    params: ArNSPurchaseParams,
+  ): Promise<ArNSPurchaseResponse> {
+    this.validateArNSPurchaseParams(params);
+    // The bundler requires the signed nonce to be a UUID; it also doubles as
+    // the idempotency + status-lookup key (`getArNSPurchaseStatus`).
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(nonce);
+    let response: Omit<ArNSPurchaseResponse, 'nonce'>;
+    try {
+      response = await this.httpService.post<
+        Omit<ArNSPurchaseResponse, 'nonce'>
+      >({
+        endpoint: `/arns/purchase/${params.intent.toLowerCase()}/${
+          params.name
+        }${this.buildArNSPurchaseQuery(params)}`,
+        headers,
+        // Params travel in the query string + signed headers; the service reads
+        // no body, but the HTTP layer requires a `data` field.
+        data: Buffer.from([]),
+        // Non-idempotent signed write: the nonce is single-use, so a retried
+        // (but already-landed) purchase would 4xx as "already exists". Poll
+        // status by nonce instead of retrying.
+        retry: false,
+      });
+    } catch (error) {
+      // Surface a credit shortfall as a typed, catchable error so callers can
+      // prompt a top-up. The `nonce` is the idempotency key: after topping up,
+      // retry the same purchase (a fresh nonce is fine — the service dedupes by
+      // the on-chain effect, and a captured nonce lets you poll status).
+      if (error instanceof FailedRequestError && error.status === 402) {
+        throw new InsufficientCreditsError(error.message);
+      }
+      throw error;
+    }
+    // Normalize both nonce fields to the one we signed so callers can poll with
+    // either `response.nonce` or `response.purchaseReceipt.nonce`.
+    return {
+      ...response,
+      nonce,
+      purchaseReceipt: { ...response.purchaseReceipt, nonce },
+    };
+  }
+
+  public buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse> {
+    return this.purchaseArNSName({
+      ...params,
+      intent: 'Buy-Name',
+    } as ArNSPurchaseParams);
+  }
+
+  public extendArNSLease(
+    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
+  ): Promise<ArNSPurchaseResponse> {
+    return this.purchaseArNSName({ ...params, intent: 'Extend-Lease' });
+  }
+
+  public increaseArNSUndernameLimit(
+    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
+  ): Promise<ArNSPurchaseResponse> {
+    return this.purchaseArNSName({
+      ...params,
+      intent: 'Increase-Undername-Limit',
+    });
+  }
+
+  public upgradeArNSName(
+    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
+  ): Promise<ArNSPurchaseResponse> {
+    return this.purchaseArNSName({ ...params, intent: 'Upgrade-Name' });
+  }
+
+  // ---- ArNS ANT custody: self-custody exit + manage records ----
+
+  // Canonical ACTION-BOUND message. MUST match the bundler's
+  // buildArNSCustodyMessage byte-for-byte (newline-delimited) or every signature
+  // is rejected. The bundler reconstructs this from the request and verifies the
+  // signature over `message + nonce`, so a captured signature can't be replayed
+  // against a different operation/params.
+  private buildArNSCustodyMessage(
+    action: 'transfer' | 'set-record' | 'remove-record',
+    fields: string[],
+  ): string {
+    return ['arns', action, ...fields].join('\n');
+  }
+
+  /**
+   * Self-custody exit: move a Turbo-custodied ANT to a Solana pubkey you control.
+   * Authenticated with an action-bound, single-use signature.
+   */
+  public async transferArNSAnt({
+    antId,
+    target,
+  }: {
+    antId: string;
+    target: string;
+  }): Promise<{
+    antId: string;
+    target: string;
+    name?: string;
+    messageId: string;
+  }> {
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(
+      nonce,
+      this.buildArNSCustodyMessage('transfer', [antId, target]),
+    );
+    return this.httpService.post({
+      endpoint: `/arns/transfer/${antId}?target=${encodeURIComponent(target)}`,
+      headers,
+      data: Buffer.from([]),
+      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
+    });
+  }
+
+  /** Set a resolution record on a custodied ANT (undername defaults to '@'). */
+  public async setArNSRecord({
+    antId,
+    undername = '@',
+    transactionId,
+    ttlSeconds,
+  }: {
+    antId: string;
+    undername?: string;
+    transactionId: string;
+    ttlSeconds: number;
+  }): Promise<{
+    antId: string;
+    undername: string;
+    transactionId: string;
+    ttlSeconds: number;
+    messageId: string;
+  }> {
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(
+      nonce,
+      this.buildArNSCustodyMessage('set-record', [
+        antId,
+        undername,
+        transactionId,
+        String(ttlSeconds),
+      ]),
+    );
+    const query = `?undername=${encodeURIComponent(
+      undername,
+    )}&transactionId=${transactionId}&ttlSeconds=${ttlSeconds}`;
+    return this.httpService.post({
+      endpoint: `/arns/manage/${antId}/set-record${query}`,
+      headers,
+      data: Buffer.from([]),
+      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
+    });
+  }
+
+  /** Remove a resolution record (an undername) from a custodied ANT. */
+  public async removeArNSRecord({
+    antId,
+    undername,
+  }: {
+    antId: string;
+    undername: string;
+  }): Promise<{ antId: string; undername: string; messageId: string }> {
+    const nonce = uuidV4();
+    const headers = await this.signer.generateSignedRequestHeaders(
+      nonce,
+      this.buildArNSCustodyMessage('remove-record', [antId, undername]),
+    );
+    return this.httpService.post({
+      endpoint: `/arns/manage/${antId}/remove-record?undername=${encodeURIComponent(
+        undername,
+      )}`,
+      headers,
+      data: Buffer.from([]),
+      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
+    });
   }
 
   public async getCreditShareApprovals({
