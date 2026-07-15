@@ -474,10 +474,7 @@ describe('ArNS CLI commands', () => {
         } as SetArNSRecordOptions,
         turbo,
       );
-      assert.equal(
-        (turbo.last.params as { undername: string }).undername,
-        '@',
-      );
+      assert.equal((turbo.last.params as { undername: string }).undername, '@');
     });
 
     it('requires --transaction-id and a positive --ttl-seconds', async () => {
@@ -520,7 +517,10 @@ describe('ArNS CLI commands', () => {
         turbo,
       );
       assert.equal(turbo.last.method, 'removeArNSRecord');
-      assert.deepEqual(turbo.last.params, { antId: 'ant-1', undername: 'docs' });
+      assert.deepEqual(turbo.last.params, {
+        antId: 'ant-1',
+        undername: 'docs',
+      });
     });
 
     it('requires --ant-id and --undername', async () => {

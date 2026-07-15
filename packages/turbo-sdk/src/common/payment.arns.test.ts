@@ -635,7 +635,11 @@ describe('ArNS purchase client', () => {
       const rawPreimage = message; // the buggy convention
 
       assert.ok(
-        verifyOver(hexPreimage, headers['x-signature'], headers['x-public-key']),
+        verifyOver(
+          hexPreimage,
+          headers['x-signature'],
+          headers['x-public-key'],
+        ),
         'signature MUST verify over the hex preimage (HexSolanaSigner convention)',
       );
       assert.ok(
@@ -661,7 +665,11 @@ describe('ArNS purchase client', () => {
       const hexPreimage = Buffer.from(signed.toString('hex'));
 
       assert.ok(
-        verifyOver(hexPreimage, headers['x-signature'], headers['x-public-key']),
+        verifyOver(
+          hexPreimage,
+          headers['x-signature'],
+          headers['x-public-key'],
+        ),
         'custody signature MUST verify over hex(message + nonce)',
       );
       // A different action must NOT verify (proves the binding is real).
