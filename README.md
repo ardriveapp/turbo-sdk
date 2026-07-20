@@ -254,10 +254,10 @@ const turbo = TurboFactory.authenticated({
   token: 'base-eth',
   gatewayUrl: 'https://sepolia.base.org', // Required for testnet
   paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev', // Dev payment service
+    url: 'https://payment.services.ar-io.dev', // ar.io testnet sandbox
   },
   uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev', // Dev upload service
+    url: 'https://upload.services.ar-io.dev', // ar.io testnet sandbox
   }
 });
 
@@ -267,10 +267,10 @@ const turbo = TurboFactory.authenticated({
   token: 'solana',
   gatewayUrl: 'https://api.devnet.solana.com',
   paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev',
+    url: 'https://payment.services.ar-io.dev',
   },
   uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev',
+    url: 'https://upload.services.ar-io.dev',
   }
 });
 
@@ -280,16 +280,23 @@ const turbo = TurboFactory.authenticated({
   token: 'ethereum',
   gatewayUrl: 'https://sepolia.gateway.tenderly.co',
   paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev',
+    url: 'https://payment.services.ar-io.dev',
   },
   uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev',
-
+    url: 'https://upload.services.ar-io.dev',
+  },
 });
 ```
 
+These endpoints are the **ar.io Testnet Sandbox** — the full ar.io stack (upload, payment, ArNS,
+and gateway) running on testnet, with a faucet so nothing costs real money. Uploaded data is
+served from the sandbox gateway at `https://ar-io.dev` and is **ephemeral** (purged after ~3
+days); it is never posted to mainnet Arweave. See
+[the ar.io Testnet Sandbox docs](https://docs.ar.io/build/testnet).
+
 **Supported Testnets**:
 
+- **ARIO staging** (`ario`) - Staging ARIO on Solana devnet; fee-free funding, claim from the [ar.io faucet](https://faucet.services.ar-io.dev)
 - **Base Sepolia** (`base-eth`) - Supports on-demand funding
 - **Solana Devnet** (`solana`) - Supports on-demand funding
 - **Ethereum Sepolia** (`ethereum`) - Manual top-up only
@@ -1984,7 +1991,7 @@ The Turbo CLI provides the following commands to manage Credit Share Approvals:
 
 ### Testing
 
-- `yarn test` - runs integration tests against dev environment (e.g. `https://payment.ardrive.dev` and `https://upload.ardrive.dev`)
+- `yarn test` - runs integration tests against dev environment (e.g. `https://payment.services.ar-io.dev` and `https://upload.services.ar-io.dev`)
 - `yarn test:docker` - runs integration tests against locally running docker containers (recommended)
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
