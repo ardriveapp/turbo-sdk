@@ -1991,7 +1991,7 @@ The Turbo CLI provides the following commands to manage Credit Share Approvals:
 
 ### Testing
 
-- `yarn test` - runs integration tests against dev environment (e.g. `https://payment.services.ar-io.dev` and `https://upload.services.ar-io.dev`)
+- `yarn test` - runs integration tests using the configured environment (localhost by default); set `PAYMENT_SERVICE_URL` and `UPLOAD_SERVICE_URL` to target the ar.io Testnet Sandbox
 - `yarn test:docker` - runs integration tests against locally running docker containers (recommended)
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script
