@@ -37,6 +37,7 @@ import { fiatEstimate } from './commands/fiatEstimate.js';
 import {
   balance,
   cryptoFund,
+  freeStatus,
   price,
   topUp,
   uploadFile,
@@ -83,6 +84,17 @@ applyOptions(
   [optionMap.address, ...walletOptions],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, balance);
+});
+
+applyOptions(
+  program
+    .command('free-status')
+    .description(
+      'Get the free-tier upload allowance remaining for a Turbo address',
+    ),
+  [optionMap.address, ...walletOptions],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, freeStatus);
 });
 
 applyOptions(

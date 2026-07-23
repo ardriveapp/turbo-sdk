@@ -520,6 +520,20 @@ Issues a signed request to get the credit balance of a wallet measured in AR (me
 const { winc: balance } = await turbo.getBalance();
 ```
 
+#### `getFreeStatus()`
+
+Returns the wallet's remaining free-tier upload allowance in bytes as `{ bytesRemaining }`, so you can tell up front whether an upload will be free. `bytesRemaining` is `null` for a wallet with an unlimited allowance (an exempt/partner wallet), and `0` when the free tier is disabled on the target Turbo deployment. It is advisory — the authoritative free/charge decision is made at upload time — and is a wallet-side figure (a per-network cap may also apply). Deployment-wide free-tier limits are on the service's `/info` endpoint.
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus();
+```
+
+It is also available on the `TurboUnauthenticatedClient` for any wallet by address:
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus('a-native-address');
+```
+
 #### `signer.getNativeAddress()`
 
 Returns the [native address][docs/native-address] of the connected signer.
@@ -1570,6 +1584,24 @@ turbo balance --address 'crypto-wallet-public-native-address' --token solana
 
 ```shell
 turbo balance --wallet-file '../path/to/my/wallet.json' --token arweave
+```
+
+##### `free-status`
+
+Get the remaining free-tier upload allowance (in bytes) for a connected wallet or native address. Prints `unlimited` for an exempt/partner wallet.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to check the free-tier allowance of
+
+e.g:
+
+```shell
+turbo free-status --address 'crypto-wallet-public-native-address' --token arweave
+```
+
+```shell
+turbo free-status --wallet-file '../path/to/my/wallet.json' --token arweave
 ```
 
 ##### `top-up`

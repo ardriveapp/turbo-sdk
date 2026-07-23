@@ -48,6 +48,7 @@ import {
   TurboDataItemSigner,
   TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
+  TurboFreeStatusResponse,
   TurboFundWithTokensParams,
   TurboPaymentIntentParams,
   TurboPaymentIntentResponse,
@@ -155,6 +156,10 @@ export class TurboUnauthenticatedClient
 
   getBalance(address: NativeAddress): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance(address);
+  }
+
+  getFreeStatus(address: NativeAddress): Promise<TurboFreeStatusResponse> {
+    return this.paymentService.getFreeStatus(address);
   }
 
   /**
@@ -345,6 +350,14 @@ export class TurboAuthenticatedClient
    */
   getBalance(userAddress?: NativeAddress): Promise<TurboBalanceResponse> {
     return this.paymentService.getBalance(userAddress);
+  }
+
+  /**
+   * Returns how many free-tier bytes the wallet can still upload for free
+   * (`bytesRemaining`), or `null` for an unlimited (exempt/partner) wallet.
+   */
+  getFreeStatus(userAddress?: NativeAddress): Promise<TurboFreeStatusResponse> {
+    return this.paymentService.getFreeStatus(userAddress);
   }
 
   /**
