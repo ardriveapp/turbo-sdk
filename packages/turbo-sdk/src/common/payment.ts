@@ -44,6 +44,7 @@ import {
   TurboDataItemSigner,
   TurboFiatEstimateForBytesResponse,
   TurboFiatToArResponse,
+  TurboFreeStatusResponse,
   TurboFundWithTokensParams,
   TurboInfoResponse,
   TurboLogger,
@@ -118,6 +119,18 @@ export class TurboUnauthenticatedPaymentService
           givenApprovals: [],
           receivedApprovals: [],
         };
+  }
+
+  public async getFreeStatus(
+    address: string,
+  ): Promise<TurboFreeStatusResponse> {
+    const status = await this.httpService.get<TurboFreeStatusResponse>({
+      endpoint: `/account/free?address=${address}`,
+      allowedStatuses: [200, 404],
+    });
+    // Normalize: preserve a legitimate `0` (free tier off) or `null` (unlimited),
+    // and coerce a missing field (e.g. a 404 body) to `null`.
+    return { bytesRemaining: status?.bytesRemaining ?? null };
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
@@ -561,6 +574,13 @@ export class TurboAuthenticatedPaymentService
   public async getBalance(userAddress?: string): Promise<TurboBalanceResponse> {
     userAddress ??= await this.signer.getNativeAddress();
     return super.getBalance(userAddress);
+  }
+
+  public async getFreeStatus(
+    userAddress?: string,
+  ): Promise<TurboFreeStatusResponse> {
+    userAddress ??= await this.signer.getNativeAddress();
+    return super.getFreeStatus(userAddress);
   }
 
   /**

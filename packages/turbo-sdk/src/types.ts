@@ -242,6 +242,18 @@ export type TurboBalanceResponse = {
   givenApprovals: CreditShareApproval[];
 };
 
+export type TurboFreeStatusResponse = {
+  /**
+   * Free-tier bytes this wallet can still upload for free, or `null` when the
+   * wallet has an unlimited allowance (an exempt/partner wallet). `0` when the
+   * free tier is disabled on the target Turbo deployment. Advisory — the
+   * authoritative free/charge decision is made at upload time, and the value is
+   * a wallet-side figure (a per-network cap may also apply). Deployment-wide
+   * free-tier config lives on the service's `/info` endpoint.
+   */
+  bytesRemaining: number | null;
+};
+
 export type TurboFiatToArResponse = {
   currency: Currency;
   rate: number;
@@ -1030,6 +1042,7 @@ export type ArNSPurchaseStatusResponse = ArNSPurchaseReceipt & {
 
 export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
+  getFreeStatus: (address: string) => Promise<TurboFreeStatusResponse>;
   getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
   getArNSPurchaseStatus(p: {
     nonce: string;
@@ -1086,6 +1099,9 @@ export type TurboFundWithTokensParams = {
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+  getFreeStatus: (
+    userAddress?: UserAddress,
+  ) => Promise<TurboFreeStatusResponse>;
 
   getCreditShareApprovals(p: {
     userAddress?: UserAddress;

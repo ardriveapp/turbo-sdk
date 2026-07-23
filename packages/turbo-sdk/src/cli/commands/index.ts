@@ -17,6 +17,7 @@
 export * from './arns.js';
 export * from './balance.js';
 export * from './cryptoFund.js';
+export * from './freeStatus.js';
 export * from './price.js';
 export * from './topUp.js';
 export * from './uploadFile.js';
