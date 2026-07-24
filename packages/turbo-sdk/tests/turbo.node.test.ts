@@ -921,9 +921,13 @@ describe('Node environment', () => {
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
-        assert.equal(
-          error.message,
-          'Failed request: Failed to upload file after 6 attempts\n',
+        // The chunking-forced path appends the underlying transport error after the
+        // retry-exhaustion prefix, and that trailing text is environment-dependent
+        // ('' vs 'fetch failed' across Node/undici versions). Assert the stable prefix.
+        assert.ok(
+          error.message.startsWith(
+            'Failed request: Failed to upload file after 6 attempts',
+          ),
         );
       });
     });
