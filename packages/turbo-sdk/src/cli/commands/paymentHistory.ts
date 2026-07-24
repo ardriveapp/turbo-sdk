@@ -34,8 +34,9 @@ export async function paymentHistory(options: PaymentHistoryOptions) {
     cursor: options.cursor,
   });
 
-  // stdout is exactly the documented page shape so `... | jq` stays valid JSON;
-  // the human-facing next-page hint goes to stderr.
+  // stdout carries only the JSON page and the next-page hint goes to stderr, so
+  // `... | jq` works at the default log level. (--debug intentionally routes SDK
+  // logs to stdout and will interleave — expected when you ask for debug output.)
   console.log(JSON.stringify({ payments, hasMore, cursor }, null, 2));
 
   if (hasMore) {

@@ -127,6 +127,36 @@ describe('getPaymentHistory', () => {
     assert.equal(http.last.endpoint, '/account/payments?cursor=a+b%26c%3Dd');
   });
 
+  it('forwards a real base64url cursor byte-for-byte (- and _ not percent-encoded)', async () => {
+    // The service issues cursors via Buffer.toString('base64url'); its alphabet
+    // is [A-Za-z0-9-_]. URLSearchParams must leave '-' and '_' untouched or a
+    // round-tripped cursor would decode differently server-side and mis-paginate.
+    const serverCursor = Buffer.from(
+      JSON.stringify({
+        d: '2026-01-02T03:04:05.678901Z',
+        t: 'crypto',
+        i: 'tx-1',
+      }),
+    ).toString('base64url');
+    assert.ok(!/[+/=]/.test(serverCursor)); // sanity: genuinely base64url
+    await service().getPaymentHistory({ cursor: serverCursor });
+    assert.equal(
+      http.last.endpoint,
+      `/account/payments?cursor=${serverCursor}`,
+    );
+  });
+
+  it('replays a prior page cursor unchanged (page-2 fetch)', async () => {
+    http.response = { payments: [], hasMore: true, cursor: 'PAGE2CURSOR-_x' };
+    const page1 = await service().getPaymentHistory({ limit: 2 });
+    assert.equal(page1.hasMore, true);
+    await service().getPaymentHistory({ limit: 2, cursor: page1.cursor ?? '' });
+    assert.equal(
+      http.last.endpoint,
+      '/account/payments?limit=2&cursor=PAGE2CURSOR-_x',
+    );
+  });
+
   it('returns the service response unchanged', async () => {
     const page = {
       payments: [
