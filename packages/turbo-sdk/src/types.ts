@@ -254,6 +254,58 @@ export type TurboFreeStatusResponse = {
   bytesRemaining: number | null;
 };
 
+/** A single credited top-up settled with cryptocurrency. */
+export type TurboCryptoPaymentHistoryItem = {
+  type: 'crypto';
+  /** ISO-8601 UTC timestamp of when the credits landed. */
+  date: string;
+  /** Winston Credits credited by this top-up. */
+  wincCredited: string;
+  tokenType: string;
+  /** On-chain token amount paid, in the token's smallest unit. */
+  tokenQuantity: string;
+  /** USD value captured at credit time (historical; not a live quote). */
+  usdEquivalent: string;
+  /** On-chain sender address; empty string on rows predating the column. */
+  senderAddress: string;
+  transactionId: string;
+  blockHeight: string;
+};
+
+/** A single credited top-up settled with fiat (e.g. a Stripe card payment). */
+export type TurboFiatPaymentHistoryItem = {
+  type: 'fiat';
+  /** ISO-8601 UTC timestamp of when the receipt was recorded. */
+  date: string;
+  /** Winston Credits credited by this top-up. */
+  wincCredited: string;
+  paymentAmount: string;
+  currencyType: string;
+  paymentProvider: string;
+  receiptId: string;
+  giftMessage: string | null;
+};
+
+export type TurboPaymentHistoryItem =
+  | TurboCryptoPaymentHistoryItem
+  | TurboFiatPaymentHistoryItem;
+
+export type TurboPaymentHistoryResponse = {
+  /** One page of the signer's own top-ups, newest first. */
+  payments: TurboPaymentHistoryItem[];
+  /** True when more rows exist beyond this page (fetch again with `cursor`). */
+  hasMore: boolean;
+  /** Opaque cursor for the next page, or `null` on the last page. */
+  cursor: string | null;
+};
+
+export type TurboPaymentHistoryParams = {
+  /** Page size, 1-100 (default 50 on the service). */
+  limit?: number;
+  /** Opaque cursor from a prior response's `cursor` field. */
+  cursor?: string;
+};
+
 export type TurboFiatToArResponse = {
   currency: Currency;
   rate: number;
@@ -1102,6 +1154,14 @@ export interface TurboAuthenticatedPaymentServiceInterface
   getFreeStatus: (
     userAddress?: UserAddress,
   ) => Promise<TurboFreeStatusResponse>;
+
+  /**
+   * The signer's OWN completed top-up history (crypto + fiat), newest first.
+   * Signature-required and self-scoped — there is no by-address form.
+   */
+  getPaymentHistory(
+    params?: TurboPaymentHistoryParams,
+  ): Promise<TurboPaymentHistoryResponse>;
 
   getCreditShareApprovals(p: {
     userAddress?: UserAddress;

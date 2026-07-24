@@ -246,6 +246,17 @@ export const optionMap = {
     alias: '--ttl-seconds <ttlSeconds>',
     description: 'TTL in seconds for the ArNS record',
   },
+  // ---- Payment history ----
+  limit: {
+    alias: '--limit <limit>',
+    description:
+      'Max number of payment-history rows to return (1-100, default 50)',
+  },
+  cursor: {
+    alias: '--cursor <cursor>',
+    description:
+      'Opaque pagination cursor from a prior payment-history response',
+  },
 } as const;
 
 export const walletOptions = [
