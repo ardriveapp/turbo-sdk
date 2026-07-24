@@ -534,6 +534,23 @@ It is also available on the `TurboUnauthenticatedClient` for any wallet by addre
 const { bytesRemaining } = await turbo.getFreeStatus('a-native-address');
 ```
 
+#### `getPaymentHistory({ limit, cursor })`
+
+Issues a signed request for the signing wallet's own completed top-up (payment) history — both cryptocurrency and fiat top-ups — merged newest-first and keyset-paginated. This is self-scoped: it returns **only** the signing wallet's rows (the service reads the address from the signature, never a query parameter), so it is available on the `TurboAuthenticatedClient` only. `limit` is the page size (1-100, default 50). To page, pass the previous response's `cursor` while `hasMore` is `true`.
+
+Each item is discriminated by `type`: a `'crypto'` item includes `wincCredited`, `tokenType`, `tokenQuantity`, `usdEquivalent`, `senderAddress`, `transactionId`, and `blockHeight`; a `'fiat'` item includes `wincCredited`, `paymentAmount`, `currencyType`, `paymentProvider`, `receiptId`, and `giftMessage`. Every item has an ISO-8601 UTC `date`.
+
+```typescript
+const { payments, hasMore, cursor } = await turbo.getPaymentHistory({
+  limit: 25,
+});
+
+// Fetch the next page while more results remain
+if (hasMore) {
+  const next = await turbo.getPaymentHistory({ limit: 25, cursor });
+}
+```
+
 #### `signer.getNativeAddress()`
 
 Returns the [native address][docs/native-address] of the connected signer.
@@ -1602,6 +1619,26 @@ turbo free-status --address 'crypto-wallet-public-native-address' --token arweav
 
 ```shell
 turbo free-status --wallet-file '../path/to/my/wallet.json' --token arweave
+```
+
+##### `payment-history`
+
+Get the signing wallet's own top-up (payment) history — both crypto and fiat top-ups, newest first. Requires a wallet (it is signature-scoped to that wallet). Prints a JSON page of `{ payments, hasMore, cursor }`; when `hasMore` is `true`, pass the printed `cursor` back with `--cursor` to fetch the next page.
+
+Command Options:
+
+- `--limit <limit>` - Max number of rows to return (1-100, default 50)
+- `--cursor <cursor>` - Opaque pagination cursor from a prior response
+
+e.g:
+
+```shell
+turbo payment-history --wallet-file '../path/to/my/wallet.json' --token arweave --limit 25
+```
+
+```shell
+# Fetch the next page using the cursor printed by the previous call
+turbo payment-history --wallet-file '../path/to/my/wallet.json' --token arweave --cursor '<cursor-from-previous-page>'
 ```
 
 ##### `top-up`

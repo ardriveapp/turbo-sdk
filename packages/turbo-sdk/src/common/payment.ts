@@ -48,6 +48,8 @@ import {
   TurboFundWithTokensParams,
   TurboInfoResponse,
   TurboLogger,
+  TurboPaymentHistoryParams,
+  TurboPaymentHistoryResponse,
   TurboPaymentIntentParams,
   TurboPaymentIntentResponse,
   TurboPostBalanceResponse,
@@ -581,6 +583,37 @@ export class TurboAuthenticatedPaymentService
   ): Promise<TurboFreeStatusResponse> {
     userAddress ??= await this.signer.getNativeAddress();
     return super.getFreeStatus(userAddress);
+  }
+
+  /**
+   * The signer's OWN completed top-up history (crypto + fiat), merged newest
+   * first and keyset-paginated. This is a SIGNED GET: unlike `getBalance` /
+   * `getFreeStatus` (which name a wallet by `?address=`), payment history is
+   * self-scoped and returns only the rows belonging to the signing wallet — the
+   * service reads the address from the signature, never a query param.
+   *
+   * We sign the bare nonce (no action-binding of `limit`/`cursor`) to match the
+   * service's `verifySignature` middleware; the pagination params ride in the
+   * query string. Pass `cursor` from a prior response to fetch the next page.
+   */
+  public async getPaymentHistory({
+    limit,
+    cursor,
+  }: TurboPaymentHistoryParams = {}): Promise<TurboPaymentHistoryResponse> {
+    const headers = await this.signer.generateSignedRequestHeaders();
+    const query = new URLSearchParams();
+    if (limit !== undefined) {
+      query.set('limit', `${limit}`);
+    }
+    if (cursor !== undefined) {
+      query.set('cursor', cursor);
+    }
+    const queryString = query.toString();
+    return this.httpService.get<TurboPaymentHistoryResponse>({
+      endpoint: `/account/payments${queryString ? `?${queryString}` : ''}`,
+      headers,
+      allowedStatuses: [200],
+    });
   }
 
   /**

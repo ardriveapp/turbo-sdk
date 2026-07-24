@@ -50,6 +50,8 @@ import {
   TurboFiatToArResponse,
   TurboFreeStatusResponse,
   TurboFundWithTokensParams,
+  TurboPaymentHistoryParams,
+  TurboPaymentHistoryResponse,
   TurboPaymentIntentParams,
   TurboPaymentIntentResponse,
   TurboPriceResponse,
@@ -358,6 +360,18 @@ export class TurboAuthenticatedClient
    */
   getFreeStatus(userAddress?: NativeAddress): Promise<TurboFreeStatusResponse> {
     return this.paymentService.getFreeStatus(userAddress);
+  }
+
+  /**
+   * Returns the signer's OWN completed top-up history (crypto + fiat), newest
+   * first and keyset-paginated. Signature-required and self-scoped: it only ever
+   * returns the signing wallet's rows. Pass `cursor` from a prior response's
+   * `cursor` field (with `hasMore === true`) to fetch the next page.
+   */
+  getPaymentHistory(
+    params?: TurboPaymentHistoryParams,
+  ): Promise<TurboPaymentHistoryResponse> {
+    return this.paymentService.getPaymentHistory(params);
   }
 
   /**

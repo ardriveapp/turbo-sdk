@@ -38,6 +38,7 @@ import {
   balance,
   cryptoFund,
   freeStatus,
+  paymentHistory,
   price,
   topUp,
   uploadFile,
@@ -95,6 +96,15 @@ applyOptions(
   [optionMap.address, ...walletOptions],
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, freeStatus);
+});
+
+applyOptions(
+  program
+    .command('payment-history')
+    .description("Get the signing wallet's own top-up (payment) history"),
+  [...walletOptions, optionMap.limit, optionMap.cursor],
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, paymentHistory);
 });
 
 applyOptions(

@@ -37,6 +37,11 @@ export type AddressOptions = WalletOptions & {
   address: string | undefined;
 };
 
+export type PaymentHistoryOptions = WalletOptions & {
+  limit: string | undefined;
+  cursor: string | undefined;
+};
+
 export type TopUpOptions = AddressOptions & {
   value: string | undefined;
   currency: string | undefined;
