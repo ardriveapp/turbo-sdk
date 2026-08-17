@@ -48,6 +48,19 @@ const defaultHeaders = {
   'x-turbo-source-identifier': 'turbo-sdk',
 };
 
+/**
+ * Canonical x402 upload routes on the upload service.
+ *
+ * These were previously `/x402/data-item/{signed,unsigned}`. The service
+ * renamed them to `/x402/upload/*` and kept a `data-item/signed` alias, but not
+ * a `data-item/unsigned` one — so every unsigned x402 upload 404ed. Both
+ * canonical paths are served by all released upload-service versions.
+ */
+export const x402UploadEndpoints = {
+  signed: '/x402/upload/signed',
+  unsigned: '/x402/upload/unsigned',
+} as const;
+
 export class TurboHTTPService implements TurboHTTPServiceInterface {
   protected baseURL: string;
   protected logger: TurboLogger;
@@ -223,8 +236,9 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     data: Readable | Buffer | ReadableStream | Uint8Array;
     x402Options: X402RequestCredentials;
   }): Promise<T> {
-    const endpoint =
-      '/x402/data-item/' + (x402Options.unsignedData ? 'unsigned' : 'signed');
+    const endpoint = x402Options.unsignedData
+      ? x402UploadEndpoints.unsigned
+      : x402UploadEndpoints.signed;
 
     this.logger.debug('Using X402 options for POST request', {
       endpoint,

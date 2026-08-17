@@ -34,7 +34,7 @@ import { computeAddress } from 'ethers';
 import nacl from 'tweetnacl';
 import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import { Signer as x402Signer } from 'x402-fetch';
 
 import {
@@ -272,6 +272,16 @@ export abstract class TurboDataItemAbstractSigner
   }
 }
 
+/**
+ * Builds the wallet client x402-fetch signs payment authorizations with.
+ *
+ * The chain matters because `wrapFetchWithPayment` maps `walletClient.chain.id`
+ * to a network name and prefers the matching entry in the service's `accepts`
+ * list. The upload service advertises Base mainnet (`base`), and x402 support
+ * here is limited to `base-usdc`, so mainnet is the correct default. Callers
+ * needing another network can supply their own signer via
+ * `X402Funding({ signer })`.
+ */
 export async function makeX402Signer(
   arbundlesSigner: ArbundleSigner,
 ): Promise<x402Signer> {
@@ -282,7 +292,7 @@ export async function makeX402Signer(
         ('0x' +
           Buffer.from(arbundlesSigner.key).toString('hex')) as `0x${string}`,
       ),
-      chain: baseSepolia,
+      chain: base,
       transport: http(),
     }) as unknown as x402Signer;
   }
@@ -306,7 +316,7 @@ export async function makeX402Signer(
 
     return createWalletClient({
       account,
-      chain: baseSepolia,
+      chain: base,
       transport: custom(provider),
     }) as unknown as x402Signer;
   }
