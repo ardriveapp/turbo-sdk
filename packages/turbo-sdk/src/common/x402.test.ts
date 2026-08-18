@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EthereumSigner } from '@dha-team/arbundles';
+import { ArweaveSigner, EthereumSigner } from '@dha-team/arbundles';
 import { strict as assert } from 'node:assert';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { testEthWallet } from '../../tests/helpers.js';
+import { testEthWallet, testJwk } from '../../tests/helpers.js';
 import { TurboHTTPService, x402UploadEndpoints } from './http.js';
+// Via the barrel, not './upload.js': entering the upload -> index -> turbo ->
+// upload cycle at upload.ts leaves `developmentUploadServiceURL` uninitialized.
+import { TurboUnauthenticatedUploadService } from './index.js';
 import { Logger } from './logger.js';
 import { makeX402Signer } from './signer.js';
 
@@ -91,16 +94,101 @@ describe('x402 upload endpoints', () => {
     assert.equal(x402UploadEndpoints.signed, '/x402/upload/signed');
     assert.equal(x402UploadEndpoints.unsigned, '/x402/upload/unsigned');
   });
+
+  // `uploadRawX402Data` names the route a second time, independently of the one
+  // `x402Post` computes, and that copy is the live one when no signer is passed
+  // (no signer -> no x402Options -> the plain POST path). It carried the same
+  // retired path, so #440 reproduced through this function specifically.
+  it('sends uploadRawX402Data to /v1/x402/upload/unsigned without a signer', async () => {
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+
+    await service.uploadRawX402Data({
+      data: Buffer.from('hello'),
+      tags: [{ name: 'Content-Type', value: 'text/plain' }],
+    });
+
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/x402/upload/unsigned',
+    ]);
+  });
+
+  it('rejects uploadRawX402Data for tokens without x402 support', async () => {
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'arweave',
+      logger: Logger.default,
+    });
+
+    await assert.rejects(
+      () => service.uploadRawX402Data({ data: Buffer.from('hello') }),
+      /x402 uploads are not supported for token: arweave/,
+    );
+    assert.deepEqual(requestedUrls, []);
+  });
 });
 
 describe('makeX402Signer', () => {
-  // Regression for #441: both branches hardcoded `chain: baseSepolia` (84532)
-  // while the deployed service settles on Base mainnet.
+  // Regression for #441: BOTH branches hardcoded `chain: baseSepolia` (84532)
+  // while the deployed service settles on Base mainnet, so both are asserted.
   it('builds a wallet client on the chain the upload service settles on', async () => {
     const signer = (await makeX402Signer(
       new EthereumSigner(testEthWallet),
     )) as unknown as { chain?: { id: number } };
 
     assert.equal(signer.chain?.id, baseMainnetChainId);
+  });
+
+  describe('browser branch', () => {
+    const account = '0x1234567890123456789012345678901234567890';
+    let requests: string[];
+
+    beforeEach(() => {
+      requests = [];
+      (globalThis as Record<string, unknown>).window = {
+        document: {},
+        ethereum: {
+          request: async ({ method }: { method: string }) => {
+            requests.push(method);
+            if (method === 'eth_requestAccounts') return [account];
+            return null;
+          },
+        },
+      };
+    });
+
+    afterEach(() => {
+      delete (globalThis as Record<string, unknown>).window;
+    });
+
+    it('also builds the injected-wallet client on Base mainnet', async () => {
+      // A non-Ethereum arbundles signer falls through to the injected-wallet
+      // branch, which is the path browser consumers take.
+      const signer = (await makeX402Signer(
+        new ArweaveSigner(testJwk),
+      )) as unknown as {
+        chain?: { id: number };
+        account?: { address: string };
+      };
+
+      assert.equal(signer.chain?.id, baseMainnetChainId);
+      assert.deepEqual(requests, ['eth_requestAccounts']);
+    });
+
+    it('throws when the wallet returns no accounts', async () => {
+      (
+        (globalThis as Record<string, unknown>).window as {
+          ethereum: { request: () => Promise<unknown> };
+        }
+      ).ethereum.request = async () => [];
+
+      await assert.rejects(
+        () => makeX402Signer(new ArweaveSigner(testJwk)),
+        /No accounts returned from wallet/,
+      );
+    });
   });
 });
