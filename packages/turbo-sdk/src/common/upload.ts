@@ -56,7 +56,7 @@ import { FailedRequestError } from '../utils/errors.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { RetryConfig, defaultRetryConfig } from './http.js';
-import { TurboHTTPService } from './http.js';
+import { TurboHTTPService, x402UploadEndpoints } from './http.js';
 import { exponentMap, tokenToBaseMap } from './index.js';
 import { Logger } from './logger.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
@@ -213,7 +213,9 @@ export class TurboUnauthenticatedUploadService
 
     return this.httpService.post({
       data: dataBuffer,
-      endpoint: '/x402/data-item/unsigned',
+      // Only reached when no signer was supplied; the x402 path recomputes this
+      // from `unsignedData`. Both must name the same route.
+      endpoint: x402UploadEndpoints.unsigned,
       signal,
       headers:
         tags !== undefined
