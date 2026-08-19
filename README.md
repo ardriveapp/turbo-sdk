@@ -28,6 +28,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [Extend, increase undernames, upgrade](#extend-increase-undernames-upgrade)
   - [Polling purchase status](#polling-purchase-status)
   - [ANT custody: transfer & manage records](#ant-custody-transfer--manage-records)
+  - [Listing owned names](#listing-owned-names)
   - [Error handling & retries](#error-handling--retries)
   - [Dependency note (@solana/codecs)](#dependency-note-solanacodecs)
 - [Signers](#signers)
@@ -1030,6 +1031,7 @@ The authenticated client can buy and manage [ArNS](https://ar.io/arns) names and
 
 - **Purchases / management (charge credits):** `getArNSPriceForName`, `purchaseArNSName` (+ the intent wrappers `buyArNSName`, `extendArNSLease`, `increaseArNSUndernameLimit`, `upgradeArNSName`), and `getArNSPurchaseStatus`.
 - **ANT custody:** `transferArNSAnt`, `setArNSRecord`, `removeArNSRecord`.
+- **Listing (read-only, no signature required):** `getArNSNames` -- every name a wallet owns or controls, custodial and self-custody alike.
 
 > Reads such as resolving a name or fetching a record are provided by [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and are intentionally out of scope for this client.
 
@@ -1211,6 +1213,46 @@ await turbo.setArNSRecord({
 // Remove a resolution record
 await turbo.removeArNSRecord({ antId: 'ant-id', undername: 'docs' });
 ```
+
+### Listing owned names
+
+`getArNSNames(address)` returns every ArNS name a wallet owns or controls -- both custodial names bought via `buyArNSName`/`purchaseArNSName` and self-custody names, in one list. It's a read-only listing endpoint and does **not** require a signature -- it's available on both `TurboUnauthenticatedClient` (pass an `address`) and `TurboAuthenticatedClient` (`address` optional, defaults to the connected signer's own native address).
+
+A returned name's `custodial: true` means Turbo still manages its ANT (so `transferArNSAnt`/`setArNSRecord`/`removeArNSRecord` above apply to it); `custodial: false` means the name is self-custodied, or custody has already been exited, and the entry is informational only. `type`/`years` are omitted (not present in the JSON) when the selected purchase receipt doesn't carry them (e.g. an `Extend-Lease`/`Increase-Undername-Limit` receipt), and `antId` may be an empty string if no receipt for the name ever carried one -- guard for `antId === ''` before passing it to `@ar.io/sdk`.
+
+> [!NOTE]
+> This endpoint does not report a name's current records or lease/expiration state -- that lives entirely on-chain. Once you have the `antId`, read that directly via [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) -- it queries the chain directly and needs no round-trip through Turbo.
+
+```typescript
+// Unauthenticated -- any wallet, by address
+const turbo = TurboFactory.unauthenticated();
+const { names } = await turbo.getArNSNames(publicArweaveAddress);
+
+// Authenticated -- defaults to the connected signer's own wallet
+const authenticatedTurbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+const { names: myNames } = await authenticatedTurbo.getArNSNames();
+```
+
+<details>
+  <summary>Example Output</summary>
+
+```json
+{
+  "names": [
+    {
+      "name": "ardrive",
+      "antId": "ant-process-id",
+      "intent": "Buy-Name",
+      "type": "lease",
+      "years": 1,
+      "purchaseDate": "2026-01-01T00:00:00.000Z",
+      "custodial": true
+    }
+  ]
+}
+```
+
+</details>
 
 ### Error handling & retries
 
