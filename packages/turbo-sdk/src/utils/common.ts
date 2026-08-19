@@ -53,7 +53,6 @@ const baseMainnetRpc = 'https://mainnet.base.org';
 export const tokenToDevGatewayMap: Record<TokenType, string> = {
   arweave: 'https://turbo-gateway.com', // No arweave test net
   ario: 'https://api.devnet.solana.com',
-  'base-ario': baseMainnetRpc, // No base-ario test net contract deployed
   solana: 'https://api.devnet.solana.com',
   ethereum: ethTestnetRpc,
   'base-eth': baseTestnetRpc,
@@ -68,7 +67,6 @@ export const tokenToDevGatewayMap: Record<TokenType, string> = {
 export const defaultProdGatewayUrls: Record<TokenType, string> = {
   arweave: 'https://turbo-gateway.com',
   ario: 'https://api.mainnet-beta.solana.com',
-  'base-ario': baseMainnetRpc,
   solana: 'https://api.mainnet-beta.solana.com',
   ethereum: 'https://cloudflare-eth.com/',
   'base-eth': baseMainnetRpc,
@@ -118,7 +116,6 @@ export function createTurboSigner({
     case 'base-eth':
     case 'usdc':
     case 'base-usdc':
-    case 'base-ario':
     case 'polygon-usdc':
       if (!isEthPrivateKey(clientProvidedPrivateKey)) {
         throw new Error(
@@ -204,7 +201,6 @@ export function isValidUserAddress(address: string, type: TokenType): boolean {
     case 'matic':
     case 'pol':
     case 'base-usdc':
-    case 'base-ario':
     case 'usdc':
     case 'polygon-usdc':
       return isValidECDSAAddress(address);

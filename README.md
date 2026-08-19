@@ -909,15 +909,6 @@ const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
 });
-
-
-// ARIO on Base Network
-const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
-  signer,
-  token: 'base-ario',
-}).topUpWithTokens({
-  tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
-});
 ```
 
 ##### USDC Crypto Top Up
@@ -1323,15 +1314,6 @@ const turbo = TurboFactory.authenticated({
 const turbo = TurboFactory.authenticated({
   privateKey: ethHexadecimalPrivateKey,
   token: 'base-usdc',
-});
-```
-
-#### Base ARIO Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: ethHexadecimalPrivateKey,
-  token: 'base-ario',
 });
 ```
 

@@ -97,7 +97,6 @@ describe('Node environment', () => {
       matic: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       pol: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'base-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
-      'base-ario': [new EthereumSigner(testEthWallet), testEthNativeAddress],
       usdc: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'polygon-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
     };
