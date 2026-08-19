@@ -1,7 +1,13 @@
 #!/bin/bash
+set -euo pipefail
 
 # The version to be released is passed as the first argument to the script
 nextRelease_version=$1
+
+# semantic-release runs prepareCmd from the repo root, but every path below is
+# relative to this package. Resolve them against the script's own location so
+# the stamping works regardless of the caller's cwd.
+cd "$(dirname "$0")"
 
 # Update the version in src/version.ts
 sed -i.bak -e "s/export const version = '.*';/export const version = '${nextRelease_version}';/" ./src/version.ts && rm ./src/version.ts.bak
