@@ -33,6 +33,7 @@ import {
   TokenTools,
   TokenType,
   TopUpRawResponse,
+  TurboArNSNamesResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
   TurboBalanceResponse,
@@ -133,6 +134,23 @@ export class TurboUnauthenticatedPaymentService
     // Normalize: preserve a legitimate `0` (free tier off) or `null` (unlimited),
     // and coerce a missing field (e.g. a 404 body) to `null`.
     return { bytesRemaining: status?.bytesRemaining ?? null };
+  }
+
+  /**
+   * Returns the ArNS names a wallet owns or controls via Turbo's custodial
+   * ArNS-with-credits feature (buy a name with credits; Turbo spawns and
+   * holds the ANT on the caller's behalf until self-custody exit).
+   *
+   * NOTE: this SDK does not yet wrap the ArNS purchase/price/transfer/manage
+   * routes -- this is deliberately the only ArNS method for now. To read a
+   * name's current records or lease/expiration state, use `@ar.io/sdk`
+   * directly against the returned `antId` -- it talks to the chain directly
+   * and needs no round-trip through this SDK/backend.
+   */
+  public getArNSNames(address: string): Promise<TurboArNSNamesResponse> {
+    return this.httpService.get<TurboArNSNamesResponse>({
+      endpoint: `/arns/my-names/${address}`,
+    });
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
@@ -796,6 +814,13 @@ export class TurboAuthenticatedPaymentService
       data: Buffer.from([]),
       retry: false, // single-use action-bound nonce; don't re-POST on 5xx
     });
+  }
+
+  public async getArNSNames(
+    userAddress?: string,
+  ): Promise<TurboArNSNamesResponse> {
+    userAddress ??= await this.signer.getNativeAddress();
+    return super.getArNSNames(userAddress);
   }
 
   public async getCreditShareApprovals({

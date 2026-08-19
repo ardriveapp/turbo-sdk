@@ -304,6 +304,33 @@ export type TurboPaymentHistoryParams = {
   cursor?: string;
 };
 
+/**
+ * A single ArNS name returned by `getArNSNames`. `custodial: true` means Turbo
+ * still holds/manages the underlying ANT on the caller's behalf (e.g. via the
+ * ArNS-with-credits purchase flow) and Turbo's transfer/manage routes apply to
+ * it; `custodial: false` means the name is self-custodied (or has already been
+ * exited from custody) and is returned for historical/informational purposes
+ * only.
+ *
+ * NOTE: this SDK does not (yet) wrap the ArNS purchase/price/transfer/manage
+ * routes -- see `getArNSNames` below for the full list of what remains
+ * unwrapped. To read a name's current records or lease/expiration state, use
+ * `@ar.io/sdk` directly against the `antId` returned here.
+ */
+export type TurboArNSName = {
+  name: string;
+  antId: string;
+  intent: string;
+  type: 'lease' | 'permabuy';
+  years?: number;
+  purchaseDate: string;
+  custodial: boolean;
+};
+
+export type TurboArNSNamesResponse = {
+  names: TurboArNSName[];
+};
+
 export type TurboFiatToArResponse = {
   currency: Currency;
   rate: number;
@@ -1097,6 +1124,14 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getArNSPurchaseStatus(p: {
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse>;
+  /**
+   * Returns the ArNS names a wallet owns or controls via Turbo's custodial
+   * ArNS-with-credits feature. This is a read-only listing endpoint; it does
+   * not require a signature. See `TurboArNSName` for field semantics. To
+   * read a name's current records or lease/expiration state, use
+   * `@ar.io/sdk` directly against the returned `antId`.
+   */
+  getArNSNames: (address: string) => Promise<TurboArNSNamesResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
@@ -1160,6 +1195,8 @@ export interface TurboAuthenticatedPaymentServiceInterface
   getPaymentHistory(
     params?: TurboPaymentHistoryParams,
   ): Promise<TurboPaymentHistoryResponse>;
+
+  getArNSNames: (userAddress?: UserAddress) => Promise<TurboArNSNamesResponse>;
 
   getCreditShareApprovals(p: {
     userAddress?: UserAddress;

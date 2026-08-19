@@ -33,6 +33,7 @@ import {
   NativeAddress,
   TokenType,
   TurboAbortSignal,
+  TurboArNSNamesResponse,
   TurboAuthenticatedClientConfiguration,
   TurboAuthenticatedClientInterface,
   TurboAuthenticatedPaymentServiceInterface,
@@ -178,6 +179,21 @@ export class TurboUnauthenticatedClient
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse> {
     return this.paymentService.getArNSPurchaseStatus(p);
+  }
+
+  /**
+   * Returns the ArNS names a wallet owns or controls via Turbo's custodial
+   * ArNS-with-credits feature. `custodial: true` on a returned name means
+   * Turbo still holds/manages its ANT (transfer/manage routes apply);
+   * `custodial: false` means self-custody (or an already-completed exit) and
+   * is informational only.
+   *
+   * NOTE: this SDK does not yet wrap the ArNS purchase/price/transfer/manage
+   * routes. To read a name's current records or lease/expiration state, use
+   * `@ar.io/sdk` directly against the returned `antId`.
+   */
+  getArNSNames(address: NativeAddress): Promise<TurboArNSNamesResponse> {
+    return this.paymentService.getArNSNames(address);
   }
 
   /**
@@ -437,6 +453,15 @@ export class TurboAuthenticatedClient
     undername: string;
   }): Promise<{ antId: string; undername: string; messageId: string }> {
     return this.paymentService.removeArNSRecord(params);
+  }
+
+  /**
+   * Returns the ArNS names owned or controlled by the connected signer's
+   * wallet (or the given `userAddress`) via Turbo's custodial
+   * ArNS-with-credits feature.
+   */
+  getArNSNames(userAddress?: NativeAddress): Promise<TurboArNSNamesResponse> {
+    return this.paymentService.getArNSNames(userAddress);
   }
 
   /**
