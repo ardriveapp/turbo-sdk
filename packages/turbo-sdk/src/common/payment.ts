@@ -137,9 +137,11 @@ export class TurboUnauthenticatedPaymentService
   }
 
   /**
-   * Returns the ArNS names a wallet owns or controls via Turbo's custodial
-   * ArNS-with-credits feature (buy a name with credits; Turbo spawns and
-   * holds the ANT on the caller's behalf until self-custody exit).
+   * Returns the ArNS names a wallet owns or controls -- both custodial names
+   * bought via Turbo's ArNS-with-credits feature (Turbo may spawn and hold
+   * the ANT on the caller's behalf, depending on the buy) and self-custody
+   * names, in one list. See `TurboArNSName` for field semantics, including
+   * the `custodial` flag distinguishing the two.
    *
    * NOTE: this SDK does not yet wrap the ArNS purchase/price/transfer/manage
    * routes -- this is deliberately the only ArNS method for now. To read a
@@ -149,7 +151,7 @@ export class TurboUnauthenticatedPaymentService
    */
   public getArNSNames(address: string): Promise<TurboArNSNamesResponse> {
     return this.httpService.get<TurboArNSNamesResponse>({
-      endpoint: `/arns/my-names/${address}`,
+      endpoint: `/arns/my-names/${encodeURIComponent(address)}`,
     });
   }
 
@@ -816,6 +818,11 @@ export class TurboAuthenticatedPaymentService
     });
   }
 
+  /**
+   * Defaults to the signer's own address when `userAddress` is omitted
+   * (`null`/`undefined`). Passing `''` does NOT trigger this default --
+   * mirrors `getBalance`'s existing behavior above.
+   */
   public async getArNSNames(
     userAddress?: string,
   ): Promise<TurboArNSNamesResponse> {

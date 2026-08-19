@@ -312,16 +312,38 @@ export type TurboPaymentHistoryParams = {
  * exited from custody) and is returned for historical/informational purposes
  * only.
  *
+ * `intent`/`type`/`years`/`purchaseDate` describe the specific purchase
+ * receipt Turbo selected for this name and are historical/informational, NOT
+ * authoritative for the name's current on-chain state. `type`/`years` may be
+ * absent -- omitted from the response entirely, not `null` -- when the
+ * selected receipt is an action (e.g. Extend-Lease/Increase-Undername-Limit)
+ * that doesn't carry them. `antId` may be an empty string if no receipt Turbo
+ * has for this name ever carried one (e.g. the caller only ever extended a
+ * name it doesn't own -- ArNS extend/upgrade/increase-undername actions have
+ * no on-chain ownership check) -- guard for `antId === ''` before passing it
+ * to `@ar.io/sdk`.
+ *
  * NOTE: this SDK does not (yet) wrap the ArNS purchase/price/transfer/manage
- * routes -- see `getArNSNames` below for the full list of what remains
- * unwrapped. To read a name's current records or lease/expiration state, use
+ * routes. To read a name's current records or lease/expiration state, use
  * `@ar.io/sdk` directly against the `antId` returned here.
  */
 export type TurboArNSName = {
   name: string;
   antId: string;
-  intent: string;
-  type: 'lease' | 'permabuy';
+  /**
+   * The ArNS action recorded on the selected purchase receipt. Widened with
+   * `(string & {})` so new intents added server-side don't require a
+   * client-side type change, while still getting autocomplete for the known
+   * values.
+   */
+  intent:
+    | 'Buy-Name'
+    | 'Buy-Record'
+    | 'Extend-Lease'
+    | 'Upgrade-Name'
+    | 'Increase-Undername-Limit'
+    | (string & Record<string, never>);
+  type?: 'lease' | 'permabuy';
   years?: number;
   purchaseDate: string;
   custodial: boolean;

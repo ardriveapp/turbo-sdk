@@ -1216,7 +1216,7 @@ await turbo.removeArNSRecord({ antId: 'ant-id', undername: 'docs' });
 
 ### Listing owned names
 
-`getArNSNames(address)` returns every ArNS name a wallet owns or controls -- both custodial names bought via `buyArNSName`/`purchaseArNSName` and self-custody names, in one list. It's a read-only listing endpoint and does **not** require a signature -- it's available on both `TurboUnauthenticatedClient` (pass an `address`) and `TurboAuthenticatedClient` (`address` optional, defaults to the connected signer's own native address).
+`getArNSNames(address)` returns every ArNS name a wallet owns or controls -- both custodial names bought via `buyArNSName`/`purchaseArNSName` and self-custody names, in one list. It's a read-only listing endpoint and does **not** require a signature -- it's available on both `TurboUnauthenticatedClient` (pass an `address`) and `TurboAuthenticatedClient` (`address` optional, defaults to the connected signer's own native address -- passing an empty string does not trigger this default).
 
 A returned name's `custodial: true` means Turbo still manages its ANT (so `transferArNSAnt`/`setArNSRecord`/`removeArNSRecord` above apply to it); `custodial: false` means the name is self-custodied, or custody has already been exited, and the entry is informational only. `type`/`years` are omitted (not present in the JSON) when the selected purchase receipt doesn't carry them (e.g. an `Extend-Lease`/`Increase-Undername-Limit` receipt), and `antId` may be an empty string if no receipt for the name ever carried one -- guard for `antId === ''` before passing it to `@ar.io/sdk`.
 
@@ -1229,7 +1229,9 @@ const turbo = TurboFactory.unauthenticated();
 const { names } = await turbo.getArNSNames(publicArweaveAddress);
 
 // Authenticated -- defaults to the connected signer's own wallet
-const authenticatedTurbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+const authenticatedTurbo = TurboFactory.authenticated({
+  privateKey: arweaveJwk,
+});
 const { names: myNames } = await authenticatedTurbo.getArNSNames();
 ```
 

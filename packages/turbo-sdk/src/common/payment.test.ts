@@ -59,6 +59,43 @@ describe('TurboUnauthenticatedPaymentService', () => {
         getStub.firstCall.args[0].endpoint,
         '/arns/my-names/test-address',
       );
+      // The endpoint itself never carries '/v1' -- it's baked into the
+      // httpService's baseURL at construction time. Assert that directly
+      // rather than trusting the test title's claim.
+      assert.equal(
+        (paymentService as any)['httpService']['baseURL'].endsWith('/v1'),
+        true,
+      );
+    });
+
+    it('URL-encodes the address so a caller-controlled value cannot alter the request path', async () => {
+      const paymentService = new TurboUnauthenticatedPaymentService({});
+
+      const getStub = stub(
+        (paymentService as any)['httpService'],
+        'get',
+      ).resolves({ names: [] });
+
+      await paymentService.getArNSNames('../../account/balance/arweave');
+
+      assert.equal(
+        getStub.firstCall.args[0].endpoint,
+        '/arns/my-names/..%2F..%2Faccount%2Fbalance%2Farweave',
+      );
+    });
+
+    it('propagates a rejection from the underlying HTTP call', async () => {
+      const paymentService = new TurboUnauthenticatedPaymentService({});
+
+      const expectedError = new Error('network unreachable');
+      stub((paymentService as any)['httpService'], 'get').rejects(
+        expectedError,
+      );
+
+      await assert.rejects(
+        () => paymentService.getArNSNames('test-address'),
+        expectedError,
+      );
     });
   });
 });
@@ -110,6 +147,37 @@ describe('TurboAuthenticatedPaymentService', () => {
       assert.equal(
         getStub.firstCall.args[0].endpoint,
         '/arns/my-names/signer-native-address',
+      );
+    });
+
+    it('does NOT fall back to the signer when an empty string is provided (matches getBalance)', async () => {
+      const paymentService = new TurboAuthenticatedPaymentService({
+        signer: stubSigner,
+      });
+
+      const getStub = stub(
+        (paymentService as any)['httpService'],
+        'get',
+      ).resolves({ names: [] });
+
+      await paymentService.getArNSNames('');
+
+      assert.equal(getStub.firstCall.args[0].endpoint, '/arns/my-names/');
+    });
+
+    it('propagates a rejection when the signer fails to resolve a native address', async () => {
+      const failingSigner = {
+        getNativeAddress: async () => {
+          throw new Error('wallet locked');
+        },
+      } as unknown as TurboDataItemSigner;
+      const paymentService = new TurboAuthenticatedPaymentService({
+        signer: failingSigner,
+      });
+
+      await assert.rejects(
+        () => paymentService.getArNSNames(),
+        /wallet locked/,
       );
     });
   });
