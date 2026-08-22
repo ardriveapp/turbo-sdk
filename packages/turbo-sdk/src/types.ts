@@ -1158,7 +1158,8 @@ export type ArNSFiatPurchaseQuote = {
   owner: UserAddress;
   /** Credit value of the purchase, in Winston credits. */
   wincQty: string;
-  mARIOQty: string;
+  /** Verified against the live service: serialized as a NUMBER, unlike wincQty. */
+  mARIOQty: number;
   /** Fiat amount to be charged, in the currency's smallest unit. */
   paymentAmount: number;
   /** Amount before adjustments, in the currency's smallest unit. */
@@ -1168,8 +1169,14 @@ export type ArNSFiatPurchaseQuote = {
   paymentProvider: string;
   /** Credits left over when the charge was raised to Stripe's minimum. */
   excessWincAmount?: string;
-  usdArRate?: number;
-  usdArioRate?: number;
+  /** ISO timestamp the quote was recorded. */
+  quoteCreationDate: string;
+  /**
+   * Rates at quote time. Verified against the live service: serialized as
+   * STRINGS, even though they are numeric server-side.
+   */
+  usdArRate?: string;
+  usdArioRate?: string;
   type?: ArNSNameType;
   years?: number;
   increaseQty?: number;

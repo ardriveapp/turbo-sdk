@@ -19,6 +19,7 @@ import { beforeEach, describe, it } from 'node:test';
 
 import { testJwk } from '../../tests/helpers.js';
 import { TurboNodeSigner } from '../node/signer.js';
+import type { ArNSFiatPurchaseQuoteResponse } from '../types.js';
 import {
   FailedRequestError,
   FiatPaymentsDisabledError,
@@ -211,6 +212,54 @@ describe('getArNSFiatPurchaseQuote', () => {
       path,
       `/arns/quote/payment-intent/${expected}/usd/Buy-Name/my-name`,
     );
+  });
+
+  // Fixture captured from the LIVE payment service. Source-reading alone got
+  // three of these wrong: mARIOQty serializes as a number (unlike wincQty),
+  // usdArRate/usdArioRate serialize as strings, and quoteCreationDate exists.
+  // Typing this fixture as the response type is the regression guard.
+  it('matches the shape the live service actually returns', async () => {
+    const live: ArNSFiatPurchaseQuoteResponse = {
+      purchaseQuote: {
+        nonce: '6287906b-b1cd-4a89-a3a8-89925b027a7c',
+        name: 'verify-types-xyz',
+        intent: 'Buy-Name',
+        owner: 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4',
+        wincQty: '704714789010',
+        mARIOQty: 1000000,
+        paymentAmount: 1234,
+        quotedPaymentAmount: 1234,
+        currencyType: 'usd',
+        quoteCreationDate: '2026-08-22T18:00:00.000Z',
+        quoteExpirationDate: '2026-08-22T18:30:00.000Z',
+        paymentProvider: 'stripe',
+        excessWincAmount: '0',
+        usdArRate: '5.55',
+        usdArioRate: '0.01',
+        type: 'lease',
+        years: 1,
+        // increaseQty and processId are OMITTED for this intent, not null.
+      },
+      paymentSession: {
+        id: 'pi_123',
+        client_secret: 'pi_123_secret',
+        object: 'payment_intent',
+      },
+      adjustments: [],
+      fees: [],
+    };
+
+    http.response = live;
+    const res = await service().getArNSFiatPurchaseQuote({ ...baseParams });
+
+    assert.equal(res.purchaseQuote.nonce, live.purchaseQuote.nonce);
+    assert.equal(typeof res.purchaseQuote.mARIOQty, 'number');
+    assert.equal(typeof res.purchaseQuote.wincQty, 'string');
+    assert.equal(typeof res.purchaseQuote.usdArRate, 'string');
+    assert.equal(res.purchaseQuote.increaseQty, undefined);
+    assert.equal(res.purchaseQuote.processId, undefined);
+    assert.ok(Array.isArray(res.fees));
+    assert.equal(res.paymentSession.client_secret, 'pi_123_secret');
   });
 
   it('lets the authenticated caller override the destination address', async () => {

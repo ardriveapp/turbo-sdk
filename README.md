@@ -1888,9 +1888,27 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 Buy and manage [ArNS](#arns-names-paid-with-turbo-credits) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
 
-All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`) do not.
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`, `arns-fiat-quote`) do not.
 
 When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
+
+##### `arns-fiat-quote`
+
+Quote an ArNS purchase paid by **credit card** (Stripe) instead of Turbo Credits. Records a quote and returns a Stripe session to complete elsewhere — nothing is charged by this command.
+
+```shell
+turbo arns-fiat-quote --name my-name --type lease --years 1 \
+  --address <destination-address> --currency usd
+```
+
+```shell
+# hosted Stripe Checkout, with promo codes
+turbo arns-fiat-quote --name my-name --type permabuy \
+  --address <destination-address> --currency eur \
+  --method checkout-session --promo-code LAUNCH FRIENDS
+```
+
+Prints the quote's `nonce` (poll it with `arns-purchase-status`), the Stripe `paymentSessionId`, and whichever of `clientSecret` / `checkoutUrl` applies to the chosen `--method`. Exits non-zero with a clear message when the payment service has fiat disabled.
 
 ##### `arns-price`
 
