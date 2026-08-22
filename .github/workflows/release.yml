@@ -38,10 +38,18 @@ jobs:
       - name: Build
         run: yarn workspace @ardrive/turbo-sdk build
 
+      # Run from the repo ROOT, not the workspace. `.releaserc` lives at the
+      # root and every path in it is root-relative (`pkgRoot`, the exec
+      # prepareCmd, the release assets). Running this via
+      # `yarn workspace @ardrive/turbo-sdk` sets cwd to packages/turbo-sdk,
+      # where semantic-release finds no config and silently falls back to its
+      # DEFAULT plugins -- dropping @semantic-release/changelog, /exec and
+      # /git. That is why no release since 1.40.0 updated CHANGELOG.md,
+      # stamped src/version.ts, or produced a `chore(release)` commit.
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: yarn workspace @ardrive/turbo-sdk semantic-release
+        run: yarn semantic-release
 
       - name: Publish Dist Tag
         run: |
