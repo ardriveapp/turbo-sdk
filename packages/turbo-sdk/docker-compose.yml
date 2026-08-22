@@ -68,11 +68,16 @@ services:
       - upload-service-data-items:/temp
       - ./tests/wallets:/usr/src/app/wallets
     depends_on:
-      - upload-service-pg
-      - payment-service
-      - arlocal-setup
-      - localstack
-      - redis
+      upload-service-pg:
+        condition: service_healthy
+      payment-service:
+        condition: service_started
+      arlocal-setup:
+        condition: service_started
+      localstack:
+        condition: service_started
+      redis:
+        condition: service_started
 
   redis:
     image: redis:7.2-alpine
@@ -131,6 +136,12 @@ services:
 
   upload-service-pg:
     image: postgres:13.8
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -199,11 +210,24 @@ services:
       KYVE_GATEWAY: ${KYVE_GATEWAY:-https://api.korellia.kyve.network} # KYVE testnet gateway
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
-      - payment-service-pg
-      - arlocal-setup
+      payment-service-pg:
+        condition: service_healthy
+      arlocal-setup:
+        condition: service_started
 
   payment-service-pg:
     image: postgres:13.8
+    # Without this, `depends_on` only waits for the CONTAINER to start, not for
+    # Postgres to accept connections. payment-service then races it, loses, and
+    # logs "Failed to migrate database! connect ECONNREFUSED ...:5433" — leaving
+    # a service that answers /health with no schema, so every priced request
+    # 500s. That race is the cause of the intermittent 56-failure runs.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -p 5433"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
     environment:
       PGPORT: 5433
       POSTGRES_USER: postgres
