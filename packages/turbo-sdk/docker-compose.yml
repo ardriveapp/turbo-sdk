@@ -170,7 +170,10 @@ services:
       start_period: 10s
 
   payment-service:
-    image: ghcr.io/ardriveapp/payment-service:latest
+    # Pinnable like the upload-service images above. Left at `latest` by
+    # default, but CI can pin a known-good tag when a bad publish upstream
+    # would otherwise break every integration run with no way to opt out.
+    image: ghcr.io/ardriveapp/payment-service:${PAYMENT_SERVICE_IMAGE_TAG:-latest}
     ports:
       - "4000:4000"
     healthcheck:
