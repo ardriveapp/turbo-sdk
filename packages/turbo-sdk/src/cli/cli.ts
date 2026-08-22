@@ -23,6 +23,7 @@ import { readFileSync, readdirSync } from 'fs';
 
 import { version } from '../version.js';
 import {
+  arnsFiatQuote,
   arnsPrice,
   arnsPurchaseStatus,
   buyArNSName,
@@ -50,6 +51,7 @@ import { shareCredits } from './commands/shareCredits.js';
 import { tokenPrice } from './commands/tokenPrice.js';
 import { x402UploadUnsignedFile } from './commands/x402UploadUnsignedData.js';
 import {
+  arnsFiatQuoteOptions,
   arnsPriceOptions,
   arnsPurchaseStatusOptions,
   buyArNSNameOptions,
@@ -68,7 +70,11 @@ import {
   uploadFolderOptions,
   walletOptions,
 } from './options.js';
-import { TopUpOptions, UploadFolderOptions } from './types.js';
+import {
+  ArNSFiatQuoteOptions,
+  TopUpOptions,
+  UploadFolderOptions,
+} from './types.js';
 import { applyOptions, runCommand } from './utils.js';
 
 applyOptions(
@@ -213,6 +219,17 @@ applyOptions(
   arnsPriceOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, arnsPrice);
+});
+
+applyOptions(
+  program
+    .command('arns-fiat-quote')
+    .description(
+      'Quote an ArNS purchase paid by credit card (Stripe) - no credits needed',
+    ),
+  arnsFiatQuoteOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand<ArNSFiatQuoteOptions>(command, arnsFiatQuote);
 });
 
 applyOptions(

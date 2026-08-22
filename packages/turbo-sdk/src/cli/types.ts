@@ -119,6 +119,13 @@ export type ArNSPriceOptions = GlobalOptions & {
   processId: string | undefined;
 };
 
+export type ArNSFiatQuoteOptions = ArNSPriceOptions & {
+  address: string | undefined;
+  currency: string | undefined;
+  method: string | undefined;
+  promoCode: string[] | undefined;
+};
+
 export type ArNSPurchaseOptions = WalletOptions &
   ArNSPriceOptions & {
     paidBy: string[] | undefined;

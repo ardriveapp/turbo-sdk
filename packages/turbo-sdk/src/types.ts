@@ -1090,6 +1090,125 @@ export type ArNSPurchaseStatusResponse = ArNSPurchaseReceipt & {
   failedDate?: string;
 };
 
+// ===== ArNS purchases paid with fiat (Stripe) — no Turbo Credits in between ====
+
+/**
+ * Stripe integration mode for a fiat ArNS purchase quote.
+ *
+ * - `payment-intent` — returns a Stripe PaymentIntent. Confirm it client-side
+ *   with `stripe.confirmCardPayment(paymentSession.client_secret, ...)`.
+ * - `checkout-session` — returns a Stripe Checkout Session to redirect to
+ *   (`uiMode: 'hosted'`) or embed (`uiMode: 'embedded'`).
+ *
+ * Widened with `string & Record<never, never>` so a method added service-side is
+ * still callable without an SDK bump, while the known values keep autocomplete.
+ * (`string & {}` is the usual idiom but trips the `ban-types` lint rule.)
+ */
+export const arNSFiatPurchaseMethods = [
+  'payment-intent',
+  'checkout-session',
+] as const;
+export type ArNSFiatPurchaseMethod =
+  | (typeof arNSFiatPurchaseMethods)[number]
+  | (string & Record<never, never>);
+
+/**
+ * Params for a fiat (Stripe) ArNS purchase quote.
+ *
+ * Intent-specific fields come from the same {@link ArNSPriceParams} union the
+ * credit-paid methods use, and the `uiMode` split reuses the checkout-session
+ * unions, so the hosted/embedded URL pairing is enforced at compile time the
+ * same way it is for top-ups.
+ *
+ * Note: the service also accepts a `Buy-Record` intent that the SDK does not
+ * model yet — {@link arNSPurchaseIntents} carries the other four.
+ */
+export type ArNSFiatPurchaseQuoteParams = ArNSPriceParams & {
+  /** Fiat currency to charge in. */
+  currency: Currency;
+  /** Address that will own the name once the purchase settles. */
+  address: UserAddress;
+  /** Stripe integration mode. Defaults to `payment-intent`. */
+  method?: ArNSFiatPurchaseMethod;
+  /** Promo codes to apply. Sent as repeated `promoCode` query params. */
+  promoCodes?: string[];
+} & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+
+/**
+ * Authenticated variant: `address` defaults to the signer's native address.
+ */
+export type AuthenticatedArNSFiatPurchaseQuoteParams = DistributiveOmit<
+  ArNSFiatPurchaseQuoteParams,
+  'address'
+> & { address?: UserAddress };
+
+/**
+ * The quote the service recorded for this purchase. `nonce` is the key to poll
+ * `getArNSPurchaseStatus({ nonce })` with once the card payment confirms.
+ *
+ * Intent-dependent fields (`type`, `years`, `increaseQty`, `processId`) are
+ * OMITTED by the service for intents that do not use them — they are absent
+ * keys, not `null` — so each is optional here.
+ */
+export type ArNSFiatPurchaseQuote = {
+  name: string;
+  intent: ArNSPurchaseIntent;
+  /** UUID identifying this purchase; the status-lookup key. */
+  nonce: string;
+  owner: UserAddress;
+  /** Credit value of the purchase, in Winston credits. */
+  wincQty: string;
+  /** Verified against the live service: serialized as a NUMBER, unlike wincQty. */
+  mARIOQty: number;
+  /** Fiat amount to be charged, in the currency's smallest unit. */
+  paymentAmount: number;
+  /** Amount before adjustments, in the currency's smallest unit. */
+  quotedPaymentAmount: number;
+  currencyType: Currency;
+  quoteExpirationDate: string;
+  paymentProvider: string;
+  /** Credits left over when the charge was raised to Stripe's minimum. */
+  excessWincAmount?: string;
+  /** ISO timestamp the quote was recorded. */
+  quoteCreationDate: string;
+  /**
+   * Rates at quote time. Verified against the live service: serialized as
+   * STRINGS, even though they are numeric server-side.
+   */
+  usdArRate?: string;
+  usdArioRate?: string;
+  type?: ArNSNameType;
+  years?: number;
+  increaseQty?: number;
+  processId?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * The Stripe object to complete payment with — a PaymentIntent or a Checkout
+ * Session depending on `method`. Typed loosely on purpose: this is Stripe's
+ * payload, passed through verbatim, and pinning it here would couple the SDK to
+ * a Stripe API version.
+ *
+ * `client_secret` is present on a PaymentIntent and on an embedded Checkout
+ * Session; a hosted Checkout Session exposes `url` instead.
+ */
+export type ArNSFiatPaymentSession = {
+  id: string;
+  client_secret?: string | null;
+  url?: string | null;
+  [key: string]: unknown;
+};
+
+export type ArNSFiatPurchaseQuoteResponse = {
+  purchaseQuote: ArNSFiatPurchaseQuote;
+  paymentSession: ArNSFiatPaymentSession;
+  /** Promo/discount adjustments applied to the fiat amount. */
+  adjustments: Adjustment[];
+  /** Inclusive fees folded into the price. */
+  fees: Adjustment[];
+};
+
 export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
   getFreeStatus: (address: string) => Promise<TurboFreeStatusResponse>;
@@ -1097,6 +1216,10 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getArNSPurchaseStatus(p: {
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse>;
+  /** Fiat (Stripe) ArNS purchase quote — no Turbo Credits top-up in between. */
+  getArNSFiatPurchaseQuote(
+    params: ArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
@@ -1149,6 +1272,10 @@ export type TurboFundWithTokensParams = {
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+  /** `address` defaults to the signer's native address. */
+  getArNSFiatPurchaseQuote(
+    params: AuthenticatedArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse>;
   getFreeStatus: (
     userAddress?: UserAddress,
   ) => Promise<TurboFreeStatusResponse>;

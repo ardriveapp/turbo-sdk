@@ -17,15 +17,22 @@ import { BigNumber } from 'bignumber.js';
 
 import { TurboFactory } from '../../node/factory.js';
 import {
+  ArNSFiatPurchaseQuoteParams,
+  ArNSFiatPurchaseQuoteResponse,
   ArNSNameType,
   ArNSPriceParams,
   ArNSPriceResponse,
   ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
+  Currency,
 } from '../../types.js';
-import { InsufficientCreditsError } from '../../utils/errors.js';
+import {
+  FiatPaymentsDisabledError,
+  InsufficientCreditsError,
+} from '../../utils/errors.js';
 import { wincPerCredit } from '../constants.js';
 import {
+  ArNSFiatQuoteOptions,
   ArNSPriceOptions,
   ArNSPurchaseOptions,
   ArNSPurchaseStatusOptions,
@@ -246,6 +253,73 @@ export async function arnsPrice(
       2,
     ),
   );
+}
+
+/**
+ * Fiat (Stripe) quote for an ArNS purchase. Read-only from the CLI's point of
+ * view: it records a quote and returns a Stripe session to complete elsewhere,
+ * so nothing is charged here.
+ */
+export type ArNSFiatQuoteClient = {
+  getArNSFiatPurchaseQuote(
+    params: ArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse>;
+};
+
+export async function arnsFiatQuote(
+  options: ArNSFiatQuoteOptions,
+  turbo?: ArNSFiatQuoteClient,
+): Promise<void> {
+  const params = arnsPriceParamsFromOptions(options);
+  const address = options.address;
+  if (address === undefined) {
+    throw new Error(
+      'A destination --address is required for a fiat ArNS quote.',
+    );
+  }
+
+  const client =
+    turbo ?? TurboFactory.unauthenticated(configFromOptions(options));
+  try {
+    const { purchaseQuote, paymentSession, adjustments, fees } =
+      await client.getArNSFiatPurchaseQuote({
+        ...params,
+        address,
+        currency: (options.currency ?? 'usd') as Currency,
+        method: options.method,
+        promoCodes: options.promoCode,
+      });
+
+    console.log(
+      JSON.stringify(
+        {
+          name: purchaseQuote.name,
+          intent: purchaseQuote.intent,
+          nonce: purchaseQuote.nonce,
+          paymentAmount: purchaseQuote.paymentAmount,
+          currency: purchaseQuote.currencyType,
+          quoteExpirationDate: purchaseQuote.quoteExpirationDate,
+          paymentSessionId: paymentSession.id,
+          // Present for a payment intent / embedded checkout; a hosted
+          // checkout session returns `url` instead.
+          clientSecret: paymentSession.client_secret ?? undefined,
+          checkoutUrl: paymentSession.url ?? undefined,
+          adjustments,
+          fees,
+        },
+        null,
+        2,
+      ),
+    );
+  } catch (error) {
+    if (error instanceof FiatPaymentsDisabledError) {
+      console.error(
+        'Fiat (Stripe) payments are disabled on this payment service. Use the credit-paid commands (buy-arns-name, extend-arns-lease, ...) instead.',
+      );
+      throw error;
+    }
+    throw error;
+  }
 }
 
 export async function buyArNSName(

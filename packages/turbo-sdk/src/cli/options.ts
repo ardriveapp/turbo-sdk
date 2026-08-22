@@ -330,6 +330,25 @@ export const arnsPriceOptions = [
   optionMap.arnsProcessId,
 ];
 
+export const arnsFiatQuoteOptions = [
+  optionMap.arnsName,
+  optionMap.arnsType,
+  optionMap.arnsYears,
+  optionMap.arnsIncreaseQty,
+  optionMap.arnsProcessId,
+  optionMap.address,
+  optionMap.currency,
+  {
+    alias: '--method <method>',
+    description:
+      'Stripe integration mode: payment-intent (default) or checkout-session',
+  },
+  {
+    alias: '--promo-code <promoCode...>',
+    description: 'Promo code(s) to apply to the fiat price',
+  },
+];
+
 export const buyArNSNameOptions = [
   ...walletOptions,
   optionMap.arnsName,

@@ -1024,11 +1024,14 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
-## ArNS Names (paid with Turbo Credits)
+## ArNS Names
 
-The authenticated client can buy and manage [ArNS](https://ar.io/arns) names and pay for them with the connected wallet's **Turbo Credits** — no on-chain ARIO token balance required. The bundler performs the on-chain ARIO purchase on your behalf and debits your credit balance.
+The client can buy and manage [ArNS](https://ar.io/arns) names, paid **either with Turbo Credits or directly with a credit card**. Either way the bundler performs the on-chain ARIO purchase on your behalf — no on-chain ARIO token balance required.
 
-- **Purchases / management (charge credits):** `getArNSPriceForName`, `purchaseArNSName` (+ the intent wrappers `buyArNSName`, `extendArNSLease`, `increaseArNSUndernameLimit`, `upgradeArNSName`), and `getArNSPurchaseStatus`.
+> This section was previously titled "ArNS Names (paid with Turbo Credits)". It was retitled because the fiat path below is explicitly _not_ paid with credits.
+
+- **Paid with credits:** `getArNSPriceForName`, `purchaseArNSName` (+ the intent wrappers `buyArNSName`, `extendArNSLease`, `increaseArNSUndernameLimit`, `upgradeArNSName`), and `getArNSPurchaseStatus`.
+- **Paid with fiat (Stripe):** `getArNSFiatPurchaseQuote` — see [Buying a name with a credit card](#buying-a-name-with-a-credit-card-fiat--stripe).
 - **ANT custody:** `transferArNSAnt`, `setArNSRecord`, `removeArNSRecord`.
 
 > Reads such as resolving a name or fetching a record are provided by [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and are intentionally out of scope for this client.
@@ -1233,6 +1236,73 @@ try {
   }
 }
 ```
+
+### Buying a name with a credit card (fiat / Stripe)
+
+`getArNSFiatPurchaseQuote` buys a name **in one step with a card** — no Turbo Credits top-up in between. It returns the recorded quote plus a Stripe object to complete payment with.
+
+Available on both clients. The route takes the destination address as a path param and needs no signature, so the unauthenticated client can quote a purchase for any address; on the authenticated client `address` defaults to the signer's wallet.
+
+```typescript
+const { purchaseQuote, paymentSession, adjustments, fees } =
+  await turbo.getArNSFiatPurchaseQuote({
+    intent: 'Buy-Name',
+    name: 'my-name',
+    type: 'lease',
+    years: 1,
+    currency: 'usd',
+    // address defaults to the signer on the authenticated client
+  });
+
+// `payment-intent` (the default) returns a client_secret to confirm with Stripe
+await stripe.confirmCardPayment(paymentSession.client_secret, {
+  payment_method: { card: cardElement },
+  receipt_email: email,
+});
+
+// then poll to completion with the quote's nonce
+const status = await turbo.getArNSPurchaseStatus({
+  nonce: purchaseQuote.nonce,
+});
+```
+
+**Stripe integration modes** — pass `method`:
+
+- `payment-intent` (default): confirm client-side with `paymentSession.client_secret`.
+- `checkout-session`: pair with `uiMode`. `hosted` accepts `successUrl` / `cancelUrl` and returns a `paymentSession.url` to redirect to; `embedded` accepts `returnUrl` and returns a `client_secret` to mount.
+
+```typescript
+const quote = await turbo.getArNSFiatPurchaseQuote({
+  intent: 'Buy-Name',
+  name: 'my-name',
+  type: 'permabuy',
+  currency: 'eur',
+  method: 'checkout-session',
+  uiMode: 'hosted',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
+  promoCodes: ['LAUNCH', 'FRIENDS'], // sent as repeated promoCode params
+});
+```
+
+**When fiat is switched off.** Payment services can disable Stripe (this is the normal state in the testnet sandbox). The SDK surfaces that as a typed `FiatPaymentsDisabledError` rather than a bare 503, because the service uses the same status for internal errors:
+
+```typescript
+import { FiatPaymentsDisabledError } from '@ardrive/turbo-sdk';
+
+try {
+  await turbo.getArNSFiatPurchaseQuote({ ... });
+} catch (error) {
+  if (error instanceof FiatPaymentsDisabledError) {
+    // fall back to the credit-paid path
+    await turbo.buyArNSName({ name: 'my-name', type: 'lease', years: 1 });
+  }
+}
+```
+
+**Response notes.** `purchaseQuote.nonce` is the status-lookup key. Intent-dependent fields (`type`, `years`, `increaseQty`, `processId`) are **omitted entirely** by the service for intents that don't use them — they are absent keys rather than `null`, and are optional in the types. `adjustments` carries promo/discount reductions and `fees` the inclusive fees folded into the price; both are empty arrays when none apply. `paymentSession` is Stripe's own object, passed through verbatim — `client_secret` appears on a PaymentIntent and on an embedded Checkout Session, while a hosted Checkout Session exposes `url` instead.
+
+> The service also accepts a `Buy-Record` intent that this SDK does not model yet; the four intents above are the supported set.
 
 ### Dependency note (@solana/codecs)
 
@@ -1818,9 +1888,27 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 Buy and manage [ArNS](#arns-names-paid-with-turbo-credits) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
 
-All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`) do not.
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`, `arns-fiat-quote`) do not.
 
 When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
+
+##### `arns-fiat-quote`
+
+Quote an ArNS purchase paid by **credit card** (Stripe) instead of Turbo Credits. Records a quote and returns a Stripe session to complete elsewhere — nothing is charged by this command.
+
+```shell
+turbo arns-fiat-quote --name my-name --type lease --years 1 \
+  --address <destination-address> --currency usd
+```
+
+```shell
+# hosted Stripe Checkout, with promo codes
+turbo arns-fiat-quote --name my-name --type permabuy \
+  --address <destination-address> --currency eur \
+  --method checkout-session --promo-code LAUNCH FRIENDS
+```
+
+Prints the quote's `nonce` (poll it with `arns-purchase-status`), the Stripe `paymentSessionId`, and whichever of `clientSecret` / `checkoutUrl` applies to the chosen `--method`. Exits non-zero with a clear message when the payment service has fiat disabled.
 
 ##### `arns-price`
 

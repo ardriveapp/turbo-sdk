@@ -16,7 +16,10 @@
 import { strict as assert } from 'node:assert';
 import { beforeEach, describe, it } from 'node:test';
 
-import { InsufficientCreditsError } from '../../utils/errors.js';
+import {
+  FiatPaymentsDisabledError,
+  InsufficientCreditsError,
+} from '../../utils/errors.js';
 import {
   ArNSPriceOptions,
   ArNSPurchaseOptions,
@@ -30,6 +33,7 @@ import {
   ArNSPriceClient,
   ArNSPurchaseClient,
   ArNSStatusClient,
+  arnsFiatQuote,
   arnsPrice,
   arnsPriceParamsFromOptions,
   arnsPurchaseStatus,
@@ -558,5 +562,98 @@ describe('ArNS CLI commands', () => {
         /undername/,
       );
     });
+  });
+});
+
+describe('arnsFiatQuote', () => {
+  class FakeFiatClient {
+    public params: unknown;
+    public error: unknown;
+    async getArNSFiatPurchaseQuote(params: unknown) {
+      this.params = params;
+      if (this.error) throw this.error;
+      return {
+        purchaseQuote: {
+          name: 'my-name',
+          intent: 'Buy-Name',
+          nonce: 'nonce-1',
+          owner: 'addr',
+          wincQty: '1',
+          mARIOQty: 2,
+          paymentAmount: 130,
+          quotedPaymentAmount: 130,
+          currencyType: 'usd',
+          quoteCreationDate: 'now',
+          quoteExpirationDate: 'later',
+          paymentProvider: 'stripe',
+        },
+        paymentSession: { id: 'pi_1', client_secret: 'pi_1_secret' },
+        adjustments: [],
+        fees: [],
+      } as never;
+    }
+  }
+
+  it('maps CLI options onto the quote params', async () => {
+    const client = new FakeFiatClient();
+    await arnsFiatQuote(
+      {
+        name: 'my-name',
+        type: 'lease',
+        years: '1',
+        increaseQty: undefined,
+        processId: undefined,
+        address: 'dest-address',
+        currency: 'eur',
+        method: 'checkout-session',
+        promoCode: ['A', 'B'],
+      } as never,
+      client,
+    );
+    const p = client.params as Record<string, unknown>;
+    assert.equal(p.address, 'dest-address');
+    assert.equal(p.currency, 'eur');
+    assert.equal(p.method, 'checkout-session');
+    assert.deepEqual(p.promoCodes, ['A', 'B']);
+    assert.equal(p.intent, 'Buy-Name');
+    assert.equal(p.name, 'my-name');
+  });
+
+  it('defaults currency to usd', async () => {
+    const client = new FakeFiatClient();
+    await arnsFiatQuote(
+      {
+        name: 'my-name',
+        type: 'permabuy',
+        address: 'dest',
+        currency: undefined,
+      } as never,
+      client,
+    );
+    assert.equal((client.params as Record<string, unknown>).currency, 'usd');
+  });
+
+  it('requires a destination address', async () => {
+    await assert.rejects(
+      () =>
+        arnsFiatQuote(
+          { name: 'my-name', type: 'permabuy', address: undefined } as never,
+          new FakeFiatClient(),
+        ),
+      /destination --address is required/,
+    );
+  });
+
+  it('rethrows FiatPaymentsDisabledError so the exit code is non-zero', async () => {
+    const client = new FakeFiatClient();
+    client.error = new FiatPaymentsDisabledError();
+    await assert.rejects(
+      () =>
+        arnsFiatQuote(
+          { name: 'n', type: 'permabuy', address: 'a' } as never,
+          client,
+        ),
+      FiatPaymentsDisabledError,
+    );
   });
 });
