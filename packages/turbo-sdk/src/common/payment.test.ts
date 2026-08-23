@@ -17,7 +17,12 @@ import { strict as assert } from 'node:assert';
 import { afterEach, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
-import { TurboArNSNamesResponse, TurboDataItemSigner } from '../types.js';
+import type {
+  ArNSFiatPurchaseMethod,
+  TurboArNSName,
+  TurboArNSNamesResponse,
+  TurboDataItemSigner,
+} from '../types.js';
 import {
   TurboAuthenticatedPaymentService,
   TurboUnauthenticatedPaymentService,
@@ -180,5 +185,22 @@ describe('TurboAuthenticatedPaymentService', () => {
         /wallet locked/,
       );
     });
+  });
+});
+
+// Regression: the `intent` and `ArNSFiatPurchaseMethod` unions are widened so a
+// value added service-side stays assignable without an SDK bump. `string & {}`
+// is the usual idiom but trips `ban-types`; `Record<string, never>` looks
+// equivalent and is NOT — it rejects arbitrary strings, silently collapsing the
+// union to its literals. Only `Record<never, never>` actually widens.
+describe('forward-compatible string unions', () => {
+  it('accepts an intent the SDK does not know about', () => {
+    const futureIntent: TurboArNSName['intent'] = 'Transfer-Name';
+    assert.equal(futureIntent, 'Transfer-Name');
+  });
+
+  it('accepts a stripe method the SDK does not know about', () => {
+    const futureMethod: ArNSFiatPurchaseMethod = 'some-future-method';
+    assert.equal(futureMethod, 'some-future-method');
   });
 });

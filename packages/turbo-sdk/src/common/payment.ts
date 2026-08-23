@@ -149,11 +149,9 @@ export class TurboUnauthenticatedPaymentService
    * names, in one list. See `TurboArNSName` for field semantics, including
    * the `custodial` flag distinguishing the two.
    *
-   * NOTE: this SDK does not yet wrap the ArNS purchase/price/transfer/manage
-   * routes -- this is deliberately the only ArNS method for now. To read a
-   * name's current records or lease/expiration state, use `@ar.io/sdk`
-   * directly against the returned `antId` -- it talks to the chain directly
-   * and needs no round-trip through this SDK/backend.
+   * To read a name's current records or lease/expiration state, use
+   * `@ar.io/sdk` directly against the returned `antId` -- it talks to the
+   * chain directly and needs no round-trip through this SDK/backend.
    */
   public getArNSNames(address: string): Promise<TurboArNSNamesResponse> {
     return this.httpService.get<TurboArNSNamesResponse>({

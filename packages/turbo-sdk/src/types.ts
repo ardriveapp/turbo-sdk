@@ -323,8 +323,7 @@ export type TurboPaymentHistoryParams = {
  * no on-chain ownership check) -- guard for `antId === ''` before passing it
  * to `@ar.io/sdk`.
  *
- * NOTE: this SDK does not (yet) wrap the ArNS purchase/price/transfer/manage
- * routes. To read a name's current records or lease/expiration state, use
+ * To read a name's current records or lease/expiration state, use
  * `@ar.io/sdk` directly against the `antId` returned here.
  */
 export type TurboArNSName = {
@@ -342,7 +341,7 @@ export type TurboArNSName = {
     | 'Extend-Lease'
     | 'Upgrade-Name'
     | 'Increase-Undername-Limit'
-    | (string & Record<string, never>);
+    | (string & Record<never, never>);
   type?: 'lease' | 'permabuy';
   years?: number;
   purchaseDate: string;
