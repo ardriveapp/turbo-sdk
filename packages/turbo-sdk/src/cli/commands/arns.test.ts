@@ -619,6 +619,45 @@ describe('arnsFiatQuote', () => {
     assert.equal(p.name, 'my-name');
   });
 
+  // Regression: arnsPriceParamsFromOptions substitutes a placeholder
+  // processId ('pricing-only-no-process-id') for pricing. A quote records a
+  // REAL purchase, so that placeholder must never reach the service — omitting
+  // processId is what asks Turbo to custodially provision the ANT.
+  it('never sends the pricing placeholder processId', async () => {
+    const client = new FakeFiatClient();
+    await arnsFiatQuote(
+      {
+        name: 'my-name',
+        type: 'lease',
+        years: '1',
+        address: 'dest',
+        processId: undefined,
+      } as never,
+      client,
+    );
+    const p = client.params as Record<string, unknown>;
+    assert.equal(p.processId, undefined);
+    assert.ok(!JSON.stringify(p).includes('pricing-only-no-process-id'));
+  });
+
+  it('forwards an explicitly supplied processId', async () => {
+    const client = new FakeFiatClient();
+    await arnsFiatQuote(
+      {
+        name: 'my-name',
+        type: 'lease',
+        years: '1',
+        address: 'dest',
+        processId: 'real-ant-process-id',
+      } as never,
+      client,
+    );
+    assert.equal(
+      (client.params as Record<string, unknown>).processId,
+      'real-ant-process-id',
+    );
+  });
+
   it('defaults currency to usd', async () => {
     const client = new FakeFiatClient();
     await arnsFiatQuote(

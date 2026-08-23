@@ -271,6 +271,15 @@ export async function arnsFiatQuote(
   turbo?: ArNSFiatQuoteClient,
 ): Promise<void> {
   const params = arnsPriceParamsFromOptions(options);
+
+  // `arnsPriceParamsFromOptions` substitutes PRICING_PLACEHOLDER_PROCESS_ID for
+  // an omitted Buy-Name `processId`, which is fine for a price lookup but NOT
+  // here: a quote records a real purchase, and that placeholder is not a valid
+  // ANT. Send `processId` only when the caller actually supplied one — omitting
+  // it is what tells Turbo to custodially provision the ANT.
+  if (options.processId === undefined) {
+    delete (params as { processId?: string }).processId;
+  }
   const address = options.address;
   if (address === undefined) {
     throw new Error(
