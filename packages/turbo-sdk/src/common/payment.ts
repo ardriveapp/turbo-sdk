@@ -18,6 +18,8 @@ import { BigNumber } from 'bignumber.js';
 import {
   ArNSBuyNameArgs,
   ArNSExtendLeaseParams,
+  ArNSFiatPurchaseQuoteParams,
+  ArNSFiatPurchaseQuoteResponse,
   ArNSIncreaseUndernameLimitParams,
   ArNSNameType,
   ArNSPaidByParams,
@@ -27,6 +29,7 @@ import {
   ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
   ArNSUpgradeNameParams,
+  AuthenticatedArNSFiatPurchaseQuoteParams,
   Currency,
   GetCreditShareApprovalsResponse,
   RawWincForTokenResponse,
@@ -67,10 +70,13 @@ import {
   TurboWincForTokenResponse,
   UserAddress,
   arNSPurchaseIntents,
+  fiatCurrencyTypes,
+  isCurrency,
 } from '../types.js';
 import { isAnyValidUserAddress } from '../utils/common.js';
 import {
   FailedRequestError,
+  FiatPaymentsDisabledError,
   InsufficientCreditsError,
   ProvidedInputError,
 } from '../utils/errors.js';
@@ -349,6 +355,121 @@ export class TurboUnauthenticatedPaymentService
     return query.length > 0 ? `?${query}` : '';
   }
 
+  /**
+   * Quote a fiat (Stripe) ArNS purchase — buy a name with a credit card in one
+   * step, with no Turbo Credits top-up in between.
+   *
+   * Returns the recorded `purchaseQuote` (its `nonce` is what
+   * `getArNSPurchaseStatus` polls) plus the Stripe `paymentSession` to complete
+   * payment with. For `payment-intent`, confirm client-side with
+   * `stripe.confirmCardPayment(paymentSession.client_secret, ...)`, then poll
+   * the nonce until the purchase reports success or failure.
+   *
+   * Throws {@link FiatPaymentsDisabledError} when the service has Stripe turned
+   * off (normal in the testnet sandbox) so callers can fall back to the
+   * credit-paid path without string-matching a generic 503.
+   */
+  public async getArNSFiatPurchaseQuote(
+    params: ArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse> {
+    this.validateArNSPurchaseParams(params);
+
+    const {
+      address,
+      currency,
+      method = 'payment-intent',
+      promoCodes = [],
+    } = params;
+
+    if (typeof address !== 'string' || address.length === 0) {
+      throw new ProvidedInputError(
+        'A destination `address` is required for a fiat ArNS purchase quote.',
+      );
+    }
+    if (!isCurrency(currency)) {
+      throw new ProvidedInputError(
+        `Invalid currency '${currency}'. Supported: ${fiatCurrencyTypes.join(
+          ', ',
+        )}`,
+      );
+    }
+
+    // Every interpolated segment is encoded. Five user-controlled values land in
+    // the path here, and an unencoded one (e.g. a name or address containing
+    // `../`) would silently retarget the request at another route.
+    const segments = [
+      method,
+      address,
+      currency,
+      params.intent,
+      params.name,
+    ].map((segment) => encodeURIComponent(segment));
+
+    const query = this.buildArNSFiatQuoteQuery(params, promoCodes);
+
+    try {
+      return await this.httpService.get<ArNSFiatPurchaseQuoteResponse>({
+        endpoint: `/arns/quote/${segments.join('/')}${query}`,
+      });
+    } catch (error) {
+      // The service returns 503 both for "Stripe is disabled" and for internal
+      // errors, so the body is what disambiguates them.
+      if (
+        error instanceof FailedRequestError &&
+        error.status === 503 &&
+        /Fiat \(Stripe\).*disabled/i.test(error.message)
+      ) {
+        throw new FiatPaymentsDisabledError(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Query string for a fiat quote. Distinct from `buildArNSPurchaseQuery`
+   * because this route takes `uiMode` + its paired URLs and has no `paidBy`
+   * (fiat has no delegated payer), and because promo codes must be REPEATED
+   * params here: the service reads them with `parseQueryParams`, which treats a
+   * comma-joined string as one code rather than several.
+   */
+  protected buildArNSFiatQuoteQuery(
+    params: ArNSFiatPurchaseQuoteParams,
+    promoCodes: string[],
+  ): string {
+    const { type, years, increaseQty, processId } = params as {
+      type?: ArNSNameType;
+      years?: number;
+      increaseQty?: number;
+      processId?: string;
+    };
+    const search = new URLSearchParams();
+    if (type !== undefined) search.set('type', type);
+    if (years !== undefined) search.set('years', `${years}`);
+    if (increaseQty !== undefined) search.set('increaseQty', `${increaseQty}`);
+    if (processId !== undefined) search.set('processId', processId);
+
+    const uiMode = (params as { uiMode?: string }).uiMode;
+    if (uiMode !== undefined) search.set('uiMode', uiMode);
+    if (uiMode === 'embedded') {
+      const { returnUrl } = params as { returnUrl?: string };
+      if (returnUrl !== undefined) search.set('returnUrl', returnUrl);
+    } else {
+      const { successUrl, cancelUrl } = params as {
+        successUrl?: string;
+        cancelUrl?: string;
+      };
+      if (successUrl !== undefined) search.set('successUrl', successUrl);
+      if (cancelUrl !== undefined) search.set('cancelUrl', cancelUrl);
+    }
+
+    for (const code of promoCodes) {
+      search.append('promoCode', code);
+    }
+
+    const query = search.toString();
+    return query.length > 0 ? `?${query}` : '';
+  }
+
   protected appendPromoCodesToQuery(promoCodes: string[]): string {
     const promoCodesQuery = promoCodes.join(',');
     return promoCodesQuery ? `promoCode=${promoCodesQuery}` : '';
@@ -596,6 +717,23 @@ export class TurboAuthenticatedPaymentService
   public async getBalance(userAddress?: string): Promise<TurboBalanceResponse> {
     userAddress ??= await this.signer.getNativeAddress();
     return super.getBalance(userAddress);
+  }
+
+  /**
+   * Quote a fiat (Stripe) ArNS purchase. `address` defaults to this signer's
+   * native address — the wallet that will own the name — so the common case
+   * needs no address at all. Pass one explicitly to buy on another wallet's
+   * behalf; the route takes the destination as a path param and requires no
+   * signature, which is why it is available unauthenticated too.
+   */
+  public async getArNSFiatPurchaseQuote(
+    params: AuthenticatedArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse> {
+    const address = params.address ?? (await this.signer.getNativeAddress());
+    return super.getArNSFiatPurchaseQuote({
+      ...params,
+      address,
+    } as ArNSFiatPurchaseQuoteParams);
   }
 
   public async getFreeStatus(

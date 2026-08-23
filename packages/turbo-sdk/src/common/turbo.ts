@@ -18,6 +18,8 @@ import { BigNumber } from 'bignumber.js';
 import {
   ArNSBuyNameArgs,
   ArNSExtendLeaseParams,
+  ArNSFiatPurchaseQuoteParams,
+  ArNSFiatPurchaseQuoteResponse,
   ArNSIncreaseUndernameLimitParams,
   ArNSPaidByParams,
   ArNSPriceParams,
@@ -26,6 +28,7 @@ import {
   ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
   ArNSUpgradeNameParams,
+  AuthenticatedArNSFiatPurchaseQuoteParams,
   CreditShareApproval,
   Currency,
   FundingOptions,
@@ -188,12 +191,25 @@ export class TurboUnauthenticatedClient
    * `custodial: false` means self-custody (or an already-completed exit) and
    * is informational only.
    *
-   * NOTE: this SDK does not yet wrap the ArNS purchase/price/transfer/manage
-   * routes. To read a name's current records or lease/expiration state, use
+   * To read a name's current records or lease/expiration state, use
    * `@ar.io/sdk` directly against the returned `antId`.
    */
   getArNSNames(address: NativeAddress): Promise<TurboArNSNamesResponse> {
     return this.paymentService.getArNSNames(address);
+  }
+
+  /**
+   * Quote a fiat (Stripe) ArNS purchase — buy a name with a credit card in one
+   * step, no Turbo Credits top-up in between. Complete the returned
+   * `paymentSession` with Stripe, then poll {@link getArNSPurchaseStatus} using
+   * `purchaseQuote.nonce`.
+   *
+   * Throws `FiatPaymentsDisabledError` when the service has Stripe switched off.
+   */
+  getArNSFiatPurchaseQuote(
+    params: ArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse> {
+    return this.paymentService.getArNSFiatPurchaseQuote(params);
   }
 
   /**
@@ -401,6 +417,21 @@ export class TurboAuthenticatedClient
   /** Buys a new ArNS name (lease or permabuy). */
   buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse> {
     return this.paymentService.buyArNSName(params);
+  }
+
+  /**
+   * Quote a fiat (Stripe) ArNS purchase for this signer's wallet — a credit-card
+   * buy in one step, with no Turbo Credits top-up in between. `address` defaults
+   * to the signer's native address; pass one to buy on another wallet's behalf.
+   *
+   * Complete the returned `paymentSession` with Stripe, then poll
+   * {@link getArNSPurchaseStatus} using `purchaseQuote.nonce`. Throws
+   * `FiatPaymentsDisabledError` when the service has Stripe switched off.
+   */
+  getArNSFiatPurchaseQuote(
+    params: AuthenticatedArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse> {
+    return this.paymentService.getArNSFiatPurchaseQuote(params);
   }
 
   /** Extends the lease on an existing ArNS name. */

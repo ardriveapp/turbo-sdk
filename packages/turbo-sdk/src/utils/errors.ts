@@ -64,6 +64,27 @@ export class InsufficientCreditsError extends BaseError {
   }
 }
 
+/**
+ * Raised when the payment service has fiat (Stripe) payments switched off, which
+ * it signals with `503` and the body "Fiat (Stripe) ArNS payments are disabled".
+ * This is a normal state in the testnet sandbox, not an outage.
+ *
+ * Distinguished from a generic `503` deliberately: the same status is also used
+ * for internal errors (body "Internal Server Error: ..."), so status alone is
+ * ambiguous. Recovery: fall back to the credit-paid path (`buyArNSName` and
+ * friends), or surface fiat checkout as unavailable.
+ */
+export class FiatPaymentsDisabledError extends BaseError {
+  /** Always the HTTP status that produced this error. */
+  public readonly status = 503;
+  constructor(message?: string) {
+    super(
+      message ??
+        'Fiat (Stripe) payments are disabled on this payment service. Use the credit-paid purchase path instead.',
+    );
+  }
+}
+
 export class AbortError extends BaseError {
   constructor(message = 'Request was aborted') {
     super(message);
