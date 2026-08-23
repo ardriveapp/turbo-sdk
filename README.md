@@ -20,7 +20,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboFactory](#turbofactory)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
-- [ArNS Names (paid with Turbo Credits)](#arns-names-paid-with-turbo-credits)
+- [ArNS Names](#arns-names)
   - [Purchase lifecycle](#purchase-lifecycle)
   - [Connecting a signer](#connecting-a-signer)
   - [Pricing a name](#pricing-a-name)
@@ -1886,7 +1886,7 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 #### ArNS Commands
 
-Buy and manage [ArNS](#arns-names-paid-with-turbo-credits) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
+Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
 
 All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`, `arns-fiat-quote`) do not.
 
