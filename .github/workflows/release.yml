@@ -23,18 +23,9 @@ jobs:
       pull-requests: write # to be able to comment on released pull requests
       id-token: write # to enable use of OIDC for npm provenance
     steps:
-      # semantic-release's @semantic-release/git plugin pushes the
-      # `chore(release)` commit (CHANGELOG.md + src/version.ts) back to the
-      # release branch. `alpha` and `main` are protected and require a review,
-      # and the default GITHUB_TOKEN (github-actions[bot]) is NOT on the bypass
-      # list — only `ardrive-bot` is — so that push fails with:
-      #   GH006: Protected branch update failed for refs/heads/alpha
-      # Check out (and release) with the bot PAT so the push is allowed. Falls
-      # back to GITHUB_TOKEN if the secret is unset, which fails the same way it
-      # does today rather than in some new one.
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set Up node
         uses: actions/setup-node@v6
         with:
@@ -47,18 +38,10 @@ jobs:
       - name: Build
         run: yarn workspace @ardrive/turbo-sdk build
 
-      # Run from the repo ROOT, not the workspace. `.releaserc` lives at the
-      # root and every path in it is root-relative (`pkgRoot`, the exec
-      # prepareCmd, the release assets). Running this via
-      # `yarn workspace @ardrive/turbo-sdk` sets cwd to packages/turbo-sdk,
-      # where semantic-release finds no config and silently falls back to its
-      # DEFAULT plugins -- dropping @semantic-release/changelog, /exec and
-      # /git. That is why no release since 1.40.0 updated CHANGELOG.md,
-      # stamped src/version.ts, or produced a `chore(release)` commit.
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
-        run: yarn semantic-release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: yarn workspace @ardrive/turbo-sdk semantic-release
 
       - name: Publish Dist Tag
         run: |
