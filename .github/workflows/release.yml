@@ -23,9 +23,18 @@ jobs:
       pull-requests: write # to be able to comment on released pull requests
       id-token: write # to enable use of OIDC for npm provenance
     steps:
+      # semantic-release's @semantic-release/git plugin pushes the
+      # `chore(release)` commit (CHANGELOG.md + src/version.ts) back to the
+      # release branch. `alpha` and `main` are protected and require a review,
+      # and the default GITHUB_TOKEN (github-actions[bot]) is NOT on the bypass
+      # list — only `ardrive-bot` is — so that push fails with:
+      #   GH006: Protected branch update failed for refs/heads/alpha
+      # Check out (and release) with the bot PAT so the push is allowed. Falls
+      # back to GITHUB_TOKEN if the secret is unset, which fails the same way it
+      # does today rather than in some new one.
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Set Up node
         uses: actions/setup-node@v6
         with:
@@ -48,7 +57,7 @@ jobs:
       # stamped src/version.ts, or produced a `chore(release)` commit.
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: yarn semantic-release
 
       - name: Publish Dist Tag
