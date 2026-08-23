@@ -304,6 +304,54 @@ export type TurboPaymentHistoryParams = {
   cursor?: string;
 };
 
+/**
+ * A single ArNS name returned by `getArNSNames`. `custodial: true` means Turbo
+ * still holds/manages the underlying ANT on the caller's behalf (e.g. via the
+ * ArNS-with-credits purchase flow) and Turbo's transfer/manage routes apply to
+ * it; `custodial: false` means the name is self-custodied (or has already been
+ * exited from custody) and is returned for historical/informational purposes
+ * only.
+ *
+ * `intent`/`type`/`years`/`purchaseDate` describe the specific purchase
+ * receipt Turbo selected for this name and are historical/informational, NOT
+ * authoritative for the name's current on-chain state. `type`/`years` may be
+ * absent -- omitted from the response entirely, not `null` -- when the
+ * selected receipt is an action (e.g. Extend-Lease/Increase-Undername-Limit)
+ * that doesn't carry them. `antId` may be an empty string if no receipt Turbo
+ * has for this name ever carried one (e.g. the caller only ever extended a
+ * name it doesn't own -- ArNS extend/upgrade/increase-undername actions have
+ * no on-chain ownership check) -- guard for `antId === ''` before passing it
+ * to `@ar.io/sdk`.
+ *
+ * To read a name's current records or lease/expiration state, use
+ * `@ar.io/sdk` directly against the `antId` returned here.
+ */
+export type TurboArNSName = {
+  name: string;
+  antId: string;
+  /**
+   * The ArNS action recorded on the selected purchase receipt. Widened with
+   * `(string & {})` so new intents added server-side don't require a
+   * client-side type change, while still getting autocomplete for the known
+   * values.
+   */
+  intent:
+    | 'Buy-Name'
+    | 'Buy-Record'
+    | 'Extend-Lease'
+    | 'Upgrade-Name'
+    | 'Increase-Undername-Limit'
+    | (string & Record<never, never>);
+  type?: 'lease' | 'permabuy';
+  years?: number;
+  purchaseDate: string;
+  custodial: boolean;
+};
+
+export type TurboArNSNamesResponse = {
+  names: TurboArNSName[];
+};
+
 export type TurboFiatToArResponse = {
   currency: Currency;
   rate: number;
@@ -1216,6 +1264,14 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getArNSPurchaseStatus(p: {
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse>;
+  /**
+   * Returns the ArNS names a wallet owns or controls via Turbo's custodial
+   * ArNS-with-credits feature. This is a read-only listing endpoint; it does
+   * not require a signature. See `TurboArNSName` for field semantics. To
+   * read a name's current records or lease/expiration state, use
+   * `@ar.io/sdk` directly against the returned `antId`.
+   */
+  getArNSNames: (address: string) => Promise<TurboArNSNamesResponse>;
   /** Fiat (Stripe) ArNS purchase quote — no Turbo Credits top-up in between. */
   getArNSFiatPurchaseQuote(
     params: ArNSFiatPurchaseQuoteParams,
@@ -1287,6 +1343,8 @@ export interface TurboAuthenticatedPaymentServiceInterface
   getPaymentHistory(
     params?: TurboPaymentHistoryParams,
   ): Promise<TurboPaymentHistoryResponse>;
+
+  getArNSNames: (userAddress?: UserAddress) => Promise<TurboArNSNamesResponse>;
 
   getCreditShareApprovals(p: {
     userAddress?: UserAddress;

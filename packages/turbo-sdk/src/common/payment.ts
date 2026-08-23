@@ -36,6 +36,7 @@ import {
   TokenTools,
   TokenType,
   TopUpRawResponse,
+  TurboArNSNamesResponse,
   TurboAuthenticatedPaymentServiceConfiguration,
   TurboAuthenticatedPaymentServiceInterface,
   TurboBalanceResponse,
@@ -139,6 +140,23 @@ export class TurboUnauthenticatedPaymentService
     // Normalize: preserve a legitimate `0` (free tier off) or `null` (unlimited),
     // and coerce a missing field (e.g. a 404 body) to `null`.
     return { bytesRemaining: status?.bytesRemaining ?? null };
+  }
+
+  /**
+   * Returns the ArNS names a wallet owns or controls -- both custodial names
+   * bought via Turbo's ArNS-with-credits feature (Turbo may spawn and hold
+   * the ANT on the caller's behalf, depending on the buy) and self-custody
+   * names, in one list. See `TurboArNSName` for field semantics, including
+   * the `custodial` flag distinguishing the two.
+   *
+   * To read a name's current records or lease/expiration state, use
+   * `@ar.io/sdk` directly against the returned `antId` -- it talks to the
+   * chain directly and needs no round-trip through this SDK/backend.
+   */
+  public getArNSNames(address: string): Promise<TurboArNSNamesResponse> {
+    return this.httpService.get<TurboArNSNamesResponse>({
+      endpoint: `/arns/my-names/${encodeURIComponent(address)}`,
+    });
   }
 
   public getFiatRates(): Promise<TurboRatesResponse> {
@@ -934,6 +952,18 @@ export class TurboAuthenticatedPaymentService
       data: Buffer.from([]),
       retry: false, // single-use action-bound nonce; don't re-POST on 5xx
     });
+  }
+
+  /**
+   * Defaults to the signer's own address when `userAddress` is omitted
+   * (`null`/`undefined`). Passing `''` does NOT trigger this default --
+   * mirrors `getBalance`'s existing behavior above.
+   */
+  public async getArNSNames(
+    userAddress?: string,
+  ): Promise<TurboArNSNamesResponse> {
+    userAddress ??= await this.signer.getNativeAddress();
+    return super.getArNSNames(userAddress);
   }
 
   public async getCreditShareApprovals({
