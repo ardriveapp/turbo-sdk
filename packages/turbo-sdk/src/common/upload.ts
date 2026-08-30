@@ -33,6 +33,7 @@ import {
   TurboCryptoFundResponse,
   TurboDataItemSigner,
   TurboFileFactory,
+  TurboFolderUploadIndex,
   TurboLogger,
   TurboRevokeCreditsParams,
   TurboUnauthenticatedUploadServiceConfiguration,
@@ -50,9 +51,14 @@ import {
   UploadSignedDataItemParams,
   X402Funding,
 } from '../types.js';
-import { isBlob, sleep } from '../utils/common.js';
+import { isBlob, isValidArweaveBase64URL, sleep } from '../utils/common.js';
 import { AbortError } from '../utils/errors.js';
 import { FailedRequestError } from '../utils/errors.js';
+import {
+  contentHashFromFolderIndexKey,
+  contentHashTagName,
+  folderIndexKey,
+} from '../utils/folderIndex.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { RetryConfig, defaultRetryConfig } from './http.js';
@@ -552,6 +558,250 @@ export abstract class TurboAuthenticatedBaseUploadService
     manifestBuffer: Buffer,
   ): Readable | ReadableStream;
 
+  /**
+   * The sha-256 of a file's bytes, as lowercase hex. The key of a
+   * {@link TurboFolderUploadIndex}.
+   *
+   * This default consumes the file's stream and digests it with the platform
+   * WebCrypto implementation, which serves the browser. NodeJS overrides it
+   * with a streaming digest so a large file is never held in memory.
+   */
+  protected async computeContentHash(file: string | File): Promise<string> {
+    const stream = this.getFileStreamForFile(file);
+
+    const chunks: Uint8Array[] = [];
+    if ('getReader' in stream) {
+      const reader = stream.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+    } else {
+      for await (const chunk of stream) {
+        chunks.push(new Uint8Array(chunk));
+      }
+    }
+
+    const digest = await crypto.subtle.digest('SHA-256', Buffer.concat(chunks));
+    return Buffer.from(digest).toString('hex');
+  }
+
+  /**
+   * The exact tag set a folder upload writes for one file. Shared by the
+   * planner and the uploader, so that the tags a folder index key is computed
+   * from are, without question, the tags the data item ends up carrying.
+   */
+  private folderFileTags({
+    file,
+    dataItemOpts,
+    contentHash,
+  }: {
+    file: string | File;
+    dataItemOpts: DataItemOptions | undefined;
+    contentHash: string | undefined;
+  }): { name: string; value: string }[] {
+    return [
+      ...(dataItemOpts?.tags?.filter(
+        (tag) =>
+          tag.name !== 'Content-Type' &&
+          // Only stripped when this upload is going to write its own. Without a
+          // folder index, a caller's File-SHA256 tag is theirs to keep.
+          (contentHash === undefined || tag.name !== contentHashTagName),
+      ) ?? []),
+      {
+        name: 'Content-Type',
+        value: this.getContentType(file, dataItemOpts),
+      },
+      ...(contentHash !== undefined
+        ? [{ name: contentHashTagName, value: contentHash }]
+        : []),
+    ];
+  }
+
+  /**
+   * A folder index is a cache, so a layer that is unreachable must mean a miss
+   * and not an aborted deploy. The write side is forgiving for the same reason.
+   */
+  private async readFolderIndex(
+    folderIndex: TurboFolderUploadIndex,
+    keys: string[],
+    signal: AbortSignal | undefined,
+  ): Promise<Map<string, string>> {
+    const knownIds = new Map<string, string>();
+    const unresolved: string[] = [];
+
+    for (const key of keys) {
+      let id: string | undefined;
+      try {
+        id = await folderIndex.get(key);
+      } catch (error) {
+        this.logger.error('Failed to read from folder index', error);
+      }
+      if (id !== undefined && isValidArweaveBase64URL(id)) {
+        knownIds.set(key, id);
+      } else {
+        unresolved.push(key);
+      }
+    }
+
+    if (unresolved.length > 0 && folderIndex.resolve !== undefined) {
+      try {
+        const resolved = await folderIndex.resolve(unresolved, { signal });
+        for (const [key, id] of Object.entries(resolved)) {
+          if (isValidArweaveBase64URL(id)) {
+            knownIds.set(key, id);
+          }
+        }
+      } catch (error) {
+        this.logger.error('Failed to resolve from folder index', error);
+      }
+    }
+
+    return knownIds;
+  }
+
+  /**
+   * Hashes every file and derives its folder index key, then works out which of
+   * those keys already have a data item id -- from the index, or from an
+   * identical file earlier in this same folder.
+   */
+  private async planFolderIndex({
+    files,
+    folderIndex,
+    dataItemOpts,
+    limit,
+    signal,
+  }: {
+    files: (string | File)[];
+    folderIndex: TurboFolderUploadIndex;
+    dataItemOpts: DataItemOptions | undefined;
+    limit: ReturnType<typeof pLimit>;
+    signal: AbortSignal | undefined;
+  }): Promise<{
+    contentHashes: Map<string | File, string>;
+    itemKeys: Map<string | File, string>;
+    knownIds: Map<string, string>;
+    filesToUpload: (string | File)[];
+  }> {
+    const contentHashes = new Map<string | File, string>();
+    const itemKeys = new Map<string | File, string>();
+    await Promise.all(
+      files.map((file) =>
+        limit(async () => {
+          const contentHash = await this.computeContentHash(file);
+          contentHashes.set(file, contentHash);
+          itemKeys.set(
+            file,
+            await folderIndexKey({
+              contentHash,
+              tags: this.folderFileTags({ file, dataItemOpts, contentHash }),
+            }),
+          );
+        }),
+      ),
+    );
+
+    const knownIds = await this.readFolderIndex(
+      folderIndex,
+      [...new Set(itemKeys.values())],
+      signal,
+    );
+
+    // Two files that would produce the same data item share a single upload, so
+    // the plan deduplicates within the folder as well as against the index.
+    const claimed = new Set<string>();
+    const filesToUpload = files.filter((file) => {
+      const key = itemKeys.get(file) as string;
+      if (knownIds.has(key) || claimed.has(key)) {
+        return false;
+      }
+      claimed.add(key);
+      return true;
+    });
+
+    this.logger.debug('Planned folder index', {
+      folderIndex: folderIndex.name,
+      totalFiles: files.length,
+      filesToUpload: filesToUpload.length,
+    });
+
+    await this.warnOnStaleTagMisses({ folderIndex, itemKeys, knownIds });
+
+    return { contentHashes, itemKeys, knownIds, filesToUpload };
+  }
+
+  /**
+   * A key covers the tags on a file as well as its bytes, so a tag in
+   * `dataItemOpts` that changes between deploys re-uploads the whole folder at
+   * full price. That is the right answer -- a reused data item is never one
+   * this call would not have made -- but on its own it is a silent cost cliff:
+   * a successful deploy, a full bill, and nothing saying why.
+   *
+   * The signature of that mistake is exact, and it is already in hand. A key is
+   * `<bytes>.<tags>`, so a file whose *bytes half* the index knows under some
+   * other tags half is a file whose content is already paid for and whose tags
+   * moved. Nothing else produces that: a folder the index has never seen has
+   * unknown bytes, and a layer that could not be reached reports nothing known.
+   * It also catches one file in a hundred, not just all of them.
+   */
+  private async warnOnStaleTagMisses({
+    folderIndex,
+    itemKeys,
+    knownIds,
+  }: {
+    folderIndex: TurboFolderUploadIndex;
+    itemKeys: Map<string | File, string>;
+    knownIds: Map<string, string>;
+  }): Promise<void> {
+    if (folderIndex.knownContentHashes === undefined) {
+      return;
+    }
+    const missed = [...new Set(itemKeys.values())].filter(
+      (key) => !knownIds.has(key),
+    );
+    if (missed.length === 0) {
+      return;
+    }
+
+    const missedByContentHash = new Map<string, string[]>();
+    for (const key of missed) {
+      const contentHash = contentHashFromFolderIndexKey(key);
+      missedByContentHash.set(contentHash, [
+        ...(missedByContentHash.get(contentHash) ?? []),
+        key,
+      ]);
+    }
+
+    let staleTagged: string[] = [];
+    try {
+      staleTagged =
+        (await folderIndex.knownContentHashes([
+          ...missedByContentHash.keys(),
+        ])) ?? [];
+    } catch (error) {
+      this.logger.error('Failed to read from folder index', error);
+      return;
+    }
+    const affected = staleTagged.reduce(
+      (count, contentHash) =>
+        count + (missedByContentHash.get(contentHash)?.length ?? 0),
+      0,
+    );
+    if (affected === 0) {
+      return;
+    }
+
+    this.logger.warn(
+      `${affected} of the ${missed.length} file(s) this run is about to upload are already on Arweave byte for byte, under a different set of tags. ` +
+        'Their content has not changed but their tags have, so they are being paid for again. A folder index key covers the tags ' +
+        'on a file as well as its bytes. That is usually a tag in dataItemOpts whose value changes between deploys -- a commit ' +
+        'sha, a build number, a timestamp -- in which case move it to manifestDataItemOpts rather than paying for these files ' +
+        'again. It can also be a file that kept its content but changed its Content-Type, through a rename or a new extension, ' +
+        'which is expected and costs one upload.',
+    );
+  }
+
   private getContentType(
     file: string | File,
     dataItemOpts?: DataItemOptions,
@@ -573,6 +823,8 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     const {
       dataItemOpts,
+      manifestDataItemOpts = dataItemOpts,
+      folderIndex,
       signal,
       manifestOptions = {},
       maxConcurrentUploads = 1,
@@ -596,15 +848,40 @@ export abstract class TurboAuthenticatedBaseUploadService
     };
     const errors: Error[] = [];
 
+    const limit = pLimit(maxConcurrentUploads);
+
     // Get files and calculate total bytes upfront for progress tracking
     const files = await this.getFiles(params);
-    const totalFiles = files.length;
+
+    // With an index, only the files whose bytes are not already on Arweave are
+    // signed, uploaded and paid for. Progress totals cover that subset, since
+    // it is all this call actually does.
+    let contentHashes = new Map<string | File, string>();
+    let itemKeys = new Map<string | File, string>();
+    let knownIds = new Map<string, string>();
+    let filesToUpload = files;
+    if (folderIndex !== undefined) {
+      ({ contentHashes, itemKeys, knownIds, filesToUpload } =
+        await this.planFolderIndex({
+          files,
+          folderIndex,
+          dataItemOpts,
+          limit,
+          signal,
+        }));
+    }
+
+    const totalFiles = filesToUpload.length;
     let totalBytes = 0;
+    let folderBytes = 0;
     const fileSizes = new Map<string | File, number>();
     files.forEach((file) => {
       const size = this.getFileSize(file);
       fileSizes.set(file, size);
-      totalBytes += size;
+      folderBytes += size;
+    });
+    filesToUpload.forEach((file) => {
+      totalBytes += fileSizes.get(file) ?? 0;
     });
 
     // Track progress across all files
@@ -623,16 +900,11 @@ export abstract class TurboAuthenticatedBaseUploadService
         totalFiles,
       });
 
-      const contentType = this.getContentType(file, dataItemOpts);
+      const contentHash = contentHashes.get(file);
 
       const dataItemOptsWithContentType = {
         ...dataItemOpts,
-        tags: [
-          ...(dataItemOpts?.tags?.filter(
-            (tag) => tag.name !== 'Content-Type',
-          ) ?? []),
-          { name: 'Content-Type', value: contentType },
-        ],
+        tags: this.folderFileTags({ file, dataItemOpts, contentHash }),
       };
 
       try {
@@ -680,8 +952,22 @@ export abstract class TurboAuthenticatedBaseUploadService
           fundingMode,
         });
 
-        const relativePath = this.getRelativePath(file, params);
-        paths[relativePath] = { id: result.id };
+        const itemKey = itemKeys.get(file);
+        if (itemKey !== undefined) {
+          // Recorded before anything else can fail, so a run that is killed
+          // part way through never loses a file it has already paid for.
+          knownIds.set(itemKey, result.id);
+          try {
+            await folderIndex?.set(itemKey, result.id);
+          } catch (error) {
+            // A failed index write costs the next run a re-upload; it must not
+            // fail this one, which has already paid for and landed the bytes.
+            this.logger.error('Failed to write to folder index', error);
+          }
+        } else {
+          const relativePath = this.getRelativePath(file, params);
+          paths[relativePath] = { id: result.id };
+        }
         response.fileResponses.push(result);
 
         // Update processed counts after file completes
@@ -721,11 +1007,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     };
 
-    const limit = pLimit(maxConcurrentUploads);
-
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
     if (fundingMode instanceof OnDemandFunding) {
-      const totalByteCount = files.reduce((acc, file) => {
+      const totalByteCount = filesToUpload.reduce((acc, file) => {
         return acc + this.getFileSize(file) + 1200; // allow extra per file for ANS-104 headers
       }, 0);
       cryptoFundResult = await this.onDemand({
@@ -735,17 +1019,39 @@ export abstract class TurboAuthenticatedBaseUploadService
     }
 
     await Promise.all(
-      files.map((file, index) => limit(() => uploadFile(file, index))),
+      filesToUpload.map((file, index) => limit(() => uploadFile(file, index))),
     );
 
     this.logger.debug('Finished uploading files', {
-      numFiles: files.length,
+      numFiles: filesToUpload.length,
       numErrors: errors.length,
       results: response.fileResponses,
     });
 
     if (errors.length > 0) {
       response.errors = errors;
+    }
+
+    if (folderIndex !== undefined) {
+      // Built in folder order rather than in completion order, so an unchanged
+      // folder produces byte identical manifest bytes -- and therefore an
+      // identical manifest data item id -- run after run.
+      for (const file of files) {
+        const id = knownIds.get(itemKeys.get(file) as string);
+        if (id !== undefined) {
+          paths[this.getRelativePath(file, params)] = { id };
+        }
+      }
+      response.folderIndexSummary = {
+        totalFiles: files.length,
+        totalBytes: folderBytes,
+        // What landed, not what was planned. With throwOnFailure: false a file
+        // can be planned, paid for nothing, and never arrive.
+        uploadedFiles: processedFiles,
+        uploadedBytes: processedBytes,
+        reusedFiles: files.length - filesToUpload.length,
+        reusedBytes: folderBytes - totalBytes,
+      };
     }
 
     if (disableManifest) {
@@ -769,8 +1075,9 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
 
     const tagsWithManifestContentType = [
-      ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ??
-        []),
+      ...(manifestDataItemOpts?.tags?.filter(
+        (tag) => tag.name !== 'Content-Type',
+      ) ?? []),
       { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
     ];
 
@@ -782,7 +1089,10 @@ export abstract class TurboAuthenticatedBaseUploadService
       fileStreamFactory: () => this.createManifestStream(manifestBuffer) as any,
       fileSizeFactory: () => manifestBuffer.byteLength,
       signal,
-      dataItemOpts: { ...dataItemOpts, tags: tagsWithManifestContentType },
+      dataItemOpts: {
+        ...manifestDataItemOpts,
+        tags: tagsWithManifestContentType,
+      },
       chunkByteCount,
       maxChunkConcurrency,
       maxFinalizeMs,

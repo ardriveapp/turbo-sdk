@@ -462,10 +462,153 @@ type FinalizedStatusResponse = {
   receipt: TurboUploadDataItemResponse;
 };
 
+/**
+ * A map from a folder index key to a data item id, used by `uploadFolder` to
+ * skip files that are already on Arweave.
+ *
+ * A key is `<sha-256 of the bytes>.<sha-256 of the tags>`. Both halves matter:
+ * an empty `a.css` and an empty `b.js` have identical bytes but must not share
+ * a data item, or one of them is served with the other's `Content-Type`. Keying
+ * on the tags too means a reused item is always exactly the item this call
+ * would otherwise have created. Treat keys as opaque.
+ *
+ * Implement this to back an index with any store. Ready made layers ship with
+ * the SDK: `createMemoryFolderIndex`, `createChainFolderIndex`,
+ * `createFileFolderIndex` (NodeJS only) and `composeFolderIndex`.
+ *
+ * An index is a cache. `uploadFolder` treats a read that throws as a miss and
+ * carries on, so a layer is free to fail rather than degrade.
+ */
+export type TurboFolderUploadIndex = {
+  /** Human readable name for the layer, used in debug logs. */
+  name?: string;
+  /** When true the layer is never written to. Defaults to false. */
+  readOnly?: boolean;
+  /** The data item id previously uploaded for this key, if it is known. */
+  get(key: string): Promise<string | undefined> | string | undefined;
+  /** Record that `key` was uploaded as `id`. */
+  set(key: string, id: string): Promise<void> | void;
+  /**
+   * Optional bulk lookup, so a layer backed by a network can answer in one
+   * round trip instead of one request per file. `uploadFolder` calls `get` for
+   * every key first and then `resolve` once with whatever is still unknown,
+   * passing through the caller's `signal`.
+   */
+  resolve?(
+    keys: string[],
+    options?: { signal?: AbortSignal },
+  ): Promise<Record<string, string>>;
+  /**
+   * Optional, diagnostics only. Of these content hashes -- the bytes half of a
+   * key -- which does the layer hold under *some* tag set?
+   *
+   * A file whose bytes are already on Arweave but whose key is not is the exact
+   * signature of a per file tag that changes between deploys, and it is the one
+   * thing `uploadFolder` can say about a cost cliff that is otherwise silent.
+   * Never consulted to decide what to upload.
+   */
+  knownContentHashes?(contentHashes: string[]): Promise<string[]> | string[];
+  /** Optional snapshot of everything the layer currently knows. */
+  entries?(): Promise<Record<string, string>> | Record<string, string>;
+};
+
+/**
+ * Whose past uploads a chain folder index sweeps.
+ *
+ * Tagged rather than a bare string on purpose. A gateway indexes an upload
+ * under the base64url sha-256 of the signer's public key, and a raw 32 byte
+ * ed25519 public key base64urls to exactly 43 characters -- the same shape as
+ * that address. There is no way to tell the two apart by inspection, and
+ * guessing wrong means the sweep matches nothing and the whole folder is
+ * re-uploaded at full price with no error at all.
+ *
+ * `await turbo.signer.getPublicKey()` is the one form every signer type can
+ * produce, so it is passed directly.
+ */
+export type ChainFolderUploadIndexOwner =
+  | Uint8Array
+  | { publicKey: Uint8Array | string; address?: undefined }
+  | { address: string; publicKey?: undefined };
+
+export type ChainFolderUploadIndexParams = {
+  /**
+   * Whose past uploads to sweep. Pass `await turbo.signer.getPublicKey()`,
+   * which works for every signer type, or tag what you have as
+   * `{ publicKey }` or `{ address }`. A bare string is rejected: see
+   * {@link ChainFolderUploadIndexOwner}.
+   */
+  owner: ChainFolderUploadIndexOwner;
+  /** Optional `App-Name` tag value, to narrow the sweep to one application. */
+  appName?: string;
+  /** Gateway to query. Defaults to `https://arweave.net`. */
+  gatewayUrl?: string;
+  /** Tag holding each file's content hash. Defaults to `File-SHA256`. */
+  hashTagName?: string;
+  /** Maximum GraphQL pages to walk before giving up. Defaults to 20. */
+  maxPages?: number;
+  /** GraphQL page size. Defaults to 100. */
+  pageSize?: number;
+  /** Per request timeout in milliseconds. Defaults to 30_000. */
+  timeoutMs?: number;
+  /** Override the fetch implementation, e.g. in tests. */
+  fetchImpl?: typeof fetch;
+};
+
+export type ComposeFolderUploadIndexParams = {
+  /** Optional logger, used to report a layer that failed and was skipped. */
+  logger?: TurboLogger;
+};
+
+export type FileFolderUploadIndexParams = {
+  /** Path of the JSON file holding the index. Created if it does not exist. */
+  filePath: string;
+  /** Optional logger, used to report an unreadable index file. */
+  logger?: TurboLogger;
+};
+
+/**
+ * What an index-backed `uploadFolder` reused rather than paid for again.
+ *
+ * `uploadedFiles` counts data items that actually landed, so with
+ * `throwOnFailure: false` the three counts do not have to sum to `totalFiles`
+ * -- the difference is what failed.
+ */
+export type TurboFolderUploadIndexSummary = {
+  /** Every file in the folder, uploaded, reused or failed. */
+  totalFiles: number;
+  totalBytes: number;
+  /** Files that were paid for and landed. */
+  uploadedFiles: number;
+  uploadedBytes: number;
+  /** Files served from the index, or duplicated within this folder. */
+  reusedFiles: number;
+  reusedBytes: number;
+};
+
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
+
+  /**
+   * A folder index. When provided, every file is hashed and only the files
+   * whose bytes and tags are not already on Arweave are signed, uploaded and
+   * paid for. The manifest is assembled from the ids that were already known
+   * plus the ids of whatever this run uploaded.
+   *
+   * Files uploaded with an index in place carry an extra `File-SHA256` tag.
+   */
+  folderIndex?: TurboFolderUploadIndex;
+
+  /**
+   * `dataItemOpts` for the manifest only. Defaults to `dataItemOpts`.
+   *
+   * The manifest is rewritten on every deploy, so it is where deploy varying
+   * tags such as a commit sha belong. A per file tag that changes between
+   * deploys changes every `folderIndex` key, and so re-uploads the whole
+   * folder.
+   */
+  manifestDataItemOpts?: DataItemOptions;
 
   manifestOptions?: {
     disableManifest?: boolean;
@@ -506,11 +649,18 @@ export type TurboRevokeCreditsParams = {
 };
 
 export type TurboUploadFolderResponse = {
+  /**
+   * One response per data item this call uploaded. With a `folderIndex` in
+   * place, files that were reused have no response here -- they are in the
+   * manifest and counted in `folderIndexSummary` instead.
+   */
   fileResponses: TurboUploadDataItemResponse[];
   manifestResponse?: TurboUploadDataItemResponse;
   manifest?: ArweaveManifest;
   errors?: Error[];
   cryptoFundResult?: TurboCryptoFundResponse;
+  /** Only present when `folderIndex` was provided. */
+  folderIndexSummary?: TurboFolderUploadIndexSummary;
 };
 
 export type ArweaveManifest = {
