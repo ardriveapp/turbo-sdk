@@ -217,10 +217,10 @@ export const optionMap = {
     alias: '--increase-qty <qty>',
     description: 'Number of additional undernames (Increase-Undername-Limit)',
   },
-  arnsProcessId: {
-    alias: '--process-id <processId>',
+  arnsOwnerKey: {
+    alias: '--owner-key <base58SolanaSecretKey>',
     description:
-      'ANT process ID the ArNS name resolves to (Buy-Name). Optional: omit for Turbo custodial provisioning (Turbo owns the ANT); supply for a user-owned ANT',
+      'Base58 Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits — the owner needs a key to sign with, not SOL: Turbo pays every fee and rent',
   },
   arnsNonce: {
     alias: '--nonce <nonce>',
@@ -327,7 +327,6 @@ export const arnsPriceOptions = [
   optionMap.arnsType,
   optionMap.arnsYears,
   optionMap.arnsIncreaseQty,
-  optionMap.arnsProcessId,
 ];
 
 export const arnsFiatQuoteOptions = [
@@ -335,7 +334,6 @@ export const arnsFiatQuoteOptions = [
   optionMap.arnsType,
   optionMap.arnsYears,
   optionMap.arnsIncreaseQty,
-  optionMap.arnsProcessId,
   optionMap.address,
   optionMap.currency,
   {
@@ -354,7 +352,7 @@ export const buyArNSNameOptions = [
   optionMap.arnsName,
   optionMap.arnsType,
   optionMap.arnsYears,
-  optionMap.arnsProcessId,
+  optionMap.arnsOwnerKey,
   optionMap.paidBy,
 ];
 
@@ -382,12 +380,14 @@ export const arnsPurchaseStatusOptions = [optionMap.arnsNonce];
 
 export const transferArNSAntOptions = [
   ...walletOptions,
+  optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsTarget,
 ];
 
 export const setArNSRecordOptions = [
   ...walletOptions,
+  optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
   optionMap.arnsTransactionId,
@@ -396,6 +396,7 @@ export const setArNSRecordOptions = [
 
 export const removeArNSRecordOptions = [
   ...walletOptions,
+  optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
 ];

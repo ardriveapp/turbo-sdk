@@ -15,6 +15,7 @@
  */
 import { BigNumber } from 'bignumber.js';
 
+import { solanaOwnerSigner } from '../../common/arnsActions.js';
 import { TurboFactory } from '../../node/factory.js';
 import {
   ArNSFiatPurchaseQuoteParams,
@@ -22,10 +23,10 @@ import {
   ArNSNameType,
   ArNSPriceParams,
   ArNSPriceResponse,
-  ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
   Currency,
 } from '../../types.js';
+import { ArNSActionCompleted, ArNSOwnerSigner } from '../../types.js';
 import {
   FiatPaymentsDisabledError,
   InsufficientCreditsError,
@@ -42,6 +43,24 @@ import {
 } from '../types.js';
 import { configFromOptions, turboFromOptions } from '../utils.js';
 
+/**
+ * The ANT owner's Solana key.
+ *
+ * Deliberately separate from the wallet that pays: the payer holds Turbo
+ * credits (and may be Arweave or Ethereum), while the owner holds the ANT and
+ * must be Solana. The owner needs a key to SIGN with, not a funded account —
+ * Turbo is the fee payer on every sponsored action.
+ */
+function ownerFromOptions(options: { ownerKey?: string }): ArNSOwnerSigner {
+  if (options.ownerKey === undefined || options.ownerKey === '') {
+    throw new Error(
+      'Must provide --owner-key (a base58 Solana secret key) — it owns the ANT and signs for it. ' +
+        'This is separate from the wallet paying in Turbo Credits.',
+    );
+  }
+  return solanaOwnerSigner(options.ownerKey);
+}
+
 // Minimal structural client contracts. These are satisfied by the real
 // Turbo(Un)authenticatedClient and let tests inject a fake without touching the
 // network. The handlers accept an optional client (defaulting to the real one
@@ -57,49 +76,44 @@ export type ArNSStatusClient = {
 export type ArNSPurchaseClient = {
   buyArNSName(params: {
     name: string;
-    type: ArNSNameType;
+    owner: ArNSOwnerSigner;
+    type?: ArNSNameType;
     years?: number;
-    processId?: string;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
   extendArNSLease(params: {
     name: string;
     years: number;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
   increaseArNSUndernameLimit(params: {
     name: string;
     increaseQty: number;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
   upgradeArNSName(params: {
     name: string;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
 };
 export type ArNSCustodyClient = {
-  transferArNSAnt(params: { antId: string; target: string }): Promise<{
+  transferArNSAnt(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
     target: string;
-    name?: string;
-    messageId: string;
-  }>;
+  }): Promise<ArNSActionCompleted>;
   setArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
+    transactionId: string;
     undername?: string;
-    transactionId: string;
-    ttlSeconds: number;
-  }): Promise<{
-    antId: string;
-    undername: string;
-    transactionId: string;
-    ttlSeconds: number;
-    messageId: string;
-  }>;
+    ttlSeconds?: number;
+  }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
     undername: string;
-  }): Promise<{ antId: string; undername: string; messageId: string }>;
+  }): Promise<ArNSActionCompleted>;
 };
 
 export function requiredNameFromOptions(options: { name?: string }): string {
@@ -213,14 +227,16 @@ async function withCreditErrorMapping<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function logPurchaseResult(action: string, result: ArNSPurchaseResponse): void {
+function logPurchaseResult(action: string, result: ArNSActionCompleted): void {
   console.log(
     JSON.stringify(
       {
-        message: `${action} submitted!`,
+        message: `${action} completed!`,
         nonce: result.nonce,
-        arioWriteId: result.arioWriteResult?.id,
-        purchaseReceipt: result.purchaseReceipt,
+        antId: result.antId,
+        // Solana transaction id of the on-chain write.
+        messageId: result.messageId,
+        ...(result.alreadyCompleted === true ? { alreadyCompleted: true } : {}),
       },
       null,
       2,
@@ -338,22 +354,21 @@ export async function buyArNSName(
   const name = requiredNameFromOptions(options);
   const type = typeFromOptions(options.type);
   const paidBy = paidByFromArNSOptions(options.paidBy);
-  // `--process-id` is OPTIONAL: omit it to have Turbo custodially provision the
-  // ANT (Turbo spawns + owns it — Model A); supply it to point the name at a
-  // user-owned ANT (Model B). When omitted, no `processId` is sent.
-  const processId = options.processId;
+  // Every buy mints a fresh ANT straight to `--owner-key`; Turbo never holds
+  // it, and there is no bring-your-own-ANT path any more.
+  const owner = ownerFromOptions(options);
 
   const client = turbo ?? (await turboFromOptions(options));
   const result = await withCreditErrorMapping(() =>
     type === 'lease'
       ? client.buyArNSName({
           name,
+          owner,
           type: 'lease',
           years: positiveIntFromOption(options.years, '--years'),
-          processId,
           paidBy,
         })
-      : client.buyArNSName({ name, type: 'permabuy', processId, paidBy }),
+      : client.buyArNSName({ name, owner, type: 'permabuy', paidBy }),
   );
 
   logPurchaseResult('ArNS name purchase', result);
@@ -444,6 +459,7 @@ export async function transferArNSAnt(
   const client = turbo ?? (await turboFromOptions(options));
   const result = await client.transferArNSAnt({
     antId: options.antId,
+    owner: ownerFromOptions(options),
     target: options.target,
   });
 
@@ -467,6 +483,7 @@ export async function setArNSRecord(
   const client = turbo ?? (await turboFromOptions(options));
   const result = await client.setArNSRecord({
     antId: options.antId,
+    owner: ownerFromOptions(options),
     undername: options.undername ?? '@',
     transactionId: options.transactionId,
     ttlSeconds,
@@ -491,6 +508,7 @@ export async function removeArNSRecord(
   const client = turbo ?? (await turboFromOptions(options));
   const result = await client.removeArNSRecord({
     antId: options.antId,
+    owner: ownerFromOptions(options),
     undername: options.undername,
   });
 

@@ -126,7 +126,11 @@ export type ArNSFiatQuoteOptions = ArNSPriceOptions & {
   promoCode: string[] | undefined;
 };
 
-export type ArNSPurchaseOptions = WalletOptions &
+/** Base58 Solana secret key that will OWN the ANT — separate from the payer. */
+export type ArNSOwnerKeyOption = { ownerKey?: string };
+
+export type ArNSPurchaseOptions = ArNSOwnerKeyOption &
+  WalletOptions &
   ArNSPriceOptions & {
     paidBy: string[] | undefined;
   };
@@ -135,19 +139,22 @@ export type ArNSPurchaseStatusOptions = GlobalOptions & {
   nonce: string | undefined;
 };
 
-export type TransferArNSAntOptions = WalletOptions & {
-  antId: string | undefined;
-  target: string | undefined;
-};
+export type TransferArNSAntOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    target: string | undefined;
+  };
 
-export type SetArNSRecordOptions = WalletOptions & {
-  antId: string | undefined;
-  undername: string | undefined;
-  transactionId: string | undefined;
-  ttlSeconds: string | undefined;
-};
+export type SetArNSRecordOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+    transactionId: string | undefined;
+    ttlSeconds: string | undefined;
+  };
 
-export type RemoveArNSRecordOptions = WalletOptions & {
-  antId: string | undefined;
-  undername: string | undefined;
-};
+export type RemoveArNSRecordOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+  };
