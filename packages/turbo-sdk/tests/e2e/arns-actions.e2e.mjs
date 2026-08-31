@@ -145,6 +145,47 @@ try {
     'record actions cost the customer NOTHING',
   );
 
+  head('6d', 'Record metadata - set, then clear, both free and Turbo-alone');
+  const beforeMeta = await winc();
+  const metaSet = await turbo.setArNSRecordMetadata({
+    antId,
+    owner,
+    displayName: 'My Blog',
+    recordDescription: 'written by the SDK e2e',
+    recordKeywords: ['arweave', 'ar-io'],
+  });
+  check(
+    metaSet.status === 'completed',
+    'set-record-metadata completed Turbo-alone',
+  );
+  const metaGone = await turbo.removeArNSRecordMetadata({
+    antId,
+    owner,
+    undername: '@',
+  });
+  check(metaGone.status === 'completed', 'remove-record-metadata completed');
+  check(
+    (await winc()) === beforeMeta,
+    'record metadata cost the customer NOTHING',
+  );
+
+  head('6e', 'transfer-record - hand ONE record over, not the whole ANT');
+  await turbo.setArNSRecord({
+    antId,
+    owner,
+    undername: 'blog',
+    transactionId: VALID_TX_ID,
+    ttlSeconds: 900,
+  });
+  const recMoved = await turbo.transferArNSRecord({
+    antId,
+    owner,
+    undername: 'blog',
+    target: Keypair.generate().publicKey.toBase58(),
+  });
+  check(recMoved.status === 'completed', 'record ownership moved on chain');
+  check(!!recMoved.messageId, `messageId ${recMoved.messageId}`);
+
   head(7, 'Revoke Turbo - the escape hatch, owner-signed and free');
   const revoked = await turbo.removeArNSController({ antId, owner });
   check(revoked.status === 'completed', 'Turbo revoked on chain');

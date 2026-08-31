@@ -1118,9 +1118,13 @@ export type ArNSPriceResponse = {
 /**
  * The nine sponsored ArNS actions.
  *
- * NOT included, because the bundler does not sponsor them: `primary-name`,
- * `release-name`, `reassign`, and ANT metadata (name/description/keywords/logo).
- * Those stay on the direct-signer path and cost the user SOL.
+ * Sponsorship covers these twelve and NOTHING else. Everything else in the
+ * ArNS, ANT and core programs stays on the direct-signer path and costs the
+ * user SOL — notably `BuyReturnedName` (auctions, deliberately excluded: the
+ * premium is unbounded), `ClaimReservedName`, the primary-name flow (which
+ * lives in the ario core program), release/reassign, and ANT-LEVEL metadata.
+ * Note ANT-level metadata is distinct from RECORD-level metadata, which
+ * `set-record-metadata` does sponsor.
  */
 export const arNSActions = [
   'buy-name',
@@ -1132,6 +1136,11 @@ export const arNSActions = [
   'add-controller',
   'remove-controller',
   'transfer',
+  // Record-scoped. Owner-or-controller on chain, so these follow set-record's
+  // degrade-on-revoke shape rather than needing a signature every time.
+  'set-record-metadata',
+  'remove-record-metadata',
+  'transfer-record',
 ] as const;
 export type ArNSAction = (typeof arNSActions)[number];
 
@@ -1539,6 +1548,29 @@ export interface TurboAuthenticatedPaymentServiceInterface
   transferArNSAnt(params: {
     antId: string;
     owner: ArNSOwnerSigner;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  setArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  transferArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
     target: string;
     onNonce?: (nonce: string) => void | Promise<void>;
   }): Promise<ArNSActionCompleted>;

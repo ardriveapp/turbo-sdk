@@ -81,6 +81,8 @@ import {
 } from '../utils/errors.js';
 import { uuidV4 } from '../utils/uuid.js';
 import {
+  arNSKeywordsField,
+  arNSMetadataField,
   arNSOwnerProofHeaders,
   buildArNSCustodyMessage,
 } from './arnsActions.js';
@@ -1098,6 +1100,115 @@ export class TurboAuthenticatedPaymentService
       owner,
       { onNonce },
       buildArNSCustodyMessage('remove-record', [antId, undername]),
+    );
+  }
+
+  /**
+   * Edit a RECORD's metadata — its display name, logo, description, keywords.
+   *
+   * Free, and owner-or-controller on chain, so it behaves exactly like
+   * {@link setArNSRecord}: Turbo-alone while it is a controller, owner-signed
+   * after a revoke.
+   *
+   * Fields are TRI-STATE. Omit one to leave it unchanged; pass `null` to clear
+   * it. Those are bound distinctly by the owner proof, so "clear the
+   * description" and "set it to empty" are different authorizations.
+   *
+   * Note this is RECORD metadata. ANT-level metadata (the ANT's own name,
+   * ticker, description, keywords, logo) is NOT sponsored and stays on the
+   * direct-signer path via `@ar.io/sdk`.
+   */
+  public async setArNSRecordMetadata({
+    antId,
+    owner,
+    undername = '@',
+    displayName,
+    recordLogo,
+    recordDescription,
+    recordKeywords,
+    onNonce,
+  }: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'set-record-metadata',
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        undername,
+        // Sent explicitly, including `null`, so the server sees the same
+        // tri-state the proof was signed over.
+        ...(displayName !== undefined ? { displayName } : {}),
+        ...(recordLogo !== undefined ? { recordLogo } : {}),
+        ...(recordDescription !== undefined ? { recordDescription } : {}),
+        ...(recordKeywords !== undefined ? { recordKeywords } : {}),
+      },
+      owner,
+      { onNonce },
+      buildArNSCustodyMessage('set-record-metadata', [
+        antId,
+        undername,
+        arNSMetadataField(displayName),
+        arNSMetadataField(recordLogo),
+        arNSMetadataField(recordDescription),
+        arNSKeywordsField(recordKeywords),
+      ]),
+    );
+  }
+
+  /** Clear a record's metadata. Free; same two-shape rules. */
+  public async removeArNSRecordMetadata({
+    antId,
+    owner,
+    undername,
+    onNonce,
+  }: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'remove-record-metadata',
+      { antId, ownerAddress: await owner.getAddress(), undername },
+      owner,
+      { onNonce },
+      buildArNSCustodyMessage('remove-record-metadata', [antId, undername]),
+    );
+  }
+
+  /**
+   * Hand ONE record to another address.
+   *
+   * Distinct from {@link transferArNSAnt}, which hands over the whole ANT and
+   * every record on it. Confusing the two gives away far more than intended.
+   */
+  public async transferArNSRecord({
+    antId,
+    owner,
+    undername,
+    target,
+    onNonce,
+  }: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'transfer-record',
+      { antId, ownerAddress: await owner.getAddress(), undername, target },
+      owner,
+      { onNonce },
+      buildArNSCustodyMessage('transfer-record', [antId, undername, target]),
     );
   }
 
