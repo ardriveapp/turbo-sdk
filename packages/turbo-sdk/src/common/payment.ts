@@ -16,19 +16,18 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
-  ArNSBuyNameArgs,
-  ArNSExtendLeaseParams,
+  ArNSAction,
+  ArNSActionCompleted,
+  ArNSActionResult,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
-  ArNSIncreaseUndernameLimitParams,
   ArNSNameType,
+  ArNSOwnerSigner,
   ArNSPaidByParams,
   ArNSPriceParams,
   ArNSPriceResponse,
   ArNSPurchaseParams,
-  ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
-  ArNSUpgradeNameParams,
   AuthenticatedArNSFiatPurchaseQuoteParams,
   Currency,
   GetCreditShareApprovalsResponse,
@@ -81,6 +80,10 @@ import {
   ProvidedInputError,
 } from '../utils/errors.js';
 import { uuidV4 } from '../utils/uuid.js';
+import {
+  arNSOwnerProofHeaders,
+  buildArNSCustodyMessage,
+} from './arnsActions.js';
 import { defaultRetryConfig } from './http.js';
 import { TurboHTTPService } from './http.js';
 import { Logger } from './logger.js';
@@ -238,11 +241,20 @@ export class TurboUnauthenticatedPaymentService
     // `async` so a validation failure surfaces as a rejected promise (consistent
     // with `purchaseArNSName`) rather than a synchronous throw.
     this.validateArNSPurchaseParams(params);
-    return this.httpService.get<ArNSPriceResponse>({
+    const price = await this.httpService.get<ArNSPriceResponse>({
       endpoint: `/arns/price/${params.intent.toLowerCase()}/${
         params.name
       }${this.buildArNSPurchaseQuery(params)}`,
     });
+    // Normalize the figure to charge into ONE field. `winc` is the name only
+    // and excludes the ANT spawn surcharge — for a Buy-Name that surcharge can
+    // exceed the name's own price, so a caller reading `winc` silently
+    // under-quotes every purchase. Surfacing `wincTotal` makes the correct
+    // field the obvious one.
+    return {
+      ...price,
+      wincTotal: price.wincTotalWithAntSpawn ?? price.winc,
+    };
   }
 
   /**
@@ -777,181 +789,400 @@ export class TurboAuthenticatedPaymentService
    * balance. The bundler performs the on-chain ARIO purchase and debits credits;
    * a `402` (FailedRequestError.status === 402) indicates insufficient credits.
    */
-  public async purchaseArNSName(
-    params: ArNSPurchaseParams,
-  ): Promise<ArNSPurchaseResponse> {
-    this.validateArNSPurchaseParams(params);
-    // The bundler requires the signed nonce to be a UUID; it also doubles as
-    // the idempotency + status-lookup key (`getArNSPurchaseStatus`).
+  // ===== ArNS actions — the sponsored surface =====
+  //
+  // Every ArNS operation is an ACTION, and an action has exactly one of two
+  // shapes, chosen by the SERVER rather than the caller: either Turbo already
+  // holds the authority (`completed`), or the ANT owner must sign a transaction
+  // Turbo has already fee-payer-signed (`awaiting-signature`).
+  //
+  // The shape is not stable per action, which is why callers must branch on
+  // `status` and never on which action they asked for: `set-record` completes
+  // alone while Turbo is a controller, and degrades to `awaiting-signature`
+  // the moment the customer revokes Turbo.
+  //
+  // This replaced `/arns/purchase/{intent}/{name}`, `/arns/transfer/{antId}`
+  // and `/arns/manage/*`, which were deleted along with Turbo-custodial ANTs.
+  // Turbo now takes custody of nothing: every ANT is minted straight to the
+  // customer.
+
+  /**
+   * Create an action. Returns `completed` or `awaiting-signature`.
+   *
+   * Credits are debited HERE, not at `/sign`. Capture the returned `nonce`
+   * before prompting for a signature: it is the idempotency key, and polling
+   * it is how you resume. Never re-create an action to "retry" — that debits
+   * a second time. An abandoned action is refunded automatically.
+   */
+  public async createArNSAction(
+    action: ArNSAction,
+    params: Record<string, unknown> = {},
+    ownerProof?: { owner: ArNSOwnerSigner; message: string },
+  ): Promise<ArNSActionResult> {
     const nonce = uuidV4();
-    const headers = await this.signer.generateSignedRequestHeaders(nonce);
-    let response: Omit<ArNSPurchaseResponse, 'nonce'>;
-    try {
-      response = await this.httpService.post<
-        Omit<ArNSPurchaseResponse, 'nonce'>
-      >({
-        endpoint: `/arns/purchase/${params.intent.toLowerCase()}/${
-          params.name
-        }${this.buildArNSPurchaseQuery(params)}`,
+    const headers: Record<string, string> = {
+      ...(await this.signer.generateSignedRequestHeaders(nonce)),
+      'content-type': 'application/json',
+    };
+
+    // Record actions carry a SECOND signature, from the ANT owner's Solana key
+    // over a different message. It travels in its own `x-owner-*` headers
+    // because two signatures cannot share one header set.
+    if (ownerProof !== undefined) {
+      Object.assign(
         headers,
-        // Params travel in the query string + signed headers; the service reads
-        // no body, but the HTTP layer requires a `data` field.
-        data: Buffer.from([]),
-        // Non-idempotent signed write: the nonce is single-use, so a retried
-        // (but already-landed) purchase would 4xx as "already exists". Poll
-        // status by nonce instead of retrying.
+        await arNSOwnerProofHeaders(
+          ownerProof.owner,
+          ownerProof.message,
+          uuidV4(),
+        ),
+      );
+    }
+
+    try {
+      return await this.httpService.post<ArNSActionResult>({
+        endpoint: `/arns/actions/${action}`,
+        headers,
+        data: Buffer.from(JSON.stringify(params)),
+        // Non-idempotent signed write that has already debited. A blind retry
+        // risks paying twice for one name; poll the nonce instead.
         retry: false,
       });
     } catch (error) {
-      // Surface a credit shortfall as a typed, catchable error so callers can
-      // prompt a top-up. The `nonce` is the idempotency key: after topping up,
-      // retry the same purchase (a fresh nonce is fine — the service dedupes by
-      // the on-chain effect, and a captured nonce lets you poll status).
       if (error instanceof FailedRequestError && error.status === 402) {
         throw new InsufficientCreditsError(error.message);
       }
       throw error;
     }
-    // Normalize both nonce fields to the one we signed so callers can poll with
-    // either `response.nonce` or `response.purchaseReceipt.nonce`.
-    return {
-      ...response,
-      nonce,
-      purchaseReceipt: { ...response.purchaseReceipt, nonce },
-    };
-  }
-
-  public buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse> {
-    return this.purchaseArNSName({
-      ...params,
-      intent: 'Buy-Name',
-    } as ArNSPurchaseParams);
-  }
-
-  public extendArNSLease(
-    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
-    return this.purchaseArNSName({ ...params, intent: 'Extend-Lease' });
-  }
-
-  public increaseArNSUndernameLimit(
-    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
-    return this.purchaseArNSName({
-      ...params,
-      intent: 'Increase-Undername-Limit',
-    });
-  }
-
-  public upgradeArNSName(
-    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
-    return this.purchaseArNSName({ ...params, intent: 'Upgrade-Name' });
-  }
-
-  // ---- ArNS ANT custody: self-custody exit + manage records ----
-
-  // Canonical ACTION-BOUND message. MUST match the bundler's
-  // buildArNSCustodyMessage byte-for-byte (newline-delimited) or every signature
-  // is rejected. The bundler reconstructs this from the request and verifies the
-  // signature over `message + nonce`, so a captured signature can't be replayed
-  // against a different operation/params.
-  private buildArNSCustodyMessage(
-    action: 'transfer' | 'set-record' | 'remove-record',
-    fields: string[],
-  ): string {
-    return ['arns', action, ...fields].join('\n');
   }
 
   /**
-   * Self-custody exit: move a Turbo-custodied ANT to a Solana pubkey you control.
-   * Authenticated with an action-bound, single-use signature.
+   * Submit the owner-signed transaction for an `awaiting-signature` action.
+   *
+   * `signedTransaction` is the FULL serialized transaction, base64 — not just
+   * the signature. Replaying a completed action returns `alreadyCompleted:
+   * true` rather than buying twice, so this is safe to call again if a
+   * response is lost.
    */
-  public async transferArNSAnt({
-    antId,
-    target,
-  }: {
-    antId: string;
-    target: string;
-  }): Promise<{
-    antId: string;
-    target: string;
-    name?: string;
-    messageId: string;
-  }> {
-    const nonce = uuidV4();
-    const headers = await this.signer.generateSignedRequestHeaders(
-      nonce,
-      this.buildArNSCustodyMessage('transfer', [antId, target]),
-    );
-    return this.httpService.post({
-      endpoint: `/arns/transfer/${antId}?target=${encodeURIComponent(target)}`,
-      headers,
-      data: Buffer.from([]),
-      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
+  public async signArNSAction(
+    nonce: string,
+    signedTransaction: string,
+  ): Promise<ArNSActionCompleted> {
+    return this.httpService.post<ArNSActionCompleted>({
+      endpoint: `/arns/actions/${nonce}/sign`,
+      headers: {
+        ...(await this.signer.generateSignedRequestHeaders(uuidV4())),
+        'content-type': 'application/json',
+      },
+      data: Buffer.from(JSON.stringify({ transaction: signedTransaction })),
+      retry: false,
     });
   }
 
-  /** Set a resolution record on a custodied ANT (undername defaults to '@'). */
+  /**
+   * Status of an action by nonce. Open — no signature required — so it works
+   * from a status page or callback handler that never holds the payer's key.
+   *
+   * Terminal success carries `messageId`; terminal failure carries
+   * `failedDate`.
+   */
+  public async getArNSActionStatus(
+    nonce: string,
+  ): Promise<ArNSActionResult & { failedDate?: string }> {
+    return this.httpService.get<ArNSActionResult & { failedDate?: string }>({
+      endpoint: `/arns/actions/${nonce}`,
+    });
+  }
+
+  /**
+   * Run an action to a terminal state, signing if the server asks for it.
+   *
+   * This is the two-shape branch, once, in one place — so callers cannot
+   * hardcode which actions need a signature and break when a customer
+   * exercises ownership.
+   */
+  private async completeArNSAction(
+    action: ArNSAction,
+    params: Record<string, unknown>,
+    owner: ArNSOwnerSigner | undefined,
+    opts: { onNonce?: (nonce: string) => void | Promise<void> } = {},
+    ownerProofMessage?: string,
+  ): Promise<ArNSActionCompleted> {
+    const created = await this.createArNSAction(
+      action,
+      params,
+      owner !== undefined && ownerProofMessage !== undefined
+        ? { owner, message: ownerProofMessage }
+        : undefined,
+    );
+
+    // Fires before any wallet prompt: the action is already debited, so the
+    // caller needs the nonce persisted even if the user walks away here.
+    await opts.onNonce?.(created.nonce);
+
+    if (created.status === 'completed') return created;
+
+    if (owner === undefined) {
+      throw new Error(
+        `ArNS action "${action}" requires the ANT owner's signature, but no owner signer was provided. ` +
+          `Pass \`owner\`, or drive createArNSAction/signArNSAction yourself. ` +
+          `Nonce ${created.nonce} is already debited — poll it rather than re-creating.`,
+      );
+    }
+
+    const signed = await owner.signTransaction(created.transaction);
+    return this.signArNSAction(created.nonce, signed);
+  }
+
+  /**
+   * Buy a name. The ANT is minted straight to `owner` — Turbo never holds it.
+   *
+   * This is the ONLY action that always needs the owner's signature:
+   * `ario_ant::initialize` is the one instruction in the whole lifecycle that
+   * requires the ANT owner's key. The customer signs once, here, and never
+   * again unless they change controllers or transfer the name.
+   *
+   * The owner needs a Solana key to sign with, NOT a funded one — Turbo pays
+   * every lamport of fee and rent.
+   */
+  public async buyArNSName({
+    name,
+    owner,
+    type = 'lease',
+    years,
+    paidBy,
+    onNonce,
+  }: {
+    name: string;
+    owner: ArNSOwnerSigner;
+    type?: ArNSNameType;
+    years?: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'buy-name',
+      {
+        name,
+        ownerAddress: await owner.getAddress(),
+        type,
+        ...(years !== undefined ? { years } : {}),
+        ...(paidBy !== undefined ? { paidBy } : {}),
+      },
+      owner,
+      { onNonce },
+    );
+  }
+
+  /** Extend a lease. Permissionless on chain — no owner signature needed. */
+  public async extendArNSLease({
+    name,
+    years,
+    paidBy,
+    onNonce,
+  }: {
+    name: string;
+    years: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'extend-lease',
+      { name, years, ...(paidBy !== undefined ? { paidBy } : {}) },
+      undefined,
+      { onNonce },
+    );
+  }
+
+  /** Upgrade a lease to a permanent name. No owner signature needed. */
+  public async upgradeArNSName({
+    name,
+    paidBy,
+    onNonce,
+  }: {
+    name: string;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'upgrade-name',
+      { name, ...(paidBy !== undefined ? { paidBy } : {}) },
+      undefined,
+      { onNonce },
+    );
+  }
+
+  /** Raise the undername limit. No owner signature needed. */
+  public async increaseArNSUndernameLimit({
+    name,
+    increaseQty,
+    paidBy,
+    onNonce,
+  }: {
+    name: string;
+    increaseQty: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'increase-undername-limit',
+      { name, increaseQty, ...(paidBy !== undefined ? { paidBy } : {}) },
+      undefined,
+      { onNonce },
+    );
+  }
+
+  /**
+   * Point a name (or undername) at an Arweave transaction.
+   *
+   * Free — Turbo sponsors the Solana fee. Completes in one call while Turbo is
+   * a controller of the ANT, and returns `awaiting-signature` once the customer
+   * has revoked Turbo, at which point `owner` signs it themselves. Both paths
+   * are handled here.
+   *
+   * The owner proof is required EITHER WAY: Turbo is directing its own
+   * controller authority over an asset someone else owns, so nothing on chain
+   * records the owner's consent and we demand it. It is a MESSAGE signature,
+   * not a transaction — cheap and offline, but still a wallet prompt.
+   */
   public async setArNSRecord({
     antId,
-    undername = '@',
+    owner,
     transactionId,
-    ttlSeconds,
+    undername = '@',
+    ttlSeconds = 3600,
+    onNonce,
   }: {
     antId: string;
+    owner: ArNSOwnerSigner;
+    transactionId: string;
     undername?: string;
-    transactionId: string;
-    ttlSeconds: number;
-  }): Promise<{
-    antId: string;
-    undername: string;
-    transactionId: string;
-    ttlSeconds: number;
-    messageId: string;
-  }> {
-    const nonce = uuidV4();
-    const headers = await this.signer.generateSignedRequestHeaders(
-      nonce,
-      this.buildArNSCustodyMessage('set-record', [
+    ttlSeconds?: number;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'set-record',
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        transactionId,
+        undername,
+        ttlSeconds,
+      },
+      owner,
+      { onNonce },
+      buildArNSCustodyMessage('set-record', [
         antId,
         undername,
         transactionId,
         String(ttlSeconds),
       ]),
     );
-    const query = `?undername=${encodeURIComponent(
-      undername,
-    )}&transactionId=${transactionId}&ttlSeconds=${ttlSeconds}`;
-    return this.httpService.post({
-      endpoint: `/arns/manage/${antId}/set-record${query}`,
-      headers,
-      data: Buffer.from([]),
-      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
-    });
   }
 
-  /** Remove a resolution record (an undername) from a custodied ANT. */
+  /** Remove a record (an undername). Free; same two-shape rules as setArNSRecord. */
   public async removeArNSRecord({
     antId,
+    owner,
     undername,
+    onNonce,
   }: {
     antId: string;
+    owner: ArNSOwnerSigner;
     undername: string;
-  }): Promise<{ antId: string; undername: string; messageId: string }> {
-    const nonce = uuidV4();
-    const headers = await this.signer.generateSignedRequestHeaders(
-      nonce,
-      this.buildArNSCustodyMessage('remove-record', [antId, undername]),
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'remove-record',
+      { antId, ownerAddress: await owner.getAddress(), undername },
+      owner,
+      { onNonce },
+      buildArNSCustodyMessage('remove-record', [antId, undername]),
     );
-    return this.httpService.post({
-      endpoint: `/arns/manage/${antId}/remove-record?undername=${encodeURIComponent(
-        undername,
-      )}`,
-      headers,
-      data: Buffer.from([]),
-      retry: false, // single-use action-bound nonce; don't re-POST on 5xx
-    });
+  }
+
+  /**
+   * Grant controller rights on the ANT. Omit `target` for Turbo itself, which
+   * is what makes `setArNSRecord` a single call.
+   *
+   * Owner-signed: changing an ANT's access control is an owner-only
+   * instruction. Free to the customer — Turbo funds the ACL page growth.
+   */
+  public async addArNSController({
+    antId,
+    owner,
+    target,
+    onNonce,
+  }: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'add-controller',
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        ...(target !== undefined ? { target } : {}),
+      },
+      owner,
+      { onNonce },
+    );
+  }
+
+  /**
+   * Revoke controller rights — the escape hatch that keeps "Turbo is not a
+   * custodian" honest.
+   *
+   * Always available, always free, and needs nothing from Turbo but the fee.
+   * After revoking, `setArNSRecord` keeps working: it simply starts returning
+   * `awaiting-signature` so the owner signs their own record writes.
+   */
+  public async removeArNSController({
+    antId,
+    owner,
+    target,
+    onNonce,
+  }: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'remove-controller',
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        ...(target !== undefined ? { target } : {}),
+      },
+      owner,
+      { onNonce },
+    );
+  }
+
+  /**
+   * Hand the ANT to a new owner. Irreversible: after this lands, `owner` no
+   * longer controls the name. Owner-signed, and sponsored like the rest.
+   */
+  public async transferArNSAnt({
+    antId,
+    owner,
+    target,
+    onNonce,
+  }: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.completeArNSAction(
+      'transfer',
+      { antId, ownerAddress: await owner.getAddress(), target },
+      owner,
+      { onNonce },
+    );
   }
 
   /**
