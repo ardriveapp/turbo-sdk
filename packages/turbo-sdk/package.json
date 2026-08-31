@@ -92,6 +92,7 @@
     "plimit-lit": "^3.0.1",
     "prompts": "^2.4.2",
     "tweetnacl": "^1.0.3",
+    "x402": "^1.0.1",
     "x402-fetch": "^1.0.0"
   },
   "devDependencies": {

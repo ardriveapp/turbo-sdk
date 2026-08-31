@@ -156,6 +156,12 @@ export class TurboUnauthenticatedUploadService
       endpoint: `/tx/${this.token}`,
       signal,
       data: streamWithUploadEvents,
+      /*
+        x402 sends the request twice — once unpaid for the quote, once with the
+        payment header — and the tapped stream above cannot be sent twice. Hand
+        over the factory so the paid attempt gets a fresh one.
+      */
+      dataFactory: () => dataItemStreamFactory(),
       headers,
       x402Options,
     });
