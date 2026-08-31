@@ -15,27 +15,37 @@
  */
 import { ArweaveSigner } from '@dha-team/arbundles';
 import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 
 import { testJwk } from '../../tests/helpers.js';
 import { TurboNodeSigner } from '../node/signer.js';
 import { ArNSActionResult } from '../types.js';
 import { fromB64Url } from '../utils/base64.js';
-import { FailedRequestError, InsufficientCreditsError } from '../utils/errors.js';
+import {
+  FailedRequestError,
+  InsufficientCreditsError,
+} from '../utils/errors.js';
 import { solanaOwnerSigner } from './arnsActions.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
 
 /** Records calls and returns canned responses, one per call. */
 class FakeHttp {
-  public calls: { method: string; endpoint: string; headers?: any; data?: any }[] = [];
+  public calls: {
+    method: string;
+    endpoint: string;
+    headers?: any;
+    data?: any;
+  }[] = [];
   public responses: unknown[] = [];
   public error: unknown = undefined;
   private next() {
     if (this.error) throw this.error;
-    return this.responses.length > 1 ? this.responses.shift() : this.responses[0];
+    return this.responses.length > 1
+      ? this.responses.shift()
+      : this.responses[0];
   }
   async get(args: { endpoint: string; headers?: any }) {
     this.calls.push({ method: 'GET', ...args });
@@ -64,14 +74,25 @@ function serviceWith(http: FakeHttp) {
 
 const ownerKeypair = Keypair.generate();
 const owner = solanaOwnerSigner(ownerKeypair.secretKey);
-const body = (call: { data?: any }) => JSON.parse(Buffer.from(call.data).toString());
+const body = (call: { data?: any }) =>
+  JSON.parse(Buffer.from(call.data).toString());
 
 describe('ArNS actions', () => {
   describe('createArNSAction', () => {
     it('posts to the per-action endpoint with a JSON body and payer headers', async () => {
       const http = new FakeHttp();
-      http.responses = [{ nonce: 'n1', action: 'extend-lease', status: 'completed', messageId: 'm1' }];
-      await serviceWith(http).createArNSAction('extend-lease', { name: 'x', years: 2 });
+      http.responses = [
+        {
+          nonce: 'n1',
+          action: 'extend-lease',
+          status: 'completed',
+          messageId: 'm1',
+        },
+      ];
+      await serviceWith(http).createArNSAction('extend-lease', {
+        name: 'x',
+        years: 2,
+      });
 
       assert.equal(http.last.endpoint, '/arns/actions/extend-lease');
       assert.deepEqual(body(http.last), { name: 'x', years: 2 });
@@ -92,15 +113,30 @@ describe('ArNS actions', () => {
 
     it('sends the owner proof in x-owner-* headers, signed over message+nonce', async () => {
       const http = new FakeHttp();
-      http.responses = [{ nonce: 'n1', action: 'set-record', status: 'completed', messageId: 'm1' }];
+      http.responses = [
+        {
+          nonce: 'n1',
+          action: 'set-record',
+          status: 'completed',
+          messageId: 'm1',
+        },
+      ];
       const message = 'arns\nset-record\nant1\n@\ntx1\n3600';
-      await serviceWith(http).createArNSAction('set-record', { antId: 'ant1' }, { owner, message });
+      await serviceWith(http).createArNSAction(
+        'set-record',
+        { antId: 'ant1' },
+        { owner, message },
+      );
 
       const h = http.last.headers;
       // The owner's proof travels in its OWN header set: two signatures from two
       // different keys cannot share one, or the second verifier rejects the first.
       assert.ok(h['x-owner-signature'], 'owner signature present');
-      assert.notEqual(h['x-owner-nonce'], h['x-nonce'], 'owner nonce is independent');
+      assert.notEqual(
+        h['x-owner-nonce'],
+        h['x-nonce'],
+        'owner nonce is independent',
+      );
       assert.equal(h['x-owner-signature-type'], '4', 'solana');
 
       // Verify the signature really is over `message + ownerNonce`.
@@ -123,10 +159,26 @@ describe('ArNS actions', () => {
       const http = new FakeHttp();
       const prepared = await buildPreparedTx();
       http.responses = [
-        { nonce: 'n1', action: 'buy-name', status: 'awaiting-signature', transaction: prepared, antId: 'ant1' },
-        { nonce: 'n1', action: 'buy-name', status: 'completed', antId: 'ant1', messageId: 'm1' },
+        {
+          nonce: 'n1',
+          action: 'buy-name',
+          status: 'awaiting-signature',
+          transaction: prepared,
+          antId: 'ant1',
+        },
+        {
+          nonce: 'n1',
+          action: 'buy-name',
+          status: 'completed',
+          antId: 'ant1',
+          messageId: 'm1',
+        },
       ];
-      const result = await serviceWith(http).buyArNSName({ name: 'x', owner, type: 'permabuy' });
+      const result = await serviceWith(http).buyArNSName({
+        name: 'x',
+        owner,
+        type: 'permabuy',
+      });
 
       assert.equal(result.status, 'completed');
       assert.equal(http.calls.length, 2);
@@ -137,9 +189,18 @@ describe('ArNS actions', () => {
 
     it('does NOT ask for a signature when the server already completed it', async () => {
       const http = new FakeHttp();
-      http.responses = [{ nonce: 'n2', action: 'set-record', status: 'completed', messageId: 'm1' }];
+      http.responses = [
+        {
+          nonce: 'n2',
+          action: 'set-record',
+          status: 'completed',
+          messageId: 'm1',
+        },
+      ];
       const result = await serviceWith(http).setArNSRecord({
-        antId: 'ant1', owner, transactionId: 'tx1',
+        antId: 'ant1',
+        owner,
+        transactionId: 'tx1',
       });
       assert.equal(result.status, 'completed');
       // One call only: the branch is the server's decision, not the caller's.
@@ -150,13 +211,27 @@ describe('ArNS actions', () => {
       const http = new FakeHttp();
       const prepared = await buildPreparedTx();
       http.responses = [
-        { nonce: 'n3', action: 'buy-name', status: 'awaiting-signature', transaction: prepared },
-        { nonce: 'n3', action: 'buy-name', status: 'completed', messageId: 'm1' },
+        {
+          nonce: 'n3',
+          action: 'buy-name',
+          status: 'awaiting-signature',
+          transaction: prepared,
+        },
+        {
+          nonce: 'n3',
+          action: 'buy-name',
+          status: 'completed',
+          messageId: 'm1',
+        },
       ];
       const seen: { nonce: string; callsAtThatPoint: number }[] = [];
       await serviceWith(http).buyArNSName({
-        name: 'x', owner, type: 'permabuy',
-        onNonce: (nonce) => { seen.push({ nonce, callsAtThatPoint: http.calls.length }); },
+        name: 'x',
+        owner,
+        type: 'permabuy',
+        onNonce: (nonce) => {
+          seen.push({ nonce, callsAtThatPoint: http.calls.length });
+        },
       });
       assert.deepEqual(seen, [{ nonce: 'n3', callsAtThatPoint: 1 }]);
     });
@@ -164,11 +239,18 @@ describe('ArNS actions', () => {
     it('names the debited nonce when a signature is needed but no owner was given', async () => {
       const http = new FakeHttp();
       http.responses = [
-        { nonce: 'n4', action: 'buy-name', status: 'awaiting-signature', transaction: 'x' },
+        {
+          nonce: 'n4',
+          action: 'buy-name',
+          status: 'awaiting-signature',
+          transaction: 'x',
+        },
       ];
       // Drive the private path via the raw API the way a caller without an owner would.
       const svc = serviceWith(http);
-      const created = (await svc.createArNSAction('buy-name', { name: 'x' })) as ArNSActionResult;
+      const created = (await svc.createArNSAction('buy-name', {
+        name: 'x',
+      })) as ArNSActionResult;
       assert.equal(created.status, 'awaiting-signature');
     });
   });
@@ -176,13 +258,18 @@ describe('ArNS actions', () => {
   describe('pricing', () => {
     it('adds wincTotal so a caller cannot under-quote by reading winc', async () => {
       const http = new FakeHttp();
-      http.responses = [{
-        winc: '974711979594', mARIO: '1782379680',
-        antSpawnSurchargeWinc: '2000000000000',
-        wincTotalWithAntSpawn: '2974711979594',
-      }];
+      http.responses = [
+        {
+          winc: '974711979594',
+          mARIO: '1782379680',
+          antSpawnSurchargeWinc: '2000000000000',
+          wincTotalWithAntSpawn: '2974711979594',
+        },
+      ];
       const price = await serviceWith(http).getArNSPriceForName({
-        intent: 'Buy-Name', name: 'x', type: 'permabuy',
+        intent: 'Buy-Name',
+        name: 'x',
+        type: 'permabuy',
       } as never);
       assert.equal(price.wincTotal, '2974711979594');
     });
@@ -191,7 +278,9 @@ describe('ArNS actions', () => {
       const http = new FakeHttp();
       http.responses = [{ winc: '123', mARIO: '456' }];
       const price = await serviceWith(http).getArNSPriceForName({
-        intent: 'Extend-Lease', name: 'x', years: 1,
+        intent: 'Extend-Lease',
+        name: 'x',
+        years: 1,
       } as never);
       assert.equal(price.wincTotal, '123');
     });
@@ -220,5 +309,7 @@ async function buildPreparedTx(): Promise<string> {
       }),
     ],
   }).compileToV0Message();
-  return Buffer.from(new VersionedTransaction(msg).serialize()).toString('base64');
+  return Buffer.from(new VersionedTransaction(msg).serialize()).toString(
+    'base64',
+  );
 }

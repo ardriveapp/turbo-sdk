@@ -69,12 +69,12 @@ class FakeTurbo
   }
 
   private purchaseResponse = {
-      nonce: 'nonce-123',
-      action: 'buy-name',
-      status: 'completed',
-      antId: 'ant-1',
-      messageId: 'sol-tx',
-    } as unknown as Awaited<ReturnType<ArNSPurchaseClient['buyArNSName']>>;
+    nonce: 'nonce-123',
+    action: 'buy-name',
+    status: 'completed',
+    antId: 'ant-1',
+    messageId: 'sol-tx',
+  } as unknown as Awaited<ReturnType<ArNSPurchaseClient['buyArNSName']>>;
 
   getArNSPriceForName(params: unknown) {
     return this.record('getArNSPriceForName', params, {
@@ -375,7 +375,7 @@ describe('ArNS CLI commands', () => {
             purchaseOptions({
               name: 'foo',
               type: 'permabuy',
-                }),
+            }),
             turbo,
           ),
         /Top up your balance/,
@@ -480,7 +480,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           transferArNSAnt(
-            { token: 'arweave', ownerKey: TEST_OWNER_KEY, target: 'tgt-1' } as TransferArNSAntOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              target: 'tgt-1',
+            } as TransferArNSAntOptions,
             turbo,
           ),
         /ant-id/,
@@ -488,7 +492,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           transferArNSAnt(
-            { token: 'arweave', ownerKey: TEST_OWNER_KEY, antId: 'ant-1' } as TransferArNSAntOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              antId: 'ant-1',
+            } as TransferArNSAntOptions,
             turbo,
           ),
         /target/,
@@ -587,7 +595,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           removeArNSRecord(
-            { token: 'arweave', ownerKey: TEST_OWNER_KEY, undername: 'docs' } as RemoveArNSRecordOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              undername: 'docs',
+            } as RemoveArNSRecordOptions,
             turbo,
           ),
         /ant-id/,
@@ -595,7 +607,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           removeArNSRecord(
-            { token: 'arweave', ownerKey: TEST_OWNER_KEY, antId: 'ant-1' } as RemoveArNSRecordOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              antId: 'ant-1',
+            } as RemoveArNSRecordOptions,
             turbo,
           ),
         /undername/,

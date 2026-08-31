@@ -1057,7 +1057,9 @@ implement the interface directly rather than exposing a secret key:
 const owner = {
   getAddress: () => wallet.publicKey.toBase58(),
   signTransaction: async (txBase64) => {
-    const tx = VersionedTransaction.deserialize(Buffer.from(txBase64, 'base64'));
+    const tx = VersionedTransaction.deserialize(
+      Buffer.from(txBase64, 'base64'),
+    );
     const signed = await wallet.signTransaction(tx);
     return Buffer.from(signed.serialize()).toString('base64');
   },
@@ -1067,10 +1069,10 @@ const owner = {
 
 ### Two identities, never conflated
 
-| | Who | How it travels |
-|---|---|---|
-| **Payer** | the Turbo identity holding credits — Arweave, Ethereum or Solana | the client's signer |
-| **ANT owner** | always a **Solana** address | the `owner` parameter |
+|               | Who                                                              | How it travels        |
+| ------------- | ---------------------------------------------------------------- | --------------------- |
+| **Payer**     | the Turbo identity holding credits — Arweave, Ethereum or Solana | the client's signer   |
+| **ANT owner** | always a **Solana** address                                      | the `owner` parameter |
 
 They are allowed to be different wallets, and routinely are: one account pays
 while another owns.
@@ -1084,9 +1086,9 @@ const turbo = TurboFactory.authenticated({ privateKey: jwk });
 const { antId, messageId } = await turbo.buyArNSName({
   name: 'my-name',
   owner,
-  type: 'lease',          // or 'permabuy'
-  years: 1,               // leases only
-  onNonce: (nonce) => persist(nonce),   // fires BEFORE the wallet prompt
+  type: 'lease', // or 'permabuy'
+  years: 1, // leases only
+  onNonce: (nonce) => persist(nonce), // fires BEFORE the wallet prompt
 });
 
 // Lifecycle — no signature at all.
@@ -1095,21 +1097,27 @@ await turbo.upgradeArNSName({ name: 'my-name' });
 await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
 
 // Records — free, and handled whichever shape the server picks.
-await turbo.setArNSRecord({ antId, owner, transactionId, undername: '@', ttlSeconds: 900 });
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  undername: '@',
+  ttlSeconds: 900,
+});
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 
 // Controllers and transfer — owner-signed, free.
-await turbo.addArNSController({ antId, owner });     // omit target => Turbo
-await turbo.removeArNSController({ antId, owner });  // the revoke
+await turbo.addArNSController({ antId, owner }); // omit target => Turbo
+await turbo.removeArNSController({ antId, owner }); // the revoke
 await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 ```
 
-| Action | Costs credits | Owner signature |
-|---|---|---|
-| `buyArNSName` | yes | **always**, once |
-| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit` | yes | no |
-| `setArNSRecord` / `removeArNSRecord` | no | only after you revoke Turbo |
-| `addArNSController` / `removeArNSController` / `transferArNSAnt` | no | yes |
+| Action                                                               | Costs credits | Owner signature             |
+| -------------------------------------------------------------------- | ------------- | --------------------------- |
+| `buyArNSName`                                                        | yes           | **always**, once            |
+| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit` | yes           | no                          |
+| `setArNSRecord` / `removeArNSRecord`                                 | no            | only after you revoke Turbo |
+| `addArNSController` / `removeArNSController` / `transferArNSAnt`     | no            | yes                         |
 
 Only the four purchase actions debit credits. Records, controllers and transfer
 are free — Turbo sponsors the SOL.
@@ -1130,10 +1138,13 @@ to the nine actions above.
 
 ```typescript
 const price = await turbo.getArNSPriceForName({
-  intent: 'Buy-Name', name: 'my-name', type: 'lease', years: 1,
+  intent: 'Buy-Name',
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
 });
-price.wincTotal;   // <- charge or display THIS
-price.winc;        // the name only, EXCLUDING the ANT spawn surcharge
+price.wincTotal; // <- charge or display THIS
+price.winc; // the name only, EXCLUDING the ANT spawn surcharge
 ```
 
 Buying mints a fresh ANT, and Turbo fronts that account's Solana rent. A flat
@@ -1150,7 +1161,10 @@ Every action returns one of two shapes, and **the server picks which**:
 ```typescript
 let res = await turbo.createArNSAction('buy-name', { name, ownerAddress });
 if (res.status === 'awaiting-signature') {
-  res = await turbo.signArNSAction(res.nonce, await owner.signTransaction(res.transaction));
+  res = await turbo.signArNSAction(
+    res.nonce,
+    await owner.signTransaction(res.transaction),
+  );
 }
 // res.status === 'completed'; res.messageId is the on-chain write
 ```
@@ -1192,7 +1206,11 @@ payment session, so a user can buy a name without holding credits first.
 
 ```typescript
 const quote = await turbo.getArNSFiatPurchaseQuote({
-  name: 'my-name', intent: 'Buy-Name', type: 'lease', years: 1, currency: 'usd',
+  name: 'my-name',
+  intent: 'Buy-Name',
+  type: 'lease',
+  years: 1,
+  currency: 'usd',
 });
 ```
 
