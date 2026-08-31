@@ -1,9 +1,9 @@
 import { strict as assert } from 'node:assert';
 import http from 'node:http';
 import { Readable } from 'node:stream';
-import { describe, it, after, before } from 'node:test';
-import { privateKeyToAccount } from 'viem/accounts';
+import { after, before, describe, it } from 'node:test';
 import { createWalletClient, http as viemHttp } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 
 import { X402RequestCredentials } from '../types.js';
@@ -81,7 +81,9 @@ describe('x402 upload payment', () => {
   before(async () => {
     await new Promise<void>((r) => server.listen(0, r));
     const addr = server.address();
-    url = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`;
+    url = `http://127.0.0.1:${
+      typeof addr === 'object' && addr ? addr.port : 0
+    }`;
   });
   after(() => server.close());
 
@@ -99,7 +101,11 @@ describe('x402 upload payment', () => {
     });
 
     assert.equal(res.id, 'ok');
-    assert.equal(requests.length, 2, 'expected an unpaid quote then a paid send');
+    assert.equal(
+      requests.length,
+      2,
+      'expected an unpaid quote then a paid send',
+    );
     assert.equal(requests[0].paid, false);
     assert.equal(requests[1].paid, true);
   });
