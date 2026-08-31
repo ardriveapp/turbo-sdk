@@ -500,6 +500,57 @@ describe('emptySignatureSlots', () => {
   });
 });
 
+describe('public export surface', () => {
+  // A regression guard. `solanaOwnerSigner` shipped in 1.42.0-alpha.9 built but
+  // NOT re-exported from the package index, so the documented
+  // `import { solanaOwnerSigner } from '@ardrive/turbo-sdk'` did not resolve.
+  // The unit suite could not catch it because it imports module paths directly;
+  // only installing the tarball did. These assert the barrel, not the module.
+  it('re-exports the ANT-owner helpers the README tells callers to import', async () => {
+    const index = await import('./index.js');
+    for (const name of [
+      'solanaOwnerSigner',
+      'emptySignatureSlots',
+      'buildArNSCustodyMessage',
+    ]) {
+      assert.equal(
+        typeof (index as Record<string, unknown>)[name],
+        'function',
+        `${name} must be reachable from the package entry point`,
+      );
+    }
+  });
+
+  it('exposes every sponsored action on the authenticated client', async () => {
+    const { TurboAuthenticatedClient } = await import('./turbo.js');
+    for (const method of [
+      'createArNSAction',
+      'signArNSAction',
+      'getArNSActionStatus',
+      'buyArNSName',
+      'extendArNSLease',
+      'upgradeArNSName',
+      'increaseArNSUndernameLimit',
+      'setArNSRecord',
+      'removeArNSRecord',
+      'addArNSController',
+      'removeArNSController',
+      'transferArNSAnt',
+    ]) {
+      assert.equal(
+        typeof (
+          TurboAuthenticatedClient.prototype as unknown as Record<
+            string,
+            unknown
+          >
+        )[method],
+        'function',
+        `${method} missing from the authenticated client`,
+      );
+    }
+  });
+});
+
 /**
  * A real unsigned v0 transaction, base64, shaped like one Turbo prepares:
  * a separate FEE PAYER plus the ANT owner as an additional required signer.
