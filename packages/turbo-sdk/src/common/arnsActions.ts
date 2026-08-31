@@ -31,10 +31,40 @@ import { toB64Url } from '../utils/base64.js';
  * revert a record to an older value).
  */
 export function buildArNSCustodyMessage(
-  action: 'set-record' | 'remove-record',
+  action:
+    | 'set-record'
+    | 'remove-record'
+    | 'set-record-metadata'
+    | 'remove-record-metadata'
+    | 'transfer-record',
   fields: string[],
 ): string {
   return ['arns', action, ...fields].join('\n');
+}
+
+/**
+ * A metadata field's ABSENT/EMPTY distinction, as the bundler binds it.
+ *
+ * `null` (clear the field) must not sign the same message as `''` (set it to
+ * empty), or a signature authorizing one would authorize the other. NUL can
+ * never appear in a value that reached here — the route rejects control
+ * characters — so it is a safe sentinel.
+ */
+export function arNSMetadataField(value: string | null | undefined): string {
+  return value === null || value === undefined ? '\u0000' : value;
+}
+
+/**
+ * Keywords joined on a separator the route rejects INSIDE a keyword, so
+ * `['a,b']` and `['a','b']` cannot be re-partitioned into one another with the
+ * same signature.
+ */
+export function arNSKeywordsField(
+  keywords: readonly string[] | null | undefined,
+): string {
+  return keywords === null || keywords === undefined
+    ? '\u0000'
+    : keywords.join('\u0001');
 }
 
 /** Solana's signature-type discriminator in Turbo's signed-request scheme. */

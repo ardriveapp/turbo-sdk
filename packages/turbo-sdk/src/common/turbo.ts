@@ -536,6 +536,45 @@ export class TurboAuthenticatedClient
     return this.paymentService.removeArNSController(params);
   }
 
+  /**
+   * Edit a RECORD's metadata (display name, logo, description, keywords).
+   * Free; handles both shapes. Fields are tri-state — omit to leave unchanged,
+   * pass `null` to clear.
+   */
+  setArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.setArNSRecordMetadata(params);
+  }
+
+  /** Clear a record's metadata. Free; handles both shapes. */
+  removeArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.removeArNSRecordMetadata(params);
+  }
+
+  /** Hand ONE record over — not the whole ANT. Free; handles both shapes. */
+  transferArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.transferArNSRecord(params);
+  }
+
   /** Hand the ANT to a new owner. Irreversible. Free. */
   transferArNSAnt(params: {
     antId: string;

@@ -1128,11 +1128,18 @@ Revoking is always available and always free.
 
 ### Not covered — these still cost you SOL
 
-`primary-name`, `release-name`, `reassign` and ANT metadata
-(name/description/keywords/logo) are **not sponsored**. They stay on the
-direct-signer path via [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk).
-Don't tell users they can "manage a name forever without SOL" — scope the claim
-to the nine actions above.
+Sponsorship covers the **twelve actions above and nothing else**. Everything
+else in the ArNS, ANT and core programs stays on the direct-signer path via
+[`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and costs the user SOL —
+notably **buying a returned name** (auctions, deliberately excluded: the
+premium is unbounded), claiming a reserved name, the **primary-name** flow
+(which lives in the ario _core_ program), release/reassign, and **ANT-level**
+metadata.
+
+Note ANT-level metadata (the ANT's own name/ticker/description/keywords/logo)
+is distinct from RECORD-level metadata, which `setArNSRecordMetadata` does
+sponsor. Don't tell users they can "manage a name forever without SOL" — scope
+the claim to the twelve actions above.
 
 ### Pricing — quote the total
 

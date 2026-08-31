@@ -551,6 +551,126 @@ describe('public export surface', () => {
   });
 });
 
+describe('ArNS record-scoped actions', () => {
+  const completed = (action: string) => ({
+    nonce: 'n',
+    action,
+    status: 'completed',
+    messageId: 'm',
+  });
+
+  /** Does the owner proof verify against this candidate message? */
+  const signedMessage = (headers: Record<string, string>, candidate: string) =>
+    nacl.sign.detached.verify(
+      Uint8Array.from(Buffer.from(candidate + headers['x-owner-nonce'])),
+      fromB64Url(headers['x-owner-signature']),
+      ownerKeypair.publicKey.toBytes(),
+    );
+
+  const NUL = '\u0000';
+  const SEP = '\u0001';
+
+  it('binds every metadata field into the owner proof', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('set-record-metadata')];
+    await serviceWith(http).setArNSRecordMetadata({
+      antId: 'ant1',
+      owner,
+      displayName: 'My Blog',
+      recordDescription: 'hello',
+      recordKeywords: ['a', 'b'],
+    });
+    const expected = [
+      'arns',
+      'set-record-metadata',
+      'ant1',
+      '@',
+      'My Blog',
+      NUL, // recordLogo omitted -> absent sentinel
+      'hello',
+      ['a', 'b'].join(SEP),
+    ].join('\n');
+    assert.ok(
+      signedMessage(http.last.headers, expected),
+      'proof is bound to every field',
+    );
+  });
+
+  it('sends CLEAR (null) and EMPTY (empty string) distinguishably', async () => {
+    const http = new FakeHttp();
+    http.responses = [
+      completed('set-record-metadata'),
+      completed('set-record-metadata'),
+    ];
+    const svc = serviceWith(http);
+    await svc.setArNSRecordMetadata({
+      antId: 'a',
+      owner,
+      recordDescription: null,
+    });
+    assert.equal(body(http.last).recordDescription, null);
+    await svc.setArNSRecordMetadata({
+      antId: 'a',
+      owner,
+      recordDescription: '',
+    });
+    assert.equal(body(http.last).recordDescription, '');
+  });
+
+  it('omits an undefined field entirely, so it is left unchanged', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('set-record-metadata')];
+    await serviceWith(http).setArNSRecordMetadata({
+      antId: 'a',
+      owner,
+      displayName: 'only this',
+    });
+    const sent = body(http.last);
+    assert.ok(!('recordLogo' in sent), 'untouched fields are not sent');
+    assert.equal(sent.displayName, 'only this');
+  });
+
+  it('removeArNSRecordMetadata binds antId + undername', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('remove-record-metadata')];
+    await serviceWith(http).removeArNSRecordMetadata({
+      antId: 'ant1',
+      owner,
+      undername: 'docs',
+    });
+    assert.equal(http.last.endpoint, '/arns/actions/remove-record-metadata');
+    assert.ok(
+      signedMessage(
+        http.last.headers,
+        ['arns', 'remove-record-metadata', 'ant1', 'docs'].join('\n'),
+      ),
+    );
+  });
+
+  it('transferArNSRecord cannot be replayed as a whole-ANT transfer', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('transfer-record')];
+    await serviceWith(http).transferArNSRecord({
+      antId: 'ant1',
+      owner,
+      undername: 'docs',
+      target: 'dest1',
+    });
+    const h = http.last.headers;
+    assert.ok(
+      signedMessage(
+        h,
+        ['arns', 'transfer-record', 'ant1', 'docs', 'dest1'].join('\n'),
+      ),
+      'signs the record-transfer message',
+    );
+    assert.ok(
+      !signedMessage(h, ['arns', 'transfer', 'ant1', 'dest1'].join('\n')),
+      'the whole-ANT transfer message must NOT verify against this proof',
+    );
+  });
+});
+
 /**
  * A real unsigned v0 transaction, base64, shaped like one Turbo prepares:
  * a separate FEE PAYER plus the ANT owner as an additional required signer.
