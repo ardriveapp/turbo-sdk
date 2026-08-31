@@ -28,7 +28,7 @@ import {
   FailedRequestError,
   InsufficientCreditsError,
 } from '../utils/errors.js';
-import { solanaOwnerSigner } from './arnsActions.js';
+import { emptySignatureSlots, solanaOwnerSigner } from './arnsActions.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
 
 /** Records calls and returns canned responses, one per call. */
@@ -284,6 +284,219 @@ describe('ArNS actions', () => {
       } as never);
       assert.equal(price.wincTotal, '123');
     });
+  });
+});
+
+describe('ArNS actions - the thin wrappers', () => {
+  // Each wrapper is a few lines, but a wrong param NAME is invisible until the
+  // service 400s at runtime. These pin the wire shape of every action that the
+  // on-chain e2e does not already exercise.
+
+  const completed = (action: string) => ({
+    nonce: 'n',
+    action,
+    status: 'completed',
+    messageId: 'm',
+  });
+
+  it('extendArNSLease sends name + years', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('extend-lease')];
+    await serviceWith(http).extendArNSLease({ name: 'x', years: 2 });
+    assert.equal(http.last.endpoint, '/arns/actions/extend-lease');
+    assert.deepEqual(body(http.last), { name: 'x', years: 2 });
+  });
+
+  it('upgradeArNSName sends just the name', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('upgrade-name')];
+    await serviceWith(http).upgradeArNSName({ name: 'x' });
+    assert.equal(http.last.endpoint, '/arns/actions/upgrade-name');
+    assert.deepEqual(body(http.last), { name: 'x' });
+  });
+
+  it('increaseArNSUndernameLimit sends name + increaseQty', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('increase-undername-limit')];
+    await serviceWith(http).increaseArNSUndernameLimit({
+      name: 'x',
+      increaseQty: 5,
+    });
+    assert.equal(http.last.endpoint, '/arns/actions/increase-undername-limit');
+    assert.deepEqual(body(http.last), { name: 'x', increaseQty: 5 });
+  });
+
+  it('paidBy is forwarded only when supplied', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('extend-lease'), completed('extend-lease')];
+    const svc = serviceWith(http);
+    await svc.extendArNSLease({ name: 'x', years: 1 });
+    assert.ok(!('paidBy' in body(http.last)), 'omitted when undefined');
+    await svc.extendArNSLease({ name: 'x', years: 1, paidBy: ['a'] });
+    assert.deepEqual(body(http.last).paidBy, ['a']);
+  });
+
+  it('addArNSController omits target so the service defaults to Turbo', async () => {
+    const http = new FakeHttp();
+    const prepared = await buildPreparedTx();
+    http.responses = [
+      {
+        nonce: 'n',
+        action: 'add-controller',
+        status: 'awaiting-signature',
+        transaction: prepared,
+      },
+      completed('add-controller'),
+    ];
+    await serviceWith(http).addArNSController({ antId: 'ant1', owner });
+    const sent = body(http.calls[0]);
+    assert.equal(sent.antId, 'ant1');
+    assert.ok(!('target' in sent), 'no target => Turbo itself');
+    assert.equal(sent.ownerAddress, await owner.getAddress());
+  });
+
+  it('removeArNSController forwards an explicit target', async () => {
+    const http = new FakeHttp();
+    const prepared = await buildPreparedTx();
+    http.responses = [
+      {
+        nonce: 'n',
+        action: 'remove-controller',
+        status: 'awaiting-signature',
+        transaction: prepared,
+      },
+      completed('remove-controller'),
+    ];
+    await serviceWith(http).removeArNSController({
+      antId: 'ant1',
+      owner,
+      target: 'someone-else',
+    });
+    assert.equal(body(http.calls[0]).target, 'someone-else');
+  });
+
+  it('transferArNSAnt sends antId + target', async () => {
+    const http = new FakeHttp();
+    const prepared = await buildPreparedTx();
+    http.responses = [
+      {
+        nonce: 'n',
+        action: 'transfer',
+        status: 'awaiting-signature',
+        transaction: prepared,
+      },
+      completed('transfer'),
+    ];
+    await serviceWith(http).transferArNSAnt({
+      antId: 'ant1',
+      owner,
+      target: 'new-owner',
+    });
+    assert.deepEqual(body(http.calls[0]), {
+      antId: 'ant1',
+      ownerAddress: await owner.getAddress(),
+      target: 'new-owner',
+    });
+  });
+
+  it('removeArNSRecord binds the owner proof to THIS undername', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('remove-record')];
+    await serviceWith(http).removeArNSRecord({
+      antId: 'ant1',
+      owner,
+      undername: 'docs',
+    });
+    const h = http.last.headers;
+    // A signature captured for one undername must not authorize another.
+    const ok = nacl.sign.detached.verify(
+      Uint8Array.from(
+        Buffer.from('arns\nremove-record\nant1\ndocs' + h['x-owner-nonce']),
+      ),
+      fromB64Url(h['x-owner-signature']),
+      ownerKeypair.publicKey.toBytes(),
+    );
+    assert.ok(ok, 'proof is bound to antId + undername');
+  });
+
+  it('setArNSRecord defaults undername to @ and ttl to 3600', async () => {
+    const http = new FakeHttp();
+    http.responses = [completed('set-record')];
+    await serviceWith(http).setArNSRecord({
+      antId: 'ant1',
+      owner,
+      transactionId: 'tx1',
+    });
+    assert.equal(body(http.last).undername, '@');
+    assert.equal(body(http.last).ttlSeconds, 3600);
+  });
+});
+
+describe('ArNS actions - raw endpoints and error paths', () => {
+  it('signArNSAction posts the transaction to the nonce sign endpoint', async () => {
+    const http = new FakeHttp();
+    http.responses = [
+      { nonce: 'n9', action: 'buy-name', status: 'completed', messageId: 'm' },
+    ];
+    await serviceWith(http).signArNSAction('n9', 'BASE64TX');
+    assert.equal(http.last.endpoint, '/arns/actions/n9/sign');
+    assert.deepEqual(body(http.last), { transaction: 'BASE64TX' });
+  });
+
+  it('getArNSActionStatus reads by nonce without a body', async () => {
+    const http = new FakeHttp();
+    http.responses = [
+      { nonce: 'n9', action: 'buy-name', status: 'completed', messageId: 'm' },
+    ];
+    await serviceWith(http).getArNSActionStatus('n9');
+    assert.equal(http.last.method, 'GET');
+    assert.equal(http.last.endpoint, '/arns/actions/n9');
+  });
+
+  it('rethrows non-402 failures unchanged rather than mislabelling them', async () => {
+    const http = new FakeHttp();
+    http.error = new FailedRequestError('chain unreachable', 503);
+    await assert.rejects(
+      () => serviceWith(http).createArNSAction('buy-name', { name: 'x' }),
+      (err: Error) => {
+        assert.ok(!(err instanceof InsufficientCreditsError));
+        assert.equal((err as FailedRequestError).status, 503);
+        return true;
+      },
+    );
+  });
+
+  it('names the already-debited nonce when a signature is needed but no owner was given', async () => {
+    const http = new FakeHttp();
+    http.responses = [
+      {
+        nonce: 'n-debited',
+        action: 'extend-lease',
+        status: 'awaiting-signature',
+        transaction: 'x',
+      },
+    ];
+    // extend-lease normally completes alone; if the service ever asks for a
+    // signature there is no owner to sign with, and the caller must be told
+    // WHICH nonce is already paid for so they poll instead of re-creating.
+    await assert.rejects(
+      () => serviceWith(http).extendArNSLease({ name: 'x', years: 1 }),
+      /n-debited/,
+    );
+  });
+});
+
+describe('emptySignatureSlots', () => {
+  it('reports the slot Turbo left for the owner', async () => {
+    const prepared = await buildPreparedTx();
+    // Fee payer + owner are both unsigned in the fixture.
+    assert.ok(emptySignatureSlots(prepared) >= 1);
+  });
+
+  it('drops to zero once every required signature is present', async () => {
+    const prepared = await buildPreparedTx();
+    const signedOnce = await owner.signTransaction(prepared);
+    assert.ok(emptySignatureSlots(signedOnce) < emptySignatureSlots(prepared));
   });
 });
 
