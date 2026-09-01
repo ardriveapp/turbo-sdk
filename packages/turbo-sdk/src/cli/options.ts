@@ -217,10 +217,10 @@ export const optionMap = {
     alias: '--increase-qty <qty>',
     description: 'Number of additional undernames (Increase-Undername-Limit)',
   },
-  arnsProcessId: {
-    alias: '--process-id <processId>',
+  arnsOwnerKey: {
+    alias: '--owner-key <base58SolanaSecretKey>',
     description:
-      'ANT process ID the ArNS name resolves to (Buy-Name). Optional: omit for Turbo custodial provisioning (Turbo owns the ANT); supply for a user-owned ANT',
+      'Base58 Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits — the owner needs a key to sign with, not SOL: Turbo pays every fee and rent',
   },
   arnsNonce: {
     alias: '--nonce <nonce>',
@@ -245,6 +245,50 @@ export const optionMap = {
   arnsTtlSeconds: {
     alias: '--ttl-seconds <ttlSeconds>',
     description: 'TTL in seconds for the ArNS record',
+  },
+  arnsDisplayName: {
+    alias: '--display-name <displayName>',
+    description: 'Display name for the record (Set-Record-Metadata)',
+  },
+  arnsClearDisplayName: {
+    alias: '--clear-display-name',
+    description: 'Clear the record display name (Set-Record-Metadata)',
+    default: false,
+  },
+  arnsRecordLogo: {
+    alias: '--record-logo <transactionId>',
+    description:
+      'Arweave transaction ID for the record logo (Set-Record-Metadata)',
+  },
+  arnsClearRecordLogo: {
+    alias: '--clear-record-logo',
+    description: 'Clear the record logo (Set-Record-Metadata)',
+    default: false,
+  },
+  arnsRecordDescription: {
+    alias: '--record-description <description>',
+    description: 'Description for the record (Set-Record-Metadata)',
+  },
+  arnsClearRecordDescription: {
+    alias: '--clear-record-description',
+    description: 'Clear the record description (Set-Record-Metadata)',
+    default: false,
+  },
+  arnsRecordKeywords: {
+    alias: '--record-keywords <keywords...>',
+    description: 'Keywords for the record (Set-Record-Metadata)',
+    type: 'array',
+  },
+  arnsClearRecordKeywords: {
+    alias: '--clear-record-keywords',
+    description: 'Clear the record keywords (Set-Record-Metadata)',
+    default: false,
+  },
+  arnsAction: {
+    alias: '--action <action>',
+    description:
+      'ArNS action to price: set-record, remove-record, set-record-metadata, ' +
+      'remove-record-metadata, transfer-record, add-controller, remove-controller, or transfer',
   },
   // ---- Payment history ----
   limit: {
@@ -327,7 +371,6 @@ export const arnsPriceOptions = [
   optionMap.arnsType,
   optionMap.arnsYears,
   optionMap.arnsIncreaseQty,
-  optionMap.arnsProcessId,
 ];
 
 export const arnsFiatQuoteOptions = [
@@ -335,7 +378,6 @@ export const arnsFiatQuoteOptions = [
   optionMap.arnsType,
   optionMap.arnsYears,
   optionMap.arnsIncreaseQty,
-  optionMap.arnsProcessId,
   optionMap.address,
   optionMap.currency,
   {
@@ -354,7 +396,7 @@ export const buyArNSNameOptions = [
   optionMap.arnsName,
   optionMap.arnsType,
   optionMap.arnsYears,
-  optionMap.arnsProcessId,
+  optionMap.arnsOwnerKey,
   optionMap.paidBy,
 ];
 
@@ -382,12 +424,14 @@ export const arnsPurchaseStatusOptions = [optionMap.arnsNonce];
 
 export const transferArNSAntOptions = [
   ...walletOptions,
+  optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsTarget,
 ];
 
 export const setArNSRecordOptions = [
   ...walletOptions,
+  optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
   optionMap.arnsTransactionId,
@@ -396,6 +440,48 @@ export const setArNSRecordOptions = [
 
 export const removeArNSRecordOptions = [
   ...walletOptions,
+  optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
 ];
+
+export const addArNSControllerOptions = [
+  ...walletOptions,
+  optionMap.arnsOwnerKey,
+  optionMap.arnsAntId,
+  optionMap.arnsTarget,
+];
+
+export const removeArNSControllerOptions = addArNSControllerOptions;
+
+export const transferArNSRecordOptions = [
+  ...walletOptions,
+  optionMap.arnsOwnerKey,
+  optionMap.arnsAntId,
+  optionMap.arnsUndername,
+  optionMap.arnsTarget,
+];
+
+export const setArNSRecordMetadataOptions = [
+  ...walletOptions,
+  optionMap.arnsOwnerKey,
+  optionMap.arnsAntId,
+  optionMap.arnsUndername,
+  optionMap.arnsDisplayName,
+  optionMap.arnsClearDisplayName,
+  optionMap.arnsRecordLogo,
+  optionMap.arnsClearRecordLogo,
+  optionMap.arnsRecordDescription,
+  optionMap.arnsClearRecordDescription,
+  optionMap.arnsRecordKeywords,
+  optionMap.arnsClearRecordKeywords,
+];
+
+export const removeArNSRecordMetadataOptions = [
+  ...walletOptions,
+  optionMap.arnsOwnerKey,
+  optionMap.arnsAntId,
+  optionMap.arnsUndername,
+];
+
+export const arnsActionPriceOptions = [optionMap.arnsAction];

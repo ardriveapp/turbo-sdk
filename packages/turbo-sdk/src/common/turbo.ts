@@ -16,18 +16,17 @@
 import { BigNumber } from 'bignumber.js';
 
 import {
-  ArNSBuyNameArgs,
-  ArNSExtendLeaseParams,
+  ArNSAction,
+  ArNSActionCompleted,
+  ArNSActionPriceResponse,
+  ArNSActionResult,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
-  ArNSIncreaseUndernameLimitParams,
-  ArNSPaidByParams,
+  ArNSNameType,
+  ArNSOwnerSigner,
   ArNSPriceParams,
   ArNSPriceResponse,
-  ArNSPurchaseParams,
-  ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
-  ArNSUpgradeNameParams,
   AuthenticatedArNSFiatPurchaseQuoteParams,
   CreditShareApproval,
   Currency,
@@ -82,6 +81,7 @@ import {
   TurboWincForTokenResponse,
   UploadDataInput,
   UploadDataType,
+  UserAddress,
 } from '../types.js';
 import {
   TurboUnauthenticatedPaymentService,
@@ -173,6 +173,15 @@ export class TurboUnauthenticatedClient
    */
   getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse> {
     return this.paymentService.getArNSPriceForName(params);
+  }
+
+  /**
+   * Previews what one of the eight non-purchase ArNS actions will debit,
+   * without creating it. Use {@link getArNSPriceForName} for the four
+   * ARIO-purchase actions instead.
+   */
+  getArNSActionPrice(action: ArNSAction): Promise<ArNSActionPriceResponse> {
+    return this.paymentService.getArNSActionPrice(action);
   }
 
   /**
@@ -406,17 +415,34 @@ export class TurboAuthenticatedClient
     return this.paymentService.getPaymentHistory(params);
   }
 
-  /**
-   * Buys, extends, or upgrades an ArNS name, paying with the signer's Turbo
-   * credit balance. Poll {@link getArNSPurchaseStatus} with the returned nonce.
-   */
-  purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse> {
-    return this.paymentService.purchaseArNSName(params);
+  // ===== ArNS actions (sponsored) =====
+  //
+  // Thin delegations. The two-shape branch and the owner-proof construction
+  // live in the payment service; see its comments for why callers must branch
+  // on `status` rather than on which action they asked for.
+
+  /** Create an action. Debits credits HERE — capture the nonce before signing. */
+  createArNSAction(
+    action: ArNSAction,
+    params?: Record<string, unknown>,
+    ownerProof?: { owner: ArNSOwnerSigner; message: string },
+  ): Promise<ArNSActionResult> {
+    return this.paymentService.createArNSAction(action, params, ownerProof);
   }
 
-  /** Buys a new ArNS name (lease or permabuy). */
-  buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse> {
-    return this.paymentService.buyArNSName(params);
+  /** Submit the owner-signed transaction (FULL serialized tx, base64). */
+  signArNSAction(
+    nonce: string,
+    signedTransaction: string,
+  ): Promise<ArNSActionCompleted> {
+    return this.paymentService.signArNSAction(nonce, signedTransaction);
+  }
+
+  /** Status by nonce — open, needs no signature. Use it to resume. */
+  getArNSActionStatus(
+    nonce: string,
+  ): Promise<ArNSActionResult & { failedDate?: string }> {
+    return this.paymentService.getArNSActionStatus(nonce);
   }
 
   /**
@@ -434,56 +460,139 @@ export class TurboAuthenticatedClient
     return this.paymentService.getArNSFiatPurchaseQuote(params);
   }
 
-  /** Extends the lease on an existing ArNS name. */
-  extendArNSLease(
-    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
+  /**
+   * Buy a name. The ANT is minted straight to `owner`; Turbo never holds it.
+   * The only action that always needs the owner's signature — once, ever.
+   */
+  buyArNSName(params: {
+    name: string;
+    owner: ArNSOwnerSigner;
+    type?: ArNSNameType;
+    years?: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.buyArNSName(params);
+  }
+
+  /** Extend a lease. No owner signature needed. */
+  extendArNSLease(params: {
+    name: string;
+    years: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
     return this.paymentService.extendArNSLease(params);
   }
 
-  /** Increases the undername limit on an existing ArNS name. */
-  increaseArNSUndernameLimit(
-    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
+  /** Raise the undername limit. No owner signature needed. */
+  increaseArNSUndernameLimit(params: {
+    name: string;
+    increaseQty: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
     return this.paymentService.increaseArNSUndernameLimit(params);
   }
 
-  /** Upgrades an ArNS lease to a permabuy. */
-  upgradeArNSName(
-    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse> {
+  /** Upgrade a lease to a permanent name. No owner signature needed. */
+  upgradeArNSName(params: {
+    name: string;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
     return this.paymentService.upgradeArNSName(params);
   }
 
-  transferArNSAnt(params: { antId: string; target: string }): Promise<{
-    antId: string;
-    target: string;
-    name?: string;
-    messageId: string;
-  }> {
-    return this.paymentService.transferArNSAnt(params);
-  }
-
+  /** Point a name (or undername) at data. Free; handles both shapes. */
   setArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
+    transactionId: string;
     undername?: string;
-    transactionId: string;
-    ttlSeconds: number;
-  }): Promise<{
-    antId: string;
-    undername: string;
-    transactionId: string;
-    ttlSeconds: number;
-    messageId: string;
-  }> {
+    ttlSeconds?: number;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
     return this.paymentService.setArNSRecord(params);
   }
 
+  /** Remove a record. Free; handles both shapes. */
   removeArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
     undername: string;
-  }): Promise<{ antId: string; undername: string; messageId: string }> {
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSRecord(params);
+  }
+
+  /** Grant controller rights — omit `target` for Turbo itself. Costs credits. */
+  addArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.addArNSController(params);
+  }
+
+  /** Revoke controller rights. Always available; costs credits, never SOL. */
+  removeArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.removeArNSController(params);
+  }
+
+  /**
+   * Edit a RECORD's metadata (display name, logo, description, keywords).
+   * Free; handles both shapes. Fields are tri-state — omit to leave unchanged,
+   * pass `null` to clear.
+   */
+  setArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.setArNSRecordMetadata(params);
+  }
+
+  /** Clear a record's metadata. Costs credits, never SOL; handles both shapes. */
+  removeArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.removeArNSRecordMetadata(params);
+  }
+
+  /** Hand ONE record over — not the whole ANT. Costs credits, never SOL. */
+  transferArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.transferArNSRecord(params);
+  }
+
+  /** Hand the ANT to a new owner. Irreversible. Costs credits, never SOL. */
+  transferArNSAnt(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted> {
+    return this.paymentService.transferArNSAnt(params);
   }
 
   /**

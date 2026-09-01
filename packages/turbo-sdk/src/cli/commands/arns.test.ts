@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { strict as assert } from 'node:assert';
 import { beforeEach, describe, it } from 'node:test';
 
@@ -67,15 +69,18 @@ class FakeTurbo
   }
 
   private purchaseResponse = {
-    purchaseReceipt: { name: 'foo', nonce: 'srv-nonce' },
-    arioWriteResult: { id: 'sol-tx' },
     nonce: 'nonce-123',
+    action: 'buy-name',
+    status: 'completed',
+    antId: 'ant-1',
+    messageId: 'sol-tx',
   } as unknown as Awaited<ReturnType<ArNSPurchaseClient['buyArNSName']>>;
 
   getArNSPriceForName(params: unknown) {
     return this.record('getArNSPriceForName', params, {
       winc: '1500000000000',
       mARIO: '2500',
+      wincTotal: '1500000000000',
     });
   }
   getArNSPurchaseStatus(params: unknown) {
@@ -112,34 +117,104 @@ class FakeTurbo
   }
   transferArNSAnt(params: unknown) {
     return this.record('transferArNSAnt', params, {
+      nonce: 'nonce-123',
+      action: 'transfer',
+      status: 'completed',
       antId: 'ant-1',
-      target: 'tgt-1',
       messageId: 'm',
-    });
+    } as never);
   }
   setArNSRecord(params: unknown) {
     return this.record('setArNSRecord', params, {
+      nonce: 'nonce-123',
+      action: 'set-record',
+      status: 'completed',
       antId: 'ant-1',
-      undername: '@',
-      transactionId: 'tx-1',
-      ttlSeconds: 900,
       messageId: 'm',
-    });
+    } as never);
   }
   removeArNSRecord(params: unknown) {
     return this.record('removeArNSRecord', params, {
+      nonce: 'nonce-123',
+      action: 'remove-record',
+      status: 'completed',
       antId: 'ant-1',
-      undername: 'docs',
       messageId: 'm',
-    });
+    } as never);
   }
+  addArNSController(params: unknown) {
+    return this.record('addArNSController', params, {
+      nonce: 'nonce-123',
+      action: 'add-controller',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  removeArNSController(params: unknown) {
+    return this.record('removeArNSController', params, {
+      nonce: 'nonce-123',
+      action: 'remove-controller',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  setArNSRecordMetadata(params: unknown) {
+    return this.record('setArNSRecordMetadata', params, {
+      nonce: 'nonce-123',
+      action: 'set-record-metadata',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  removeArNSRecordMetadata(params: unknown) {
+    return this.record('removeArNSRecordMetadata', params, {
+      nonce: 'nonce-123',
+      action: 'remove-record-metadata',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  transferArNSRecord(params: unknown) {
+    return this.record('transferArNSRecord', params, {
+      nonce: 'nonce-123',
+      action: 'transfer-record',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+}
+
+// A fixed Solana key so the owner ADDRESS is stable across runs. The owner
+// signs but never pays — Turbo is the fee payer — so this key is never funded.
+const TEST_OWNER_KEY = bs58.encode(
+  Keypair.fromSeed(new Uint8Array(32).fill(7)).secretKey,
+);
+const TEST_OWNER_ADDRESS = Keypair.fromSeed(
+  new Uint8Array(32).fill(7),
+).publicKey.toBase58();
+
+/**
+ * Swap the owner SIGNER for its address so params stay deepEqual-able, and
+ * assert the signer was actually threaded through rather than dropped.
+ */
+async function paramsWithOwnerAddress(params: any) {
+  assert.ok(params.owner, 'owner signer was passed through');
+  assert.equal(typeof params.owner.signTransaction, 'function');
+  const { owner, ...rest } = params;
+  return { ...rest, ownerAddress: await owner.getAddress() };
 }
 
 const priceOptions = (o: Partial<ArNSPriceOptions>): ArNSPriceOptions =>
   ({ token: 'arweave', ...o }) as ArNSPriceOptions;
 const purchaseOptions = (
   o: Partial<ArNSPurchaseOptions>,
-): ArNSPurchaseOptions => ({ token: 'arweave', ...o }) as ArNSPurchaseOptions;
+): ArNSPurchaseOptions =>
+  ({ token: 'arweave', ownerKey: TEST_OWNER_KEY, ...o }) as ArNSPurchaseOptions;
 
 describe('ArNS CLI commands', () => {
   let turbo: FakeTurbo;
@@ -271,17 +346,16 @@ describe('ArNS CLI commands', () => {
           name: 'foo',
           type: 'lease',
           years: '1',
-          processId: 'ant-1',
         }),
         turbo,
       );
       assert.equal(turbo.last.method, 'buyArNSName');
-      assert.deepEqual(turbo.last.params, {
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         name: 'foo',
         type: 'lease',
         years: 1,
-        processId: 'ant-1',
         paidBy: undefined,
+        ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
 
@@ -290,45 +364,44 @@ describe('ArNS CLI commands', () => {
         purchaseOptions({
           name: 'foo',
           type: 'permabuy',
-          processId: 'ant-1',
           paidBy: ['payer-a', 'payer-b'],
         }),
         turbo,
       );
-      assert.deepEqual(turbo.last.params, {
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         name: 'foo',
         type: 'permabuy',
-        processId: 'ant-1',
         paidBy: ['payer-a', 'payer-b'],
+        ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
 
-    it('builds a custodial permabuy request when --process-id is omitted', async () => {
+    it('builds a permabuy request, minting the ANT to --owner-key', async () => {
       await buyArNSName(
         purchaseOptions({ name: 'foo', type: 'permabuy' }),
         turbo,
       );
       assert.equal(turbo.last.method, 'buyArNSName');
       // No processId is forwarded -> the bundler custodially provisions the ANT.
-      assert.deepEqual(turbo.last.params, {
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         name: 'foo',
         type: 'permabuy',
-        processId: undefined,
         paidBy: undefined,
+        ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
 
-    it('builds a custodial lease request when --process-id is omitted', async () => {
+    it('builds a lease request, minting the ANT to --owner-key', async () => {
       await buyArNSName(
         purchaseOptions({ name: 'foo', type: 'lease', years: '1' }),
         turbo,
       );
-      assert.deepEqual(turbo.last.params, {
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         name: 'foo',
         type: 'lease',
         years: 1,
-        processId: undefined,
         paidBy: undefined,
+        ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
 
@@ -347,7 +420,6 @@ describe('ArNS CLI commands', () => {
             purchaseOptions({
               name: 'foo',
               type: 'permabuy',
-              processId: 'ant-1',
             }),
             turbo,
           ),
@@ -435,20 +507,29 @@ describe('ArNS CLI commands', () => {
       await transferArNSAnt(
         {
           token: 'arweave',
+          ownerKey: TEST_OWNER_KEY,
           antId: 'ant-1',
           target: 'tgt-1',
         } as TransferArNSAntOptions,
         turbo,
       );
       assert.equal(turbo.last.method, 'transferArNSAnt');
-      assert.deepEqual(turbo.last.params, { antId: 'ant-1', target: 'tgt-1' });
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
+        antId: 'ant-1',
+        target: 'tgt-1',
+        ownerAddress: TEST_OWNER_ADDRESS,
+      });
     });
 
     it('requires --ant-id and --target', async () => {
       await assert.rejects(
         () =>
           transferArNSAnt(
-            { token: 'arweave', target: 'tgt-1' } as TransferArNSAntOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              target: 'tgt-1',
+            } as TransferArNSAntOptions,
             turbo,
           ),
         /ant-id/,
@@ -456,7 +537,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           transferArNSAnt(
-            { token: 'arweave', antId: 'ant-1' } as TransferArNSAntOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              antId: 'ant-1',
+            } as TransferArNSAntOptions,
             turbo,
           ),
         /target/,
@@ -469,6 +554,7 @@ describe('ArNS CLI commands', () => {
       await setArNSRecord(
         {
           token: 'arweave',
+          ownerKey: TEST_OWNER_KEY,
           antId: 'ant-1',
           undername: 'docs',
           transactionId: 'tx-1',
@@ -477,11 +563,12 @@ describe('ArNS CLI commands', () => {
         turbo,
       );
       assert.equal(turbo.last.method, 'setArNSRecord');
-      assert.deepEqual(turbo.last.params, {
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         antId: 'ant-1',
         undername: 'docs',
         transactionId: 'tx-1',
         ttlSeconds: 900,
+        ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
 
@@ -489,6 +576,7 @@ describe('ArNS CLI commands', () => {
       await setArNSRecord(
         {
           token: 'arweave',
+          ownerKey: TEST_OWNER_KEY,
           antId: 'ant-1',
           transactionId: 'tx-1',
           ttlSeconds: '900',
@@ -504,6 +592,7 @@ describe('ArNS CLI commands', () => {
           setArNSRecord(
             {
               token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
               antId: 'ant-1',
               ttlSeconds: '900',
             } as SetArNSRecordOptions,
@@ -516,6 +605,7 @@ describe('ArNS CLI commands', () => {
           setArNSRecord(
             {
               token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
               antId: 'ant-1',
               transactionId: 'tx-1',
               ttlSeconds: '0',
@@ -532,15 +622,17 @@ describe('ArNS CLI commands', () => {
       await removeArNSRecord(
         {
           token: 'arweave',
+          ownerKey: TEST_OWNER_KEY,
           antId: 'ant-1',
           undername: 'docs',
         } as RemoveArNSRecordOptions,
         turbo,
       );
       assert.equal(turbo.last.method, 'removeArNSRecord');
-      assert.deepEqual(turbo.last.params, {
+      assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         antId: 'ant-1',
         undername: 'docs',
+        ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
 
@@ -548,7 +640,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           removeArNSRecord(
-            { token: 'arweave', undername: 'docs' } as RemoveArNSRecordOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              undername: 'docs',
+            } as RemoveArNSRecordOptions,
             turbo,
           ),
         /ant-id/,
@@ -556,7 +652,11 @@ describe('ArNS CLI commands', () => {
       await assert.rejects(
         () =>
           removeArNSRecord(
-            { token: 'arweave', antId: 'ant-1' } as RemoveArNSRecordOptions,
+            {
+              token: 'arweave',
+              ownerKey: TEST_OWNER_KEY,
+              antId: 'ant-1',
+            } as RemoveArNSRecordOptions,
             turbo,
           ),
         /undername/,
@@ -602,7 +702,6 @@ describe('arnsFiatQuote', () => {
         type: 'lease',
         years: '1',
         increaseQty: undefined,
-        processId: undefined,
         address: 'dest-address',
         currency: 'eur',
         method: 'checkout-session',
@@ -631,7 +730,6 @@ describe('arnsFiatQuote', () => {
         type: 'lease',
         years: '1',
         address: 'dest',
-        processId: undefined,
       } as never,
       client,
     );

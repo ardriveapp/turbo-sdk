@@ -1254,12 +1254,147 @@ export type ArNSPriceParams =
 export type ArNSPaidByParams = { paidBy?: UserAddress | UserAddress[] };
 
 export type ArNSPriceResponse = {
-  /** Price in Winston credits */
+  /**
+   * Price of the NAME ONLY, in Winston credits.
+   *
+   * For a Buy-Name this EXCLUDES the ANT spawn surcharge. Quoting this figure
+   * alone under-quotes the purchase — in a real response the surcharge can be
+   * larger than the name itself. Use `wincTotalWithAntSpawn`, or the
+   * `wincTotal` convenience the SDK adds below.
+   */
   winc: string;
   /** Equivalent price in mARIO */
   mARIO: string;
+  /**
+   * Flat cost-recovery surcharge for the Solana rent Turbo fronts when minting
+   * the customer's ANT. Present only for intents that mint one (Buy-Name).
+   * Config-driven and derived per-request from live rates — never hardcode it.
+   */
+  antSpawnSurchargeWinc?: string;
+  /** `winc` + `antSpawnSurchargeWinc`. Present only when a surcharge applies. */
+  wincTotalWithAntSpawn?: string;
+  /**
+   * The figure to charge or display, always. Added by the SDK:
+   * `wincTotalWithAntSpawn ?? winc`, so a caller cannot under-quote by
+   * reading the wrong field.
+   */
+  wincTotal: string;
   [key: string]: unknown;
 };
+
+// ===== ArNS actions (sponsored — the current bundler surface) =====
+
+/**
+ * The twelve sponsored ArNS actions.
+ *
+ * Sponsorship covers these twelve and NOTHING else. Everything else in the
+ * ArNS, ANT and core programs stays on the direct-signer path and costs the
+ * user SOL — notably `BuyReturnedName` (auctions, deliberately excluded: the
+ * premium is unbounded), `ClaimReservedName`, the primary-name flow (which
+ * lives in the ario core program), release/reassign, and ANT-LEVEL metadata.
+ * Note ANT-level metadata is distinct from RECORD-level metadata, which
+ * `set-record-metadata` does sponsor.
+ */
+export const arNSActions = [
+  'buy-name',
+  'extend-lease',
+  'upgrade-name',
+  'increase-undername-limit',
+  'set-record',
+  'remove-record',
+  'add-controller',
+  'remove-controller',
+  'transfer',
+  // Record-scoped. Owner-or-controller on chain, so these follow set-record's
+  // degrade-on-revoke shape rather than needing a signature every time.
+  'set-record-metadata',
+  'remove-record-metadata',
+  'transfer-record',
+] as const;
+export type ArNSAction = (typeof arNSActions)[number];
+
+/** Turbo already held the authority — the write has landed on chain. */
+export type ArNSActionCompleted = {
+  nonce: string;
+  action: ArNSAction;
+  status: 'completed';
+  /** Solana transaction id of the on-chain write. */
+  messageId: string;
+  antId?: string;
+  /**
+   * True when this nonce had already completed — a replayed `/sign` is
+   * reported as success rather than buying twice.
+   */
+  alreadyCompleted?: boolean;
+  [key: string]: unknown;
+};
+
+/** Only the ANT's owner can authorize this; Turbo has already fee-payer-signed. */
+export type ArNSActionAwaitingSignature = {
+  nonce: string;
+  action: ArNSAction;
+  status: 'awaiting-signature';
+  /**
+   * Base64 transaction, already carrying Turbo's fee-payer signature.
+   * Sign THESE BYTES — rebuilding or re-serializing invalidates Turbo's
+   * signature and the submission is rejected.
+   */
+  transaction: string;
+  feePayer?: string;
+  antId?: string;
+  lastValidBlockHeight?: string;
+  /** The blockhash dies in ~60-90s; past this, create a new action. */
+  expiresAt?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * An action has exactly one of two shapes, and THE SERVER picks which.
+ * Branch on `status`, never on which action you asked for: `set-record`
+ * completes alone while Turbo is a controller and flips to
+ * `awaiting-signature` the moment the customer revokes Turbo.
+ */
+export type ArNSActionResult =
+  | ArNSActionCompleted
+  | ArNSActionAwaitingSignature;
+
+/**
+ * The flat-margin credits price for one of the eight actions that don't
+ * spend ARIO (everything except Buy-Name/Extend-Lease/Upgrade-Name/
+ * Increase-Undername-Limit, which are priced by {@link getArNSPriceForName}
+ * instead since their cost is dominated by the ARIO purchase, not the margin).
+ * No signature required — this is a read-only preview of what
+ * `createArNSAction` will debit.
+ */
+export type ArNSActionPriceResponse = {
+  action: ArNSAction;
+  /** What creating this action will debit, in Winston credits. */
+  wincQty: string;
+  [key: string]: unknown;
+};
+
+/**
+ * The ANT owner's key — a **Solana** wallet, distinct from the Turbo payer.
+ *
+ * The two are deliberately separate: the payer holds credits (and may be an
+ * Arweave or Ethereum identity), while the owner holds the ANT. They are
+ * allowed to be different wallets, which is the normal shape for a console.
+ *
+ * The owner needs a key to sign with, NOT a funded account — Turbo is the fee
+ * payer on every sponsored action, so the owner's SOL balance can stay zero
+ * for the life of the name.
+ */
+export interface ArNSOwnerSigner {
+  /** base58 Solana address that owns (or will own) the ANT. */
+  getAddress(): string | Promise<string>;
+  /**
+   * Sign a base64 transaction and return the signed transaction, base64.
+   * Must return the FULL serialized transaction, not just the signature.
+   */
+  signTransaction(transactionBase64: string): Promise<string>;
+  /** Raw ed25519 signature over `message`, for the `x-owner-*` proof. */
+  signMessage(message: Uint8Array): Promise<Uint8Array>;
+}
 
 export type ArNSPurchaseParams = ArNSPriceParams & ArNSPaidByParams;
 
@@ -1430,6 +1565,13 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
   getFreeStatus: (address: string) => Promise<TurboFreeStatusResponse>;
   getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
+  /**
+   * Preview what one of the eight non-purchase actions will debit, without
+   * creating it. `action` must not be one of the four ARIO-purchase actions
+   * (`buy-name`, `extend-lease`, `upgrade-name`, `increase-undername-limit`)
+   * — use {@link getArNSPriceForName} for those.
+   */
+  getArNSActionPrice(action: ArNSAction): Promise<ArNSActionPriceResponse>;
   getArNSPurchaseStatus(p: {
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse>;
@@ -1523,40 +1665,106 @@ export interface TurboAuthenticatedPaymentServiceInterface
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
 
-  /** Buy / extend / upgrade an ArNS name, debiting the signer's credit balance. */
-  purchaseArNSName(params: ArNSPurchaseParams): Promise<ArNSPurchaseResponse>;
-  buyArNSName(params: ArNSBuyNameArgs): Promise<ArNSPurchaseResponse>;
-  extendArNSLease(
-    params: Omit<ArNSExtendLeaseParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse>;
-  increaseArNSUndernameLimit(
-    params: Omit<ArNSIncreaseUndernameLimitParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse>;
-  upgradeArNSName(
-    params: Omit<ArNSUpgradeNameParams, 'intent'> & ArNSPaidByParams,
-  ): Promise<ArNSPurchaseResponse>;
-  transferArNSAnt(params: { antId: string; target: string }): Promise<{
-    antId: string;
-    target: string;
-    name?: string;
-    messageId: string;
-  }>;
+  // ===== ArNS actions (sponsored) =====
+  // Every operation is an action with one of two shapes, chosen by the SERVER.
+  // Callers branch on `status`, never on which action they asked for.
+
+  /** Create an action. Debits credits HERE, not at sign. */
+  createArNSAction(
+    action: ArNSAction,
+    params?: Record<string, unknown>,
+    ownerProof?: { owner: ArNSOwnerSigner; message: string },
+  ): Promise<ArNSActionResult>;
+  /** Submit the owner-signed transaction (full serialized tx, base64). */
+  signArNSAction(
+    nonce: string,
+    signedTransaction: string,
+  ): Promise<ArNSActionCompleted>;
+  /** Status by nonce. Open — needs no signature. */
+  getArNSActionStatus(
+    nonce: string,
+  ): Promise<ArNSActionResult & { failedDate?: string }>;
+
+  buyArNSName(params: {
+    name: string;
+    owner: ArNSOwnerSigner;
+    type?: ArNSNameType;
+    years?: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  extendArNSLease(params: {
+    name: string;
+    years: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  upgradeArNSName(params: {
+    name: string;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  increaseArNSUndernameLimit(params: {
+    name: string;
+    increaseQty: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
   setArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
+    transactionId: string;
     undername?: string;
-    transactionId: string;
-    ttlSeconds: number;
-  }): Promise<{
-    antId: string;
-    undername: string;
-    transactionId: string;
-    ttlSeconds: number;
-    messageId: string;
-  }>;
+    ttlSeconds?: number;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
     undername: string;
-  }): Promise<{ antId: string; undername: string; messageId: string }>;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  addArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  transferArNSAnt(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  setArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  transferArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {

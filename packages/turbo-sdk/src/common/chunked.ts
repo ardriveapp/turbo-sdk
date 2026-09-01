@@ -24,6 +24,7 @@ import {
   TurboMultiPartStatusResponse,
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
+  X402RequestCredentials,
   multipartFailedStatus,
   validChunkingModes,
 } from '../types.js';
@@ -56,12 +57,35 @@ export class ChunkedUploader {
   private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
   private readonly maxFinalizeMs: number | undefined;
+
+  /**
+   * The upload id of an x402 upload we have ALREADY PAID FOR.
+   *
+   * `uploadFile` retries a failed upload up to 6 times, and a retry re-enters
+   * `upload()` on this same instance. Without this memo each retry opens a
+   * NEW paid upload, so one 12 MiB upload whose finalization timed out billed
+   * the customer five times over — observed, not theoretical. The payment is
+   * bound to an upload id, so a retry must resume THAT upload, never buy
+   * another. Deliberately not reset on failure: re-paying is never the right
+   * recovery, and an upload that cannot be resumed is refunded server-side.
+   */
+  private paidUploadId: string | undefined;
   private readonly http: TurboHTTPService;
   private readonly token: string;
   private readonly logger: TurboLogger;
 
   public readonly shouldUseChunkUploader: boolean;
   private maxBacklogQueue: number;
+  private x402: X402RequestCredentials | undefined;
+  private x402RefundIdentity:
+    | { address: string; signatureType: number }
+    | undefined;
+  /**
+   * The size declared at create. For x402 this is what gets PAID FOR, so it
+   * must be the real serialized size — the service reconciles against the bytes
+   * that actually arrive and penalises an under-declaration.
+   */
+  private dataItemByteCount: ByteCount;
 
   constructor({
     http,
@@ -72,6 +96,8 @@ export class ChunkedUploader {
     logger = Logger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
+    x402,
+    x402RefundIdentity,
   }: {
     maxFinalizeMs?: number;
     http: TurboHTTPService;
@@ -81,6 +107,16 @@ export class ChunkedUploader {
     maxChunkConcurrency?: number;
     chunkingMode?: TurboChunkingMode;
     dataItemByteCount: ByteCount;
+    /** Pay for this upload with x402 instead of Turbo Credits. */
+    x402?: X402RequestCredentials;
+    /**
+     * The TURBO wallet credited if the upload delivers fewer bytes than were
+     * paid for. Deliberately not derived from the x402 signer: the wallet that
+     * PAYS in USDC and the wallet that receives Turbo Credits are allowed to
+     * differ, and silently conflating them would send a refund to the wrong
+     * place.
+     */
+    x402RefundIdentity?: { address: string; signatureType: number };
   }) {
     this.assertChunkParams({
       chunkByteCount,
@@ -100,6 +136,9 @@ export class ChunkedUploader {
       dataItemByteCount,
     });
     this.maxBacklogQueue = this.maxChunkConcurrency * backlogQueueFactor;
+    this.x402 = x402;
+    this.x402RefundIdentity = x402RefundIdentity;
+    this.dataItemByteCount = dataItemByteCount;
   }
 
   private shouldChunkUpload({
@@ -181,7 +220,61 @@ export class ChunkedUploader {
   /**
    * Initialize or resume an upload session, returning the upload ID.
    */
+  /**
+   * Open a multipart upload paid for with x402.
+   *
+   * The bundler settles the payment at CREATE, before accepting a single chunk
+   * — so an unpaid upload never consumes storage. That is why the size is
+   * declared here and the money moves here, not at finalize.
+   *
+   * The 402 handshake is delegated to `wrapFetchWithPayment`, the same
+   * mechanism the single-shot x402 POST already uses, so the signer and the
+   * spend cap behave identically on both paths.
+   */
+  private async initPaidUpload(x402: X402RequestCredentials): Promise<string> {
+    if (this.paidUploadId !== undefined) {
+      this.logger.debug('Resuming the already-paid chunked upload', {
+        uploadId: this.paidUploadId,
+      });
+      return this.paidUploadId;
+    }
+    if (this.x402RefundIdentity === undefined) {
+      throw new Error(
+        'An x402-paid chunked upload needs a refund identity — it is the Turbo wallet credited if the upload delivers fewer bytes than were paid for.',
+      );
+    }
+    const { address, signatureType } = this.x402RefundIdentity;
+    const endpoint =
+      `/chunks/${this.token}/-1/-1?chunkSize=${this.chunkByteCount}` +
+      `&totalBytes=${this.dataItemByteCount}` +
+      `&address=${encodeURIComponent(address)}` +
+      `&signatureType=${signatureType}`;
+
+    this.logger.debug('Opening an x402-paid chunked upload', {
+      totalBytes: this.dataItemByteCount,
+    });
+
+    const res = await this.http.get<{ id: string; chunkSize?: number }>({
+      endpoint: endpoint as `/${string}`,
+      headers: chunkingHeader,
+      x402Options: x402,
+    });
+
+    if (res.chunkSize !== undefined && res.chunkSize !== this.chunkByteCount) {
+      this.logger.warn('Chunk size mismatch! Overriding with server value.', {
+        clientExpected: this.chunkByteCount,
+        serverReturned: res.chunkSize,
+      });
+      this.chunkByteCount = res.chunkSize;
+    }
+    this.paidUploadId = res.id;
+    return res.id;
+  }
+
   private async initUpload(): Promise<string> {
+    if (this.x402 !== undefined) {
+      return this.initPaidUpload(this.x402);
+    }
     const res = await this.http.get<{
       id: string;
       min: number;

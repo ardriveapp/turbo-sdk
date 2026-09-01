@@ -15,32 +15,60 @@
  */
 import { BigNumber } from 'bignumber.js';
 
+import { solanaOwnerSigner } from '../../common/arnsActions.js';
 import { TurboFactory } from '../../node/factory.js';
 import {
+  ArNSAction,
+  ArNSActionPriceResponse,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
   ArNSNameType,
   ArNSPriceParams,
   ArNSPriceResponse,
-  ArNSPurchaseResponse,
   ArNSPurchaseStatusResponse,
   Currency,
+  arNSActions,
 } from '../../types.js';
+import { ArNSActionCompleted, ArNSOwnerSigner } from '../../types.js';
 import {
   FiatPaymentsDisabledError,
   InsufficientCreditsError,
 } from '../../utils/errors.js';
 import { wincPerCredit } from '../constants.js';
 import {
+  AddArNSControllerOptions,
+  ArNSActionPriceOptions,
   ArNSFiatQuoteOptions,
   ArNSPriceOptions,
   ArNSPurchaseOptions,
   ArNSPurchaseStatusOptions,
+  RemoveArNSControllerOptions,
+  RemoveArNSRecordMetadataOptions,
   RemoveArNSRecordOptions,
+  SetArNSRecordMetadataOptions,
   SetArNSRecordOptions,
   TransferArNSAntOptions,
+  TransferArNSRecordOptions,
 } from '../types.js';
 import { configFromOptions, turboFromOptions } from '../utils.js';
+
+/**
+ * The ANT owner's Solana key.
+ *
+ * Deliberately separate from the wallet that pays: the payer holds Turbo
+ * credits (and may be Arweave or Ethereum), while the owner holds the ANT and
+ * must be Solana. The owner needs a key to SIGN with, not a funded account —
+ * Turbo is the fee payer on every sponsored action.
+ */
+function ownerFromOptions(options: { ownerKey?: string }): ArNSOwnerSigner {
+  if (options.ownerKey === undefined || options.ownerKey === '') {
+    throw new Error(
+      'Must provide --owner-key (a base58 Solana secret key) — it owns the ANT and signs for it. ' +
+        'This is separate from the wallet paying in Turbo Credits.',
+    );
+  }
+  return solanaOwnerSigner(options.ownerKey);
+}
 
 // Minimal structural client contracts. These are satisfied by the real
 // Turbo(Un)authenticatedClient and let tests inject a fake without touching the
@@ -57,49 +85,86 @@ export type ArNSStatusClient = {
 export type ArNSPurchaseClient = {
   buyArNSName(params: {
     name: string;
-    type: ArNSNameType;
+    owner: ArNSOwnerSigner;
+    type?: ArNSNameType;
     years?: number;
-    processId?: string;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
   extendArNSLease(params: {
     name: string;
     years: number;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
   increaseArNSUndernameLimit(params: {
     name: string;
     increaseQty: number;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
   upgradeArNSName(params: {
     name: string;
     paidBy?: string[];
-  }): Promise<ArNSPurchaseResponse>;
+  }): Promise<ArNSActionCompleted>;
 };
 export type ArNSCustodyClient = {
-  transferArNSAnt(params: { antId: string; target: string }): Promise<{
+  transferArNSAnt(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
     target: string;
-    name?: string;
-    messageId: string;
-  }>;
+  }): Promise<ArNSActionCompleted>;
   setArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
+    transactionId: string;
     undername?: string;
-    transactionId: string;
-    ttlSeconds: number;
-  }): Promise<{
-    antId: string;
-    undername: string;
-    transactionId: string;
-    ttlSeconds: number;
-    messageId: string;
-  }>;
+    ttlSeconds?: number;
+  }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
+    owner: ArNSOwnerSigner;
     undername: string;
-  }): Promise<{ antId: string; undername: string; messageId: string }>;
+  }): Promise<ArNSActionCompleted>;
+  addArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+  }): Promise<ArNSActionCompleted>;
+  setArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+  }): Promise<ArNSActionCompleted>;
+  transferArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    target: string;
+  }): Promise<ArNSActionCompleted>;
+};
+
+/** The four ARIO-purchase actions are priced via `arnsPrice`, not this route. */
+const ARNS_PURCHASE_ACTIONS = new Set<ArNSAction>([
+  'buy-name',
+  'extend-lease',
+  'upgrade-name',
+  'increase-undername-limit',
+]);
+
+export type ArNSActionPriceClient = {
+  getArNSActionPrice(action: ArNSAction): Promise<ArNSActionPriceResponse>;
 };
 
 export function requiredNameFromOptions(options: { name?: string }): string {
@@ -128,6 +193,34 @@ export function typeFromOptions(value: string | undefined): ArNSNameType {
     throw new Error("Must provide --type of 'lease' or 'permabuy'");
   }
   return value;
+}
+
+/** Parses `--action` for `arns-action-price`, rejecting the four purchase actions. */
+export function actionFromOptions(options: { action?: string }): ArNSAction {
+  const { action } = options;
+  if (action === undefined || action.length === 0) {
+    throw new Error(`Must provide --action. One of: ${arNSActions.join(', ')}`);
+  }
+  if (!(arNSActions as readonly string[]).includes(action)) {
+    throw new Error(
+      `Invalid --action '${action}'. One of: ${arNSActions.join(', ')}`,
+    );
+  }
+  if (ARNS_PURCHASE_ACTIONS.has(action as ArNSAction)) {
+    throw new Error(
+      `'${action}' is priced via \`turbo arns-price\`, not \`arns-action-price\` — ` +
+        'it spends ARIO, not just the flat credits margin this route quotes.',
+    );
+  }
+  return action as ArNSAction;
+}
+
+/** `null` clears the field (Set-Record-Metadata's tri-state), `undefined` leaves it unchanged. */
+function metadataFieldFromOptions<T>(
+  value: T | undefined,
+  clear: boolean,
+): T | null | undefined {
+  return clear ? null : value;
 }
 
 export function paidByFromArNSOptions(
@@ -213,14 +306,16 @@ async function withCreditErrorMapping<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function logPurchaseResult(action: string, result: ArNSPurchaseResponse): void {
+function logPurchaseResult(action: string, result: ArNSActionCompleted): void {
   console.log(
     JSON.stringify(
       {
-        message: `${action} submitted!`,
+        message: `${action} completed!`,
         nonce: result.nonce,
-        arioWriteId: result.arioWriteResult?.id,
-        purchaseReceipt: result.purchaseReceipt,
+        antId: result.antId,
+        // Solana transaction id of the on-chain write.
+        messageId: result.messageId,
+        ...(result.alreadyCompleted === true ? { alreadyCompleted: true } : {}),
       },
       null,
       2,
@@ -338,22 +433,21 @@ export async function buyArNSName(
   const name = requiredNameFromOptions(options);
   const type = typeFromOptions(options.type);
   const paidBy = paidByFromArNSOptions(options.paidBy);
-  // `--process-id` is OPTIONAL: omit it to have Turbo custodially provision the
-  // ANT (Turbo spawns + owns it — Model A); supply it to point the name at a
-  // user-owned ANT (Model B). When omitted, no `processId` is sent.
-  const processId = options.processId;
+  // Every buy mints a fresh ANT straight to `--owner-key`; Turbo never holds
+  // it, and there is no bring-your-own-ANT path any more.
+  const owner = ownerFromOptions(options);
 
   const client = turbo ?? (await turboFromOptions(options));
   const result = await withCreditErrorMapping(() =>
     type === 'lease'
       ? client.buyArNSName({
           name,
+          owner,
           type: 'lease',
           years: positiveIntFromOption(options.years, '--years'),
-          processId,
           paidBy,
         })
-      : client.buyArNSName({ name, type: 'permabuy', processId, paidBy }),
+      : client.buyArNSName({ name, owner, type: 'permabuy', paidBy }),
   );
 
   logPurchaseResult('ArNS name purchase', result);
@@ -444,6 +538,7 @@ export async function transferArNSAnt(
   const client = turbo ?? (await turboFromOptions(options));
   const result = await client.transferArNSAnt({
     antId: options.antId,
+    owner: ownerFromOptions(options),
     target: options.target,
   });
 
@@ -467,6 +562,7 @@ export async function setArNSRecord(
   const client = turbo ?? (await turboFromOptions(options));
   const result = await client.setArNSRecord({
     antId: options.antId,
+    owner: ownerFromOptions(options),
     undername: options.undername ?? '@',
     transactionId: options.transactionId,
     ttlSeconds,
@@ -491,10 +587,169 @@ export async function removeArNSRecord(
   const client = turbo ?? (await turboFromOptions(options));
   const result = await client.removeArNSRecord({
     antId: options.antId,
+    owner: ownerFromOptions(options),
     undername: options.undername,
   });
 
   console.log(
     JSON.stringify({ message: 'ArNS record removed!', ...result }, null, 2),
+  );
+}
+
+export async function addArNSController(
+  options: AddArNSControllerOptions,
+  turbo?: ArNSCustodyClient,
+): Promise<void> {
+  if (options.antId === undefined) {
+    throw new Error('Must provide an --ant-id to add a controller to');
+  }
+
+  const client = turbo ?? (await turboFromOptions(options));
+  const result = await client.addArNSController({
+    antId: options.antId,
+    owner: ownerFromOptions(options),
+    target: options.target,
+  });
+
+  console.log(
+    JSON.stringify({ message: 'ArNS controller added!', ...result }, null, 2),
+  );
+}
+
+export async function removeArNSController(
+  options: RemoveArNSControllerOptions,
+  turbo?: ArNSCustodyClient,
+): Promise<void> {
+  if (options.antId === undefined) {
+    throw new Error('Must provide an --ant-id to remove a controller from');
+  }
+
+  const client = turbo ?? (await turboFromOptions(options));
+  const result = await client.removeArNSController({
+    antId: options.antId,
+    owner: ownerFromOptions(options),
+    target: options.target,
+  });
+
+  console.log(
+    JSON.stringify({ message: 'ArNS controller removed!', ...result }, null, 2),
+  );
+}
+
+export async function transferArNSRecord(
+  options: TransferArNSRecordOptions,
+  turbo?: ArNSCustodyClient,
+): Promise<void> {
+  if (options.antId === undefined) {
+    throw new Error('Must provide an --ant-id whose record to transfer');
+  }
+  if (options.undername === undefined || options.undername.length === 0) {
+    throw new Error('Must provide an --undername to transfer');
+  }
+  if (options.target === undefined) {
+    throw new Error(
+      'Must provide a --target address to transfer the record to',
+    );
+  }
+
+  const client = turbo ?? (await turboFromOptions(options));
+  const result = await client.transferArNSRecord({
+    antId: options.antId,
+    owner: ownerFromOptions(options),
+    undername: options.undername,
+    target: options.target,
+  });
+
+  console.log(
+    JSON.stringify({ message: 'ArNS record transferred!', ...result }, null, 2),
+  );
+}
+
+export async function setArNSRecordMetadata(
+  options: SetArNSRecordMetadataOptions,
+  turbo?: ArNSCustodyClient,
+): Promise<void> {
+  if (options.antId === undefined) {
+    throw new Error('Must provide an --ant-id to set record metadata on');
+  }
+
+  const client = turbo ?? (await turboFromOptions(options));
+  const result = await client.setArNSRecordMetadata({
+    antId: options.antId,
+    owner: ownerFromOptions(options),
+    undername: options.undername ?? '@',
+    displayName: metadataFieldFromOptions(
+      options.displayName,
+      options.clearDisplayName,
+    ),
+    recordLogo: metadataFieldFromOptions(
+      options.recordLogo,
+      options.clearRecordLogo,
+    ),
+    recordDescription: metadataFieldFromOptions(
+      options.recordDescription,
+      options.clearRecordDescription,
+    ),
+    recordKeywords: metadataFieldFromOptions(
+      options.recordKeywords,
+      options.clearRecordKeywords,
+    ),
+  });
+
+  console.log(
+    JSON.stringify(
+      { message: 'ArNS record metadata set!', ...result },
+      null,
+      2,
+    ),
+  );
+}
+
+export async function removeArNSRecordMetadata(
+  options: RemoveArNSRecordMetadataOptions,
+  turbo?: ArNSCustodyClient,
+): Promise<void> {
+  if (options.antId === undefined) {
+    throw new Error('Must provide an --ant-id to remove record metadata from');
+  }
+  if (options.undername === undefined || options.undername.length === 0) {
+    throw new Error('Must provide an --undername');
+  }
+
+  const client = turbo ?? (await turboFromOptions(options));
+  const result = await client.removeArNSRecordMetadata({
+    antId: options.antId,
+    owner: ownerFromOptions(options),
+    undername: options.undername,
+  });
+
+  console.log(
+    JSON.stringify(
+      { message: 'ArNS record metadata removed!', ...result },
+      null,
+      2,
+    ),
+  );
+}
+
+/**
+ * Preview what one of the eight non-purchase actions will debit, without
+ * creating it.
+ */
+export async function arnsActionPrice(
+  options: ArNSActionPriceOptions,
+  turbo?: ArNSActionPriceClient,
+): Promise<void> {
+  const action = actionFromOptions(options);
+  const client =
+    turbo ?? TurboFactory.unauthenticated(configFromOptions(options));
+  const { wincQty } = await client.getArNSActionPrice(action);
+
+  console.log(
+    JSON.stringify(
+      { action, wincQty, credits: creditsFromWinc(wincQty) },
+      null,
+      2,
+    ),
   );
 }
