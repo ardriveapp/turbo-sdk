@@ -30,6 +30,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [ANT custody: transfer & manage records](#ant-custody-transfer--manage-records)
   - [Listing owned names](#listing-owned-names)
   - [Error handling & retries](#error-handling--retries)
+  - [Buying a name with a credit card (fiat / Stripe)](#buying-a-name-with-a-credit-card-fiat--stripe)
   - [Dependency note (@solana/codecs)](#dependency-note-solanacodecs)
 - [Signers](#signers)
   - [Arweave](#arweave)
@@ -1028,11 +1029,28 @@ a tag your own past uploads wrote, not something a gateway verifies against the
 bytes — and the index trusts it. That is safe for uploads this SDK made, since it
 only ever writes a hash it computed from the file in front of it.
 
+`uploadFolder` writes whichever tag the index it is given declares, so setting
+`hashTagName` moves both the tag that is written and the tag the sweep filters
+on, and the two cannot drift apart. Every layer in a `composeFolderIndex` stack
+that declares one has to declare the same one, or the call throws: one tag is
+written per file, so a stack that disagrees would leave whichever layer lost
+matching nothing, for ever, without an error.
+
 It stops being safe if you point `hashTagName` at a tag you were already using
 for something else. Any of your own past items carrying 64 hex characters under
 that name would be treated as a candidate, and one whose tag set happens to
-match would be reused — putting a manifest path in front of unrelated bytes.
-Only override `hashTagName` for a tag written by this feature.
+match would be reused — putting a manifest path in front of unrelated bytes. Use
+a name nothing else of yours writes.
+
+###### When the sweep runs out of pages
+
+A sweep can examine at most `pageSize * maxPages` items, 2,000 by default. A
+folder with more files than that, or a long enough deployment history, can
+therefore reach the page limit with files still unresolved — and those files are
+uploaded and paid for again while the summary reports them as ordinary new
+files. Pass a `logger` to `createChainFolderIndex` and it says so when this
+happens, naming how many files were left. Raise `maxPages` or `pageSize`, or put
+a `createFileFolderIndex` in front, and the sweep has less to find.
 
 ###### In the browser
 

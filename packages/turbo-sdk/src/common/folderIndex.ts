@@ -201,6 +201,7 @@ export function createChainFolderIndex({
   pageSize = 100,
   timeoutMs = 30_000,
   fetchImpl = fetch,
+  logger,
 }: ChainFolderUploadIndexParams): TurboFolderUploadIndex {
   const ownerAddress = resolveOwnerAddress(owner);
   const first = requirePositiveInteger(pageSize, 'pageSize', 1000);
@@ -237,6 +238,9 @@ export function createChainFolderIndex({
   return {
     name: `chain:${gatewayUrl}`,
     readOnly: true,
+    // Declared so `uploadFolder` writes the tag this sweep filters on. Without
+    // it a non-default `hashTagName` matches nothing, on every run, silently.
+    hashTagName,
     get: (key) => map.get(key),
     set: () => undefined,
     knownContentHashes: (contentHashes) =>
@@ -250,12 +254,15 @@ export function createChainFolderIndex({
 
       const found: Record<string, string> = {};
       let cursor: string | null = null;
+      let pagesWalked = 0;
+      let moreToWalk = false;
 
       for (
         let page = 0;
         page < pageLimit && Object.keys(found).length < wanted.size;
         page++
       ) {
+        pagesWalked++;
         const abort = abortAfter(requestTimeoutMs, options?.signal);
         let body;
         try {
@@ -332,6 +339,29 @@ export function createChainFolderIndex({
         if (transactions.pageInfo?.hasNextPage !== true) {
           break;
         }
+        moreToWalk = true;
+      }
+
+      // Running out of pages is not the same as running out of matches, and it
+      // is the one outcome that costs money without looking like anything: the
+      // unresolved files are re-uploaded at full price, on every deploy, and
+      // the summary reports them as ordinary new files. `pageSize * maxPages`
+      // caps how many items a sweep can ever see, so a folder larger than that
+      // cannot resolve in full however many times it is run.
+      const resolved = Object.keys(found).length;
+      if (pagesWalked >= pageLimit && moreToWalk && resolved < wanted.size) {
+        logger?.warn(
+          `The folder index sweep of ${gatewayUrl} stopped at its ${pageLimit} page limit with ` +
+            `${wanted.size - resolved} of ${
+              wanted.size
+            } file(s) still unresolved, and the gateway ` +
+            'had more to give. Those files are about to be uploaded and paid for again even though ' +
+            `they may already be on Arweave. A sweep can see at most pageSize * maxPages items ` +
+            `(${first} * ${pageLimit} = ${
+              first * pageLimit
+            } here), so raise maxPages or pageSize, ` +
+            'or put a persistent local index in front of this one.',
+        );
       }
 
       return found;
@@ -366,6 +396,27 @@ export function composeFolderIndex(
 
   const writableLayers = stack.filter((layer) => layer.readOnly !== true);
 
+  // Every layer that cares which tag holds a content hash has to want the same
+  // one, because `uploadFolder` writes exactly one tag per file. Two layers
+  // disagreeing is not something a run can degrade around: whichever one loses
+  // matches nothing, for ever, without an error.
+  const declaredHashTagNames = [
+    ...new Set(
+      stack
+        .map((layer) => layer.hashTagName)
+        .filter((name): name is string => name !== undefined),
+    ),
+  ];
+  if (declaredHashTagNames.length > 1) {
+    throw new ProvidedInputError(
+      `composeFolderIndex layers disagree about which tag holds a file's content hash: ${declaredHashTagNames
+        .map((name) => `'${name}'`)
+        .join(
+          ', ',
+        )}. uploadFolder writes one tag per file, so every layer that declares one must declare the same one.`,
+    );
+  }
+
   const failed = (
     layer: TurboFolderUploadIndex,
     what: string,
@@ -393,6 +444,7 @@ export function composeFolderIndex(
       .map((layer) => layer.name ?? 'anonymous')
       .join(', ')})`,
     readOnly: writableLayers.length === 0,
+    hashTagName: declaredHashTagNames[0],
     get: async (key) => {
       for (const layer of stack) {
         try {

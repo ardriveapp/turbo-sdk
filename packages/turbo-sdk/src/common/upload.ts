@@ -596,10 +596,12 @@ export abstract class TurboAuthenticatedBaseUploadService
     file,
     dataItemOpts,
     contentHash,
+    hashTagName = contentHashTagName,
   }: {
     file: string | File;
     dataItemOpts: DataItemOptions | undefined;
     contentHash: string | undefined;
+    hashTagName?: string;
   }): { name: string; value: string }[] {
     return [
       ...(dataItemOpts?.tags?.filter(
@@ -607,14 +609,14 @@ export abstract class TurboAuthenticatedBaseUploadService
           tag.name !== 'Content-Type' &&
           // Only stripped when this upload is going to write its own. Without a
           // folder index, a caller's File-SHA256 tag is theirs to keep.
-          (contentHash === undefined || tag.name !== contentHashTagName),
+          (contentHash === undefined || tag.name !== hashTagName),
       ) ?? []),
       {
         name: 'Content-Type',
         value: this.getContentType(file, dataItemOpts),
       },
       ...(contentHash !== undefined
-        ? [{ name: contentHashTagName, value: contentHash }]
+        ? [{ name: hashTagName, value: contentHash }]
         : []),
     ];
   }
@@ -695,7 +697,12 @@ export abstract class TurboAuthenticatedBaseUploadService
             file,
             await folderIndexKey({
               contentHash,
-              tags: this.folderFileTags({ file, dataItemOpts, contentHash }),
+              tags: this.folderFileTags({
+                file,
+                dataItemOpts,
+                contentHash,
+                hashTagName: folderIndex.hashTagName,
+              }),
             }),
           );
         }),
@@ -757,12 +764,20 @@ export abstract class TurboAuthenticatedBaseUploadService
     if (folderIndex.knownContentHashes === undefined) {
       return;
     }
-    const missed = [...new Set(itemKeys.values())].filter(
-      (key) => !knownIds.has(key),
-    );
+    // Counted in files, not in keys: the message is about a bill, and the bill
+    // is per file. Two files that share a key are one upload but the reader is
+    // looking for their own file count.
+    const filesPerKey = new Map<string, number>();
+    for (const key of itemKeys.values()) {
+      filesPerKey.set(key, (filesPerKey.get(key) ?? 0) + 1);
+    }
+    const missed = [...filesPerKey.keys()].filter((key) => !knownIds.has(key));
     if (missed.length === 0) {
       return;
     }
+    const filesFor = (keys: string[]) =>
+      keys.reduce((count, key) => count + (filesPerKey.get(key) ?? 0), 0);
+    const missedFiles = filesFor(missed);
 
     const missedByContentHash = new Map<string, string[]>();
     for (const key of missed) {
@@ -785,7 +800,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     }
     const affected = staleTagged.reduce(
       (count, contentHash) =>
-        count + (missedByContentHash.get(contentHash)?.length ?? 0),
+        count + filesFor(missedByContentHash.get(contentHash) ?? []),
       0,
     );
     if (affected === 0) {
@@ -793,7 +808,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     }
 
     this.logger.warn(
-      `${affected} of the ${missed.length} file(s) this run is about to upload are already on Arweave byte for byte, under a different set of tags. ` +
+      `${affected} of the ${missedFiles} file(s) this run is about to upload are already on Arweave byte for byte, under a different set of tags. ` +
         'Their content has not changed but their tags have, so they are being paid for again. A folder index key covers the tags ' +
         'on a file as well as its bytes. That is usually a tag in dataItemOpts whose value changes between deploys -- a commit ' +
         'sha, a build number, a timestamp -- in which case move it to manifestDataItemOpts rather than paying for these files ' +
@@ -904,7 +919,12 @@ export abstract class TurboAuthenticatedBaseUploadService
 
       const dataItemOptsWithContentType = {
         ...dataItemOpts,
-        tags: this.folderFileTags({ file, dataItemOpts, contentHash }),
+        tags: this.folderFileTags({
+          file,
+          dataItemOpts,
+          contentHash,
+          hashTagName: folderIndex?.hashTagName,
+        }),
       };
 
       try {

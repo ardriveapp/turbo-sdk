@@ -484,6 +484,14 @@ export type TurboFolderUploadIndex = {
   name?: string;
   /** When true the layer is never written to. Defaults to false. */
   readOnly?: boolean;
+  /**
+   * The tag name this layer expects a file's content hash under.
+   *
+   * `uploadFolder` writes whatever the index declares here, so a layer that
+   * reads a non-default tag is aligned with the uploader rather than silently
+   * unable to match anything. Defaults to `File-SHA256`.
+   */
+  hashTagName?: string;
   /** The data item id previously uploaded for this key, if it is known. */
   get(key: string): Promise<string | undefined> | string | undefined;
   /** Record that `key` was uploaded as `id`. */
@@ -542,7 +550,13 @@ export type ChainFolderUploadIndexParams = {
   appName?: string;
   /** Gateway to query. Defaults to `https://arweave.net`. */
   gatewayUrl?: string;
-  /** Tag holding each file's content hash. Defaults to `File-SHA256`. */
+  /**
+   * Tag holding each file's content hash. Defaults to `File-SHA256`.
+   *
+   * `uploadFolder` writes this same tag when this index is passed to it, so the
+   * sweep and the uploader cannot drift apart. Every layer in a
+   * {@link composeFolderIndex} stack that declares one must agree.
+   */
   hashTagName?: string;
   /** Maximum GraphQL pages to walk before giving up. Defaults to 20. */
   maxPages?: number;
@@ -552,6 +566,11 @@ export type ChainFolderUploadIndexParams = {
   timeoutMs?: number;
   /** Override the fetch implementation, e.g. in tests. */
   fetchImpl?: typeof fetch;
+  /**
+   * Optional logger. Used to report a sweep that ran out of pages before it ran
+   * out of files, which otherwise costs money silently.
+   */
+  logger?: TurboLogger;
 };
 
 export type ComposeFolderUploadIndexParams = {

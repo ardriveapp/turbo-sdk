@@ -78,7 +78,11 @@ export function createFileFolderIndex({
   const compact = () => {
     mkdirSync(dirname(absolutePath), { recursive: true });
     const body = [...map]
-      .sort(([a], [b]) => a.localeCompare(b))
+      // Code units, not `localeCompare`, for the same reason the key encoding
+      // avoids it: it is not a total order over distinct strings and depends on
+      // the host's ICU data. Only the file's readability rides on this one, but
+      // a sort that can call two distinct keys equal has no business here.
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([key, id]) => record(key, id))
       .join('');
     try {
