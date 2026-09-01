@@ -16,6 +16,9 @@
 import { strict as assert } from 'node:assert';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
+import { testEthWallet } from '../../tests/helpers.js';
+import { TurboFactory } from '../node/factory.js';
+import { X402Funding } from '../types.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboHTTPService } from './http.js';
 import { Logger } from './logger.js';
@@ -150,5 +153,68 @@ describe('x402-paid chunked uploads', () => {
 
     assert.equal(createRequests.length, 2);
     assert.notEqual(second, first);
+  });
+});
+
+/**
+ * The regression this whole path exists for: `uploadFile` used to refuse to
+ * chunk an x402 upload at all. It skipped the chunked branch whenever the
+ * funding mode was `X402Funding`, and threw outright on `chunkingMode:
+ * 'force'` — so an x402 upload was capped at a single request no matter how
+ * the caller configured chunking. Nothing asserted the routing, only the
+ * uploader internals, so removing the exclusion could silently regress.
+ */
+describe('x402 upload routing', () => {
+  const originalFetch = globalThis.fetch;
+  let paths: string[];
+
+  beforeEach(() => {
+    paths = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      paths.push(new URL(url).pathname + new URL(url).search);
+      const body = url.includes('/status')
+        ? {
+            status: 'FINALIZED',
+            receipt: { id: 'data-item-id', owner: 'owner' },
+          }
+        : { id: 'upload-1' };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('sends an x402 upload through the chunked path instead of a single request', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+
+    await turbo.upload({
+      data: Buffer.alloc(64),
+      fundingMode: new X402Funding({}),
+      chunkingMode: 'force',
+    });
+
+    const createdChunkedUpload = paths.some((p) => p.includes('/-1/-1'));
+    assert.ok(
+      createdChunkedUpload,
+      `an x402 upload with chunkingMode 'force' must open a chunked upload; requests were:\n${paths.join(
+        '\n',
+      )}`,
+    );
+
+    const create = paths.find((p) => p.includes('/-1/-1')) as string;
+    assert.ok(
+      create.includes('totalBytes='),
+      `the chunked create must declare the size being paid for: ${create}`,
+    );
   });
 });
