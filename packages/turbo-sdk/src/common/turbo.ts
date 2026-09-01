@@ -516,7 +516,7 @@ export class TurboAuthenticatedClient
     return this.paymentService.removeArNSRecord(params);
   }
 
-  /** Grant controller rights — omit `target` for Turbo itself. Free. */
+  /** Grant controller rights — omit `target` for Turbo itself. Costs credits. */
   addArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
@@ -526,7 +526,7 @@ export class TurboAuthenticatedClient
     return this.paymentService.addArNSController(params);
   }
 
-  /** Revoke controller rights. Always available, always free. */
+  /** Revoke controller rights. Always available; costs credits, never SOL. */
   removeArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
@@ -554,7 +554,7 @@ export class TurboAuthenticatedClient
     return this.paymentService.setArNSRecordMetadata(params);
   }
 
-  /** Clear a record's metadata. Free; handles both shapes. */
+  /** Clear a record's metadata. Costs credits, never SOL; handles both shapes. */
   removeArNSRecordMetadata(params: {
     antId: string;
     owner: ArNSOwnerSigner;
@@ -564,7 +564,7 @@ export class TurboAuthenticatedClient
     return this.paymentService.removeArNSRecordMetadata(params);
   }
 
-  /** Hand ONE record over — not the whole ANT. Free; handles both shapes. */
+  /** Hand ONE record over — not the whole ANT. Costs credits, never SOL. */
   transferArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
@@ -575,7 +575,7 @@ export class TurboAuthenticatedClient
     return this.paymentService.transferArNSRecord(params);
   }
 
-  /** Hand the ANT to a new owner. Irreversible. Free. */
+  /** Hand the ANT to a new owner. Irreversible. Costs credits, never SOL. */
   transferArNSAnt(params: {
     antId: string;
     owner: ArNSOwnerSigner;
