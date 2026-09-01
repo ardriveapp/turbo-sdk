@@ -61,6 +61,30 @@ describe('TurboUnauthenticatedClient', () => {
       assert.equal(calledWith, 'delegate-test-address');
     });
   });
+
+  describe('getArNSActionPrice()', () => {
+    it('delegates to paymentService.getArNSActionPrice with the given action', async () => {
+      const expectedResponse = { action: 'remove-controller', wincQty: '1' };
+      let calledWith: unknown;
+      const fakePaymentService = {
+        getArNSActionPrice: async (action: string) => {
+          calledWith = action;
+          return expectedResponse;
+        },
+      } as unknown as TurboUnauthenticatedPaymentServiceInterface;
+
+      const client = new TurboUnauthenticatedClient({
+        paymentService: fakePaymentService,
+        uploadService:
+          {} as unknown as TurboUnauthenticatedUploadServiceInterface,
+      });
+
+      const result = await client.getArNSActionPrice('remove-controller');
+
+      assert.deepEqual(result, expectedResponse);
+      assert.equal(calledWith, 'remove-controller');
+    });
+  });
 });
 
 describe('TurboAuthenticatedClient', () => {

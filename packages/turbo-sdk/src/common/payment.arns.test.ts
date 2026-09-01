@@ -285,6 +285,32 @@ describe('ArNS actions', () => {
       assert.equal(price.wincTotal, '123');
     });
   });
+
+  describe('getArNSActionPrice', () => {
+    it('GETs /arns/actions/{action}/price and returns the response as-is', async () => {
+      const http = new FakeHttp();
+      http.responses = [
+        { action: 'remove-controller', wincQty: '50000000000' },
+      ];
+      const price =
+        await serviceWith(http).getArNSActionPrice('remove-controller');
+      assert.equal(http.last.method, 'GET');
+      assert.equal(http.last.endpoint, '/arns/actions/remove-controller/price');
+      assert.deepEqual(price, {
+        action: 'remove-controller',
+        wincQty: '50000000000',
+      });
+    });
+
+    it('threads the action through unmodified for every non-purchase action', async () => {
+      for (const action of ['set-record', 'transfer-record', 'transfer']) {
+        const http = new FakeHttp();
+        http.responses = [{ action, wincQty: '1' }];
+        await serviceWith(http).getArNSActionPrice(action as never);
+        assert.equal(http.last.endpoint, `/arns/actions/${action}/price`);
+      }
+    });
+  });
 });
 
 describe('ArNS actions - the thin wrappers', () => {

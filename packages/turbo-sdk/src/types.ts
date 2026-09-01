@@ -1116,7 +1116,7 @@ export type ArNSPriceResponse = {
 // ===== ArNS actions (sponsored — the current bundler surface) =====
 
 /**
- * The nine sponsored ArNS actions.
+ * The twelve sponsored ArNS actions.
  *
  * Sponsorship covers these twelve and NOTHING else. Everything else in the
  * ArNS, ANT and core programs stays on the direct-signer path and costs the
@@ -1188,6 +1188,21 @@ export type ArNSActionAwaitingSignature = {
 export type ArNSActionResult =
   | ArNSActionCompleted
   | ArNSActionAwaitingSignature;
+
+/**
+ * The flat-margin credits price for one of the eight actions that don't
+ * spend ARIO (everything except Buy-Name/Extend-Lease/Upgrade-Name/
+ * Increase-Undername-Limit, which are priced by {@link getArNSPriceForName}
+ * instead since their cost is dominated by the ARIO purchase, not the margin).
+ * No signature required — this is a read-only preview of what
+ * `createArNSAction` will debit.
+ */
+export type ArNSActionPriceResponse = {
+  action: ArNSAction;
+  /** What creating this action will debit, in Winston credits. */
+  wincQty: string;
+  [key: string]: unknown;
+};
 
 /**
  * The ANT owner's key — a **Solana** wallet, distinct from the Turbo payer.
@@ -1381,6 +1396,13 @@ export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
   getFreeStatus: (address: string) => Promise<TurboFreeStatusResponse>;
   getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
+  /**
+   * Preview what one of the eight non-purchase actions will debit, without
+   * creating it. `action` must not be one of the four ARIO-purchase actions
+   * (`buy-name`, `extend-lease`, `upgrade-name`, `increase-undername-limit`)
+   * — use {@link getArNSPriceForName} for those.
+   */
+  getArNSActionPrice(action: ArNSAction): Promise<ArNSActionPriceResponse>;
   getArNSPurchaseStatus(p: {
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse>;

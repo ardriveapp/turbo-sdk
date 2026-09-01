@@ -23,15 +23,21 @@ import { readFileSync, readdirSync } from 'fs';
 
 import { version } from '../version.js';
 import {
+  addArNSController,
+  arnsActionPrice,
   arnsFiatQuote,
   arnsPrice,
   arnsPurchaseStatus,
   buyArNSName,
   extendArNSLease,
   increaseArNSUndernames,
+  removeArNSController,
   removeArNSRecord,
+  removeArNSRecordMetadata,
   setArNSRecord,
+  setArNSRecordMetadata,
   transferArNSAnt,
+  transferArNSRecord,
   upgradeArNSName,
 } from './commands/arns.js';
 import { fiatEstimate } from './commands/fiatEstimate.js';
@@ -51,6 +57,8 @@ import { shareCredits } from './commands/shareCredits.js';
 import { tokenPrice } from './commands/tokenPrice.js';
 import { x402UploadUnsignedFile } from './commands/x402UploadUnsignedData.js';
 import {
+  addArNSControllerOptions,
+  arnsActionPriceOptions,
   arnsFiatQuoteOptions,
   arnsPriceOptions,
   arnsPurchaseStatusOptions,
@@ -60,11 +68,15 @@ import {
   increaseArNSUndernamesOptions,
   listSharesOptions,
   optionMap,
+  removeArNSControllerOptions,
+  removeArNSRecordMetadataOptions,
   removeArNSRecordOptions,
   revokeCreditsOptions,
+  setArNSRecordMetadataOptions,
   setArNSRecordOptions,
   shareCreditsOptions,
   transferArNSAntOptions,
+  transferArNSRecordOptions,
   upgradeArNSNameOptions,
   uploadFileOptions,
   uploadFolderOptions,
@@ -310,6 +322,67 @@ applyOptions(
   removeArNSRecordOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, removeArNSRecord);
+});
+
+applyOptions(
+  program
+    .command('add-arns-controller')
+    .description('Grant controller rights on a Turbo-custodied ANT'),
+  addArNSControllerOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, addArNSController);
+});
+
+applyOptions(
+  program
+    .command('remove-arns-controller')
+    .description('Revoke controller rights on a Turbo-custodied ANT'),
+  removeArNSControllerOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, removeArNSController);
+});
+
+applyOptions(
+  program
+    .command('transfer-arns-record')
+    .description(
+      'Transfer one record (undername) on a Turbo-custodied ANT to another address',
+    ),
+  transferArNSRecordOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, transferArNSRecord);
+});
+
+applyOptions(
+  program
+    .command('set-arns-record-metadata')
+    .description(
+      "Set a record's display name, logo, description, or keywords on a Turbo-custodied ANT",
+    ),
+  setArNSRecordMetadataOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, setArNSRecordMetadata);
+});
+
+applyOptions(
+  program
+    .command('remove-arns-record-metadata')
+    .description("Clear a record's metadata on a Turbo-custodied ANT"),
+  removeArNSRecordMetadataOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, removeArNSRecordMetadata);
+});
+
+applyOptions(
+  program
+    .command('arns-action-price')
+    .description(
+      'Preview the Turbo Credit price of a non-purchase ArNS action (set-record, remove-record, ' +
+        'set-record-metadata, remove-record-metadata, transfer-record, add-controller, remove-controller, transfer)',
+    ),
+  arnsActionPriceOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, arnsActionPrice);
 });
 
 applyOptions(
