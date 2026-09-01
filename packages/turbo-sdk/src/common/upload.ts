@@ -361,12 +361,6 @@ export abstract class TurboAuthenticatedBaseUploadService
       );
     }
 
-    if (params.chunkingMode === 'force' && fundingMode instanceof X402Funding) {
-      throw new Error(
-        "Chunking mode 'force' is not supported when x402 is enabled",
-      );
-    }
-
     this.logger.debug('Starting file upload', { params });
 
     let retries = 0;
@@ -413,30 +407,13 @@ export abstract class TurboAuthenticatedBaseUploadService
       // this result due to the wrapped retry logic of this method.
       try {
         const { chunkByteCount, maxChunkConcurrency } = params;
-        const chunkedUploader = new ChunkedUploader({
-          http: this.httpService,
-          token: this.token,
-          maxChunkConcurrency,
-          chunkByteCount,
-          logger: this.logger,
-          dataItemByteCount: dataItemSizeFactory(),
-          chunkingMode: params.chunkingMode,
-          maxFinalizeMs: params.maxFinalizeMs,
-        });
-        if (
-          chunkedUploader.shouldUseChunkUploader &&
-          !(fundingMode instanceof X402Funding)
-        ) {
-          const response = await chunkedUploader.upload({
-            dataItemStreamFactory,
-            dataItemSizeFactory,
-            dataItemOpts,
-            signal,
-            events,
-          });
-          return { ...response, cryptoFundResult };
-        }
 
+        // Built here rather than after the chunked branch so BOTH paths can
+        // pay with it. Chunked x402 uploads used to be impossible — the
+        // bundler had no way to charge for a multipart upload — so this branch
+        // deliberately fell back to a single request, which capped x402 at the
+        // single-item limit no matter how the client chunked. The bundler now
+        // settles at create, so the fallback is no longer needed.
         const x402Options =
           fundingMode instanceof X402Funding
             ? {
@@ -446,6 +423,36 @@ export abstract class TurboAuthenticatedBaseUploadService
                 maxMUSDCAmount: fundingMode.maxMUSDCAmount,
               }
             : undefined;
+
+        const chunkedUploader = new ChunkedUploader({
+          http: this.httpService,
+          token: this.token,
+          maxChunkConcurrency,
+          chunkByteCount,
+          logger: this.logger,
+          dataItemByteCount: dataItemSizeFactory(),
+          chunkingMode: params.chunkingMode,
+          maxFinalizeMs: params.maxFinalizeMs,
+          ...(x402Options ? { x402: x402Options } : {}),
+          ...(x402Options
+            ? {
+                x402RefundIdentity: {
+                  address: await this.signer.getNativeAddress(),
+                  signatureType: this.signer.signer.signatureType,
+                },
+              }
+            : {}),
+        });
+        if (chunkedUploader.shouldUseChunkUploader) {
+          const response = await chunkedUploader.upload({
+            dataItemStreamFactory,
+            dataItemSizeFactory,
+            dataItemOpts,
+            signal,
+            events,
+          });
+          return { ...response, cryptoFundResult };
+        }
 
         const response = await this.uploadSignedDataItem({
           dataItemStreamFactory,

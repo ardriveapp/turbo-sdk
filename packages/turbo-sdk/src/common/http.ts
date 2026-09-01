@@ -85,12 +85,43 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     signal,
     allowedStatuses = [200, 202],
     headers,
+    x402Options,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    /**
+     * Pay for this GET with x402. Used by the chunked uploader's create call,
+     * which the bundler answers with a 402 because a multipart upload is paid
+     * for BEFORE any chunk is accepted.
+     *
+     * Delegates to the same `wrapFetchWithPayment` the POST path uses, so the
+     * signer, the spend cap and the retry semantics are identical rather than
+     * a second implementation that can drift.
+     */
+    x402Options?: X402RequestCredentials;
   }): Promise<T> {
+    if (x402Options !== undefined) {
+      const maxMUSDCAmount =
+        x402Options.maxMUSDCAmount !== undefined
+          ? BigInt(x402Options.maxMUSDCAmount.toString())
+          : undefined;
+      const fetchWithPay = wrapFetchWithPayment(
+        fetch,
+        x402Options.signer,
+        maxMUSDCAmount,
+      );
+      return this.tryRequest(
+        async () =>
+          fetchWithPay(this.baseURL + endpoint, {
+            method: 'GET',
+            headers: { ...defaultHeaders, ...headers },
+            signal,
+          }),
+        allowedStatuses,
+      ) as Promise<T>;
+    }
     return this.withRetry<T>(
       () =>
         fetch(this.baseURL + endpoint, {
