@@ -1,0 +1,1217 @@
+/**
+ * Copyright (C) 2022-2024 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { ArconnectSigner, ArweaveSigner, DataItemCreateOptions, EthereumSigner, HexInjectedSolanaSigner, HexSolanaSigner, InjectedEthereumSigner } from '@dha-team/arbundles';
+import { BigNumber } from 'bignumber.js';
+import { JsonRpcSigner } from 'ethers';
+import { Readable } from 'node:stream';
+import { Signer as x402Signer } from 'x402-fetch';
+import { CurrencyMap } from './common/currency.js';
+import { TurboEventEmitter } from './common/events.js';
+import { RetryConfig } from './common/http.js';
+import { JWKInterface } from './common/jwk.js';
+import { ILogger, Logger } from './common/logger.js';
+export type Base64String = string;
+export type NativeAddress = string;
+export type ByteCount = number;
+export type PublicArweaveAddress = Base64String;
+export type TransactionId = Base64String;
+export type UserAddress = string | PublicArweaveAddress;
+export declare const fiatCurrencyTypes: readonly ["usd", "eur", "gbp", "cad", "aud", "jpy", "inr", "sgd", "hkd", "brl"];
+export type Currency = (typeof fiatCurrencyTypes)[number];
+export declare function isCurrency(currency: unknown): currency is Currency;
+export type Country = 'United States' | 'United Kingdom' | 'Canada';
+export declare const tokenTypes: readonly ["arweave", "ario", "solana", "ethereum", "kyve", "matic", "pol", "base-eth", "usdc", "base-usdc", "polygon-usdc"];
+export type TokenType = (typeof tokenTypes)[number];
+export declare const supportedEvmSignerTokens: Set<string>;
+export type Adjustment = {
+    name: string;
+    description: string;
+    operatorMagnitude: number;
+    operator: 'multiply' | 'add';
+    adjustmentAmount: string;
+};
+export type CurrencyLimit = {
+    minimumPaymentAmount: number;
+    maximumPaymentAmount: number;
+    suggestedPaymentAmounts: number[];
+    zeroDecimalCurrency: boolean;
+};
+export type TurboPriceResponse = {
+    winc: string;
+    adjustments: Adjustment[];
+    fees: Adjustment[];
+};
+export type TurboWincForFiatResponse = TurboPriceResponse & {
+    actualPaymentAmount: number;
+    quotedPaymentAmount: number;
+};
+export type RawWincForTokenResponse = Omit<TurboPriceResponse, 'adjustments'> & {
+    actualPaymentAmount: number;
+};
+export type TurboWincForTokenResponse = Omit<TurboPriceResponse, 'adjustments'> & {
+    actualTokenAmount: string;
+    equivalentWincTokenAmount: string;
+};
+export type TurboTokenPriceForBytesResponse = {
+    tokenPrice: string;
+    byteCount: number;
+    token: TokenType;
+};
+export type TurboFiatEstimateForBytesResponse = {
+    byteCount: number;
+    amount: number;
+    winc: string;
+    currency: Currency;
+};
+export type TurboWincForFiatParams = {
+    amount: CurrencyMap;
+    nativeAddress?: NativeAddress;
+    promoCodes?: string[];
+};
+export type TurboWincForTokenParams = {
+    tokenAmount: BigNumber.Value;
+};
+export type TurboPaymentIntentParams = TurboWincForFiatParams & {
+    owner: PublicArweaveAddress;
+};
+export type UiMode = 'embedded' | 'hosted';
+export type TurboCheckoutSessionParams = TurboPaymentIntentParams & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+export type TurboCheckoutSessionHostedParams = {
+    uiMode?: 'hosted';
+    successUrl?: string;
+    cancelUrl?: string;
+};
+export type TurboCheckoutSessionEmbeddedParams = {
+    uiMode?: 'embedded';
+    returnUrl?: string;
+};
+export type TopUpRawResponse = {
+    topUpQuote: {
+        topUpQuoteId: string;
+        destinationAddressType: string;
+        paymentAmount: number;
+        quotedPaymentAmount: number;
+        winstonCreditAmount: string;
+        destinationAddress: string;
+        currencyType: Currency;
+        quoteExpirationDate: string;
+        paymentProvider: string;
+        adjustments: Adjustment[];
+    };
+    paymentSession: {
+        url: string | null;
+        id: string;
+        client_secret: string | null;
+    };
+    adjustments: Adjustment[];
+    fees: Adjustment[];
+};
+export type TurboPaymentIntentResponse = TurboWincForFiatResponse & {
+    id: string;
+    client_secret: string;
+};
+export type TurboCheckoutSessionResponse = TurboWincForFiatResponse & {
+    id: string;
+    client_secret?: string;
+    url?: string;
+    /** @deprecated use duplicate actualPaymentAmount */
+    paymentAmount: number;
+};
+export interface CreditShareApproval {
+    approvalDataItemId: TransactionId;
+    approvedAddress: UserAddress;
+    payingAddress: UserAddress;
+    approvedWincAmount: string;
+    usedWincAmount: string;
+    creationDate: string;
+    expirationDate: string | undefined;
+}
+export interface GetCreditShareApprovalsResponse {
+    givenApprovals: CreditShareApproval[];
+    receivedApprovals: CreditShareApproval[];
+}
+export type TurboBalanceResponse = {
+    /**
+     *  Amount of winc controlled by the user, that they could
+     *  spend or share if all current approvals were revoked
+     */
+    controlledWinc: string;
+    /**
+     * Amount of winc that a user can currently spend or share
+     */
+    winc: string;
+    /**
+     * Amount of winc that a user can currently spend or share
+     * plus the amount of remaining winc from received approvals
+     */
+    effectiveBalance: string;
+    receivedApprovals: CreditShareApproval[];
+    givenApprovals: CreditShareApproval[];
+};
+export type TurboFreeStatusResponse = {
+    /**
+     * Free-tier bytes this wallet can still upload for free, or `null` when the
+     * wallet has an unlimited allowance (an exempt/partner wallet). `0` when the
+     * free tier is disabled on the target Turbo deployment. Advisory — the
+     * authoritative free/charge decision is made at upload time, and the value is
+     * a wallet-side figure (a per-network cap may also apply). Deployment-wide
+     * free-tier config lives on the service's `/info` endpoint.
+     */
+    bytesRemaining: number | null;
+};
+/** A single credited top-up settled with cryptocurrency. */
+export type TurboCryptoPaymentHistoryItem = {
+    type: 'crypto';
+    /** ISO-8601 UTC timestamp of when the credits landed. */
+    date: string;
+    /** Winston Credits credited by this top-up. */
+    wincCredited: string;
+    tokenType: string;
+    /** On-chain token amount paid, in the token's smallest unit. */
+    tokenQuantity: string;
+    /** USD value captured at credit time (historical; not a live quote). */
+    usdEquivalent: string;
+    /** On-chain sender address; empty string on rows predating the column. */
+    senderAddress: string;
+    transactionId: string;
+    blockHeight: string;
+};
+/** A single credited top-up settled with fiat (e.g. a Stripe card payment). */
+export type TurboFiatPaymentHistoryItem = {
+    type: 'fiat';
+    /** ISO-8601 UTC timestamp of when the receipt was recorded. */
+    date: string;
+    /** Winston Credits credited by this top-up. */
+    wincCredited: string;
+    paymentAmount: string;
+    currencyType: string;
+    paymentProvider: string;
+    receiptId: string;
+    giftMessage: string | null;
+};
+export type TurboPaymentHistoryItem = TurboCryptoPaymentHistoryItem | TurboFiatPaymentHistoryItem;
+export type TurboPaymentHistoryResponse = {
+    /** One page of the signer's own top-ups, newest first. */
+    payments: TurboPaymentHistoryItem[];
+    /** True when more rows exist beyond this page (fetch again with `cursor`). */
+    hasMore: boolean;
+    /** Opaque cursor for the next page, or `null` on the last page. */
+    cursor: string | null;
+};
+export type TurboPaymentHistoryParams = {
+    /** Page size, 1-100 (default 50 on the service). */
+    limit?: number;
+    /** Opaque cursor from a prior response's `cursor` field. */
+    cursor?: string;
+};
+/**
+ * A single ArNS name returned by `getArNSNames`. `custodial: true` means Turbo
+ * still holds/manages the underlying ANT on the caller's behalf (e.g. via the
+ * ArNS-with-credits purchase flow) and Turbo's transfer/manage routes apply to
+ * it; `custodial: false` means the name is self-custodied (or has already been
+ * exited from custody) and is returned for historical/informational purposes
+ * only.
+ *
+ * `intent`/`type`/`years`/`purchaseDate` describe the specific purchase
+ * receipt Turbo selected for this name and are historical/informational, NOT
+ * authoritative for the name's current on-chain state. `type`/`years` may be
+ * absent -- omitted from the response entirely, not `null` -- when the
+ * selected receipt is an action (e.g. Extend-Lease/Increase-Undername-Limit)
+ * that doesn't carry them. `antId` may be an empty string if no receipt Turbo
+ * has for this name ever carried one (e.g. the caller only ever extended a
+ * name it doesn't own -- ArNS extend/upgrade/increase-undername actions have
+ * no on-chain ownership check) -- guard for `antId === ''` before passing it
+ * to `@ar.io/sdk`.
+ *
+ * To read a name's current records or lease/expiration state, use
+ * `@ar.io/sdk` directly against the `antId` returned here.
+ */
+export type TurboArNSName = {
+    name: string;
+    antId: string;
+    /**
+     * The ArNS action recorded on the selected purchase receipt. Widened with
+     * `(string & {})` so new intents added server-side don't require a
+     * client-side type change, while still getting autocomplete for the known
+     * values.
+     */
+    intent: 'Buy-Name' | 'Buy-Record' | 'Extend-Lease' | 'Upgrade-Name' | 'Increase-Undername-Limit' | (string & Record<never, never>);
+    type?: 'lease' | 'permabuy';
+    years?: number;
+    purchaseDate: string;
+    custodial: boolean;
+};
+export type TurboArNSNamesResponse = {
+    names: TurboArNSName[];
+};
+export type TurboFiatToArResponse = {
+    currency: Currency;
+    rate: number;
+};
+export type TurboRatesResponse = TurboPriceResponse & Record<'fiat', Record<Currency, number>>;
+export type TurboCountriesResponse = Country[];
+export type TurboCurrenciesResponse = {
+    supportedCurrencies: Currency[];
+    limits: Record<Currency, CurrencyLimit>;
+};
+export type TurboUploadDataItemResponse = {
+    dataCaches: string[];
+    fastFinalityIndexes: string[];
+    id: TransactionId;
+    owner: PublicArweaveAddress;
+    winc: string;
+    timestamp?: number;
+    signature?: string;
+    public?: string;
+    version?: string;
+    deadlineHeight?: number;
+    createdApproval?: CreditShareApproval;
+    revokedApprovals?: CreditShareApproval[];
+    cryptoFundResult?: TurboCryptoFundResponse;
+};
+export type FundingOptions = {
+    fundingMode?: X402Funding | OnDemandFunding | ExistingBalanceFunding;
+};
+export declare class ExistingBalanceFunding {
+}
+export declare class OnDemandFunding {
+    maxTokenAmount: BigNumber | undefined;
+    topUpBufferMultiplier: number;
+    constructor({ maxTokenAmount, topUpBufferMultiplier, }: {
+        topUpBufferMultiplier?: number;
+        maxTokenAmount?: BigNumber.Value;
+    });
+}
+export declare class X402Funding {
+    signer: x402Signer | undefined;
+    maxMUSDCAmount: BigNumber | undefined;
+    constructor({ signer, maxMUSDCAmount, }: {
+        /**
+         * Optionally provide a custom signer for X402 funding.
+         * One will be created from the provided Turbo signer if not provided.
+         */
+        signer?: x402Signer;
+        maxMUSDCAmount?: BigNumber.Value;
+    });
+}
+export declare const multipartPendingStatus: readonly ["ASSEMBLING", "VALIDATING", "FINALIZING"];
+export type PendingMultiPartStatus = (typeof multipartPendingStatus)[number];
+export declare const multipartFailedStatus: readonly ["UNDERFUNDED", "INVALID", "APPROVAL_FAILED", "REVOKE_FAILED"];
+export type FailedMultiPartStatus = (typeof multipartFailedStatus)[number];
+export declare const multipartFinalizedStatus: readonly ["FINALIZED"];
+export type FinalizedMultiPartStatus = (typeof multipartFinalizedStatus)[number];
+export type TurboMultiPartStatusResponse = {
+    status: PendingMultiPartStatus;
+} | {
+    status: FailedMultiPartStatus;
+} | FinalizedStatusResponse;
+type FinalizedStatusResponse = {
+    status: 'FINALIZED';
+    receipt: TurboUploadDataItemResponse;
+};
+type UploadFolderParams = {
+    dataItemOpts?: DataItemOptions;
+    maxConcurrentUploads?: number;
+    throwOnFailure?: boolean;
+    manifestOptions?: {
+        disableManifest?: boolean;
+        fallbackFile?: string;
+        indexFile?: string;
+    };
+} & TurboAbortSignal & TurboChunkingParams & FundingOptions & TurboFolderUploadEmitterEvents;
+export type NodeUploadFolderParams = {
+    folderPath: string;
+} & UploadFolderParams;
+export type WebUploadFolderParams = {
+    files: File[];
+} & UploadFolderParams;
+export type TurboUploadFolderParams = NodeUploadFolderParams | WebUploadFolderParams;
+export declare const isNodeUploadFolderParams: (p: TurboUploadFolderParams) => p is NodeUploadFolderParams;
+export declare const isWebUploadFolderParams: (p: TurboUploadFolderParams) => p is WebUploadFolderParams;
+export type TurboCreateCreditShareApprovalParams = {
+    approvedAddress: string;
+    approvedWincAmount: BigNumber.Value;
+    expiresBySeconds?: number;
+};
+export type TurboRevokeCreditsParams = {
+    revokedAddress: string;
+};
+export type TurboUploadFolderResponse = {
+    fileResponses: TurboUploadDataItemResponse[];
+    manifestResponse?: TurboUploadDataItemResponse;
+    manifest?: ArweaveManifest;
+    errors?: Error[];
+    cryptoFundResult?: TurboCryptoFundResponse;
+};
+export type ArweaveManifest = {
+    manifest: 'arweave/paths';
+    version: '0.2.0';
+    index: {
+        path: string;
+    };
+    paths: Record<string, {
+        id: string;
+    }>;
+    fallback?: {
+        id: string;
+    };
+};
+export type TurboSubmitFundTxResponse = {
+    id: string;
+    quantity: string;
+    owner: string;
+    winc: string;
+    token: string;
+    status: 'pending' | 'confirmed' | 'failed';
+    recipient?: string;
+    block?: number;
+};
+export type TurboCryptoFundResponse = TurboSubmitFundTxResponse & {
+    target: string;
+    reward?: string;
+};
+export type TurboInfoResponse = {
+    version: string;
+    gateway: string;
+    freeUploadLimitBytes: number;
+    addresses: Record<TokenType, string>;
+};
+export type PendingPaymentTransaction = {
+    transactionId: string;
+    tokenType: TokenType;
+    transactionQuantity: string;
+    winstonCreditAmount: string;
+    destinationAddress: UserAddress;
+    destinationAddressType: string;
+    transactionSenderAddress?: UserAddress;
+};
+export type FailedPaymentTransaction = PendingPaymentTransaction & {
+    failedReason: string;
+};
+export type CreditedPaymentTransaction = PendingPaymentTransaction & {
+    blockHeight: number;
+};
+export type TurboPostBalanceResponse = {
+    pendingTransaction: PendingPaymentTransaction & {
+        adjustments?: Adjustment[];
+    };
+    message: string;
+} | {
+    creditedTransaction: CreditedPaymentTransaction & {
+        adjustments?: Adjustment[];
+    };
+    message: string;
+} | {
+    failedTransaction: FailedPaymentTransaction & {
+        adjustments?: Adjustment[];
+    };
+    message: string;
+};
+export type ArweaveJWK = JWKInterface;
+type Base58String = string;
+export type SolSecretKey = Base58String;
+type HexadecimalString = string;
+export type EthPrivateKey = HexadecimalString;
+export type KyvePrivateKey = HexadecimalString;
+export declare function isKyvePrivateKey(wallet: TurboWallet): wallet is KyvePrivateKey;
+export declare function isEthPrivateKey(wallet: TurboWallet): wallet is EthPrivateKey;
+export type TurboWallet = ArweaveJWK | SolSecretKey | EthPrivateKey;
+export declare const isJWK: (wallet: TurboWallet) => wallet is ArweaveJWK;
+export type TurboSignedRequestHeaders = {
+    'x-public-key': string;
+    'x-nonce': string;
+    'x-signature': string;
+    'x-signature-type'?: string;
+};
+type TurboAuthConfiguration = {
+    signer: TurboDataItemSigner;
+};
+type TurboServiceConfiguration = {
+    url?: string;
+    retryConfig?: RetryConfig;
+    logger?: TurboLogger;
+    token?: TokenType;
+};
+export type TurboUploadEventsAndPayloads = {
+    'upload-progress': {
+        totalBytes: number;
+        processedBytes: number;
+    };
+    'upload-error': Error;
+    'upload-success': never[];
+};
+export type TurboSigningEventsAndPayloads = {
+    'signing-progress': {
+        totalBytes: number;
+        processedBytes: number;
+    };
+    'signing-error': Error;
+    'signing-success': never[];
+};
+export type TurboTotalEventsAndPayloads = {
+    'overall-progress': {
+        totalBytes: number;
+        processedBytes: number;
+        step: 'signing' | 'upload';
+    };
+    'overall-error': Error;
+    'overall-success': never[];
+};
+export type TurboUploadEmitterEventArgs = {
+    onUploadProgress?: (event: TurboUploadEventsAndPayloads['upload-progress']) => void;
+    onUploadError?: (event: TurboUploadEventsAndPayloads['upload-error']) => void;
+    onUploadSuccess?: (event: TurboUploadEventsAndPayloads['upload-success']) => void;
+};
+export type TurboSigningEmitterEventArgs = {
+    onSigningProgress?: (event: TurboSigningEventsAndPayloads['signing-progress']) => void;
+    onSigningError?: (event: TurboSigningEventsAndPayloads['signing-error']) => void;
+    onSigningSuccess?: (event: TurboSigningEventsAndPayloads['signing-success']) => void;
+};
+export type TurboTotalEmitterEventArgs = {
+    onProgress?: (event: TurboTotalEventsAndPayloads['overall-progress']) => void;
+    onError?: (event: TurboTotalEventsAndPayloads['overall-error']) => void;
+    onSuccess?: (event: TurboTotalEventsAndPayloads['overall-success']) => void;
+};
+export type TurboTotalEmitterEvents = {
+    events?: TurboTotalEmitterEventArgs;
+};
+export type TurboUploadEmitterEvents = {
+    events?: TurboUploadEmitterEventArgs;
+};
+export type TurboSigningEmitterEvents = {
+    events?: TurboSigningEmitterEventArgs;
+};
+export type TurboUploadAndSigningEmitterEvents = TurboUploadEmitterEvents & TurboSigningEmitterEvents & TurboTotalEmitterEvents;
+export type TurboFolderUploadEventsAndPayloads = {
+    'file-upload-start': {
+        fileName: string;
+        fileSize: number;
+        fileIndex: number;
+        totalFiles: number;
+    };
+    'file-upload-progress': {
+        fileName: string;
+        fileIndex: number;
+        totalFiles: number;
+        fileProcessedBytes: number;
+        fileTotalBytes: number;
+        step: 'signing' | 'upload';
+    };
+    'file-upload-complete': {
+        fileName: string;
+        fileIndex: number;
+        totalFiles: number;
+        id: string;
+    };
+    'file-upload-error': {
+        fileName: string;
+        fileIndex: number;
+        totalFiles: number;
+        error: Error;
+    };
+    'folder-progress': {
+        processedFiles: number;
+        totalFiles: number;
+        processedBytes: number;
+        totalBytes: number;
+        currentPhase: 'files' | 'manifest';
+    };
+    'folder-error': Error;
+    'folder-success': never[];
+};
+export type TurboFolderUploadEmitterEventArgs = {
+    onFileStart?: (event: TurboFolderUploadEventsAndPayloads['file-upload-start']) => void;
+    onFileProgress?: (event: TurboFolderUploadEventsAndPayloads['file-upload-progress']) => void;
+    onFileComplete?: (event: TurboFolderUploadEventsAndPayloads['file-upload-complete']) => void;
+    onFileError?: (event: TurboFolderUploadEventsAndPayloads['file-upload-error']) => void;
+    onFolderProgress?: (event: TurboFolderUploadEventsAndPayloads['folder-progress']) => void;
+    onFolderError?: (event: TurboFolderUploadEventsAndPayloads['folder-error']) => void;
+    onFolderSuccess?: (event: TurboFolderUploadEventsAndPayloads['folder-success']) => void;
+};
+export type TurboFolderUploadEmitterEvents = {
+    events?: TurboFolderUploadEmitterEventArgs;
+};
+export type TurboUnauthenticatedUploadServiceConfiguration = TurboServiceConfiguration;
+export type TurboAuthenticatedUploadServiceConfiguration = TurboUnauthenticatedUploadServiceConfiguration & TurboAuthConfiguration;
+export type TurboUnauthenticatedPaymentServiceConfiguration = TurboServiceConfiguration;
+export type TurboAuthenticatedPaymentServiceConfiguration = TurboUnauthenticatedPaymentServiceConfiguration & TurboAuthConfiguration & {
+    tokenTools?: TokenTools;
+};
+export type TurboUnauthenticatedConfiguration = {
+    paymentServiceConfig?: TurboUnauthenticatedPaymentServiceConfiguration;
+    uploadServiceConfig?: TurboUnauthenticatedUploadServiceConfiguration;
+    token?: TokenType;
+    gatewayUrl?: string;
+};
+export type TurboLogger = ILogger;
+export type DataItemOptions = DataItemCreateOptions & {
+    paidBy?: UserAddress | UserAddress[];
+};
+export type TurboSigner = ArconnectSigner | ArweaveSigner | EthereumSigner | InjectedEthereumSigner | HexSolanaSigner | HexInjectedSolanaSigner;
+export type TokenPollingOptions = {
+    maxAttempts: number;
+    pollingIntervalMs: number;
+    initialBackoffMs: number;
+};
+export type TurboAuthenticatedConfiguration = TurboUnauthenticatedConfiguration & {
+    privateKey?: TurboWallet;
+    signer?: TurboSigner;
+    walletAdapter?: SolanaWalletAdapter | EthereumWalletAdapter;
+    /** @deprecated -- This parameter was added in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl` directly in the Factory constructor. This type will be removed in a v2 release */
+    tokenMap?: TokenMap;
+    tokenTools?: TokenTools;
+};
+export type SolanaWalletAdapter = {
+    publicKey: {
+        toString: () => string;
+        /** @deprecated -- fulfill toString() instead, this is here for umi-uploader backwards compatibility */
+        toBuffer?: () => Buffer;
+    };
+    signMessage: (message: Uint8Array) => Promise<Uint8Array | {
+        signature: Uint8Array;
+    }>;
+    signTransaction: (transaction: any) => Promise<any>;
+};
+export type WalletAdapter = SolanaWalletAdapter | EthereumWalletAdapter;
+export type EthereumWalletSigner = Pick<JsonRpcSigner, 'signMessage' | 'sendTransaction' | 'provider'>;
+export type EthereumWalletAdapter = {
+    getSigner: () => EthereumWalletSigner;
+};
+export declare function isSolanaWalletAdapter(walletAdapter: SolanaWalletAdapter | EthereumWalletAdapter): walletAdapter is SolanaWalletAdapter;
+export type GetTurboSignerParams = {
+    providedSigner: TurboSigner | undefined;
+    providedPrivateKey: TurboWallet | undefined;
+    providedWalletAdapter: WalletAdapter | undefined;
+    token: TokenType;
+    logger: Logger;
+};
+export declare function isEthereumWalletAdapter(walletAdapter: SolanaWalletAdapter | EthereumWalletAdapter): walletAdapter is EthereumWalletAdapter;
+export type TurboUnauthenticatedClientConfiguration = {
+    paymentService: TurboUnauthenticatedPaymentServiceInterface;
+    uploadService: TurboUnauthenticatedUploadServiceInterface;
+};
+export type TurboAuthenticatedClientConfiguration = {
+    paymentService: TurboAuthenticatedPaymentServiceInterface;
+    uploadService: TurboAuthenticatedUploadServiceInterface;
+    signer: TurboDataItemSigner;
+};
+export type UploadDataType = string | Uint8Array | ArrayBuffer | Buffer | Blob;
+export type UploadDataInput = {
+    data: UploadDataType;
+    dataItemOpts?: DataItemOptions;
+    signal?: AbortSignal;
+};
+export declare const validChunkingModes: readonly ["force", "disabled", "auto"];
+export type TurboChunkingMode = (typeof validChunkingModes)[number];
+export type TurboChunkingParams = {
+    /** Maximum size in bytes for each chunk. The last chunk must be smaller than this size. */
+    chunkByteCount?: number;
+    /** Number of chunks to send up concurrently */
+    maxChunkConcurrency?: number;
+    /** Chunking mode for uploads. 'auto' means chunking is enabled if the file is larger than 2 chunkByteCounts */
+    chunkingMode?: TurboChunkingMode;
+    /**
+     * Maximum time in milliseconds to wait for the finalization of all chunks after the last chunk is uploaded.
+     * If not specified, the SDK will use a default value of 1 minute per GiB.
+     */
+    maxFinalizeMs?: number;
+};
+export type TurboUploadFileWithStreamFactoryParams = TurboFileFactory & TurboAbortSignal & TurboUploadAndSigningEmitterEvents;
+export type TurboUploadFileWithFileOrPathParams = {
+    file: File | string;
+    dataItemOpts?: DataItemOptions;
+} & TurboAbortSignal & TurboUploadAndSigningEmitterEvents & TurboChunkingParams;
+export type TurboUploadFileParams = TurboUploadFileWithStreamFactoryParams | TurboUploadFileWithFileOrPathParams;
+export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
+export type WebFileStreamFactory = (() => ReadableStream) | (() => Buffer);
+export type NodeFileStreamFactory = (() => Readable) | (() => Buffer);
+export type SignedDataStreamFactory = FileStreamFactory;
+export type StreamSizeFactory = () => number;
+export type TurboFileFactory<T = FileStreamFactory> = {
+    fileStreamFactory: T;
+    fileSizeFactory: StreamSizeFactory;
+    dataItemOpts?: DataItemOptions;
+    emitter?: TurboEventEmitter;
+} & TurboChunkingParams & FundingOptions;
+export type WebTurboFileFactory = TurboFileFactory<WebFileStreamFactory>;
+export type TurboSignedDataItemFactory = {
+    dataItemStreamFactory: SignedDataStreamFactory;
+    dataItemSizeFactory: StreamSizeFactory;
+    dataItemOpts?: DataItemOptions;
+};
+export type TurboAbortSignal = {
+    signal?: AbortSignal;
+};
+export interface TurboHTTPServiceInterface {
+    get<T>({ endpoint, signal, headers, allowedStatuses, }: {
+        endpoint: `/${string}`;
+        signal?: AbortSignal;
+        headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+        allowedStatuses?: number[];
+    }): Promise<T>;
+    post<T>({ endpoint, signal, headers, allowedStatuses, data, retry, }: {
+        endpoint: `/${string}`;
+        signal?: AbortSignal;
+        headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+        allowedStatuses?: number[];
+        data: Readable | ReadableStream | Buffer;
+        retry?: boolean;
+    }): Promise<T>;
+}
+export type SendFundTxParams = {
+    tokenAmount: BigNumber;
+    target: string;
+    feeMultiplier?: number | undefined;
+};
+export type SendTxWithSignerParams = {
+    amount: BigNumber;
+    target: string;
+    turboCreditDestinationAddress?: UserAddress;
+    gatewayUrl: string;
+};
+export type TurboDataItemSignerParams = {
+    logger?: TurboLogger;
+    signer: TurboSigner;
+    token: TokenType;
+    walletAdapter?: WalletAdapter;
+};
+export interface TurboDataItemSigner {
+    signDataItem({ fileStreamFactory, fileSizeFactory, dataItemOpts, emitter, }: TurboFileFactory & {
+        emitter?: TurboEventEmitter;
+    }): Promise<TurboSignedDataItemFactory>;
+    generateSignedRequestHeaders(nonce?: string, additionalData?: string): Promise<TurboSignedRequestHeaders>;
+    signData(dataToSign: Uint8Array): Promise<Uint8Array>;
+    sendTransaction(p: SendTxWithSignerParams): Promise<string>;
+    getPublicKey(): Promise<Buffer>;
+    getNativeAddress(): Promise<string>;
+    signer: TurboSigner;
+    walletAdapter?: WalletAdapter;
+}
+export declare const arNSPurchaseIntents: readonly ["Buy-Name", "Extend-Lease", "Increase-Undername-Limit", "Upgrade-Name"];
+export type ArNSPurchaseIntent = (typeof arNSPurchaseIntents)[number];
+export type ArNSNameType = 'lease' | 'permabuy';
+export type ArNSBuyNameLeaseParams = {
+    intent: 'Buy-Name';
+    name: string;
+    type: 'lease';
+    /** Lease duration in years */
+    years: number;
+    /**
+     * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+     * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+     * supply to point the name at a user-owned ANT (Model B).
+     */
+    processId?: string;
+};
+export type ArNSBuyNamePermabuyParams = {
+    intent: 'Buy-Name';
+    name: string;
+    type: 'permabuy';
+    /**
+     * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+     * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+     * supply to point the name at a user-owned ANT (Model B).
+     */
+    processId?: string;
+};
+export type ArNSBuyNameParams = ArNSBuyNameLeaseParams | ArNSBuyNamePermabuyParams;
+export type ArNSExtendLeaseParams = {
+    intent: 'Extend-Lease';
+    name: string;
+    years: number;
+};
+export type ArNSIncreaseUndernameLimitParams = {
+    intent: 'Increase-Undername-Limit';
+    name: string;
+    increaseQty: number;
+};
+export type ArNSUpgradeNameParams = {
+    intent: 'Upgrade-Name';
+    name: string;
+};
+export type ArNSPriceParams = ArNSBuyNameParams | ArNSExtendLeaseParams | ArNSIncreaseUndernameLimitParams | ArNSUpgradeNameParams;
+/** Optional delegated payer address(es) whose credits cover a purchase */
+export type ArNSPaidByParams = {
+    paidBy?: UserAddress | UserAddress[];
+};
+export type ArNSPriceResponse = {
+    /**
+     * Price of the NAME ONLY, in Winston credits.
+     *
+     * For a Buy-Name this EXCLUDES the ANT spawn surcharge. Quoting this figure
+     * alone under-quotes the purchase — in a real response the surcharge can be
+     * larger than the name itself. Use `wincTotalWithAntSpawn`, or the
+     * `wincTotal` convenience the SDK adds below.
+     */
+    winc: string;
+    /** Equivalent price in mARIO */
+    mARIO: string;
+    /**
+     * Flat cost-recovery surcharge for the Solana rent Turbo fronts when minting
+     * the customer's ANT. Present only for intents that mint one (Buy-Name).
+     * Config-driven and derived per-request from live rates — never hardcode it.
+     */
+    antSpawnSurchargeWinc?: string;
+    /** `winc` + `antSpawnSurchargeWinc`. Present only when a surcharge applies. */
+    wincTotalWithAntSpawn?: string;
+    /**
+     * The figure to charge or display, always. Added by the SDK:
+     * `wincTotalWithAntSpawn ?? winc`, so a caller cannot under-quote by
+     * reading the wrong field.
+     */
+    wincTotal: string;
+    [key: string]: unknown;
+};
+/**
+ * The nine sponsored ArNS actions.
+ *
+ * Sponsorship covers these twelve and NOTHING else. Everything else in the
+ * ArNS, ANT and core programs stays on the direct-signer path and costs the
+ * user SOL — notably `BuyReturnedName` (auctions, deliberately excluded: the
+ * premium is unbounded), `ClaimReservedName`, the primary-name flow (which
+ * lives in the ario core program), release/reassign, and ANT-LEVEL metadata.
+ * Note ANT-level metadata is distinct from RECORD-level metadata, which
+ * `set-record-metadata` does sponsor.
+ */
+export declare const arNSActions: readonly ["buy-name", "extend-lease", "upgrade-name", "increase-undername-limit", "set-record", "remove-record", "add-controller", "remove-controller", "transfer", "set-record-metadata", "remove-record-metadata", "transfer-record"];
+export type ArNSAction = (typeof arNSActions)[number];
+/** Turbo already held the authority — the write has landed on chain. */
+export type ArNSActionCompleted = {
+    nonce: string;
+    action: ArNSAction;
+    status: 'completed';
+    /** Solana transaction id of the on-chain write. */
+    messageId: string;
+    antId?: string;
+    /**
+     * True when this nonce had already completed — a replayed `/sign` is
+     * reported as success rather than buying twice.
+     */
+    alreadyCompleted?: boolean;
+    [key: string]: unknown;
+};
+/** Only the ANT's owner can authorize this; Turbo has already fee-payer-signed. */
+export type ArNSActionAwaitingSignature = {
+    nonce: string;
+    action: ArNSAction;
+    status: 'awaiting-signature';
+    /**
+     * Base64 transaction, already carrying Turbo's fee-payer signature.
+     * Sign THESE BYTES — rebuilding or re-serializing invalidates Turbo's
+     * signature and the submission is rejected.
+     */
+    transaction: string;
+    feePayer?: string;
+    antId?: string;
+    lastValidBlockHeight?: string;
+    /** The blockhash dies in ~60-90s; past this, create a new action. */
+    expiresAt?: string;
+    [key: string]: unknown;
+};
+/**
+ * An action has exactly one of two shapes, and THE SERVER picks which.
+ * Branch on `status`, never on which action you asked for: `set-record`
+ * completes alone while Turbo is a controller and flips to
+ * `awaiting-signature` the moment the customer revokes Turbo.
+ */
+export type ArNSActionResult = ArNSActionCompleted | ArNSActionAwaitingSignature;
+/**
+ * The ANT owner's key — a **Solana** wallet, distinct from the Turbo payer.
+ *
+ * The two are deliberately separate: the payer holds credits (and may be an
+ * Arweave or Ethereum identity), while the owner holds the ANT. They are
+ * allowed to be different wallets, which is the normal shape for a console.
+ *
+ * The owner needs a key to sign with, NOT a funded account — Turbo is the fee
+ * payer on every sponsored action, so the owner's SOL balance can stay zero
+ * for the life of the name.
+ */
+export interface ArNSOwnerSigner {
+    /** base58 Solana address that owns (or will own) the ANT. */
+    getAddress(): string | Promise<string>;
+    /**
+     * Sign a base64 transaction and return the signed transaction, base64.
+     * Must return the FULL serialized transaction, not just the signature.
+     */
+    signTransaction(transactionBase64: string): Promise<string>;
+    /** Raw ed25519 signature over `message`, for the `x-owner-*` proof. */
+    signMessage(message: Uint8Array): Promise<Uint8Array>;
+}
+export type ArNSPurchaseParams = ArNSPriceParams & ArNSPaidByParams;
+/**
+ * Distributive `Omit` so a discriminated union keeps its per-branch fields.
+ * The built-in `Omit<A | B, K>` collapses to only the keys common to every
+ * member (dropping e.g. a lease's `years`); this maps over each member instead.
+ */
+export type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
+/** `buyArNSName` params: any Buy-Name variant minus the (implied) `intent`. */
+export type ArNSBuyNameArgs = DistributiveOmit<ArNSBuyNameParams, 'intent'> & ArNSPaidByParams;
+export type ArNSPurchaseReceipt = {
+    name: string;
+    intent: ArNSPurchaseIntent;
+    type?: ArNSNameType;
+    years?: number;
+    increaseQty?: number;
+    processId?: string;
+    owner: UserAddress;
+    /** UUID that identifies this purchase (also the status-lookup key) */
+    nonce: string;
+    wincQty: string;
+    mARIOQty: string;
+    usdArRate: number;
+    usdArioRate: number;
+    paidBy: UserAddress[];
+    /** Solana transaction id of the on-chain ArNS write */
+    messageId: string;
+};
+export type ArNSPurchaseResponse = {
+    purchaseReceipt: ArNSPurchaseReceipt;
+    arioWriteResult: {
+        id: string;
+    };
+    /** UUID nonce used for the purchase — poll `getArNSPurchaseStatus({ nonce })` with it */
+    nonce: string;
+};
+export type ArNSPurchaseStatusResponse = ArNSPurchaseReceipt & {
+    /** Present once the purchase has terminally failed */
+    failedDate?: string;
+};
+/**
+ * Stripe integration mode for a fiat ArNS purchase quote.
+ *
+ * - `payment-intent` — returns a Stripe PaymentIntent. Confirm it client-side
+ *   with `stripe.confirmCardPayment(paymentSession.client_secret, ...)`.
+ * - `checkout-session` — returns a Stripe Checkout Session to redirect to
+ *   (`uiMode: 'hosted'`) or embed (`uiMode: 'embedded'`).
+ *
+ * Widened with `string & Record<never, never>` so a method added service-side is
+ * still callable without an SDK bump, while the known values keep autocomplete.
+ * (`string & {}` is the usual idiom but trips the `ban-types` lint rule.)
+ */
+export declare const arNSFiatPurchaseMethods: readonly ["payment-intent", "checkout-session"];
+export type ArNSFiatPurchaseMethod = (typeof arNSFiatPurchaseMethods)[number] | (string & Record<never, never>);
+/**
+ * Params for a fiat (Stripe) ArNS purchase quote.
+ *
+ * Intent-specific fields come from the same {@link ArNSPriceParams} union the
+ * credit-paid methods use, and the `uiMode` split reuses the checkout-session
+ * unions, so the hosted/embedded URL pairing is enforced at compile time the
+ * same way it is for top-ups.
+ *
+ * Note: the service also accepts a `Buy-Record` intent that the SDK does not
+ * model yet — {@link arNSPurchaseIntents} carries the other four.
+ */
+export type ArNSFiatPurchaseQuoteParams = ArNSPriceParams & {
+    /** Fiat currency to charge in. */
+    currency: Currency;
+    /** Address that will own the name once the purchase settles. */
+    address: UserAddress;
+    /** Stripe integration mode. Defaults to `payment-intent`. */
+    method?: ArNSFiatPurchaseMethod;
+    /** Promo codes to apply. Sent as repeated `promoCode` query params. */
+    promoCodes?: string[];
+} & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+/**
+ * Authenticated variant: `address` defaults to the signer's native address.
+ */
+export type AuthenticatedArNSFiatPurchaseQuoteParams = DistributiveOmit<ArNSFiatPurchaseQuoteParams, 'address'> & {
+    address?: UserAddress;
+};
+/**
+ * The quote the service recorded for this purchase. `nonce` is the key to poll
+ * `getArNSPurchaseStatus({ nonce })` with once the card payment confirms.
+ *
+ * Intent-dependent fields (`type`, `years`, `increaseQty`, `processId`) are
+ * OMITTED by the service for intents that do not use them — they are absent
+ * keys, not `null` — so each is optional here.
+ */
+export type ArNSFiatPurchaseQuote = {
+    name: string;
+    intent: ArNSPurchaseIntent;
+    /** UUID identifying this purchase; the status-lookup key. */
+    nonce: string;
+    owner: UserAddress;
+    /** Credit value of the purchase, in Winston credits. */
+    wincQty: string;
+    /** Verified against the live service: serialized as a NUMBER, unlike wincQty. */
+    mARIOQty: number;
+    /** Fiat amount to be charged, in the currency's smallest unit. */
+    paymentAmount: number;
+    /** Amount before adjustments, in the currency's smallest unit. */
+    quotedPaymentAmount: number;
+    currencyType: Currency;
+    quoteExpirationDate: string;
+    paymentProvider: string;
+    /** Credits left over when the charge was raised to Stripe's minimum. */
+    excessWincAmount?: string;
+    /** ISO timestamp the quote was recorded. */
+    quoteCreationDate: string;
+    /**
+     * Rates at quote time. Verified against the live service: serialized as
+     * STRINGS, even though they are numeric server-side.
+     */
+    usdArRate?: string;
+    usdArioRate?: string;
+    type?: ArNSNameType;
+    years?: number;
+    increaseQty?: number;
+    processId?: string;
+    [key: string]: unknown;
+};
+/**
+ * The Stripe object to complete payment with — a PaymentIntent or a Checkout
+ * Session depending on `method`. Typed loosely on purpose: this is Stripe's
+ * payload, passed through verbatim, and pinning it here would couple the SDK to
+ * a Stripe API version.
+ *
+ * `client_secret` is present on a PaymentIntent and on an embedded Checkout
+ * Session; a hosted Checkout Session exposes `url` instead.
+ */
+export type ArNSFiatPaymentSession = {
+    id: string;
+    client_secret?: string | null;
+    url?: string | null;
+    [key: string]: unknown;
+};
+export type ArNSFiatPurchaseQuoteResponse = {
+    purchaseQuote: ArNSFiatPurchaseQuote;
+    paymentSession: ArNSFiatPaymentSession;
+    /** Promo/discount adjustments applied to the fiat amount. */
+    adjustments: Adjustment[];
+    /** Inclusive fees folded into the price. */
+    fees: Adjustment[];
+};
+export interface TurboUnauthenticatedPaymentServiceInterface {
+    getBalance: (address: string) => Promise<TurboBalanceResponse>;
+    getFreeStatus: (address: string) => Promise<TurboFreeStatusResponse>;
+    getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
+    getArNSPurchaseStatus(p: {
+        nonce: string;
+    }): Promise<ArNSPurchaseStatusResponse>;
+    /**
+     * Returns the ArNS names a wallet owns or controls via Turbo's custodial
+     * ArNS-with-credits feature. This is a read-only listing endpoint; it does
+     * not require a signature. See `TurboArNSName` for field semantics. To
+     * read a name's current records or lease/expiration state, use
+     * `@ar.io/sdk` directly against the returned `antId`.
+     */
+    getArNSNames: (address: string) => Promise<TurboArNSNamesResponse>;
+    /** Fiat (Stripe) ArNS purchase quote — no Turbo Credits top-up in between. */
+    getArNSFiatPurchaseQuote(params: ArNSFiatPurchaseQuoteParams): Promise<ArNSFiatPurchaseQuoteResponse>;
+    getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
+    getSupportedCountries(): Promise<TurboCountriesResponse>;
+    getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
+    getFiatToAR({ currency, }: {
+        currency: Currency;
+    }): Promise<TurboFiatToArResponse>;
+    getFiatRates(): Promise<TurboRatesResponse>;
+    getWincForFiat(params: TurboWincForFiatParams): Promise<TurboWincForFiatResponse>;
+    getWincForToken(params: TurboWincForTokenParams): Promise<TurboWincForTokenResponse>;
+    getFiatEstimateForBytes({ byteCount, currency, }: {
+        byteCount: number;
+        currency: Currency;
+    }): Promise<TurboFiatEstimateForBytesResponse>;
+    getTokenPriceForBytes({ byteCount, }: {
+        byteCount: number;
+    }): Promise<TurboTokenPriceForBytesResponse>;
+    getUploadCosts({ bytes }: {
+        bytes: number[];
+    }): Promise<TurboPriceResponse[]>;
+    createCheckoutSession(params: TurboCheckoutSessionParams): Promise<TurboCheckoutSessionResponse>;
+    createPaymentIntent(params: TurboPaymentIntentParams): Promise<TurboPaymentIntentResponse>;
+    submitFundTransaction(p: {
+        txId: string;
+    }): Promise<TurboSubmitFundTxResponse>;
+    getCreditShareApprovals(p: {
+        userAddress: UserAddress;
+    }): Promise<GetCreditShareApprovalsResponse>;
+}
+export type TurboFundWithTokensParams = {
+    /** Amount of token in the smallest unit value. e.g value in Winston for "arweave" token */
+    tokenAmount: BigNumber.Value;
+    feeMultiplier?: number | undefined;
+    turboCreditDestinationAddress?: UserAddress;
+};
+export interface TurboAuthenticatedPaymentServiceInterface extends TurboUnauthenticatedPaymentServiceInterface {
+    getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+    /** `address` defaults to the signer's native address. */
+    getArNSFiatPurchaseQuote(params: AuthenticatedArNSFiatPurchaseQuoteParams): Promise<ArNSFiatPurchaseQuoteResponse>;
+    getFreeStatus: (userAddress?: UserAddress) => Promise<TurboFreeStatusResponse>;
+    /**
+     * The signer's OWN completed top-up history (crypto + fiat), newest first.
+     * Signature-required and self-scoped — there is no by-address form.
+     */
+    getPaymentHistory(params?: TurboPaymentHistoryParams): Promise<TurboPaymentHistoryResponse>;
+    getArNSNames: (userAddress?: UserAddress) => Promise<TurboArNSNamesResponse>;
+    getCreditShareApprovals(p: {
+        userAddress?: UserAddress;
+    }): Promise<GetCreditShareApprovalsResponse>;
+    topUpWithTokens(p: TurboFundWithTokensParams): Promise<TurboCryptoFundResponse>;
+    /** Create an action. Debits credits HERE, not at sign. */
+    createArNSAction(action: ArNSAction, params?: Record<string, unknown>, ownerProof?: {
+        owner: ArNSOwnerSigner;
+        message: string;
+    }): Promise<ArNSActionResult>;
+    /** Submit the owner-signed transaction (full serialized tx, base64). */
+    signArNSAction(nonce: string, signedTransaction: string): Promise<ArNSActionCompleted>;
+    /** Status by nonce. Open — needs no signature. */
+    getArNSActionStatus(nonce: string): Promise<ArNSActionResult & {
+        failedDate?: string;
+    }>;
+    buyArNSName(params: {
+        name: string;
+        owner: ArNSOwnerSigner;
+        type?: ArNSNameType;
+        years?: number;
+        paidBy?: UserAddress | UserAddress[];
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    extendArNSLease(params: {
+        name: string;
+        years: number;
+        paidBy?: UserAddress | UserAddress[];
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    upgradeArNSName(params: {
+        name: string;
+        paidBy?: UserAddress | UserAddress[];
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    increaseArNSUndernameLimit(params: {
+        name: string;
+        increaseQty: number;
+        paidBy?: UserAddress | UserAddress[];
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    setArNSRecord(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        transactionId: string;
+        undername?: string;
+        ttlSeconds?: number;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    removeArNSRecord(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        undername: string;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    addArNSController(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        target?: string;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    removeArNSController(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        target?: string;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    transferArNSAnt(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        target: string;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    setArNSRecordMetadata(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        undername?: string;
+        displayName?: string | null;
+        recordLogo?: string | null;
+        recordDescription?: string | null;
+        recordKeywords?: string[] | null;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    removeArNSRecordMetadata(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        undername: string;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+    transferArNSRecord(params: {
+        antId: string;
+        owner: ArNSOwnerSigner;
+        undername: string;
+        target: string;
+        onNonce?: (nonce: string) => void | Promise<void>;
+    }): Promise<ArNSActionCompleted>;
+}
+export interface TurboUnauthenticatedUploadServiceInterface {
+    uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, dataItemOpts, signal, events, }: TurboSignedDataItemFactory & TurboAbortSignal & TurboUploadEmitterEvents): Promise<TurboUploadDataItemResponse>;
+    uploadRawX402Data({ data, tags, signal, maxMUSDCAmount, }: {
+        data: UploadDataType;
+        signal?: AbortSignal;
+        tags?: {
+            name: string;
+            value: string;
+        }[];
+        maxMUSDCAmount?: BigNumber;
+    }): Promise<TurboUploadDataItemResponse>;
+}
+export interface TurboAuthenticatedUploadServiceInterface extends TurboUnauthenticatedUploadServiceInterface {
+    upload({ data, events, }: UploadDataInput & TurboAbortSignal & TurboUploadEmitterEvents & TurboChunkingParams & FundingOptions): Promise<TurboUploadDataItemResponse>;
+    uploadFile(params: TurboUploadFileParams): Promise<TurboUploadDataItemResponse>;
+    uploadFolder(p: TurboUploadFolderParams): Promise<TurboUploadFolderResponse>;
+    shareCredits(p: TurboCreateCreditShareApprovalParams): Promise<CreditShareApproval>;
+    revokeCredits(p: TurboRevokeCreditsParams): Promise<CreditShareApproval[]>;
+}
+export interface TurboUnauthenticatedClientInterface extends TurboUnauthenticatedPaymentServiceInterface, TurboUnauthenticatedUploadServiceInterface {
+}
+export interface TurboAuthenticatedClientInterface extends TurboAuthenticatedPaymentServiceInterface, TurboAuthenticatedUploadServiceInterface {
+}
+export type TokenCreateTxParams = {
+    target: string;
+    tokenAmount: BigNumber;
+    feeMultiplier: number;
+    signer: TurboDataItemSigner;
+    turboCreditDestinationAddress?: UserAddress;
+};
+export interface TokenTools {
+    createAndSubmitTx: (p: TokenCreateTxParams) => Promise<{
+        id: string;
+        target: string;
+        reward?: string;
+    }>;
+    pollTxAvailability: (p: {
+        txId: string;
+    }) => Promise<void>;
+}
+export type TokenConfig = {
+    logger?: TurboLogger;
+    gatewayUrl?: string;
+    pollingOptions?: TokenPollingOptions;
+};
+export type AoProcessConfig = {
+    logger?: TurboLogger;
+};
+/** @deprecated -- This type was provided as a parameter in release v1.5 for injecting an arweave TokenTool. Instead, the SDK now accepts `tokenTools` and/or `gatewayUrl`  directly in the Factory constructor. This type will be removed in a v2 release  */
+export type TokenMap = {
+    arweave: TokenTools;
+};
+export type TokenFactory = Record<string, (config: TokenConfig | AoProcessConfig) => TokenTools>;
+export type X402RequestCredentials = {
+    signer: x402Signer;
+    maxMUSDCAmount?: BigNumber.Value;
+    unsignedData?: boolean;
+};
+export type UploadSignedDataItemParams = TurboSignedDataItemFactory & TurboAbortSignal & TurboUploadEmitterEvents & {
+    x402Options?: X402RequestCredentials;
+};
+export {};
+//# sourceMappingURL=types.d.ts.map
