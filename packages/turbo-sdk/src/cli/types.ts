@@ -158,3 +158,43 @@ export type RemoveArNSRecordOptions = ArNSOwnerKeyOption &
     antId: string | undefined;
     undername: string | undefined;
   };
+
+export type AddArNSControllerOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    target: string | undefined;
+  };
+
+export type RemoveArNSControllerOptions = AddArNSControllerOptions;
+
+export type TransferArNSRecordOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+    target: string | undefined;
+  };
+
+export type SetArNSRecordMetadataOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+    displayName: string | undefined;
+    clearDisplayName: boolean;
+    recordLogo: string | undefined;
+    clearRecordLogo: boolean;
+    recordDescription: string | undefined;
+    clearRecordDescription: boolean;
+    recordKeywords: string[] | undefined;
+    clearRecordKeywords: boolean;
+  };
+
+export type RemoveArNSRecordMetadataOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+  };
+
+/** `--action` names one of the eight non-purchase actions to price. */
+export type ArNSActionPriceOptions = GlobalOptions & {
+  action: string | undefined;
+};

@@ -18,6 +18,7 @@ import { BigNumber } from 'bignumber.js';
 import {
   ArNSAction,
   ArNSActionCompleted,
+  ArNSActionPriceResponse,
   ArNSActionResult,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
@@ -172,6 +173,15 @@ export class TurboUnauthenticatedClient
    */
   getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse> {
     return this.paymentService.getArNSPriceForName(params);
+  }
+
+  /**
+   * Previews what one of the eight non-purchase ArNS actions will debit,
+   * without creating it. Use {@link getArNSPriceForName} for the four
+   * ARIO-purchase actions instead.
+   */
+  getArNSActionPrice(action: ArNSAction): Promise<ArNSActionPriceResponse> {
+    return this.paymentService.getArNSActionPrice(action);
   }
 
   /**

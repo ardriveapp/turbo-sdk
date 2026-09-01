@@ -18,6 +18,7 @@ import { BigNumber } from 'bignumber.js';
 import {
   ArNSAction,
   ArNSActionCompleted,
+  ArNSActionPriceResponse,
   ArNSActionResult,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
@@ -257,6 +258,27 @@ export class TurboUnauthenticatedPaymentService
       ...price,
       wincTotal: price.wincTotalWithAntSpawn ?? price.winc,
     };
+  }
+
+  /**
+   * Preview the flat credits margin one of the eight non-purchase actions
+   * (everything except Buy-Name/Extend-Lease/Upgrade-Name/
+   * Increase-Undername-Limit) will debit, without creating it. Those four
+   * purchase actions are priced by `getArNSPriceForName` instead — their
+   * cost is dominated by the ARIO purchase, not this margin, so this route
+   * rejects them.
+   *
+   * No signature required: this mirrors `getArNSPriceForName`'s read-only,
+   * unauthenticated shape rather than `getArNSActionStatus`'s (which happens
+   * to live on the authenticated client today despite needing no signature
+   * either).
+   */
+  public async getArNSActionPrice(
+    action: ArNSAction,
+  ): Promise<ArNSActionPriceResponse> {
+    return this.httpService.get<ArNSActionPriceResponse>({
+      endpoint: `/arns/actions/${action}/price`,
+    });
   }
 
   /**
