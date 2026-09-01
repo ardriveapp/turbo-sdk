@@ -1096,7 +1096,8 @@ await turbo.extendArNSLease({ name: 'my-name', years: 2 });
 await turbo.upgradeArNSName({ name: 'my-name' });
 await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
 
-// Records — free, and handled whichever shape the server picks.
+// Records — handled whichever shape the server picks. Costs credits (a small
+// margin), never SOL.
 await turbo.setArNSRecord({
   antId,
   owner,
@@ -1106,7 +1107,7 @@ await turbo.setArNSRecord({
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 
-// Controllers and transfer — owner-signed, free.
+// Controllers and transfer — owner-signed. Cost credits, never SOL.
 await turbo.addArNSController({ antId, owner }); // omit target => Turbo
 await turbo.removeArNSController({ antId, owner }); // the revoke
 await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
@@ -1119,12 +1120,15 @@ await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 | `setArNSRecord` / `removeArNSRecord`                                 | no            | only after you revoke Turbo |
 | `addArNSController` / `removeArNSController` / `transferArNSAnt`     | no            | yes                         |
 
-Only the four purchase actions debit credits. Records, controllers and transfer
-are free — Turbo sponsors the SOL.
+**Every action debits credits.** The four purchase actions pay for the name
+itself; the other eight carry a small margin covering the Solana fees and rent
+Turbo fronts. Record, controller and transfer actions used to be free — that
+changed, because a zero-cost action could be turned into value through the
+refund path. The customer still never needs SOL.
 
 `buyArNSName` grants Turbo controller rights **inside the same transaction you
 sign**, which is why `setArNSRecord` needs no transaction signature afterwards.
-Revoking is always available and always free.
+Revoking is always available, and costs a small credit margin rather than SOL.
 
 ### Not covered — these still cost you SOL
 
