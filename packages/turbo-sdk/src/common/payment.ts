@@ -1037,7 +1037,7 @@ export class TurboAuthenticatedPaymentService
   /**
    * Point a name (or undername) at an Arweave transaction.
    *
-   * Free — Turbo sponsors the Solana fee. Completes in one call while Turbo is
+   * Costs a small credit margin — never SOL, which Turbo sponsors. Completes in one call while Turbo is
    * a controller of the ANT, and returns `awaiting-signature` once the customer
    * has revoked Turbo, at which point `owner` signs it themselves. Both paths
    * are handled here.
@@ -1082,7 +1082,7 @@ export class TurboAuthenticatedPaymentService
     );
   }
 
-  /** Remove a record (an undername). Free; same two-shape rules as setArNSRecord. */
+  /** Remove a record (an undername). Costs credits, never SOL. */
   public async removeArNSRecord({
     antId,
     owner,
@@ -1106,7 +1106,8 @@ export class TurboAuthenticatedPaymentService
   /**
    * Edit a RECORD's metadata — its display name, logo, description, keywords.
    *
-   * Free, and owner-or-controller on chain, so it behaves exactly like
+   * Costs a small credit margin (never SOL), and is owner-or-controller on
+   * chain, so it behaves exactly like
    * {@link setArNSRecord}: Turbo-alone while it is a controller, owner-signed
    * after a revoke.
    *
@@ -1163,7 +1164,7 @@ export class TurboAuthenticatedPaymentService
     );
   }
 
-  /** Clear a record's metadata. Free; same two-shape rules. */
+  /** Clear a record's metadata. Costs credits, never SOL; same two-shape rules. */
   public async removeArNSRecordMetadata({
     antId,
     owner,
@@ -1217,7 +1218,8 @@ export class TurboAuthenticatedPaymentService
    * is what makes `setArNSRecord` a single call.
    *
    * Owner-signed: changing an ANT's access control is an owner-only
-   * instruction. Free to the customer — Turbo funds the ACL page growth.
+   * instruction. Costs a small credit margin; Turbo funds the ACL page growth
+   * in SOL.
    */
   public async addArNSController({
     antId,
@@ -1246,7 +1248,8 @@ export class TurboAuthenticatedPaymentService
    * Revoke controller rights — the escape hatch that keeps "Turbo is not a
    * custodian" honest.
    *
-   * Always available, always free, and needs nothing from Turbo but the fee.
+   * Always available, and needs nothing from Turbo but the fee. Costs a small
+   * credit margin rather than SOL.
    * After revoking, `setArNSRecord` keeps working: it simply starts returning
    * `awaiting-signature` so the owner signs their own record writes.
    */
