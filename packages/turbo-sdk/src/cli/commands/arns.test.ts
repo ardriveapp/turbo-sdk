@@ -142,6 +142,51 @@ class FakeTurbo
       messageId: 'm',
     } as never);
   }
+  addArNSController(params: unknown) {
+    return this.record('addArNSController', params, {
+      nonce: 'nonce-123',
+      action: 'add-controller',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  removeArNSController(params: unknown) {
+    return this.record('removeArNSController', params, {
+      nonce: 'nonce-123',
+      action: 'remove-controller',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  setArNSRecordMetadata(params: unknown) {
+    return this.record('setArNSRecordMetadata', params, {
+      nonce: 'nonce-123',
+      action: 'set-record-metadata',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  removeArNSRecordMetadata(params: unknown) {
+    return this.record('removeArNSRecordMetadata', params, {
+      nonce: 'nonce-123',
+      action: 'remove-record-metadata',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
+  transferArNSRecord(params: unknown) {
+    return this.record('transferArNSRecord', params, {
+      nonce: 'nonce-123',
+      action: 'transfer-record',
+      status: 'completed',
+      antId: 'ant-1',
+      messageId: 'm',
+    } as never);
+  }
 }
 
 // A fixed Solana key so the owner ADDRESS is stable across runs. The owner

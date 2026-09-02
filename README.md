@@ -1077,12 +1077,14 @@ const owner = {
 They are allowed to be different wallets, and routinely are: one account pays
 while another owns.
 
-### The nine sponsored actions
+### The twelve sponsored actions
 
 ```typescript
 const turbo = TurboFactory.authenticated({ privateKey: jwk });
 
-// Buy — the ONE signature in the whole lifecycle.
+// Buy — the ONE signature in the whole lifecycle. Grants Turbo controller
+// rights in this SAME transaction, which is why everything below needs no
+// signature of its own until you revoke it.
 const { antId, messageId } = await turbo.buyArNSName({
   name: 'my-name',
   owner,
@@ -1091,13 +1093,13 @@ const { antId, messageId } = await turbo.buyArNSName({
   onNonce: (nonce) => persist(nonce), // fires BEFORE the wallet prompt
 });
 
-// Lifecycle — no signature at all.
+// Lifecycle — no signature at all, spends ARIO.
 await turbo.extendArNSLease({ name: 'my-name', years: 2 });
 await turbo.upgradeArNSName({ name: 'my-name' });
 await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
 
-// Records — handled whichever shape the server picks. Costs credits (a small
-// margin), never SOL.
+// Records — a small flat/derived credits margin recovers the sponsored SOL
+// rent. Handled whichever shape the server picks.
 await turbo.setArNSRecord({
   antId,
   owner,
@@ -1107,28 +1109,65 @@ await turbo.setArNSRecord({
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 
-// Controllers and transfer — owner-signed. Cost credits, never SOL.
+// Record metadata — display name, logo, description, keywords. Same margin,
+// same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
+await turbo.setArNSRecordMetadata({
+  antId,
+  owner,
+  undername: '@',
+  displayName: 'My Docs',
+  recordDescription: null, // clear it
+});
+await turbo.removeArNSRecordMetadata({ antId, owner, undername: 'docs' });
+
+// Hand ONE record to another address — distinct from transferring the ANT.
+await turbo.transferArNSRecord({
+  antId,
+  owner,
+  undername: 'docs',
+  target: newOwnerAddress,
+});
+
+// Controllers and transfer — owner-signed, same flat/derived margin.
+// addArNSController is for RE-granting after a revoke, or granting some
+// OTHER address — Turbo already has it from the buy above.
 await turbo.addArNSController({ antId, owner }); // omit target => Turbo
 await turbo.removeArNSController({ antId, owner }); // the revoke
 await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 ```
 
-| Action                                                               | Costs credits | Owner signature             |
-| -------------------------------------------------------------------- | ------------- | --------------------------- |
-| `buyArNSName`                                                        | yes           | **always**, once            |
-| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit` | yes           | no                          |
-| `setArNSRecord` / `removeArNSRecord`                                 | no            | only after you revoke Turbo |
-| `addArNSController` / `removeArNSController` / `transferArNSAnt`     | no            | yes                         |
+| Action                                                                                                             | Costs credits                        | Owner signature             |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------- |
+| `buyArNSName`                                                                                                      | yes — ARIO purchase + ANT spawn rent | **always**, once            |
+| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit`                                               | yes — ARIO purchase                  | no                          |
+| `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
+| `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
 
-**Every action debits credits.** The four purchase actions pay for the name
-itself; the other eight carry a small margin covering the Solana fees and rent
-Turbo fronts. Record, controller and transfer actions used to be free — that
-changed, because a zero-cost action could be turned into value through the
-refund path. The customer still never needs SOL.
+Every action costs credits — gas sponsorship was never meant to be _free_
+sponsorship. The four purchase actions charge the ARIO cost (plus, for
+`buyArNSName`, a rent-derived surcharge for the ANT it mints); the other eight
+charge a small margin that recovers the Solana rent/fees Turbo fronts on your
+behalf, computed the same `max(rent-derived, flat floor)` way as the ANT spawn
+surcharge. Preview it before you pay:
+
+```typescript
+const { wincQty } = await turbo.getArNSActionPrice('remove-controller');
+```
+
+`getArNSActionPrice` covers the eight non-purchase actions, by their route
+name (`set-record`, `remove-record`, `set-record-metadata`,
+`remove-record-metadata`, `transfer-record`, `add-controller`,
+`remove-controller`, `transfer`) — use `getArNSPriceForName` for the four
+purchase actions instead, since their cost is dominated by the ARIO purchase,
+not this margin.
 
 `buyArNSName` grants Turbo controller rights **inside the same transaction you
-sign**, which is why `setArNSRecord` needs no transaction signature afterwards.
-Revoking is always available, and costs a small credit margin rather than SOL.
+sign** — the `add-controller(Turbo)` instruction rides along with the mint, so
+there is no separate step. That's why `setArNSRecord` and the rest complete in
+a single call immediately after buying, with no signature of their own.
+`addArNSController` is for re-granting after a revoke, or adding a different
+controller — not something you call after a fresh buy. Revoking is always
+available — but, like every other action here, not free of credits.
 
 ### Not covered — these still cost you SOL
 
@@ -1806,9 +1845,11 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
 
-All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. The write commands (`buy-arns-name`, `extend-arns-lease`, `increase-arns-undernames`, `upgrade-arns-name`, `transfer-arns-ant`, `set-arns-record`, `remove-arns-record`) require a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`); the read-only commands (`arns-price`, `arns-purchase-status`, `arns-fiat-quote`) do not.
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither.
 
 When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
+
+Every write command debits credits now — see [the pricing table](#the-twelve-sponsored-actions) for what each one charges. Preview the eight non-purchase commands' cost with `arns-action-price` before running them.
 
 ##### `arns-fiat-quote`
 
@@ -1997,6 +2038,108 @@ e.g:
 
 ```shell
 turbo remove-arns-record --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+```
+
+##### `set-arns-record-metadata`
+
+Set a record's display name, logo, description, or keywords on a Turbo-custodied ANT. This is RECORD-level metadata — distinct from the ANT's own name/ticker/description/keywords/logo, which is not sponsored. Fields are tri-state: pass `--display-name`/`--record-logo`/`--record-description`/`--record-keywords` to set a field, `--clear-*` to explicitly clear it, or omit both to leave it unchanged.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to set record metadata on
+- `--undername <undername>` - Undername record to set metadata on (defaults to `@`, the apex record)
+- `--display-name <displayName>` / `--clear-display-name`
+- `--record-logo <transactionId>` / `--clear-record-logo`
+- `--record-description <description>` / `--clear-record-description`
+- `--record-keywords <keywords...>` / `--clear-record-keywords`
+
+e.g:
+
+```shell
+turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
+  --display-name "My Docs" --record-keywords arweave permaweb \
+  --wallet-file ../path/to/my/wallet.json
+```
+
+```shell
+# Clear the description, leave everything else unchanged
+turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
+  --clear-record-description --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-record-metadata`
+
+Clear all of a record's metadata on a Turbo-custodied ANT.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to remove record metadata from
+- `--undername <undername>` - Undername record whose metadata to clear
+
+e.g:
+
+```shell
+turbo remove-arns-record-metadata --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+```
+
+##### `transfer-arns-record`
+
+Hand ONE record to another address — distinct from `transfer-arns-ant`, which hands over the whole ANT and every record on it.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID whose record to transfer
+- `--undername <undername>` - Undername record to transfer
+- `--target <address>` - Target Solana pubkey to transfer the record to
+
+e.g:
+
+```shell
+turbo transfer-arns-record --ant-id ant-123 --undername docs --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+```
+
+##### `add-arns-controller`
+
+Grant controller rights on a Turbo-custodied ANT. Owner-signed — changing an ANT's access control is an owner-only instruction. Not needed after a fresh `buy-arns-name`: the grant already rides in that same signed transaction. Use this to re-grant after a revoke, or to add a different address as controller.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to add a controller to
+- `--target <address>` - Solana pubkey to grant controller rights to (omit for Turbo itself, which is what makes `set-arns-record` a single call)
+
+e.g:
+
+```shell
+turbo add-arns-controller --ant-id ant-123 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-controller`
+
+Revoke controller rights on a Turbo-custodied ANT — the escape hatch that keeps "Turbo is not a custodian" honest. Always available, but not free of credits: after revoking, `set-arns-record` keeps working, it just starts requiring the owner's signature.
+
+Command Options:
+
+- `--ant-id <antId>` - ANT ID to remove a controller from
+- `--target <address>` - Solana pubkey to revoke (omit to revoke Turbo)
+
+e.g:
+
+```shell
+turbo remove-arns-controller --ant-id ant-123 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `arns-action-price`
+
+Preview the Turbo Credit price of one of the eight non-purchase actions, without creating it. Rejects the four ARIO-purchase actions (`buy-name`, `extend-lease`, `upgrade-name`, `increase-undername-limit`) — use `arns-price` for those instead, since their cost is dominated by the ARIO purchase, not this flat/derived margin. Needs no wallet.
+
+Command Options:
+
+- `--action <action>` - One of `set-record`, `remove-record`, `set-record-metadata`, `remove-record-metadata`, `transfer-record`, `add-controller`, `remove-controller`, `transfer`
+
+e.g:
+
+```shell
+turbo arns-action-price --action remove-controller --payment-url http://localhost:4001
 ```
 
 ## Turbo Credit Sharing
