@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 export * from './upload.js';
+export * from './folderIndex.js';
 export * from './payment.js';
 // The ANT-owner helpers. Without this the documented
 // `import { solanaOwnerSigner } from '@ardrive/turbo-sdk'` does not resolve.

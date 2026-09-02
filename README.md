@@ -30,6 +30,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [ANT custody: transfer & manage records](#ant-custody-transfer--manage-records)
   - [Listing owned names](#listing-owned-names)
   - [Error handling & retries](#error-handling--retries)
+  - [Buying a name with a credit card (fiat / Stripe)](#buying-a-name-with-a-credit-card-fiat--stripe)
   - [Dependency note (@solana/codecs)](#dependency-note-solanacodecs)
 - [Signers](#signers)
   - [Arweave](#arweave)
@@ -759,9 +760,9 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-#### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
+#### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions, folderIndex, manifestDataItemOpts })`
 
-Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
+Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default. The `folderIndex` is an optional [folder index](#incremental-folder-uploads) that skips files already on Arweave. The `manifestDataItemOpts` is an optional object that configures the manifest data item only, and defaults to `dataItemOpts`.
 
 ##### NodeJS Upload Folder
 
@@ -881,6 +882,193 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
   },
 });
 ```
+
+##### Incremental Folder Uploads
+
+An Arweave upload is permanent, so paying twice for byte identical files buys
+nothing. Pass a `folderIndex` and `uploadFolder` hashes every file, asks the
+index which of those files already have a data item on Arweave, and signs,
+uploads and pays for only the rest. The manifest is assembled from the ids that
+were already known plus the ids of whatever this run uploaded.
+
+```typescript
+import {
+  composeFolderIndex,
+  createChainFolderIndex,
+  createFileFolderIndex,
+} from '@ardrive/turbo-sdk/node';
+
+const folderIndex = composeFolderIndex([
+  // Fast local cache, kept outside the folder being uploaded.
+  createFileFolderIndex({ filePath: '.turbo/folder-index.jsonl' }),
+  // Fallback for a machine that has never deployed before, e.g. a CI runner.
+  // getPublicKey() is the one form every signer type can produce.
+  createChainFolderIndex({ owner: await turbo.signer.getPublicKey() }),
+]);
+
+const { manifest, manifestResponse, folderIndexSummary } =
+  await turbo.uploadFolder({
+    folderPath: path.join(__dirname, './dist'),
+    folderIndex,
+    // Deploy varying tags belong on the manifest, which is rewritten every time.
+    manifestDataItemOpts: {
+      tags: [{ name: 'Git-Commit', value: process.env.GITHUB_SHA }],
+    },
+  });
+
+console.log(folderIndexSummary);
+// { totalFiles: 143, uploadedFiles: 2, reusedFiles: 141, ... }
+```
+
+###### What a reused file is matched on
+
+An index key is `<sha-256 of the bytes>.<sha-256 of the tags>`, and both halves
+matter. Keying on the bytes alone would reuse a data item whose tags are not the
+ones you asked for: an empty `a.css` and an empty `b.js` hash identically, and
+sharing one item between them would serve JavaScript as `text/css`, which a
+browser refuses to execute. Covering the tags means **a reused data item is
+always exactly the data item this call would otherwise have created** — same
+bytes, same `Content-Type`, same `dataItemOpts` tags.
+
+Files uploaded with an index carry one extra tag, `File-SHA256`, holding the
+sha-256 of their own bytes. That tag is what `createChainFolderIndex` filters on.
+
+###### The trade-off this buys, and how you find out
+
+The corollary is a real cost cliff, so it is worth being blunt about. **A per
+file tag whose value changes between deploys changes every key, and re-uploads
+the whole folder at full price.** A commit sha, a build number or a timestamp in
+`dataItemOpts` means you never reuse anything, and the deploy still succeeds, so
+nothing about the run looks wrong except the bill.
+
+That is deliberate. The alternative — keying on bytes alone — reuses an item
+tagged with a _previous_ deploy's commit sha, so the tags on chain quietly stop
+describing what is on chain. A wrong bill is recoverable; a data item that lies
+about itself is permanent. So the index errs towards paying again.
+
+To keep the cliff from being silent, `uploadFolder` logs a warning when a file
+it is about to upload has bytes the index already holds **under a different set
+of tags**, which is what a deploy-varying per file tag looks like:
+
+```
+3 of the 3 file(s) this run is about to upload are already on Arweave byte for
+byte, under a different set of tags. Their content has not changed but their
+tags have, so they are being paid for again. A folder index key covers the tags
+on a file as well as its bytes. That is usually a tag in dataItemOpts whose
+value changes between deploys -- a commit sha, a build number, a timestamp -- in
+which case move it to manifestDataItemOpts rather than paying for these files
+again. It can also be a file that kept its content but changed its Content-Type,
+through a rename or a new extension, which is expected and costs one upload.
+```
+
+Very little else produces that signal: a folder the index has never seen has
+unknown bytes, and a layer that could not be reached reports nothing known, so
+neither triggers it. A file that kept its content but changed its Content-Type
+through a rename does trigger it, and the message says so. It also fires for one
+drifted file among a hundred reused ones, not only when everything misses. A
+layer that does not implement the optional `knownContentHashes` cannot answer
+the question and stays quiet. The fix, whenever it is a varying tag, is always
+the same: move it to `manifestDataItemOpts`, since the manifest is rewritten on
+every deploy anyway.
+
+###### Index layers
+
+| Layer                                              | Where it lives   | Survives a fresh checkout |
+| -------------------------------------------------- | ---------------- | ------------------------- |
+| `createMemoryFolderIndex(seed?)`                   | memory           | no                        |
+| `createFileFolderIndex({ filePath })` (NodeJS)     | a JSON lines log | only if the file is kept  |
+| `createChainFolderIndex({ owner, appName?, ... })` | gateway GraphQL  | yes                       |
+| `composeFolderIndex([...])`                        | layers the above | --                        |
+
+Reads fall through a composed index in order and writes go to every layer that
+is not `readOnly`, so an id recovered from the gateway is cached locally for the
+next run. **A layer that throws is skipped, not propagated** — a full disk under
+the file layer must not stop the memory layer from holding ids the run has
+already paid for, and an unreachable gateway must not stop the local cache from
+answering. Pass a `logger` as the second argument to `composeFolderIndex` to see
+which layer was skipped and why.
+
+`createFileFolderIndex` writes an append-only log, one JSON record per line,
+compacted when it is next loaded. It appends after every single upload rather
+than rewriting at the end of the run, so a deploy killed part way through never
+loses a file it has paid for — and appending is constant work per file, where
+rewriting the whole file per upload is quadratic and costs minutes and gigabytes
+of writes on a first deploy of a few thousand files. It is also the more crash
+safe shape: a process killed mid write can only damage the last line, which is
+dropped on load, where a torn rewrite loses every id in the file.
+
+An index is a cache. A `get` or `resolve` that throws is treated as a miss and
+logged — an unreachable gateway costs you a re-upload, it does not fail your
+deploy. Anything with `get` and `set` is a valid index, so implement
+`TurboFolderUploadIndex` to back one with a database, an object store, or a CI
+cache. Treat the keys as opaque.
+
+###### Telling a gateway whose uploads to sweep
+
+`createChainFolderIndex` needs the owner **a gateway indexes uploads under**,
+which is the base64url sha-256 of the signer's public key. Pass
+`await turbo.signer.getPublicKey()` and the SDK derives it, which works for
+every signer type.
+
+A bare string is deliberately rejected, because it cannot be disambiguated: a
+raw 32 byte ed25519 public key base64urls to exactly 43 characters, the same
+shape as an owner address, and guessing wrong means the sweep matches nothing
+and the whole folder is re-uploaded with no error at all. Say which one you
+have — `{ publicKey }` or `{ address }` — if you are not passing the bytes.
+
+An `0x...` Ethereum address or a base58 Solana address is not accepted, because
+`owners:` on a gateway does not match those. (Verified against `arweave.net`:
+`owners` matches the 43 character address and returns nothing for the raw public
+key, so the conversion has to happen client side.)
+
+###### Trust model
+
+The sweep is scoped to `owners: [your own address]`, so it can only ever find
+items you signed. Within that scope, `File-SHA256` is **self asserted** — it is
+a tag your own past uploads wrote, not something a gateway verifies against the
+bytes — and the index trusts it. That is safe for uploads this SDK made, since it
+only ever writes a hash it computed from the file in front of it.
+
+`uploadFolder` writes whichever tag the index it is given declares, so setting
+`hashTagName` moves both the tag that is written and the tag the sweep filters
+on, and the two cannot drift apart. Every layer in a `composeFolderIndex` stack
+that declares one has to declare the same one, or the call throws: one tag is
+written per file, so a stack that disagrees would leave whichever layer lost
+matching nothing, for ever, without an error.
+
+It stops being safe if you point `hashTagName` at a tag you were already using
+for something else. Any of your own past items carrying 64 hex characters under
+that name would be treated as a candidate, and one whose tag set happens to
+match would be reused — putting a manifest path in front of unrelated bytes. Use
+a name nothing else of yours writes.
+
+###### When the sweep runs out of pages
+
+A sweep can examine at most `pageSize * maxPages` items, 2,000 by default. A
+folder with more files than that, or a long enough deployment history, can
+therefore reach the page limit with files still unresolved — and those files are
+uploaded and paid for again while the summary reports them as ordinary new
+files. Pass a `logger` to `createChainFolderIndex` and it says so when this
+happens, naming how many files were left. Raise `maxPages` or `pageSize`, or put
+a `createFileFolderIndex` in front, and the sweep has less to find.
+
+###### In the browser
+
+`createMemoryFolderIndex`, `createChainFolderIndex` and `composeFolderIndex` all
+work in the browser. `createFileFolderIndex` is NodeJS only, since there is no
+filesystem to write to; persist the map yourself and seed
+`createMemoryFolderIndex` with it, or rely on the chain index.
+
+Note that hashing differs by platform. NodeJS streams each file through a
+`node:crypto` digest, so file size is not a concern. The browser has no streaming
+WebCrypto digest, so each `File` is buffered whole before it is hashed — a very
+large `File` can exhaust the tab.
+
+###### Known limitation
+
+A gateway indexes an upload minutes after it lands, so two machines deploying the
+same brand new file at the same moment can each pay for it once. Only the bill is
+affected, and only for genuinely new bytes -- the manifest is correct either way.
 
 #### `topUpWithTokens({ tokenAmount, feeMultiplier, turboCreditDestinationAddress })`
 
