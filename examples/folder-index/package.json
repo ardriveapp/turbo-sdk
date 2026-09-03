@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@ardrive/turbo-sdk": "alpha",
+    "arweave": "^1.15.1"
+  }
+}
