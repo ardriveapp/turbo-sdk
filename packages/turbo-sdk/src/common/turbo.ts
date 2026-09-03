@@ -504,7 +504,10 @@ export class TurboAuthenticatedClient
     return this.paymentService.upgradeArNSName(params);
   }
 
-  /** Point a name (or undername) at data. Free; handles both shapes. */
+  /**
+   * Point a name (or undername) at data. Debits a flat credits margin (Turbo
+   * pays the SOL); preview it with `getArNSActionPrice`. Handles both shapes.
+   */
   setArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
@@ -516,7 +519,10 @@ export class TurboAuthenticatedClient
     return this.paymentService.setArNSRecord(params);
   }
 
-  /** Remove a record. Free; handles both shapes. */
+  /**
+   * Remove a record. Debits a flat credits margin (Turbo pays the SOL);
+   * preview it with `getArNSActionPrice`. Handles both shapes.
+   */
   removeArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
@@ -548,8 +554,9 @@ export class TurboAuthenticatedClient
 
   /**
    * Edit a RECORD's metadata (display name, logo, description, keywords).
-   * Free; handles both shapes. Fields are tri-state — omit to leave unchanged,
-   * pass `null` to clear.
+   * Debits a flat credits margin (Turbo pays the SOL); preview it with
+   * `getArNSActionPrice`. Handles both shapes. Fields are tri-state — omit to
+   * leave unchanged, pass `null` to clear.
    */
   setArNSRecordMetadata(params: {
     antId: string;
