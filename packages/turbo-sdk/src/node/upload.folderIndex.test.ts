@@ -126,6 +126,56 @@ describe('uploadFolder with a folder index', () => {
     rmSync(folderPath, { recursive: true, force: true });
   });
 
+  /** Make one file's hash attempt fail, the way an unreadable file does. */
+  function failHashFor(service: TurboAuthenticatedUploadService, name: string) {
+    type Hasher = { computeContentHash: (f: string) => Promise<string> };
+    const real = (service as unknown as Hasher).computeContentHash.bind(
+      service,
+    );
+    (service as unknown as Hasher).computeContentHash = (file: string) =>
+      file.endsWith(name) ? Promise.reject(new Error('EACCES')) : real(file);
+  }
+
+  it('uploads the rest when one file cannot be hashed', async () => {
+    const { service, uploads } = stubbedUploadService();
+    const folderIndex = createMemoryFolderIndex();
+    failHashFor(service, 'app.js');
+
+    const result = await service.uploadFolder({ folderPath, folderIndex });
+
+    // Without an index this folder uploads all three and reports any failure
+    // per file. Passing an index must not turn one unreadable file into a
+    // rejected uploadFolder with no responses and no manifest.
+    assert.equal(uploads.length, 3);
+    assert.equal(result.fileResponses.length, 3);
+    assert.deepEqual(Object.keys(result.manifest?.paths ?? {}).sort(), [
+      'app.js',
+      'index.html',
+      'style.css',
+    ]);
+    // The unhashable file has no key, so it is never recorded as reusable.
+    assert.equal(Object.keys((await folderIndex.entries?.()) ?? {}).length, 2);
+  });
+
+  it('uploads every unhashable file, not just the first', async () => {
+    const { service, uploads } = stubbedUploadService();
+    const folderIndex = createMemoryFolderIndex();
+    failHashFor(service, '.js');
+    writeFileSync(join(folderPath, 'other.js'), 'console.log(2);');
+
+    const result = await service.uploadFolder({ folderPath, folderIndex });
+
+    // Un-keyed files must not share a dedup slot. Claiming `undefined` once
+    // would silently drop every unhashable file after the first.
+    assert.equal(uploads.length, 4);
+    assert.deepEqual(Object.keys(result.manifest?.paths ?? {}).sort(), [
+      'app.js',
+      'index.html',
+      'other.js',
+      'style.css',
+    ]);
+  });
+
   it('uploads every file on a first run and remembers each one', async () => {
     const { service, uploads } = stubbedUploadService();
     const folderIndex = createMemoryFolderIndex();

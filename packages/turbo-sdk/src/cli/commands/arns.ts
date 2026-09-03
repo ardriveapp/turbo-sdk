@@ -333,15 +333,21 @@ export async function arnsPrice(
   const params = arnsPriceParamsFromOptions(options);
   const client =
     turbo ?? TurboFactory.unauthenticated(configFromOptions(options));
-  const { winc, mARIO } = await client.getArNSPriceForName(params);
+  const { winc, wincTotal, antSpawnSurchargeWinc, mARIO } =
+    await client.getArNSPriceForName(params);
 
+  // `wincTotal` is the figure to pay. `winc` is the name only and excludes the
+  // ANT spawn surcharge, which for a Buy-Name can exceed the name's own price,
+  // so printing it as the price under-quotes what `buy-arns-name` then debits.
   console.log(
     JSON.stringify(
       {
         name: params.name,
         intent: params.intent,
-        winc,
-        credits: creditsFromWinc(winc),
+        wincTotal,
+        credits: creditsFromWinc(wincTotal),
+        nameOnlyWinc: winc,
+        antSpawnSurchargeWinc,
         mARIO,
       },
       null,
