@@ -885,6 +885,8 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 
 ##### Incremental Folder Uploads
 
+A runnable version of everything below is in [`examples/folder-index`](examples/folder-index/index.mjs): it deploys the same folder three times and prints what each run uploaded and reused.
+
 An Arweave upload is permanent, so paying twice for byte identical files buys
 nothing. Pass a `folderIndex` and `uploadFolder` hashes every file, asks the
 index which of those files already have a data item on Arweave, and signs,
