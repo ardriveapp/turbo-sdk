@@ -1243,11 +1243,14 @@ implement the interface directly rather than exposing a secret key:
 const owner = {
   getAddress: () => wallet.publicKey.toBase58(),
   signTransaction: async (txBase64) => {
+    // atob/btoa rather than Buffer: browsers do not provide Buffer unless the
+    // app polyfills it. The spread is safe here because a Solana transaction
+    // is capped at 1232 bytes.
     const tx = VersionedTransaction.deserialize(
-      Buffer.from(txBase64, 'base64'),
+      Uint8Array.from(atob(txBase64), (c) => c.charCodeAt(0)),
     );
     const signed = await wallet.signTransaction(tx);
-    return Buffer.from(signed.serialize()).toString('base64');
+    return btoa(String.fromCharCode(...signed.serialize()));
   },
   signMessage: (message) => wallet.signMessage(message),
 };
@@ -2029,9 +2032,9 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 #### ArNS Commands
 
-Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
+Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-action-status`. (`arns-purchase-status` reads a separate namespace, the one a fiat quote lands in.)
 
-All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither.
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither. `arns-action-status` reads nothing on-chain either, but takes a wallet because `getArNSActionStatus` lives on the authenticated client.
 
 When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
 
@@ -2176,6 +2179,23 @@ e.g:
 
 ```shell
 turbo arns-purchase-status --nonce 3f8c...e21 --payment-url http://localhost:4001
+```
+
+##### `arns-action-status`
+
+Status of a credit-paid ArNS action by its nonce: the four purchase actions and the eight non-purchase ones. This is the command the buy/extend/upgrade output points at.
+
+`arns-purchase-status` is a different namespace (`/arns/purchase/`), which is where a fiat quote's nonce lands. Passing an action nonce to it returns "Purchase status not found".
+
+Command Options:
+
+- `--nonce <nonce>` - ArNS action nonce to look up
+
+e.g:
+
+```shell
+turbo arns-action-status --nonce 3f8c...e21 \
+  --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `transfer-arns-ant`
