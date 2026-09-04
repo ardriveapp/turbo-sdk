@@ -2184,13 +2184,15 @@ Self-custody exit: transfer a Turbo-custodied ANT to a Solana public key you con
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
 - `--target <address>` - Target Solana pubkey to transfer the ANT to
 
 e.g:
 
 ```shell
-turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `set-arns-record`
@@ -2199,6 +2201,7 @@ Set a resolution record on a Turbo-custodied ANT.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to set a record on
 - `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
 - `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
@@ -2208,7 +2211,8 @@ e.g:
 
 ```shell
 turbo set-arns-record --ant-id ant-123 --undername docs \
-  --transaction-id A1b2...Xyz --ttl-seconds 900 --wallet-file ../path/to/my/wallet.json
+  --transaction-id A1b2...Xyz --ttl-seconds 900 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `remove-arns-record`
@@ -2217,13 +2221,15 @@ Remove a resolution record (undername) from a Turbo-custodied ANT.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a record from
 - `--undername <undername>` - Undername record to remove
 
 e.g:
 
 ```shell
-turbo remove-arns-record --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+turbo remove-arns-record --ant-id ant-123 --undername docs \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `set-arns-record-metadata`
@@ -2232,6 +2238,7 @@ Set a record's display name, logo, description, or keywords on a Turbo-custodied
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to set record metadata on
 - `--undername <undername>` - Undername record to set metadata on (defaults to `@`, the apex record)
 - `--display-name <displayName>` / `--clear-display-name`
@@ -2244,13 +2251,14 @@ e.g:
 ```shell
 turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
   --display-name "My Docs" --record-keywords arweave permaweb \
-  --wallet-file ../path/to/my/wallet.json
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ```shell
 # Clear the description, leave everything else unchanged
 turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
-  --clear-record-description --wallet-file ../path/to/my/wallet.json
+  --clear-record-description \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `remove-arns-record-metadata`
@@ -2259,13 +2267,15 @@ Clear all of a record's metadata on a Turbo-custodied ANT.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove record metadata from
 - `--undername <undername>` - Undername record whose metadata to clear
 
 e.g:
 
 ```shell
-turbo remove-arns-record-metadata --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+turbo remove-arns-record-metadata --ant-id ant-123 --undername docs \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `transfer-arns-record`
@@ -2274,6 +2284,7 @@ Hand ONE record to another address — distinct from `transfer-arns-ant`, which 
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID whose record to transfer
 - `--undername <undername>` - Undername record to transfer
 - `--target <address>` - Target Solana pubkey to transfer the record to
@@ -2281,7 +2292,8 @@ Command Options:
 e.g:
 
 ```shell
-turbo transfer-arns-record --ant-id ant-123 --undername docs --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+turbo transfer-arns-record --ant-id ant-123 --undername docs --target 7xKX...gAsU \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `add-arns-controller`
@@ -2290,13 +2302,15 @@ Grant controller rights on a Turbo-custodied ANT. Owner-signed — changing an A
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to add a controller to
 - `--target <address>` - Solana pubkey to grant controller rights to (omit for Turbo itself, which is what makes `set-arns-record` a single call)
 
 e.g:
 
 ```shell
-turbo add-arns-controller --ant-id ant-123 --wallet-file ../path/to/my/wallet.json
+turbo add-arns-controller --ant-id ant-123 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `remove-arns-controller`
@@ -2305,13 +2319,15 @@ Revoke controller rights on a Turbo-custodied ANT — the escape hatch that keep
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a controller from
 - `--target <address>` - Solana pubkey to revoke (omit to revoke Turbo)
 
 e.g:
 
 ```shell
-turbo remove-arns-controller --ant-id ant-123 --wallet-file ../path/to/my/wallet.json
+turbo remove-arns-controller --ant-id ant-123 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `arns-action-price`
