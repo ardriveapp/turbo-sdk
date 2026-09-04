@@ -422,6 +422,8 @@ export const upgradeArNSNameOptions = [
 
 export const arnsPurchaseStatusOptions = [optionMap.arnsNonce];
 
+export const arnsActionStatusOptions = [...walletOptions, optionMap.arnsNonce];
+
 export const transferArNSAntOptions = [
   ...walletOptions,
   optionMap.arnsOwnerKey,

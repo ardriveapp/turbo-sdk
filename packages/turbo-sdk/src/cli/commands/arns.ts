@@ -29,7 +29,11 @@ import {
   Currency,
   arNSActions,
 } from '../../types.js';
-import { ArNSActionCompleted, ArNSOwnerSigner } from '../../types.js';
+import {
+  ArNSActionCompleted,
+  ArNSActionResult,
+  ArNSOwnerSigner,
+} from '../../types.js';
 import {
   FiatPaymentsDisabledError,
   InsufficientCreditsError,
@@ -38,6 +42,7 @@ import { wincPerCredit } from '../constants.js';
 import {
   AddArNSControllerOptions,
   ArNSActionPriceOptions,
+  ArNSActionStatusOptions,
   ArNSFiatQuoteOptions,
   ArNSPriceOptions,
   ArNSPurchaseOptions,
@@ -81,6 +86,11 @@ export type ArNSStatusClient = {
   getArNSPurchaseStatus(p: {
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse>;
+};
+export type ArNSActionStatusClient = {
+  getArNSActionStatus(
+    nonce: string,
+  ): Promise<ArNSActionResult & { failedDate?: string }>;
 };
 export type ArNSPurchaseClient = {
   buyArNSName(params: {
@@ -219,7 +229,16 @@ export function actionFromOptions(options: { action?: string }): ArNSAction {
 function metadataFieldFromOptions<T>(
   value: T | undefined,
   clear: boolean,
+  flag: string,
 ): T | null | undefined {
+  // Commander registers each value flag and its --clear-* partner separately, so
+  // it accepts both. Silently letting the clear win would discard a value the
+  // caller explicitly passed.
+  if (clear && value !== undefined) {
+    throw new Error(
+      `Cannot pass both --${flag} and --clear-${flag}. Pass one: the value to set it, or the clear flag to unset it.`,
+    );
+  }
   return clear ? null : value;
 }
 
@@ -292,13 +311,17 @@ function creditsFromWinc(winc: string): string {
 }
 
 /** Rethrow a 402 as a clear, actionable "top up" message. */
-async function withCreditErrorMapping<T>(fn: () => Promise<T>): Promise<T> {
+/**
+ * Takes the promise rather than a thunk: wrapping the call in a closure would
+ * discard the `undefined` narrowing each handler's guard clauses establish.
+ */
+async function withCreditErrorMapping<T>(promise: Promise<T>): Promise<T> {
   try {
-    return await fn();
+    return await promise;
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       throw new Error(
-        'Insufficient Turbo credits to complete this ArNS purchase. ' +
+        'Insufficient Turbo credits to complete this ArNS action. ' +
           'Top up your balance (e.g. `turbo top-up` or `turbo crypto-fund`) and retry.',
       );
     }
@@ -321,8 +344,11 @@ function logPurchaseResult(action: string, result: ArNSActionCompleted): void {
       2,
     ),
   );
+  // Credit-paid buys go through the actions API, so the nonce lives in the
+  // action namespace. `arns-purchase-status` reads `/arns/purchase/`, a
+  // separate namespace that answers "Purchase status not found" for this nonce.
   console.log(
-    `\nTrack this purchase with:\n  turbo arns-purchase-status --nonce ${result.nonce}`,
+    `\nTrack this with:\n  turbo arns-action-status --nonce ${result.nonce}`,
   );
 }
 
@@ -444,7 +470,7 @@ export async function buyArNSName(
   const owner = ownerFromOptions(options);
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await withCreditErrorMapping(() =>
+  const result = await withCreditErrorMapping(
     type === 'lease'
       ? client.buyArNSName({
           name,
@@ -468,7 +494,7 @@ export async function extendArNSLease(
   const paidBy = paidByFromArNSOptions(options.paidBy);
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await withCreditErrorMapping(() =>
+  const result = await withCreditErrorMapping(
     client.extendArNSLease({ name, years, paidBy }),
   );
 
@@ -487,7 +513,7 @@ export async function increaseArNSUndernames(
   const paidBy = paidByFromArNSOptions(options.paidBy);
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await withCreditErrorMapping(() =>
+  const result = await withCreditErrorMapping(
     client.increaseArNSUndernameLimit({ name, increaseQty, paidBy }),
   );
 
@@ -502,7 +528,7 @@ export async function upgradeArNSName(
   const paidBy = paidByFromArNSOptions(options.paidBy);
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await withCreditErrorMapping(() =>
+  const result = await withCreditErrorMapping(
     client.upgradeArNSName({ name, paidBy }),
   );
 
@@ -530,6 +556,34 @@ export async function arnsPurchaseStatus(
   console.log(JSON.stringify({ state, ...status }, null, 2));
 }
 
+/**
+ * Status of a credit-paid ArNS action (buy, extend, upgrade, increase, and the
+ * eight non-purchase actions). Distinct from `arns-purchase-status`, which
+ * reads the `/arns/purchase/` namespace that fiat quotes land in.
+ *
+ * Authenticated because `getArNSActionStatus` lives on the authenticated
+ * client, though the route itself needs no signature.
+ */
+export async function arnsActionStatus(
+  options: ArNSActionStatusOptions,
+  turbo?: ArNSActionStatusClient,
+): Promise<void> {
+  if (options.nonce === undefined || options.nonce.length === 0) {
+    throw new Error('Must provide a --nonce to look up action status');
+  }
+  const client = turbo ?? (await turboFromOptions(options));
+  const status = await client.getArNSActionStatus(options.nonce);
+
+  const state =
+    status.failedDate !== undefined
+      ? 'failed'
+      : status.messageId
+      ? 'success'
+      : 'pending';
+
+  console.log(JSON.stringify({ state, ...status }, null, 2));
+}
+
 export async function transferArNSAnt(
   options: TransferArNSAntOptions,
   turbo?: ArNSCustodyClient,
@@ -542,11 +596,13 @@ export async function transferArNSAnt(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.transferArNSAnt({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    target: options.target,
-  });
+  const result = await withCreditErrorMapping(
+    client.transferArNSAnt({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      target: options.target,
+    }),
+  );
 
   console.log(
     JSON.stringify({ message: 'ANT transfer submitted!', ...result }, null, 2),
@@ -566,13 +622,15 @@ export async function setArNSRecord(
   const ttlSeconds = positiveIntFromOption(options.ttlSeconds, '--ttl-seconds');
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.setArNSRecord({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    undername: options.undername ?? '@',
-    transactionId: options.transactionId,
-    ttlSeconds,
-  });
+  const result = await withCreditErrorMapping(
+    client.setArNSRecord({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      undername: options.undername ?? '@',
+      transactionId: options.transactionId,
+      ttlSeconds,
+    }),
+  );
 
   console.log(
     JSON.stringify({ message: 'ArNS record set!', ...result }, null, 2),
@@ -591,11 +649,13 @@ export async function removeArNSRecord(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.removeArNSRecord({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    undername: options.undername,
-  });
+  const result = await withCreditErrorMapping(
+    client.removeArNSRecord({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      undername: options.undername,
+    }),
+  );
 
   console.log(
     JSON.stringify({ message: 'ArNS record removed!', ...result }, null, 2),
@@ -611,11 +671,13 @@ export async function addArNSController(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.addArNSController({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    target: options.target,
-  });
+  const result = await withCreditErrorMapping(
+    client.addArNSController({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      target: options.target,
+    }),
+  );
 
   console.log(
     JSON.stringify({ message: 'ArNS controller added!', ...result }, null, 2),
@@ -631,11 +693,13 @@ export async function removeArNSController(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.removeArNSController({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    target: options.target,
-  });
+  const result = await withCreditErrorMapping(
+    client.removeArNSController({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      target: options.target,
+    }),
+  );
 
   console.log(
     JSON.stringify({ message: 'ArNS controller removed!', ...result }, null, 2),
@@ -659,12 +723,14 @@ export async function transferArNSRecord(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.transferArNSRecord({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    undername: options.undername,
-    target: options.target,
-  });
+  const result = await withCreditErrorMapping(
+    client.transferArNSRecord({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      undername: options.undername,
+      target: options.target,
+    }),
+  );
 
   console.log(
     JSON.stringify({ message: 'ArNS record transferred!', ...result }, null, 2),
@@ -680,27 +746,33 @@ export async function setArNSRecordMetadata(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.setArNSRecordMetadata({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    undername: options.undername ?? '@',
-    displayName: metadataFieldFromOptions(
-      options.displayName,
-      options.clearDisplayName,
-    ),
-    recordLogo: metadataFieldFromOptions(
-      options.recordLogo,
-      options.clearRecordLogo,
-    ),
-    recordDescription: metadataFieldFromOptions(
-      options.recordDescription,
-      options.clearRecordDescription,
-    ),
-    recordKeywords: metadataFieldFromOptions(
-      options.recordKeywords,
-      options.clearRecordKeywords,
-    ),
-  });
+  const result = await withCreditErrorMapping(
+    client.setArNSRecordMetadata({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      undername: options.undername ?? '@',
+      displayName: metadataFieldFromOptions(
+        options.displayName,
+        options.clearDisplayName,
+        'display-name',
+      ),
+      recordLogo: metadataFieldFromOptions(
+        options.recordLogo,
+        options.clearRecordLogo,
+        'record-logo',
+      ),
+      recordDescription: metadataFieldFromOptions(
+        options.recordDescription,
+        options.clearRecordDescription,
+        'record-description',
+      ),
+      recordKeywords: metadataFieldFromOptions(
+        options.recordKeywords,
+        options.clearRecordKeywords,
+        'record-keywords',
+      ),
+    }),
+  );
 
   console.log(
     JSON.stringify(
@@ -723,11 +795,13 @@ export async function removeArNSRecordMetadata(
   }
 
   const client = turbo ?? (await turboFromOptions(options));
-  const result = await client.removeArNSRecordMetadata({
-    antId: options.antId,
-    owner: ownerFromOptions(options),
-    undername: options.undername,
-  });
+  const result = await withCreditErrorMapping(
+    client.removeArNSRecordMetadata({
+      antId: options.antId,
+      owner: ownerFromOptions(options),
+      undername: options.undername,
+    }),
+  );
 
   console.log(
     JSON.stringify(
