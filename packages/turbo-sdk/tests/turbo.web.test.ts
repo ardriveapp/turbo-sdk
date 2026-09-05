@@ -38,6 +38,7 @@ import {
   mineArLocalBlock,
   sendFundTransaction,
   solanaUrlString,
+  stripeTestOptions,
   testArweave,
   testArweaveNativeB64Address,
   testEthAddressBase64,
@@ -424,7 +425,37 @@ describe('Browser environment', () => {
       });
 
       describe('createCheckoutSession()', () => {
-        it('should properly get a checkout session', async () => {
+        it(
+          'should properly get a checkout session',
+          stripeTestOptions,
+          async () => {
+            const {
+              adjustments,
+              paymentAmount,
+              quotedPaymentAmount,
+              url,
+              id,
+              client_secret,
+              winc,
+            } = await turbo.createCheckoutSession({
+              amount: USD(10),
+              owner: '43-character-stub-arweave-address-000000000',
+            });
+            assert.deepEqual(adjustments, []);
+            assert.equal(paymentAmount, 1000);
+            assert.equal(quotedPaymentAmount, 1000);
+            assert.ok(typeof url === 'string');
+            assert.ok(typeof id === 'string');
+            assert.equal(client_secret, undefined);
+            assert.ok(typeof winc === 'string');
+          },
+        );
+      });
+
+      it(
+        'should properly get a checkout session with a embedded ui mode',
+        stripeTestOptions,
+        async () => {
           const {
             adjustments,
             paymentAmount,
@@ -434,41 +465,19 @@ describe('Browser environment', () => {
             client_secret,
             winc,
           } = await turbo.createCheckoutSession({
-            amount: USD(10),
+            amount: USD(20),
             owner: '43-character-stub-arweave-address-000000000',
+            uiMode: 'embedded',
           });
           assert.deepEqual(adjustments, []);
-          assert.equal(paymentAmount, 1000);
-          assert.equal(quotedPaymentAmount, 1000);
-          assert.ok(typeof url === 'string');
+          assert.equal(paymentAmount, 2000);
+          assert.equal(quotedPaymentAmount, 2000);
+          assert.equal(url, undefined);
           assert.ok(typeof id === 'string');
-          assert.equal(client_secret, undefined);
+          assert.ok(typeof client_secret === 'string');
           assert.ok(typeof winc === 'string');
-        });
-      });
-
-      it('should properly get a checkout session with a embedded ui mode', async () => {
-        const {
-          adjustments,
-          paymentAmount,
-          quotedPaymentAmount,
-          url,
-          id,
-          client_secret,
-          winc,
-        } = await turbo.createCheckoutSession({
-          amount: USD(20),
-          owner: '43-character-stub-arweave-address-000000000',
-          uiMode: 'embedded',
-        });
-        assert.deepEqual(adjustments, []);
-        assert.equal(paymentAmount, 2000);
-        assert.equal(quotedPaymentAmount, 2000);
-        assert.equal(url, undefined);
-        assert.ok(typeof id === 'string');
-        assert.ok(typeof client_secret === 'string');
-        assert.ok(typeof winc === 'string');
-      });
+        },
+      );
     });
 
     describe('submitFundTransaction()', () => {

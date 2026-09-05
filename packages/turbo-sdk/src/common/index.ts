@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 export * from './upload.js';
+export * from './folderIndex.js';
 export * from './payment.js';
+// The ANT-owner helpers. Without this the documented
+// `import { solanaOwnerSigner } from '@ardrive/turbo-sdk'` does not resolve.
+export * from './arnsActions.js';
 export * from './turbo.js';
 export * from './currency.js';
 export * from './token/index.js';
+// Typed errors so consumers can `catch (e) { if (e instanceof InsufficientCreditsError) ... }`
+// e.g. to prompt a top-up on a 402 ArNS purchase.
+export * from '../utils/errors.js';

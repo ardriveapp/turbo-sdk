@@ -37,6 +37,11 @@ export type AddressOptions = WalletOptions & {
   address: string | undefined;
 };
 
+export type PaymentHistoryOptions = WalletOptions & {
+  limit: string | undefined;
+  cursor: string | undefined;
+};
+
 export type TopUpOptions = AddressOptions & {
   value: string | undefined;
   currency: string | undefined;
@@ -103,3 +108,101 @@ export type RevokeCreditsOptions = WalletOptions & {
 };
 
 export type ListSharesOptions = RevokeCreditsOptions;
+
+// ---- ArNS CLI options ----
+
+export type ArNSPriceOptions = GlobalOptions & {
+  name: string | undefined;
+  type: string | undefined;
+  years: string | undefined;
+  increaseQty: string | undefined;
+  processId: string | undefined;
+};
+
+export type ArNSFiatQuoteOptions = ArNSPriceOptions & {
+  address: string | undefined;
+  currency: string | undefined;
+  method: string | undefined;
+  promoCode: string[] | undefined;
+};
+
+/** Base58 Solana secret key that will OWN the ANT — separate from the payer. */
+export type ArNSOwnerKeyOption = { ownerKey?: string };
+
+export type ArNSPurchaseOptions = ArNSOwnerKeyOption &
+  WalletOptions &
+  ArNSPriceOptions & {
+    paidBy: string[] | undefined;
+  };
+
+export type ArNSPurchaseStatusOptions = GlobalOptions & {
+  nonce: string | undefined;
+};
+
+/**
+ * Authenticated, unlike `ArNSPurchaseStatusOptions`: `getArNSActionStatus`
+ * lives on the authenticated client even though the route needs no signature.
+ */
+export type ArNSActionStatusOptions = WalletOptions & {
+  nonce: string | undefined;
+};
+
+export type TransferArNSAntOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    target: string | undefined;
+  };
+
+export type SetArNSRecordOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+    transactionId: string | undefined;
+    ttlSeconds: string | undefined;
+  };
+
+export type RemoveArNSRecordOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+  };
+
+export type AddArNSControllerOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    target: string | undefined;
+  };
+
+export type RemoveArNSControllerOptions = AddArNSControllerOptions;
+
+export type TransferArNSRecordOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+    target: string | undefined;
+  };
+
+export type SetArNSRecordMetadataOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+    displayName: string | undefined;
+    clearDisplayName: boolean;
+    recordLogo: string | undefined;
+    clearRecordLogo: boolean;
+    recordDescription: string | undefined;
+    clearRecordDescription: boolean;
+    recordKeywords: string[] | undefined;
+    clearRecordKeywords: boolean;
+  };
+
+export type RemoveArNSRecordMetadataOptions = ArNSOwnerKeyOption &
+  WalletOptions & {
+    antId: string | undefined;
+    undername: string | undefined;
+  };
+
+/** `--action` names one of the eight non-purchase actions to price. */
+export type ArNSActionPriceOptions = GlobalOptions & {
+  action: string | undefined;
+};

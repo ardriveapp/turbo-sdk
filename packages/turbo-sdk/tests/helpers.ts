@@ -213,3 +213,28 @@ export async function delayedBlockMining(
     blocksMined++;
   }
 }
+
+/**
+ * Stripe-backed tests need a real key, and skipping them without one is honest
+ * rather than lenient: the payment service cannot create a session at all, so
+ * there is nothing left to assert.
+ *
+ * `docker-compose.yml` defaults `STRIPE_SECRET_KEY` to the literal
+ * `secret-key`, which Stripe rejects with "Invalid API Key provided", and
+ * GitHub does not pass repository secrets to a workflow triggered by a pull
+ * request from a fork. Approving the run does not change that. So on every fork
+ * PR these tests fail for a reason the contributor can neither see nor fix, and
+ * they take the whole integration job red with them.
+ *
+ * Any run that has a real key still executes them: every same-repo pull
+ * request, and every run on `alpha` and `main`.
+ */
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+export const stripeTestOptions: { skip?: string } =
+  stripeSecretKey === undefined ||
+  stripeSecretKey === '' ||
+  stripeSecretKey === 'secret-key'
+    ? {
+        skip: 'no usable STRIPE_SECRET_KEY, so the payment service cannot create a Stripe session',
+      }
+    : {};

@@ -34,7 +34,7 @@ import { computeAddress } from 'ethers';
 import nacl from 'tweetnacl';
 import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import { Signer as x402Signer } from 'x402-fetch';
 
 import {
@@ -47,6 +47,7 @@ import {
   TurboFileFactory,
   TurboLogger,
   TurboSignedDataItemFactory,
+  TurboSignedRequestHeaders,
   TurboSigner,
   WalletAdapter,
   isEthereumWalletAdapter,
@@ -103,7 +104,6 @@ export abstract class TurboDataItemAbstractSigner
       case 'base-eth':
       case 'usdc':
       case 'base-usdc':
-      case 'base-ario':
       case 'polygon-usdc':
         return computeAddress(computePublicKey(fromB64Url(owner)));
 
@@ -124,15 +124,28 @@ export abstract class TurboDataItemAbstractSigner
     }
   }
 
-  public async generateSignedRequestHeaders() {
-    const nonce = randomBytes(16).toString('hex');
-    const buffer = Buffer.from(nonce);
+  public async generateSignedRequestHeaders(
+    // Callers may supply the nonce (e.g. a UUID required by some routes); the
+    // nonce round-trips to the service in `x-nonce` unchanged.
+    nonce: string = randomBytes(16).toString('hex'),
+    // Optional ACTION-BINDING data prepended to the nonce for SIGNING only (not
+    // sent): the service reconstructs the same string from the request and
+    // verifies the signature over `additionalData + nonce`. This binds the
+    // signature to a specific operation + params so it can't be replayed against
+    // a different request. Omitted → signs the bare nonce (unchanged behavior).
+    additionalData?: string,
+  ): Promise<TurboSignedRequestHeaders> {
+    const buffer = Buffer.from((additionalData ?? '') + nonce);
     const signature = await this.signer.sign(Uint8Array.from(buffer));
     const publicKey = toB64Url(this.signer.publicKey);
     return {
       'x-public-key': publicKey,
       'x-nonce': nonce,
       'x-signature': toB64Url(Buffer.from(signature)),
+      // Advertise the signature scheme so the service verifies with the right
+      // algorithm. Absent this, the server defaults to Arweave and every
+      // non-Arweave signed request (Ethereum, Solana, …) fails verification.
+      'x-signature-type': this.signer.signatureType.toString(),
     };
   }
 
@@ -258,6 +271,16 @@ export abstract class TurboDataItemAbstractSigner
   }
 }
 
+/**
+ * Builds the wallet client x402-fetch signs payment authorizations with.
+ *
+ * The chain matters because `wrapFetchWithPayment` maps `walletClient.chain.id`
+ * to a network name and prefers the matching entry in the service's `accepts`
+ * list. The upload service advertises Base mainnet (`base`), and x402 support
+ * here is limited to `base-usdc`, so mainnet is the correct default. Callers
+ * needing another network can supply their own signer via
+ * `X402Funding({ signer })`.
+ */
 export async function makeX402Signer(
   arbundlesSigner: ArbundleSigner,
 ): Promise<x402Signer> {
@@ -268,7 +291,7 @@ export async function makeX402Signer(
         ('0x' +
           Buffer.from(arbundlesSigner.key).toString('hex')) as `0x${string}`,
       ),
-      chain: baseSepolia,
+      chain: base,
       transport: http(),
     }) as unknown as x402Signer;
   }
@@ -292,7 +315,7 @@ export async function makeX402Signer(
 
     return createWalletClient({
       account,
-      chain: baseSepolia,
+      chain: base,
       transport: custom(provider),
     }) as unknown as x402Signer;
   }

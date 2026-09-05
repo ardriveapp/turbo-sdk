@@ -48,6 +48,19 @@ const defaultHeaders = {
   'x-turbo-source-identifier': 'turbo-sdk',
 };
 
+/**
+ * Canonical x402 upload routes on the upload service.
+ *
+ * These were previously `/x402/data-item/{signed,unsigned}`. The service
+ * renamed them to `/x402/upload/*` and kept a `data-item/signed` alias, but not
+ * a `data-item/unsigned` one — so every unsigned x402 upload 404ed. Both
+ * canonical paths are served by all released upload-service versions.
+ */
+export const x402UploadEndpoints = {
+  signed: '/x402/upload/signed',
+  unsigned: '/x402/upload/unsigned',
+} as const;
+
 export class TurboHTTPService implements TurboHTTPServiceInterface {
   protected baseURL: string;
   protected logger: TurboLogger;
@@ -72,12 +85,51 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     signal,
     allowedStatuses = [200, 202],
     headers,
+    x402Options,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    /**
+     * Pay for this GET with x402. Used by the chunked uploader's create call,
+     * which the bundler answers with a 402 because a multipart upload is paid
+     * for BEFORE any chunk is accepted.
+     *
+     * Delegates to the same `wrapFetchWithPayment` the POST path uses, so the
+     * signer, the spend cap and the retry semantics are identical rather than
+     * a second implementation that can drift.
+     */
+    x402Options?: X402RequestCredentials;
   }): Promise<T> {
+    if (x402Options !== undefined) {
+      const maxMUSDCAmount =
+        x402Options.maxMUSDCAmount !== undefined
+          ? BigInt(x402Options.maxMUSDCAmount.toString())
+          : undefined;
+      const fetchWithPay = wrapFetchWithPayment(
+        fetch,
+        x402Options.signer,
+        maxMUSDCAmount,
+      );
+      return this.tryRequest(
+        async () =>
+          fetchWithPay(this.baseURL + endpoint, {
+            method: 'GET',
+            // This GET is not a read: it settles a payment and returns the
+            // resulting upload id. Nothing between here and the service may
+            // store or replay that response. Sent as a header rather than the
+            // `cache` init option, which undici does not honour consistently.
+            headers: {
+              ...defaultHeaders,
+              ...headers,
+              'Cache-Control': 'no-store',
+            },
+            signal,
+          }),
+        allowedStatuses,
+      ) as Promise<T>;
+    }
     return this.withRetry<T>(
       () =>
         fetch(this.baseURL + endpoint, {
@@ -96,6 +148,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers,
     data,
     x402Options,
+    retry = true,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
@@ -103,6 +156,10 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     data: Readable | Buffer | ReadableStream | Uint8Array;
     x402Options?: X402RequestCredentials;
+    // See TurboHTTPServiceInterface.post — false disables auto-retry for
+    // non-idempotent signed writes (a retried-but-already-landed write would
+    // otherwise surface a false "already exists"/"nonce used" failure).
+    retry?: boolean;
   }): Promise<T> {
     if (x402Options !== undefined) {
       return this.x402Post({
@@ -117,11 +174,13 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     // Convert all data types to fetch-compatible body
     const { body, duplex } = await toFetchBody(data);
 
-    // Use retry for Buffer/Uint8Array, tryRequest for streams
+    // Use retry for Buffer/Uint8Array, tryRequest for streams. Callers can opt
+    // out of retry for non-idempotent signed writes via `retry: false`.
     const isReusableData = data instanceof Buffer || data instanceof Uint8Array;
-    const requestFn = isReusableData
-      ? this.withRetry.bind(this)
-      : this.tryRequest.bind(this);
+    const requestFn =
+      isReusableData && retry
+        ? this.withRetry.bind(this)
+        : this.tryRequest.bind(this);
 
     return requestFn(
       () =>
@@ -216,8 +275,9 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     data: Readable | Buffer | ReadableStream | Uint8Array;
     x402Options: X402RequestCredentials;
   }): Promise<T> {
-    const endpoint =
-      '/x402/data-item/' + (x402Options.unsignedData ? 'unsigned' : 'signed');
+    const endpoint = x402Options.unsignedData
+      ? x402UploadEndpoints.unsigned
+      : x402UploadEndpoints.signed;
 
     this.logger.debug('Using X402 options for POST request', {
       endpoint,

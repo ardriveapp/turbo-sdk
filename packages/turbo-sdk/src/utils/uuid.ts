@@ -13,13 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { randomBytes } from 'crypto';
 
-export * from './arns.js';
-export * from './balance.js';
-export * from './cryptoFund.js';
-export * from './freeStatus.js';
-export * from './paymentHistory.js';
-export * from './price.js';
-export * from './topUp.js';
-export * from './uploadFile.js';
-export * from './uploadFolder.js';
+/**
+ * RFC 4122 version 4 UUID, derived from `randomBytes` (already used across the
+ * SDK in both the node and web builds). Avoids depending on
+ * `crypto.randomUUID`, whose availability varies by runtime/polyfill.
+ */
+export function uuidV4(): string {
+  const bytes = randomBytes(16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = bytes.toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(
+    12,
+    16,
+  )}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
