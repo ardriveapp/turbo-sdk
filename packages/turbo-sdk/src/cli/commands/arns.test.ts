@@ -23,18 +23,22 @@ import {
   InsufficientCreditsError,
 } from '../../utils/errors.js';
 import {
+  ArNSActionStatusOptions,
   ArNSPriceOptions,
   ArNSPurchaseOptions,
   ArNSPurchaseStatusOptions,
   RemoveArNSRecordOptions,
+  SetArNSRecordMetadataOptions,
   SetArNSRecordOptions,
   TransferArNSAntOptions,
 } from '../types.js';
 import {
+  ArNSActionStatusClient,
   ArNSCustodyClient,
   ArNSPriceClient,
   ArNSPurchaseClient,
   ArNSStatusClient,
+  arnsActionStatus,
   arnsFiatQuote,
   arnsPrice,
   arnsPriceParamsFromOptions,
@@ -44,6 +48,7 @@ import {
   increaseArNSUndernames,
   removeArNSRecord,
   setArNSRecord,
+  setArNSRecordMetadata,
   transferArNSAnt,
   upgradeArNSName,
 } from './arns.js';
@@ -55,7 +60,8 @@ class FakeTurbo
     ArNSPriceClient,
     ArNSStatusClient,
     ArNSPurchaseClient,
-    ArNSCustodyClient
+    ArNSCustodyClient,
+    ArNSActionStatusClient
 {
   public calls: { method: string; params: unknown }[] = [];
   public error: unknown = undefined;
@@ -164,6 +170,14 @@ class FakeTurbo
       antId: 'ant-1',
       messageId: 'm',
     } as never);
+  }
+  getArNSActionStatus(nonce: string) {
+    return this.record('getArNSActionStatus', nonce, {
+      nonce,
+      action: 'buy-name' as const,
+      status: 'completed' as const,
+      messageId: 'msg-1',
+    });
   }
   setArNSRecordMetadata(params: unknown) {
     return this.record('setArNSRecordMetadata', params, {
@@ -525,6 +539,57 @@ describe('ArNS CLI commands', () => {
             turbo,
           ),
         /nonce/,
+      );
+    });
+  });
+
+  describe('arnsActionStatus', () => {
+    it('reads the action namespace, not the purchase namespace', async () => {
+      await arnsActionStatus(
+        { token: 'arweave', nonce: 'nonce-123' } as ArNSActionStatusOptions,
+        turbo,
+      );
+      // A credit-paid buy returns an ACTION nonce. Looking it up through
+      // getArNSPurchaseStatus hits /arns/purchase/, a separate namespace that
+      // answers "Purchase status not found".
+      assert.equal(turbo.last.method, 'getArNSActionStatus');
+      assert.equal(turbo.last.params, 'nonce-123');
+    });
+
+    it('requires a --nonce', async () => {
+      await assert.rejects(
+        () =>
+          arnsActionStatus(
+            { token: 'arweave' } as ArNSActionStatusOptions,
+            turbo,
+          ),
+        /nonce/,
+      );
+    });
+  });
+
+  describe('setArNSRecordMetadata option conflicts', () => {
+    it('rejects a value and its --clear- partner together', async () => {
+      await assert.rejects(
+        () =>
+          setArNSRecordMetadata(
+            {
+              token: 'arweave',
+              antId: 'ant-123',
+              undername: 'docs',
+              ownerKey: TEST_OWNER_KEY,
+              displayName: 'My Docs',
+              clearDisplayName: true,
+            } as unknown as SetArNSRecordMetadataOptions,
+            turbo,
+          ),
+        /Cannot pass both --display-name and --clear-display-name/,
+      );
+      // Nothing may reach the signed mutation: the old behaviour silently let
+      // the clear win and discarded the supplied value.
+      assert.equal(
+        turbo.calls.filter((c) => c.method === 'setArNSRecordMetadata').length,
+        0,
       );
     });
   });

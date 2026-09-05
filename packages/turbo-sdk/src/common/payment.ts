@@ -121,7 +121,9 @@ export class TurboUnauthenticatedPaymentService
 
   public async getBalance(address: string): Promise<TurboBalanceResponse> {
     const balance = await this.httpService.get<TurboBalanceResponse>({
-      endpoint: `/account/balance/${this.token}?address=${address}`,
+      endpoint: `/account/balance/${this.token}?address=${encodeURIComponent(
+        address,
+      )}`,
       allowedStatuses: [200, 404],
     });
 
@@ -140,7 +142,7 @@ export class TurboUnauthenticatedPaymentService
     address: string,
   ): Promise<TurboFreeStatusResponse> {
     const status = await this.httpService.get<TurboFreeStatusResponse>({
-      endpoint: `/account/free?address=${address}`,
+      endpoint: `/account/free?address=${encodeURIComponent(address)}`,
       allowedStatuses: [200, 404],
     });
     // Normalize: preserve a legitimate `0` (free tier off) or `null` (unlimited),
@@ -245,9 +247,9 @@ export class TurboUnauthenticatedPaymentService
     // with `purchaseArNSName`) rather than a synchronous throw.
     this.validateArNSPurchaseParams(params);
     const price = await this.httpService.get<ArNSPriceResponse>({
-      endpoint: `/arns/price/${params.intent.toLowerCase()}/${
-        params.name
-      }${this.buildArNSPurchaseQuery(params)}`,
+      endpoint: `/arns/price/${params.intent.toLowerCase()}/${encodeURIComponent(
+        params.name,
+      )}${this.buildArNSPurchaseQuery(params)}`,
     });
     // Normalize the figure to charge into ONE field. `winc` is the name only
     // and excludes the ANT spawn surcharge — for a Buy-Name that surcharge can
@@ -362,7 +364,7 @@ export class TurboUnauthenticatedPaymentService
     nonce: string;
   }): Promise<ArNSPurchaseStatusResponse> {
     return this.httpService.get<ArNSPurchaseStatusResponse>({
-      endpoint: `/arns/purchase/${nonce}`,
+      endpoint: `/arns/purchase/${encodeURIComponent(nonce)}`,
     });
   }
 
@@ -640,7 +642,9 @@ export class TurboUnauthenticatedPaymentService
     const response = await this.httpService.get<
       GetCreditShareApprovalsResponse | undefined
     >({
-      endpoint: `/account/approvals/get?userAddress=${userAddress}`,
+      endpoint: `/account/approvals/get?userAddress=${encodeURIComponent(
+        userAddress,
+      )}`,
       allowedStatuses: [200, 404],
     });
     if (

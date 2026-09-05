@@ -316,6 +316,18 @@ export function createChainFolderIndex({
           if (typeof node?.id !== 'string' || !Array.isArray(tags)) {
             continue;
           }
+          // Every element is untrusted, not just the one carrying the hash.
+          // `folderIndexKey` reads `.name`/`.value` off each tag unguarded, so
+          // one malformed entry would throw out of the key encoding and take
+          // the whole sweep, and the upload awaiting it, with it.
+          if (
+            !tags.every(
+              (tag) =>
+                typeof tag?.name === 'string' && typeof tag?.value === 'string',
+            )
+          ) {
+            continue;
+          }
           const contentHash = tags.find((tag) => tag?.name === hashTagName)
             ?.value;
           if (!isValidContentHash(contentHash)) {
