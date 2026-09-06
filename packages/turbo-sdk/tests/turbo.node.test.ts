@@ -64,6 +64,7 @@ import {
   mineArLocalBlock,
   sendFundTransaction,
   solanaUrlString,
+  stripeTestOptions,
   testArweave,
   testArweaveNativeB64Address,
   testEthAddressBase64,
@@ -97,7 +98,6 @@ describe('Node environment', () => {
       matic: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       pol: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'base-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
-      'base-ario': [new EthereumSigner(testEthWallet), testEthNativeAddress],
       usdc: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'polygon-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
     };
@@ -487,86 +487,102 @@ describe('Node environment', () => {
     });
 
     describe('createCheckoutSession()', () => {
-      it('should properly get a checkout session', async () => {
-        const {
-          adjustments,
-          paymentAmount,
-          quotedPaymentAmount,
-          url,
-          client_secret,
-          id,
-          winc,
-        } = await turbo.createCheckoutSession({
-          amount: USD(10),
-          owner: '43-character-stub-arweave-address-000000000',
-        });
-        assert.deepEqual(adjustments, []);
-        assert.equal(paymentAmount, 1000);
-        assert.equal(quotedPaymentAmount, 1000);
-        assert.ok(typeof url === 'string');
-        assert.ok(typeof id === 'string');
-        assert.equal(client_secret, undefined);
-        assert.ok(typeof winc === 'string');
-      });
+      it(
+        'should properly get a checkout session',
+        stripeTestOptions,
+        async () => {
+          const {
+            adjustments,
+            paymentAmount,
+            quotedPaymentAmount,
+            url,
+            client_secret,
+            id,
+            winc,
+          } = await turbo.createCheckoutSession({
+            amount: USD(10),
+            owner: '43-character-stub-arweave-address-000000000',
+          });
+          assert.deepEqual(adjustments, []);
+          assert.equal(paymentAmount, 1000);
+          assert.equal(quotedPaymentAmount, 1000);
+          assert.ok(typeof url === 'string');
+          assert.ok(typeof id === 'string');
+          assert.equal(client_secret, undefined);
+          assert.ok(typeof winc === 'string');
+        },
+      );
 
-      it('should properly get a checkout session with a hosted ui mode and custom success and cancel urls', async () => {
-        const {
-          adjustments,
-          paymentAmount,
-          quotedPaymentAmount,
-          url,
-          id,
-          client_secret,
-          winc,
-        } = await turbo.createCheckoutSession({
-          amount: USD(20),
-          owner: '43-character-stub-arweave-address-000000000',
-          uiMode: 'hosted',
-          successUrl: 'https://example.com/success',
-          cancelUrl: 'https://example.com/cancel',
-        });
-        assert.deepEqual(adjustments, []);
-        assert.equal(paymentAmount, 2000);
-        assert.equal(quotedPaymentAmount, 2000);
-        assert.ok(typeof url === 'string');
-        assert.ok(typeof id === 'string');
-        assert.equal(client_secret, undefined);
-        assert.ok(typeof winc === 'string');
-      });
+      it(
+        'should properly get a checkout session with a hosted ui mode and custom success and cancel urls',
+        stripeTestOptions,
+        async () => {
+          const {
+            adjustments,
+            paymentAmount,
+            quotedPaymentAmount,
+            url,
+            id,
+            client_secret,
+            winc,
+          } = await turbo.createCheckoutSession({
+            amount: USD(20),
+            owner: '43-character-stub-arweave-address-000000000',
+            uiMode: 'hosted',
+            successUrl: 'https://example.com/success',
+            cancelUrl: 'https://example.com/cancel',
+          });
+          assert.deepEqual(adjustments, []);
+          assert.equal(paymentAmount, 2000);
+          assert.equal(quotedPaymentAmount, 2000);
+          assert.ok(typeof url === 'string');
+          assert.ok(typeof id === 'string');
+          assert.equal(client_secret, undefined);
+          assert.ok(typeof winc === 'string');
+        },
+      );
 
-      it('should properly get a checkout session with a embedded ui mode and custom return url', async () => {
-        const {
-          adjustments,
-          paymentAmount,
-          quotedPaymentAmount,
-          id,
-          client_secret,
-          winc,
-        } = await turbo.createCheckoutSession({
-          amount: USD(20),
-          owner: '43-character-stub-arweave-address-000000000',
-          uiMode: 'embedded',
-          returnUrl: 'https://example.com/return',
-        });
-        assert.deepEqual(adjustments, []);
-        assert.equal(paymentAmount, 2000);
-        assert.equal(quotedPaymentAmount, 2000);
-        assert.ok(typeof id === 'string');
-        assert.ok(typeof client_secret === 'string');
-        assert.ok(typeof winc === 'string');
-      });
+      it(
+        'should properly get a checkout session with a embedded ui mode and custom return url',
+        stripeTestOptions,
+        async () => {
+          const {
+            adjustments,
+            paymentAmount,
+            quotedPaymentAmount,
+            id,
+            client_secret,
+            winc,
+          } = await turbo.createCheckoutSession({
+            amount: USD(20),
+            owner: '43-character-stub-arweave-address-000000000',
+            uiMode: 'embedded',
+            returnUrl: 'https://example.com/return',
+          });
+          assert.deepEqual(adjustments, []);
+          assert.equal(paymentAmount, 2000);
+          assert.equal(quotedPaymentAmount, 2000);
+          assert.ok(typeof id === 'string');
+          assert.ok(typeof client_secret === 'string');
+          assert.ok(typeof winc === 'string');
+        },
+      );
     });
 
     describe('createPaymentIntent()', () => {
-      it('should properly create a payment intent', async () => {
-        const { id, client_secret, winc } = await turbo.createPaymentIntent({
-          amount: USD(10),
-          owner: '43-character-stub-arweave-address-000000000',
-        });
-        assert.ok(typeof id === 'string');
-        assert.ok(typeof client_secret === 'string');
-        assert.ok(typeof winc === 'string');
-      });
+      it(
+        'should properly create a payment intent',
+        stripeTestOptions,
+        async () => {
+          const { id, client_secret, winc } = await turbo.createPaymentIntent({
+            amount: USD(10),
+            owner: '43-character-stub-arweave-address-000000000',
+          });
+          assert.ok(typeof id === 'string');
+          assert.ok(typeof client_secret === 'string');
+          assert.ok(typeof winc === 'string');
+        },
+      );
     });
 
     describe('submitFundTransaction()', () => {
@@ -921,9 +937,13 @@ describe('Node environment', () => {
           })
           .catch((error) => error);
         assert.ok(error instanceof FailedRequestError);
-        assert.equal(
-          error.message,
-          'Failed request: Failed to upload file after 6 attempts\n',
+        // The chunking-forced path appends the underlying transport error after the
+        // retry-exhaustion prefix, and that trailing text is environment-dependent
+        // ('' vs 'fetch failed' across Node/undici versions). Assert the stable prefix.
+        assert.ok(
+          error.message.startsWith(
+            'Failed request: Failed to upload file after 6 attempts',
+          ),
         );
       });
     });
@@ -2283,19 +2303,23 @@ describe('Node environment', () => {
       assert.equal(uploadSuccessCalled, true);
     });
 
-    it('should get a checkout session with kyve token', async () => {
-      const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
-        await turbo.createCheckoutSession({
-          amount: USD(10), // 10 USD
-          owner: testKyveNativeAddress,
-        });
+    it(
+      'should get a checkout session with kyve token',
+      stripeTestOptions,
+      async () => {
+        const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
+          await turbo.createCheckoutSession({
+            amount: USD(10), // 10 USD
+            owner: testKyveNativeAddress,
+          });
 
-      assert.deepEqual(adjustments, []);
-      assert.equal(paymentAmount, 1000);
-      assert.equal(quotedPaymentAmount, 1000);
-      assert.ok(typeof url === 'string');
-      assert.ok(typeof id === 'string');
-    });
+        assert.deepEqual(adjustments, []);
+        assert.equal(paymentAmount, 1000);
+        assert.equal(quotedPaymentAmount, 1000);
+        assert.ok(typeof url === 'string');
+        assert.ok(typeof id === 'string');
+      },
+    );
 
     it.skip('should topUpWithTokens() to a KYVE wallet', async () => {
       const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 export * from './factory.js';
+export * from './folderIndex.js';
 export * from './signer.js';
 export * from './upload.js';
 export * from '../types.js';

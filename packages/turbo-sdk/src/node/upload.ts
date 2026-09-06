@@ -15,6 +15,8 @@
  */
 import { createReadStream, promises, statSync } from 'fs';
 import { lookup } from 'mime-types';
+import { createHash } from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
 import { join } from 'path';
 import { Readable } from 'stream';
 
@@ -116,5 +118,11 @@ export class TurboAuthenticatedUploadService extends TurboAuthenticatedBaseUploa
 
   createManifestStream(manifestBuffer: Buffer): Readable {
     return Readable.from(manifestBuffer);
+  }
+
+  protected async computeContentHash(file: string): Promise<string> {
+    const hash = createHash('sha256');
+    await pipeline(createReadStream(file), hash);
+    return hash.digest('hex');
   }
 }

@@ -20,6 +20,16 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboFactory](#turbofactory)
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
+- [ArNS Names](#arns-names)
+  - [You need a Solana key, not Solana funds](#you-need-a-solana-key-not-solana-funds)
+  - [Two identities, never conflated](#two-identities-never-conflated)
+  - [The twelve sponsored actions](#the-twelve-sponsored-actions)
+  - [Not covered — these still cost you SOL](#not-covered--these-still-cost-you-sol)
+  - [Pricing — quote the total](#pricing--quote-the-total)
+  - [The two shapes, if you drive it yourself](#the-two-shapes-if-you-drive-it-yourself)
+  - [Nonces, retries and refunds](#nonces-retries-and-refunds)
+  - [Listing a wallet's names](#listing-a-wallets-names)
+  - [Buying a name with a credit card (fiat / Stripe)](#buying-a-name-with-a-credit-card-fiat--stripe)
 - [Signers](#signers)
   - [Arweave](#arweave)
   - [Ethereum](#ethereum)
@@ -244,10 +254,10 @@ const turbo = TurboFactory.authenticated({
   token: 'base-eth',
   gatewayUrl: 'https://sepolia.base.org', // Required for testnet
   paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev', // Dev payment service
+    url: 'https://payment.services.ar-io.dev', // ar.io testnet sandbox
   },
   uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev', // Dev upload service
+    url: 'https://upload.services.ar-io.dev', // ar.io testnet sandbox
   }
 });
 
@@ -257,10 +267,10 @@ const turbo = TurboFactory.authenticated({
   token: 'solana',
   gatewayUrl: 'https://api.devnet.solana.com',
   paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev',
+    url: 'https://payment.services.ar-io.dev',
   },
   uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev',
+    url: 'https://upload.services.ar-io.dev',
   }
 });
 
@@ -270,16 +280,23 @@ const turbo = TurboFactory.authenticated({
   token: 'ethereum',
   gatewayUrl: 'https://sepolia.gateway.tenderly.co',
   paymentServiceConfig: {
-    url: 'https://payment.ardrive.dev',
+    url: 'https://payment.services.ar-io.dev',
   },
   uploadServiceConfig: {
-    url: 'https://upload.ardrive.dev',
-
+    url: 'https://upload.services.ar-io.dev',
+  },
 });
 ```
 
+These endpoints are the **ar.io Testnet Sandbox** — the full ar.io stack (upload, payment, ArNS,
+and gateway) running on testnet, with a faucet so nothing costs real money. Uploaded data is
+served from the sandbox gateway at `https://ar-io.dev` and is **ephemeral** (purged after ~3
+days); it is never posted to mainnet Arweave. See
+[the ar.io Testnet Sandbox docs](https://docs.ar.io/build/testnet).
+
 **Supported Testnets**:
 
+- **ARIO staging** (`ario`) - Staging ARIO on Solana devnet; fee-free funding, claim from the [ar.io faucet](https://faucet.services.ar-io.dev)
 - **Base Sepolia** (`base-eth`) - Supports on-demand funding
 - **Solana Devnet** (`solana`) - Supports on-demand funding
 - **Ethereum Sepolia** (`ethereum`) - Manual top-up only
@@ -503,6 +520,37 @@ Issues a signed request to get the credit balance of a wallet measured in AR (me
 const { winc: balance } = await turbo.getBalance();
 ```
 
+#### `getFreeStatus()`
+
+Returns the wallet's remaining free-tier upload allowance in bytes as `{ bytesRemaining }`, so you can tell up front whether an upload will be free. `bytesRemaining` is `null` for a wallet with an unlimited allowance (an exempt/partner wallet), and `0` when the free tier is disabled on the target Turbo deployment. It is advisory — the authoritative free/charge decision is made at upload time — and is a wallet-side figure (a per-network cap may also apply). Deployment-wide free-tier limits are on the service's `/info` endpoint.
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus();
+```
+
+It is also available on the `TurboUnauthenticatedClient` for any wallet by address:
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus('a-native-address');
+```
+
+#### `getPaymentHistory({ limit, cursor })`
+
+Issues a signed request for the signing wallet's own completed top-up (payment) history — both cryptocurrency and fiat top-ups — merged newest-first and keyset-paginated. This is self-scoped: it returns **only** the signing wallet's rows (the service reads the address from the signature, never a query parameter), so it is available on the `TurboAuthenticatedClient` only. `limit` is the page size (1-100, default 50). To page, pass the previous response's `cursor` while `hasMore` is `true`.
+
+Each item is discriminated by `type`: a `'crypto'` item includes `wincCredited`, `tokenType`, `tokenQuantity`, `usdEquivalent`, `senderAddress`, `transactionId`, and `blockHeight`; a `'fiat'` item includes `wincCredited`, `paymentAmount`, `currencyType`, `paymentProvider`, `receiptId`, and `giftMessage`. Every item has an ISO-8601 UTC `date`.
+
+```typescript
+const { payments, hasMore, cursor } = await turbo.getPaymentHistory({
+  limit: 25,
+});
+
+// Fetch the next page while more results remain
+if (hasMore) {
+  const next = await turbo.getPaymentHistory({ limit: 25, cursor });
+}
+```
+
 #### `signer.getNativeAddress()`
 
 Returns the [native address][docs/native-address] of the connected signer.
@@ -710,9 +758,9 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-#### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions })`
+#### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions, folderIndex, manifestDataItemOpts })`
 
-Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
+Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default. The `folderIndex` is an optional [folder index](#incremental-folder-uploads) that skips files already on Arweave. The `manifestDataItemOpts` is an optional object that configures the manifest data item only, and defaults to `dataItemOpts`.
 
 ##### NodeJS Upload Folder
 
@@ -833,6 +881,193 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 });
 ```
 
+##### Incremental Folder Uploads
+
+An Arweave upload is permanent, so paying twice for byte identical files buys
+nothing. Pass a `folderIndex` and `uploadFolder` hashes every file, asks the
+index which of those files already have a data item on Arweave, and signs,
+uploads and pays for only the rest. The manifest is assembled from the ids that
+were already known plus the ids of whatever this run uploaded.
+
+```typescript
+import {
+  composeFolderIndex,
+  createChainFolderIndex,
+  createFileFolderIndex,
+} from '@ardrive/turbo-sdk/node';
+
+const folderIndex = composeFolderIndex([
+  // Fast local cache, kept outside the folder being uploaded.
+  createFileFolderIndex({ filePath: '.turbo/folder-index.jsonl' }),
+  // Fallback for a machine that has never deployed before, e.g. a CI runner.
+  // getPublicKey() is the one form every signer type can produce.
+  createChainFolderIndex({ owner: await turbo.signer.getPublicKey() }),
+]);
+
+const { manifest, manifestResponse, folderIndexSummary } =
+  await turbo.uploadFolder({
+    folderPath: path.join(__dirname, './dist'),
+    folderIndex,
+    // Deploy varying tags belong on the manifest, which is rewritten every time.
+    manifestDataItemOpts: {
+      tags: [{ name: 'Git-Commit', value: process.env.GITHUB_SHA }],
+    },
+  });
+
+console.log(folderIndexSummary);
+// { totalFiles: 143, uploadedFiles: 2, reusedFiles: 141, ... }
+```
+
+###### What a reused file is matched on
+
+An index key is `<sha-256 of the bytes>.<sha-256 of the tags>`, and both halves
+matter. Keying on the bytes alone would reuse a data item whose tags are not the
+ones you asked for: an empty `a.css` and an empty `b.js` hash identically, and
+sharing one item between them would serve JavaScript as `text/css`, which a
+browser refuses to execute. Covering the tags means **a reused data item is
+always exactly the data item this call would otherwise have created** — same
+bytes, same `Content-Type`, same `dataItemOpts` tags.
+
+Files uploaded with an index carry one extra tag, `File-SHA256`, holding the
+sha-256 of their own bytes. That tag is what `createChainFolderIndex` filters on.
+
+###### The trade-off this buys, and how you find out
+
+The corollary is a real cost cliff, so it is worth being blunt about. **A per
+file tag whose value changes between deploys changes every key, and re-uploads
+the whole folder at full price.** A commit sha, a build number or a timestamp in
+`dataItemOpts` means you never reuse anything, and the deploy still succeeds, so
+nothing about the run looks wrong except the bill.
+
+That is deliberate. The alternative — keying on bytes alone — reuses an item
+tagged with a _previous_ deploy's commit sha, so the tags on chain quietly stop
+describing what is on chain. A wrong bill is recoverable; a data item that lies
+about itself is permanent. So the index errs towards paying again.
+
+To keep the cliff from being silent, `uploadFolder` logs a warning when a file
+it is about to upload has bytes the index already holds **under a different set
+of tags**, which is what a deploy-varying per file tag looks like:
+
+```
+3 of the 3 file(s) this run is about to upload are already on Arweave byte for
+byte, under a different set of tags. Their content has not changed but their
+tags have, so they are being paid for again. A folder index key covers the tags
+on a file as well as its bytes. That is usually a tag in dataItemOpts whose
+value changes between deploys -- a commit sha, a build number, a timestamp -- in
+which case move it to manifestDataItemOpts rather than paying for these files
+again. It can also be a file that kept its content but changed its Content-Type,
+through a rename or a new extension, which is expected and costs one upload.
+```
+
+Very little else produces that signal: a folder the index has never seen has
+unknown bytes, and a layer that could not be reached reports nothing known, so
+neither triggers it. A file that kept its content but changed its Content-Type
+through a rename does trigger it, and the message says so. It also fires for one
+drifted file among a hundred reused ones, not only when everything misses. A
+layer that does not implement the optional `knownContentHashes` cannot answer
+the question and stays quiet. The fix, whenever it is a varying tag, is always
+the same: move it to `manifestDataItemOpts`, since the manifest is rewritten on
+every deploy anyway.
+
+###### Index layers
+
+| Layer                                              | Where it lives   | Survives a fresh checkout |
+| -------------------------------------------------- | ---------------- | ------------------------- |
+| `createMemoryFolderIndex(seed?)`                   | memory           | no                        |
+| `createFileFolderIndex({ filePath })` (NodeJS)     | a JSON lines log | only if the file is kept  |
+| `createChainFolderIndex({ owner, appName?, ... })` | gateway GraphQL  | yes                       |
+| `composeFolderIndex([...])`                        | layers the above | --                        |
+
+Reads fall through a composed index in order and writes go to every layer that
+is not `readOnly`, so an id recovered from the gateway is cached locally for the
+next run. **A layer that throws is skipped, not propagated** — a full disk under
+the file layer must not stop the memory layer from holding ids the run has
+already paid for, and an unreachable gateway must not stop the local cache from
+answering. Pass a `logger` as the second argument to `composeFolderIndex` to see
+which layer was skipped and why.
+
+`createFileFolderIndex` writes an append-only log, one JSON record per line,
+compacted when it is next loaded. It appends after every single upload rather
+than rewriting at the end of the run, so a deploy killed part way through never
+loses a file it has paid for — and appending is constant work per file, where
+rewriting the whole file per upload is quadratic and costs minutes and gigabytes
+of writes on a first deploy of a few thousand files. It is also the more crash
+safe shape: a process killed mid write can only damage the last line, which is
+dropped on load, where a torn rewrite loses every id in the file.
+
+An index is a cache. A `get` or `resolve` that throws is treated as a miss and
+logged — an unreachable gateway costs you a re-upload, it does not fail your
+deploy. Anything with `get` and `set` is a valid index, so implement
+`TurboFolderUploadIndex` to back one with a database, an object store, or a CI
+cache. Treat the keys as opaque.
+
+###### Telling a gateway whose uploads to sweep
+
+`createChainFolderIndex` needs the owner **a gateway indexes uploads under**,
+which is the base64url sha-256 of the signer's public key. Pass
+`await turbo.signer.getPublicKey()` and the SDK derives it, which works for
+every signer type.
+
+A bare string is deliberately rejected, because it cannot be disambiguated: a
+raw 32 byte ed25519 public key base64urls to exactly 43 characters, the same
+shape as an owner address, and guessing wrong means the sweep matches nothing
+and the whole folder is re-uploaded with no error at all. Say which one you
+have — `{ publicKey }` or `{ address }` — if you are not passing the bytes.
+
+An `0x...` Ethereum address or a base58 Solana address is not accepted, because
+`owners:` on a gateway does not match those. (Verified against `arweave.net`:
+`owners` matches the 43 character address and returns nothing for the raw public
+key, so the conversion has to happen client side.)
+
+###### Trust model
+
+The sweep is scoped to `owners: [your own address]`, so it can only ever find
+items you signed. Within that scope, `File-SHA256` is **self asserted** — it is
+a tag your own past uploads wrote, not something a gateway verifies against the
+bytes — and the index trusts it. That is safe for uploads this SDK made, since it
+only ever writes a hash it computed from the file in front of it.
+
+`uploadFolder` writes whichever tag the index it is given declares, so setting
+`hashTagName` moves both the tag that is written and the tag the sweep filters
+on, and the two cannot drift apart. Every layer in a `composeFolderIndex` stack
+that declares one has to declare the same one, or the call throws: one tag is
+written per file, so a stack that disagrees would leave whichever layer lost
+matching nothing, for ever, without an error.
+
+It stops being safe if you point `hashTagName` at a tag you were already using
+for something else. Any of your own past items carrying 64 hex characters under
+that name would be treated as a candidate, and one whose tag set happens to
+match would be reused — putting a manifest path in front of unrelated bytes. Use
+a name nothing else of yours writes.
+
+###### When the sweep runs out of pages
+
+A sweep can examine at most `pageSize * maxPages` items, 2,000 by default. A
+folder with more files than that, or a long enough deployment history, can
+therefore reach the page limit with files still unresolved — and those files are
+uploaded and paid for again while the summary reports them as ordinary new
+files. Pass a `logger` to `createChainFolderIndex` and it says so when this
+happens, naming how many files were left. Raise `maxPages` or `pageSize`, or put
+a `createFileFolderIndex` in front, and the sweep has less to find.
+
+###### In the browser
+
+`createMemoryFolderIndex`, `createChainFolderIndex` and `composeFolderIndex` all
+work in the browser. `createFileFolderIndex` is NodeJS only, since there is no
+filesystem to write to; persist the map yourself and seed
+`createMemoryFolderIndex` with it, or rely on the chain index.
+
+Note that hashing differs by platform. NodeJS streams each file through a
+`node:crypto` digest, so file size is not a concern. The browser has no streaming
+WebCrypto digest, so each `File` is buffered whole before it is hashed — a very
+large `File` can exhaust the tab.
+
+###### Known limitation
+
+A gateway indexes an upload minutes after it lands, so two machines deploying the
+same brand new file at the same moment can each pay for it once. Only the bill is
+affected, and only for genuinely new bytes -- the manifest is correct either way.
+
 #### `topUpWithTokens({ tokenAmount, feeMultiplier, turboCreditDestinationAddress })`
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
@@ -859,15 +1094,6 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-  tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
-});
-
-
-// ARIO on Base Network
-const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
-  signer,
-  token: 'base-ario',
-}).topUpWithTokens({
   tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
 });
 ```
@@ -985,6 +1211,254 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
+## ArNS Names
+
+The client can buy and manage [ArNS](https://ar.io/arns) names paid with Turbo
+Credits, or with a credit card. Either way the bundler performs the on-chain
+ARIO purchase for you, and **sponsors every lamport of Solana fees and rent**.
+
+**Turbo takes custody of nothing.** The ANT that backs your name is minted
+straight to you. There is no "claim later" or "transfer out" step.
+
+### You need a Solana key, not Solana funds
+
+An ANT is a Metaplex Core asset on Solana, so the owner is always a Solana
+address — even when you pay with Arweave or Ethereum credits. But the owner
+never pays: Turbo is the fee payer on every sponsored action, so **the owner's
+SOL balance can stay at zero for the life of the name**.
+
+Supply the owner as an `ArNSOwnerSigner`:
+
+```typescript
+import { solanaOwnerSigner } from '@ardrive/turbo-sdk';
+
+// From a secret key (servers, scripts, tests)
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
+```
+
+A browser wallet (Phantom, Solflare, or an app's embedded wallet) should
+implement the interface directly rather than exposing a secret key:
+
+```typescript
+const owner = {
+  getAddress: () => wallet.publicKey.toBase58(),
+  signTransaction: async (txBase64) => {
+    // atob/btoa rather than Buffer: browsers do not provide Buffer unless the
+    // app polyfills it. The spread is safe here because a Solana transaction
+    // is capped at 1232 bytes.
+    const tx = VersionedTransaction.deserialize(
+      Uint8Array.from(atob(txBase64), (c) => c.charCodeAt(0)),
+    );
+    const signed = await wallet.signTransaction(tx);
+    return btoa(String.fromCharCode(...signed.serialize()));
+  },
+  signMessage: (message) => wallet.signMessage(message),
+};
+```
+
+### Two identities, never conflated
+
+|               | Who                                                              | How it travels        |
+| ------------- | ---------------------------------------------------------------- | --------------------- |
+| **Payer**     | the Turbo identity holding credits — Arweave, Ethereum or Solana | the client's signer   |
+| **ANT owner** | always a **Solana** address                                      | the `owner` parameter |
+
+They are allowed to be different wallets, and routinely are: one account pays
+while another owns.
+
+### The twelve sponsored actions
+
+```typescript
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+// Buy — the ONE signature in the whole lifecycle. Grants Turbo controller
+// rights in this SAME transaction, which is why everything below needs no
+// signature of its own until you revoke it.
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'lease', // or 'permabuy'
+  years: 1, // leases only
+  onNonce: (nonce) => persist(nonce), // fires BEFORE the wallet prompt
+});
+
+// Lifecycle — no signature at all, spends ARIO.
+await turbo.extendArNSLease({ name: 'my-name', years: 2 });
+await turbo.upgradeArNSName({ name: 'my-name' });
+await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
+
+// Records — a small flat/derived credits margin recovers the sponsored SOL
+// rent. Handled whichever shape the server picks.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  undername: '@',
+  ttlSeconds: 900,
+});
+await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
+
+// Record metadata — display name, logo, description, keywords. Same margin,
+// same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
+await turbo.setArNSRecordMetadata({
+  antId,
+  owner,
+  undername: '@',
+  displayName: 'My Docs',
+  recordDescription: null, // clear it
+});
+await turbo.removeArNSRecordMetadata({ antId, owner, undername: 'docs' });
+
+// Hand ONE record to another address — distinct from transferring the ANT.
+await turbo.transferArNSRecord({
+  antId,
+  owner,
+  undername: 'docs',
+  target: newOwnerAddress,
+});
+
+// Controllers and transfer — owner-signed, same flat/derived margin.
+// addArNSController is for RE-granting after a revoke, or granting some
+// OTHER address — Turbo already has it from the buy above.
+await turbo.addArNSController({ antId, owner }); // omit target => Turbo
+await turbo.removeArNSController({ antId, owner }); // the revoke
+await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
+```
+
+| Action                                                                                                             | Costs credits                        | Owner signature             |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------- |
+| `buyArNSName`                                                                                                      | yes — ARIO purchase + ANT spawn rent | **always**, once            |
+| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit`                                               | yes — ARIO purchase                  | no                          |
+| `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
+| `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
+
+Every action costs credits — gas sponsorship was never meant to be _free_
+sponsorship. The four purchase actions charge the ARIO cost (plus, for
+`buyArNSName`, a rent-derived surcharge for the ANT it mints); the other eight
+charge a small margin that recovers the Solana rent/fees Turbo fronts on your
+behalf, computed the same `max(rent-derived, flat floor)` way as the ANT spawn
+surcharge. Preview it before you pay:
+
+```typescript
+const { wincQty } = await turbo.getArNSActionPrice('remove-controller');
+```
+
+`getArNSActionPrice` covers the eight non-purchase actions, by their route
+name (`set-record`, `remove-record`, `set-record-metadata`,
+`remove-record-metadata`, `transfer-record`, `add-controller`,
+`remove-controller`, `transfer`) — use `getArNSPriceForName` for the four
+purchase actions instead, since their cost is dominated by the ARIO purchase,
+not this margin.
+
+`buyArNSName` grants Turbo controller rights **inside the same transaction you
+sign** — the `add-controller(Turbo)` instruction rides along with the mint, so
+there is no separate step. That's why `setArNSRecord` and the rest complete in
+a single call immediately after buying, with no signature of their own.
+`addArNSController` is for re-granting after a revoke, or adding a different
+controller — not something you call after a fresh buy. Revoking is always
+available — but, like every other action here, not free of credits.
+
+### Not covered — these still cost you SOL
+
+Sponsorship covers the **twelve actions above and nothing else**. Everything
+else in the ArNS, ANT and core programs stays on the direct-signer path via
+[`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and costs the user SOL —
+notably **buying a returned name** (auctions, deliberately excluded: the
+premium is unbounded), claiming a reserved name, the **primary-name** flow
+(which lives in the ario _core_ program), release/reassign, and **ANT-level**
+metadata.
+
+Note ANT-level metadata (the ANT's own name/ticker/description/keywords/logo)
+is distinct from RECORD-level metadata, which `setArNSRecordMetadata` does
+sponsor. Don't tell users they can "manage a name forever without SOL" — scope
+the claim to the twelve actions above.
+
+### Pricing — quote the total
+
+```typescript
+const price = await turbo.getArNSPriceForName({
+  intent: 'Buy-Name',
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+});
+price.wincTotal; // <- charge or display THIS
+price.winc; // the name only, EXCLUDING the ANT spawn surcharge
+```
+
+Buying mints a fresh ANT, and Turbo fronts that account's Solana rent. A flat
+cost-recovery surcharge covers it, and in a real response **the surcharge can
+exceed the name's own price** — so reading `winc` under-quotes every purchase.
+`wincTotal` is added by the SDK precisely so the correct field is the obvious
+one. Never hardcode the surcharge: it is config-driven and derived from live
+rates.
+
+### The two shapes, if you drive it yourself
+
+Every action returns one of two shapes, and **the server picks which**:
+
+```typescript
+let res = await turbo.createArNSAction('buy-name', { name, ownerAddress });
+if (res.status === 'awaiting-signature') {
+  res = await turbo.signArNSAction(
+    res.nonce,
+    await owner.signTransaction(res.transaction),
+  );
+}
+// res.status === 'completed'; res.messageId is the on-chain write
+```
+
+Branch on `status`, never on which action you called: `setArNSRecord` completes
+alone while Turbo is a controller and flips to `awaiting-signature` the moment
+you revoke Turbo. It degrades instead of breaking.
+
+**Sign the exact bytes returned.** Turbo has already signed as fee payer;
+rebuilding the transaction invalidates that signature.
+
+### Nonces, retries and refunds
+
+Credits are debited when the action is **created**, not when it is signed. So:
+
+- **Persist the nonce before prompting for a signature** — use `onNonce`.
+- **Never re-create an action to retry.** That debits again. Poll instead:
+  `await turbo.getArNSActionStatus(nonce)`.
+- **An abandoned action refunds itself** — don't build a refund flow.
+- Replaying `signArNSAction` on a completed action returns
+  `{ alreadyCompleted: true }` rather than buying twice.
+
+`InsufficientCreditsError` (HTTP 402) is thrown when the balance is short;
+prompt a top-up, then create a **fresh** action.
+
+### Listing a wallet's names
+
+```typescript
+const { names } = await turbo.getArNSNames(); // defaults to the signer's address
+```
+
+Receipt history, not a live ownership check: a name transferred away still
+appears. Verify present control on chain using the returned `antId`.
+
+### Buying a name with a credit card (fiat / Stripe)
+
+`getArNSFiatPurchaseQuote` prices a purchase in fiat and returns a Stripe
+payment session, so a user can buy a name without holding credits first.
+
+```typescript
+const quote = await turbo.getArNSFiatPurchaseQuote({
+  name: 'my-name',
+  intent: 'Buy-Name',
+  type: 'lease',
+  years: 1,
+  currency: 'usd',
+});
+```
+
+Its `paymentAmount` is the real charge and **already includes** the ANT spawn
+surcharge. (On the `getArNSPriceForName` fiat estimate the split is the other
+way round: `fiatEstimate.paymentAmount` is the base and
+`fiatEstimate.paymentAmountWithAntSpawn` is the total.) Throws
+`FiatPaymentsDisabledError` when the service has Stripe switched off.
+
 ## Signers
 
 The SDK supports multiple wallet types and signing methods across different blockchains. You can authenticate using either a signer instance or a private key depending on your use case.
@@ -1056,15 +1530,6 @@ const turbo = TurboFactory.authenticated({
 const turbo = TurboFactory.authenticated({
   privateKey: ethHexadecimalPrivateKey,
   token: 'base-usdc',
-});
-```
-
-#### Base ARIO Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: ethHexadecimalPrivateKey,
-  token: 'base-ario',
 });
 ```
 
@@ -1336,6 +1801,44 @@ turbo balance --address 'crypto-wallet-public-native-address' --token solana
 turbo balance --wallet-file '../path/to/my/wallet.json' --token arweave
 ```
 
+##### `free-status`
+
+Get the remaining free-tier upload allowance (in bytes) for a connected wallet or native address. Prints `unlimited` for an exempt/partner wallet.
+
+Command Options:
+
+- `-a, --address <nativeAddress>` - Native address to check the free-tier allowance of
+
+e.g:
+
+```shell
+turbo free-status --address 'crypto-wallet-public-native-address' --token arweave
+```
+
+```shell
+turbo free-status --wallet-file '../path/to/my/wallet.json' --token arweave
+```
+
+##### `payment-history`
+
+Get the signing wallet's own top-up (payment) history — both crypto and fiat top-ups, newest first. Requires a wallet (it is signature-scoped to that wallet). Prints a JSON page of `{ payments, hasMore, cursor }`; when `hasMore` is `true`, pass the printed `cursor` back with `--cursor` to fetch the next page.
+
+Command Options:
+
+- `--limit <limit>` - Max number of rows to return (1-100, default 50)
+- `--cursor <cursor>` - Opaque pagination cursor from a prior response
+
+e.g:
+
+```shell
+turbo payment-history --wallet-file '../path/to/my/wallet.json' --token arweave --limit 25
+```
+
+```shell
+# Fetch the next page using the cursor printed by the previous call
+turbo payment-history --wallet-file '../path/to/my/wallet.json' --token arweave --cursor '<cursor-from-previous-page>'
+```
+
 ##### `top-up`
 
 Top up a connected wallet or native address with Turbo Credits using a supported fiat currency. This command will create a Stripe checkout session for the top-up amount and open the URL in the default browser.
@@ -1527,6 +2030,340 @@ e.g:
 turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 ```
 
+#### ArNS Commands
+
+Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-action-status`. (`arns-purchase-status` reads a separate namespace, the one a fiat quote lands in.)
+
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither. `arns-action-status` reads nothing on-chain either, but takes a wallet because `getArNSActionStatus` lives on the authenticated client.
+
+When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
+
+Every write command debits credits now — see [the pricing table](#the-twelve-sponsored-actions) for what each one charges. Preview the eight non-purchase commands' cost with `arns-action-price` before running them.
+
+##### `arns-fiat-quote`
+
+Quote an ArNS purchase paid by **credit card** (Stripe) instead of Turbo Credits. Records a quote and returns a Stripe session to complete elsewhere — nothing is charged by this command.
+
+```shell
+turbo arns-fiat-quote --name my-name --type lease --years 1 \
+  --address <destination-address> --currency usd
+```
+
+```shell
+# hosted Stripe Checkout, with promo codes
+turbo arns-fiat-quote --name my-name --type permabuy \
+  --address <destination-address> --currency eur \
+  --method checkout-session --promo-code LAUNCH FRIENDS
+```
+
+Prints the quote's `nonce` (poll it with `arns-purchase-status`), the Stripe `paymentSessionId`, and whichever of `clientSecret` / `checkoutUrl` applies to the chosen `--method`. Exits non-zero with a clear message when the payment service has fiat disabled.
+
+##### `arns-price`
+
+Get the Turbo Credit price (in `winc` + `mARIO`, plus the equivalent Credits) to buy, extend, increase undernames on, or upgrade an ArNS name. The intent is inferred from the flags you pass:
+
+- `--type <lease|permabuy>` → Buy-Name (a lease also needs `--years`)
+- `--increase-qty <qty>` → Increase-Undername-Limit
+- `--years <years>` (without `--type`) → Extend-Lease
+- only `--name` → Upgrade-Name
+
+Command Options:
+
+- `--name <name>` - ArNS name to price
+- `--type <lease|permabuy>` - Purchase type for a Buy-Name price
+- `--years <years>` - Lease duration in years (Buy-Name lease / Extend-Lease)
+- `--increase-qty <qty>` - Number of additional undernames to price
+
+e.g:
+
+```shell
+# Price a 1-year lease against a local bundler
+turbo arns-price --name my-name --type lease --years 1 --payment-url http://localhost:4001
+```
+
+```shell
+# Price a permabuy
+turbo arns-price --name my-name --type permabuy
+```
+
+```shell
+# Price extending an existing lease by 2 years
+turbo arns-price --name my-name --years 2
+```
+
+##### `buy-arns-name`
+
+Buy an ArNS name (lease or permabuy) paying with Turbo Credits. Prints the purchase receipt and a `nonce` to track the on-chain write.
+
+Command Options:
+
+- `--name <name>` - ArNS name to buy
+- `--type <lease|permabuy>` - Purchase type
+- `--years <years>` - Lease duration in years (required for `lease`)
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that will OWN the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose credits cover the purchase
+
+e.g:
+
+```shell
+# Lease for 1 year. The ANT is minted to --owner-key, which needs NO SOL:
+# Turbo pays every fee and rent. The paying wallet is separate.
+turbo buy-arns-name --name my-name --type lease --years 1 \
+  --owner-key <base58SolanaSecretKey> \
+  --wallet-file ../path/to/my/wallet.json --payment-url http://localhost:4001
+```
+
+```shell
+# Permabuy, paying with a Solana wallet. Payer and ANT owner may still differ.
+turbo buy-arns-name --name my-name --type permabuy \
+  --owner-key <base58SolanaSecretKey> \
+  --token solana --wallet-file ../path/to/sol/secret-key.json
+```
+
+##### `extend-arns-lease`
+
+Extend an existing ArNS name lease with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name whose lease to extend
+- `--years <years>` - Number of years to extend by
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo extend-arns-lease --name my-name --years 2 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `increase-arns-undernames`
+
+Increase the undername limit of an ArNS name with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name to modify
+- `--increase-qty <qty>` - Number of additional undernames
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo increase-arns-undernames --name my-name --increase-qty 10 --wallet-file ../path/to/my/wallet.json
+```
+
+##### `upgrade-arns-name`
+
+Upgrade an ArNS leased name to a permanent (permabuy) name with Turbo Credits.
+
+Command Options:
+
+- `--name <name>` - ArNS name to upgrade
+- `--paid-by <paidBy...>` - Optional delegated payer address(es)
+
+e.g:
+
+```shell
+turbo upgrade-arns-name --name my-name --wallet-file ../path/to/my/wallet.json
+```
+
+##### `arns-purchase-status`
+
+Get the status of an ArNS purchase by its nonce (returned by the buy/extend/upgrade commands). The response includes a `state` of `pending`, `success`, or `failed`.
+
+Command Options:
+
+- `--nonce <nonce>` - The purchase nonce to look up
+
+e.g:
+
+```shell
+turbo arns-purchase-status --nonce 3f8c...e21 --payment-url http://localhost:4001
+```
+
+##### `arns-action-status`
+
+Status of a credit-paid ArNS action by its nonce: the four purchase actions and the eight non-purchase ones. This is the command the buy/extend/upgrade output points at.
+
+`arns-purchase-status` is a different namespace (`/arns/purchase/`), which is where a fiat quote's nonce lands. Passing an action nonce to it returns "Purchase status not found".
+
+Command Options:
+
+- `--nonce <nonce>` - ArNS action nonce to look up
+
+e.g:
+
+```shell
+turbo arns-action-status --nonce 3f8c...e21 \
+  --wallet-file ../path/to/my/wallet.json
+```
+
+##### `transfer-arns-ant`
+
+Self-custody exit: transfer a Turbo-custodied ANT to a Solana public key you control. Authenticated with an action-bound, single-use signature.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
+- `--target <address>` - Target Solana pubkey to transfer the ANT to
+
+e.g:
+
+```shell
+turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `set-arns-record`
+
+Set a resolution record on a Turbo-custodied ANT.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID to set a record on
+- `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
+- `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
+- `--ttl-seconds <ttlSeconds>` - TTL in seconds for the record
+
+e.g:
+
+```shell
+turbo set-arns-record --ant-id ant-123 --undername docs \
+  --transaction-id A1b2...Xyz --ttl-seconds 900 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-record`
+
+Remove a resolution record (undername) from a Turbo-custodied ANT.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID to remove a record from
+- `--undername <undername>` - Undername record to remove
+
+e.g:
+
+```shell
+turbo remove-arns-record --ant-id ant-123 --undername docs \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `set-arns-record-metadata`
+
+Set a record's display name, logo, description, or keywords on a Turbo-custodied ANT. This is RECORD-level metadata — distinct from the ANT's own name/ticker/description/keywords/logo, which is not sponsored. Fields are tri-state: pass `--display-name`/`--record-logo`/`--record-description`/`--record-keywords` to set a field, `--clear-*` to explicitly clear it, or omit both to leave it unchanged.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID to set record metadata on
+- `--undername <undername>` - Undername record to set metadata on (defaults to `@`, the apex record)
+- `--display-name <displayName>` / `--clear-display-name`
+- `--record-logo <transactionId>` / `--clear-record-logo`
+- `--record-description <description>` / `--clear-record-description`
+- `--record-keywords <keywords...>` / `--clear-record-keywords`
+
+e.g:
+
+```shell
+turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
+  --display-name "My Docs" --record-keywords arweave permaweb \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+```shell
+# Clear the description, leave everything else unchanged
+turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
+  --clear-record-description \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-record-metadata`
+
+Clear all of a record's metadata on a Turbo-custodied ANT.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID to remove record metadata from
+- `--undername <undername>` - Undername record whose metadata to clear
+
+e.g:
+
+```shell
+turbo remove-arns-record-metadata --ant-id ant-123 --undername docs \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `transfer-arns-record`
+
+Hand ONE record to another address — distinct from `transfer-arns-ant`, which hands over the whole ANT and every record on it.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID whose record to transfer
+- `--undername <undername>` - Undername record to transfer
+- `--target <address>` - Target Solana pubkey to transfer the record to
+
+e.g:
+
+```shell
+turbo transfer-arns-record --ant-id ant-123 --undername docs --target 7xKX...gAsU \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `add-arns-controller`
+
+Grant controller rights on a Turbo-custodied ANT. Owner-signed — changing an ANT's access control is an owner-only instruction. Not needed after a fresh `buy-arns-name`: the grant already rides in that same signed transaction. Use this to re-grant after a revoke, or to add a different address as controller.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID to add a controller to
+- `--target <address>` - Solana pubkey to grant controller rights to (omit for Turbo itself, which is what makes `set-arns-record` a single call)
+
+e.g:
+
+```shell
+turbo add-arns-controller --ant-id ant-123 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `remove-arns-controller`
+
+Revoke controller rights on a Turbo-custodied ANT — the escape hatch that keeps "Turbo is not a custodian" honest. Always available, but not free of credits: after revoking, `set-arns-record` keeps working, it just starts requiring the owner's signature.
+
+Command Options:
+
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
+- `--ant-id <antId>` - ANT ID to remove a controller from
+- `--target <address>` - Solana pubkey to revoke (omit to revoke Turbo)
+
+e.g:
+
+```shell
+turbo remove-arns-controller --ant-id ant-123 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
+```
+
+##### `arns-action-price`
+
+Preview the Turbo Credit price of one of the eight non-purchase actions, without creating it. Rejects the four ARIO-purchase actions (`buy-name`, `extend-lease`, `upgrade-name`, `increase-undername-limit`) — use `arns-price` for those instead, since their cost is dominated by the ARIO purchase, not this flat/derived margin. Needs no wallet.
+
+Command Options:
+
+- `--action <action>` - One of `set-record`, `remove-record`, `set-record-metadata`, `remove-record-metadata`, `transfer-record`, `add-controller`, `remove-controller`, `transfer`
+
+e.g:
+
+```shell
+turbo arns-action-price --action remove-controller --payment-url http://localhost:4001
+```
+
 ## Turbo Credit Sharing
 
 Users can share their purchased Credits with other users' wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with tags indicating the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
@@ -1570,7 +2407,7 @@ The Turbo CLI provides the following commands to manage Credit Share Approvals:
 
 ### Testing
 
-- `yarn test` - runs integration tests against dev environment (e.g. `https://payment.ardrive.dev` and `https://upload.ardrive.dev`)
+- `yarn test` - runs integration tests using the configured environment (localhost by default); set `PAYMENT_SERVICE_URL` and `UPLOAD_SERVICE_URL` to target the ar.io Testnet Sandbox
 - `yarn test:docker` - runs integration tests against locally running docker containers (recommended)
 - `yarn example:web` - opens up the example web page
 - `yarn example:cjs` - runs example CJS node script

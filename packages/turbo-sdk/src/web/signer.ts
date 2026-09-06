@@ -98,9 +98,14 @@ export class TurboWebArweaveSigner extends TurboDataItemAbstractSigner {
     };
   }
 
-  public async generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders> {
+  public async generateSignedRequestHeaders(
+    nonce?: string,
+    additionalData?: string,
+  ): Promise<TurboSignedRequestHeaders> {
     await this.setPublicKey();
-    return super.generateSignedRequestHeaders();
+    // Pass through the caller's nonce + action-binding data (previously dropped,
+    // which would override a route-required UUID nonce and the H-2 binding).
+    return super.generateSignedRequestHeaders(nonce, additionalData);
   }
 
   public async signData(dataToSign: Uint8Array): Promise<Uint8Array> {

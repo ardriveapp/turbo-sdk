@@ -64,7 +64,6 @@ export type Country = 'United States' | 'United Kingdom' | 'Canada'; // TODO: ad
 export const tokenTypes = [
   'arweave',
   'ario',
-  'base-ario',
   'solana',
   'ethereum',
   'kyve',
@@ -85,7 +84,6 @@ export const supportedEvmSignerTokens = new Set([
   'polygon-usdc',
   'usdc',
   'base-usdc',
-  'base-ario',
 ]);
 
 export type Adjustment = {
@@ -242,6 +240,118 @@ export type TurboBalanceResponse = {
   givenApprovals: CreditShareApproval[];
 };
 
+export type TurboFreeStatusResponse = {
+  /**
+   * Free-tier bytes this wallet can still upload for free, or `null` when the
+   * wallet has an unlimited allowance (an exempt/partner wallet). `0` when the
+   * free tier is disabled on the target Turbo deployment. Advisory — the
+   * authoritative free/charge decision is made at upload time, and the value is
+   * a wallet-side figure (a per-network cap may also apply). Deployment-wide
+   * free-tier config lives on the service's `/info` endpoint.
+   */
+  bytesRemaining: number | null;
+};
+
+/** A single credited top-up settled with cryptocurrency. */
+export type TurboCryptoPaymentHistoryItem = {
+  type: 'crypto';
+  /** ISO-8601 UTC timestamp of when the credits landed. */
+  date: string;
+  /** Winston Credits credited by this top-up. */
+  wincCredited: string;
+  tokenType: string;
+  /** On-chain token amount paid, in the token's smallest unit. */
+  tokenQuantity: string;
+  /** USD value captured at credit time (historical; not a live quote). */
+  usdEquivalent: string;
+  /** On-chain sender address; empty string on rows predating the column. */
+  senderAddress: string;
+  transactionId: string;
+  blockHeight: string;
+};
+
+/** A single credited top-up settled with fiat (e.g. a Stripe card payment). */
+export type TurboFiatPaymentHistoryItem = {
+  type: 'fiat';
+  /** ISO-8601 UTC timestamp of when the receipt was recorded. */
+  date: string;
+  /** Winston Credits credited by this top-up. */
+  wincCredited: string;
+  paymentAmount: string;
+  currencyType: string;
+  paymentProvider: string;
+  receiptId: string;
+  giftMessage: string | null;
+};
+
+export type TurboPaymentHistoryItem =
+  | TurboCryptoPaymentHistoryItem
+  | TurboFiatPaymentHistoryItem;
+
+export type TurboPaymentHistoryResponse = {
+  /** One page of the signer's own top-ups, newest first. */
+  payments: TurboPaymentHistoryItem[];
+  /** True when more rows exist beyond this page (fetch again with `cursor`). */
+  hasMore: boolean;
+  /** Opaque cursor for the next page, or `null` on the last page. */
+  cursor: string | null;
+};
+
+export type TurboPaymentHistoryParams = {
+  /** Page size, 1-100 (default 50 on the service). */
+  limit?: number;
+  /** Opaque cursor from a prior response's `cursor` field. */
+  cursor?: string;
+};
+
+/**
+ * A single ArNS name returned by `getArNSNames`. `custodial: true` means Turbo
+ * still holds/manages the underlying ANT on the caller's behalf (e.g. via the
+ * ArNS-with-credits purchase flow) and Turbo's transfer/manage routes apply to
+ * it; `custodial: false` means the name is self-custodied (or has already been
+ * exited from custody) and is returned for historical/informational purposes
+ * only.
+ *
+ * `intent`/`type`/`years`/`purchaseDate` describe the specific purchase
+ * receipt Turbo selected for this name and are historical/informational, NOT
+ * authoritative for the name's current on-chain state. `type`/`years` may be
+ * absent -- omitted from the response entirely, not `null` -- when the
+ * selected receipt is an action (e.g. Extend-Lease/Increase-Undername-Limit)
+ * that doesn't carry them. `antId` may be an empty string if no receipt Turbo
+ * has for this name ever carried one (e.g. the caller only ever extended a
+ * name it doesn't own -- ArNS extend/upgrade/increase-undername actions have
+ * no on-chain ownership check) -- guard for `antId === ''` before passing it
+ * to `@ar.io/sdk`.
+ *
+ * To read a name's current records or lease/expiration state, use
+ * `@ar.io/sdk` directly against the `antId` returned here.
+ */
+export type TurboArNSName = {
+  name: string;
+  antId: string;
+  /**
+   * The ArNS action recorded on the selected purchase receipt. Widened with
+   * `(string & {})` so new intents added server-side don't require a
+   * client-side type change, while still getting autocomplete for the known
+   * values.
+   */
+  intent:
+    | 'Buy-Name'
+    | 'Buy-Record'
+    | 'Extend-Lease'
+    | 'Upgrade-Name'
+    | 'Increase-Undername-Limit'
+    | (string & Record<never, never>);
+  type?: 'lease' | 'permabuy';
+  years?: number;
+  purchaseDate: string;
+  custodial: boolean;
+};
+
+export type TurboArNSNamesResponse = {
+  names: TurboArNSName[];
+};
+
 export type TurboFiatToArResponse = {
   currency: Currency;
   rate: number;
@@ -352,10 +462,172 @@ type FinalizedStatusResponse = {
   receipt: TurboUploadDataItemResponse;
 };
 
+/**
+ * A map from a folder index key to a data item id, used by `uploadFolder` to
+ * skip files that are already on Arweave.
+ *
+ * A key is `<sha-256 of the bytes>.<sha-256 of the tags>`. Both halves matter:
+ * an empty `a.css` and an empty `b.js` have identical bytes but must not share
+ * a data item, or one of them is served with the other's `Content-Type`. Keying
+ * on the tags too means a reused item is always exactly the item this call
+ * would otherwise have created. Treat keys as opaque.
+ *
+ * Implement this to back an index with any store. Ready made layers ship with
+ * the SDK: `createMemoryFolderIndex`, `createChainFolderIndex`,
+ * `createFileFolderIndex` (NodeJS only) and `composeFolderIndex`.
+ *
+ * An index is a cache. `uploadFolder` treats a read that throws as a miss and
+ * carries on, so a layer is free to fail rather than degrade.
+ */
+export type TurboFolderUploadIndex = {
+  /** Human readable name for the layer, used in debug logs. */
+  name?: string;
+  /** When true the layer is never written to. Defaults to false. */
+  readOnly?: boolean;
+  /**
+   * The tag name this layer expects a file's content hash under.
+   *
+   * `uploadFolder` writes whatever the index declares here, so a layer that
+   * reads a non-default tag is aligned with the uploader rather than silently
+   * unable to match anything. Defaults to `File-SHA256`.
+   */
+  hashTagName?: string;
+  /** The data item id previously uploaded for this key, if it is known. */
+  get(key: string): Promise<string | undefined> | string | undefined;
+  /** Record that `key` was uploaded as `id`. */
+  set(key: string, id: string): Promise<void> | void;
+  /**
+   * Optional bulk lookup, so a layer backed by a network can answer in one
+   * round trip instead of one request per file. `uploadFolder` calls `get` for
+   * every key first and then `resolve` once with whatever is still unknown,
+   * passing through the caller's `signal`.
+   */
+  resolve?(
+    keys: string[],
+    options?: { signal?: AbortSignal },
+  ): Promise<Record<string, string>>;
+  /**
+   * Optional, diagnostics only. Of these content hashes -- the bytes half of a
+   * key -- which does the layer hold under *some* tag set?
+   *
+   * A file whose bytes are already on Arweave but whose key is not is the exact
+   * signature of a per file tag that changes between deploys, and it is the one
+   * thing `uploadFolder` can say about a cost cliff that is otherwise silent.
+   * Never consulted to decide what to upload.
+   */
+  knownContentHashes?(contentHashes: string[]): Promise<string[]> | string[];
+  /** Optional snapshot of everything the layer currently knows. */
+  entries?(): Promise<Record<string, string>> | Record<string, string>;
+};
+
+/**
+ * Whose past uploads a chain folder index sweeps.
+ *
+ * Tagged rather than a bare string on purpose. A gateway indexes an upload
+ * under the base64url sha-256 of the signer's public key, and a raw 32 byte
+ * ed25519 public key base64urls to exactly 43 characters -- the same shape as
+ * that address. There is no way to tell the two apart by inspection, and
+ * guessing wrong means the sweep matches nothing and the whole folder is
+ * re-uploaded at full price with no error at all.
+ *
+ * `await turbo.signer.getPublicKey()` is the one form every signer type can
+ * produce, so it is passed directly.
+ */
+export type ChainFolderUploadIndexOwner =
+  | Uint8Array
+  | { publicKey: Uint8Array | string; address?: undefined }
+  | { address: string; publicKey?: undefined };
+
+export type ChainFolderUploadIndexParams = {
+  /**
+   * Whose past uploads to sweep. Pass `await turbo.signer.getPublicKey()`,
+   * which works for every signer type, or tag what you have as
+   * `{ publicKey }` or `{ address }`. A bare string is rejected: see
+   * {@link ChainFolderUploadIndexOwner}.
+   */
+  owner: ChainFolderUploadIndexOwner;
+  /** Optional `App-Name` tag value, to narrow the sweep to one application. */
+  appName?: string;
+  /** Gateway to query. Defaults to `https://arweave.net`. */
+  gatewayUrl?: string;
+  /**
+   * Tag holding each file's content hash. Defaults to `File-SHA256`.
+   *
+   * `uploadFolder` writes this same tag when this index is passed to it, so the
+   * sweep and the uploader cannot drift apart. Every layer in a
+   * {@link composeFolderIndex} stack that declares one must agree.
+   */
+  hashTagName?: string;
+  /** Maximum GraphQL pages to walk before giving up. Defaults to 20. */
+  maxPages?: number;
+  /** GraphQL page size. Defaults to 100. */
+  pageSize?: number;
+  /** Per request timeout in milliseconds. Defaults to 30_000. */
+  timeoutMs?: number;
+  /** Override the fetch implementation, e.g. in tests. */
+  fetchImpl?: typeof fetch;
+  /**
+   * Optional logger. Used to report a sweep that ran out of pages before it ran
+   * out of files, which otherwise costs money silently.
+   */
+  logger?: TurboLogger;
+};
+
+export type ComposeFolderUploadIndexParams = {
+  /** Optional logger, used to report a layer that failed and was skipped. */
+  logger?: TurboLogger;
+};
+
+export type FileFolderUploadIndexParams = {
+  /** Path of the JSON file holding the index. Created if it does not exist. */
+  filePath: string;
+  /** Optional logger, used to report an unreadable index file. */
+  logger?: TurboLogger;
+};
+
+/**
+ * What an index-backed `uploadFolder` reused rather than paid for again.
+ *
+ * `uploadedFiles` counts data items that actually landed, so with
+ * `throwOnFailure: false` the three counts do not have to sum to `totalFiles`
+ * -- the difference is what failed.
+ */
+export type TurboFolderUploadIndexSummary = {
+  /** Every file in the folder, uploaded, reused or failed. */
+  totalFiles: number;
+  totalBytes: number;
+  /** Files that were paid for and landed. */
+  uploadedFiles: number;
+  uploadedBytes: number;
+  /** Files served from the index, or duplicated within this folder. */
+  reusedFiles: number;
+  reusedBytes: number;
+};
+
 type UploadFolderParams = {
   dataItemOpts?: DataItemOptions;
   maxConcurrentUploads?: number;
   throwOnFailure?: boolean;
+
+  /**
+   * A folder index. When provided, every file is hashed and only the files
+   * whose bytes and tags are not already on Arweave are signed, uploaded and
+   * paid for. The manifest is assembled from the ids that were already known
+   * plus the ids of whatever this run uploaded.
+   *
+   * Files uploaded with an index in place carry an extra `File-SHA256` tag.
+   */
+  folderIndex?: TurboFolderUploadIndex;
+
+  /**
+   * `dataItemOpts` for the manifest only. Defaults to `dataItemOpts`.
+   *
+   * The manifest is rewritten on every deploy, so it is where deploy varying
+   * tags such as a commit sha belong. A per file tag that changes between
+   * deploys changes every `folderIndex` key, and so re-uploads the whole
+   * folder.
+   */
+  manifestDataItemOpts?: DataItemOptions;
 
   manifestOptions?: {
     disableManifest?: boolean;
@@ -396,11 +668,18 @@ export type TurboRevokeCreditsParams = {
 };
 
 export type TurboUploadFolderResponse = {
+  /**
+   * One response per data item this call uploaded. With a `folderIndex` in
+   * place, files that were reused have no response here -- they are in the
+   * manifest and counted in `folderIndexSummary` instead.
+   */
   fileResponses: TurboUploadDataItemResponse[];
   manifestResponse?: TurboUploadDataItemResponse;
   manifest?: ArweaveManifest;
   errors?: Error[];
   cryptoFundResult?: TurboCryptoFundResponse;
+  /** Only present when `folderIndex` was provided. */
+  folderIndexSummary?: TurboFolderUploadIndexSummary;
 };
 
 export type ArweaveManifest = {
@@ -504,6 +783,13 @@ export type TurboSignedRequestHeaders = {
   'x-public-key': string;
   'x-nonce': string;
   'x-signature': string;
+  // arbundles SignatureConfig value (e.g. ARWEAVE=1, ETHEREUM=3, SOLANA=4).
+  // Lets the service select the correct signature-verification scheme;
+  // without it the server cannot distinguish a non-Arweave signed request.
+  // Optional on the type for backwards compatibility (so existing consumers
+  // that construct this type directly keep compiling); `generateSignedRequestHeaders`
+  // always populates it at runtime.
+  'x-signature-type'?: string;
 };
 
 type TurboAuthConfiguration = {
@@ -847,12 +1133,18 @@ export interface TurboHTTPServiceInterface {
     headers,
     allowedStatuses,
     data,
+    retry,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
     allowedStatuses?: number[];
     data: Readable | ReadableStream | Buffer;
+    // Set false for NON-IDEMPOTENT signed writes (e.g. ArNS purchase/custody):
+    // the server treats the nonce as single-use, so an auto-retry after a slow
+    // (but landed) write is rejected as "already exists"/"nonce used" and
+    // surfaces a false failure. Callers poll status by nonce instead.
+    retry?: boolean;
   }): Promise<T>;
 }
 
@@ -885,7 +1177,10 @@ export interface TurboDataItemSigner {
   }: TurboFileFactory & {
     emitter?: TurboEventEmitter;
   }): Promise<TurboSignedDataItemFactory>;
-  generateSignedRequestHeaders(): Promise<TurboSignedRequestHeaders>;
+  generateSignedRequestHeaders(
+    nonce?: string,
+    additionalData?: string,
+  ): Promise<TurboSignedRequestHeaders>;
   signData(dataToSign: Uint8Array): Promise<Uint8Array>;
   sendTransaction(p: SendTxWithSignerParams): Promise<string>;
   getPublicKey(): Promise<Buffer>;
@@ -894,8 +1189,404 @@ export interface TurboDataItemSigner {
   walletAdapter?: WalletAdapter;
 }
 
+// ===== ArNS purchases paid with Turbo credits (via the bundler REST API) =====
+
+export const arNSPurchaseIntents = [
+  'Buy-Name',
+  'Extend-Lease',
+  'Increase-Undername-Limit',
+  'Upgrade-Name',
+] as const;
+export type ArNSPurchaseIntent = (typeof arNSPurchaseIntents)[number];
+export type ArNSNameType = 'lease' | 'permabuy';
+
+// Intent-specific shapes so the required fields per intent are enforced at
+// compile time rather than surfacing as runtime 4xxs from the service.
+export type ArNSBuyNameLeaseParams = {
+  intent: 'Buy-Name';
+  name: string;
+  type: 'lease';
+  /** Lease duration in years */
+  years: number;
+  /**
+   * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+   * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+   * supply to point the name at a user-owned ANT (Model B).
+   */
+  processId?: string;
+};
+export type ArNSBuyNamePermabuyParams = {
+  intent: 'Buy-Name';
+  name: string;
+  type: 'permabuy';
+  /**
+   * ANT (Metaplex Core asset) the name resolves to. Optional: omit to have
+   * Turbo custodially provision the ANT (Turbo spawns + owns it — Model A);
+   * supply to point the name at a user-owned ANT (Model B).
+   */
+  processId?: string;
+};
+export type ArNSBuyNameParams =
+  | ArNSBuyNameLeaseParams
+  | ArNSBuyNamePermabuyParams;
+export type ArNSExtendLeaseParams = {
+  intent: 'Extend-Lease';
+  name: string;
+  years: number;
+};
+export type ArNSIncreaseUndernameLimitParams = {
+  intent: 'Increase-Undername-Limit';
+  name: string;
+  increaseQty: number;
+};
+export type ArNSUpgradeNameParams = {
+  intent: 'Upgrade-Name';
+  name: string;
+};
+
+export type ArNSPriceParams =
+  | ArNSBuyNameParams
+  | ArNSExtendLeaseParams
+  | ArNSIncreaseUndernameLimitParams
+  | ArNSUpgradeNameParams;
+
+/** Optional delegated payer address(es) whose credits cover a purchase */
+export type ArNSPaidByParams = { paidBy?: UserAddress | UserAddress[] };
+
+export type ArNSPriceResponse = {
+  /**
+   * Price of the NAME ONLY, in Winston credits.
+   *
+   * For a Buy-Name this EXCLUDES the ANT spawn surcharge. Quoting this figure
+   * alone under-quotes the purchase — in a real response the surcharge can be
+   * larger than the name itself. Use `wincTotalWithAntSpawn`, or the
+   * `wincTotal` convenience the SDK adds below.
+   */
+  winc: string;
+  /** Equivalent price in mARIO */
+  mARIO: string;
+  /**
+   * Flat cost-recovery surcharge for the Solana rent Turbo fronts when minting
+   * the customer's ANT. Present only for intents that mint one (Buy-Name).
+   * Config-driven and derived per-request from live rates — never hardcode it.
+   */
+  antSpawnSurchargeWinc?: string;
+  /** `winc` + `antSpawnSurchargeWinc`. Present only when a surcharge applies. */
+  wincTotalWithAntSpawn?: string;
+  /**
+   * The figure to charge or display, always. Added by the SDK:
+   * `wincTotalWithAntSpawn ?? winc`, so a caller cannot under-quote by
+   * reading the wrong field.
+   */
+  wincTotal: string;
+  [key: string]: unknown;
+};
+
+// ===== ArNS actions (sponsored — the current bundler surface) =====
+
+/**
+ * The twelve sponsored ArNS actions.
+ *
+ * Sponsorship covers these twelve and NOTHING else. Everything else in the
+ * ArNS, ANT and core programs stays on the direct-signer path and costs the
+ * user SOL — notably `BuyReturnedName` (auctions, deliberately excluded: the
+ * premium is unbounded), `ClaimReservedName`, the primary-name flow (which
+ * lives in the ario core program), release/reassign, and ANT-LEVEL metadata.
+ * Note ANT-level metadata is distinct from RECORD-level metadata, which
+ * `set-record-metadata` does sponsor.
+ */
+export const arNSActions = [
+  'buy-name',
+  'extend-lease',
+  'upgrade-name',
+  'increase-undername-limit',
+  'set-record',
+  'remove-record',
+  'add-controller',
+  'remove-controller',
+  'transfer',
+  // Record-scoped. Owner-or-controller on chain, so these follow set-record's
+  // degrade-on-revoke shape rather than needing a signature every time.
+  'set-record-metadata',
+  'remove-record-metadata',
+  'transfer-record',
+] as const;
+export type ArNSAction = (typeof arNSActions)[number];
+
+/** Turbo already held the authority — the write has landed on chain. */
+export type ArNSActionCompleted = {
+  nonce: string;
+  action: ArNSAction;
+  status: 'completed';
+  /** Solana transaction id of the on-chain write. */
+  messageId: string;
+  antId?: string;
+  /**
+   * True when this nonce had already completed — a replayed `/sign` is
+   * reported as success rather than buying twice.
+   */
+  alreadyCompleted?: boolean;
+  [key: string]: unknown;
+};
+
+/** Only the ANT's owner can authorize this; Turbo has already fee-payer-signed. */
+export type ArNSActionAwaitingSignature = {
+  nonce: string;
+  action: ArNSAction;
+  status: 'awaiting-signature';
+  /**
+   * Base64 transaction, already carrying Turbo's fee-payer signature.
+   * Sign THESE BYTES — rebuilding or re-serializing invalidates Turbo's
+   * signature and the submission is rejected.
+   */
+  transaction: string;
+  feePayer?: string;
+  antId?: string;
+  lastValidBlockHeight?: string;
+  /** The blockhash dies in ~60-90s; past this, create a new action. */
+  expiresAt?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * An action has exactly one of two shapes, and THE SERVER picks which.
+ * Branch on `status`, never on which action you asked for: `set-record`
+ * completes alone while Turbo is a controller and flips to
+ * `awaiting-signature` the moment the customer revokes Turbo.
+ */
+export type ArNSActionResult =
+  | ArNSActionCompleted
+  | ArNSActionAwaitingSignature;
+
+/**
+ * The flat-margin credits price for one of the eight actions that don't
+ * spend ARIO (everything except Buy-Name/Extend-Lease/Upgrade-Name/
+ * Increase-Undername-Limit, which are priced by {@link getArNSPriceForName}
+ * instead since their cost is dominated by the ARIO purchase, not the margin).
+ * No signature required — this is a read-only preview of what
+ * `createArNSAction` will debit.
+ */
+export type ArNSActionPriceResponse = {
+  action: ArNSAction;
+  /** What creating this action will debit, in Winston credits. */
+  wincQty: string;
+  [key: string]: unknown;
+};
+
+/**
+ * The ANT owner's key — a **Solana** wallet, distinct from the Turbo payer.
+ *
+ * The two are deliberately separate: the payer holds credits (and may be an
+ * Arweave or Ethereum identity), while the owner holds the ANT. They are
+ * allowed to be different wallets, which is the normal shape for a console.
+ *
+ * The owner needs a key to sign with, NOT a funded account — Turbo is the fee
+ * payer on every sponsored action, so the owner's SOL balance can stay zero
+ * for the life of the name.
+ */
+export interface ArNSOwnerSigner {
+  /** base58 Solana address that owns (or will own) the ANT. */
+  getAddress(): string | Promise<string>;
+  /**
+   * Sign a base64 transaction and return the signed transaction, base64.
+   * Must return the FULL serialized transaction, not just the signature.
+   */
+  signTransaction(transactionBase64: string): Promise<string>;
+  /** Raw ed25519 signature over `message`, for the `x-owner-*` proof. */
+  signMessage(message: Uint8Array): Promise<Uint8Array>;
+}
+
+export type ArNSPurchaseParams = ArNSPriceParams & ArNSPaidByParams;
+
+/**
+ * Distributive `Omit` so a discriminated union keeps its per-branch fields.
+ * The built-in `Omit<A | B, K>` collapses to only the keys common to every
+ * member (dropping e.g. a lease's `years`); this maps over each member instead.
+ */
+export type DistributiveOmit<T, K extends keyof never> = T extends unknown
+  ? Omit<T, K>
+  : never;
+
+/** `buyArNSName` params: any Buy-Name variant minus the (implied) `intent`. */
+export type ArNSBuyNameArgs = DistributiveOmit<ArNSBuyNameParams, 'intent'> &
+  ArNSPaidByParams;
+
+export type ArNSPurchaseReceipt = {
+  name: string;
+  intent: ArNSPurchaseIntent;
+  type?: ArNSNameType;
+  years?: number;
+  increaseQty?: number;
+  processId?: string;
+  owner: UserAddress;
+  /** UUID that identifies this purchase (also the status-lookup key) */
+  nonce: string;
+  wincQty: string;
+  mARIOQty: string;
+  usdArRate: number;
+  usdArioRate: number;
+  paidBy: UserAddress[];
+  /** Solana transaction id of the on-chain ArNS write */
+  messageId: string;
+};
+
+export type ArNSPurchaseResponse = {
+  purchaseReceipt: ArNSPurchaseReceipt;
+  arioWriteResult: { id: string };
+  /** UUID nonce used for the purchase — poll `getArNSPurchaseStatus({ nonce })` with it */
+  nonce: string;
+};
+
+export type ArNSPurchaseStatusResponse = ArNSPurchaseReceipt & {
+  /** Present once the purchase has terminally failed */
+  failedDate?: string;
+};
+
+// ===== ArNS purchases paid with fiat (Stripe) — no Turbo Credits in between ====
+
+/**
+ * Stripe integration mode for a fiat ArNS purchase quote.
+ *
+ * - `payment-intent` — returns a Stripe PaymentIntent. Confirm it client-side
+ *   with `stripe.confirmCardPayment(paymentSession.client_secret, ...)`.
+ * - `checkout-session` — returns a Stripe Checkout Session to redirect to
+ *   (`uiMode: 'hosted'`) or embed (`uiMode: 'embedded'`).
+ *
+ * Widened with `string & Record<never, never>` so a method added service-side is
+ * still callable without an SDK bump, while the known values keep autocomplete.
+ * (`string & {}` is the usual idiom but trips the `ban-types` lint rule.)
+ */
+export const arNSFiatPurchaseMethods = [
+  'payment-intent',
+  'checkout-session',
+] as const;
+export type ArNSFiatPurchaseMethod =
+  | (typeof arNSFiatPurchaseMethods)[number]
+  | (string & Record<never, never>);
+
+/**
+ * Params for a fiat (Stripe) ArNS purchase quote.
+ *
+ * Intent-specific fields come from the same {@link ArNSPriceParams} union the
+ * credit-paid methods use, and the `uiMode` split reuses the checkout-session
+ * unions, so the hosted/embedded URL pairing is enforced at compile time the
+ * same way it is for top-ups.
+ *
+ * Note: the service also accepts a `Buy-Record` intent that the SDK does not
+ * model yet — {@link arNSPurchaseIntents} carries the other four.
+ */
+export type ArNSFiatPurchaseQuoteParams = ArNSPriceParams & {
+  /** Fiat currency to charge in. */
+  currency: Currency;
+  /** Address that will own the name once the purchase settles. */
+  address: UserAddress;
+  /** Stripe integration mode. Defaults to `payment-intent`. */
+  method?: ArNSFiatPurchaseMethod;
+  /** Promo codes to apply. Sent as repeated `promoCode` query params. */
+  promoCodes?: string[];
+} & (TurboCheckoutSessionHostedParams | TurboCheckoutSessionEmbeddedParams);
+
+/**
+ * Authenticated variant: `address` defaults to the signer's native address.
+ */
+export type AuthenticatedArNSFiatPurchaseQuoteParams = DistributiveOmit<
+  ArNSFiatPurchaseQuoteParams,
+  'address'
+> & { address?: UserAddress };
+
+/**
+ * The quote the service recorded for this purchase. `nonce` is the key to poll
+ * `getArNSPurchaseStatus({ nonce })` with once the card payment confirms.
+ *
+ * Intent-dependent fields (`type`, `years`, `increaseQty`, `processId`) are
+ * OMITTED by the service for intents that do not use them — they are absent
+ * keys, not `null` — so each is optional here.
+ */
+export type ArNSFiatPurchaseQuote = {
+  name: string;
+  intent: ArNSPurchaseIntent;
+  /** UUID identifying this purchase; the status-lookup key. */
+  nonce: string;
+  owner: UserAddress;
+  /** Credit value of the purchase, in Winston credits. */
+  wincQty: string;
+  /** Verified against the live service: serialized as a NUMBER, unlike wincQty. */
+  mARIOQty: number;
+  /** Fiat amount to be charged, in the currency's smallest unit. */
+  paymentAmount: number;
+  /** Amount before adjustments, in the currency's smallest unit. */
+  quotedPaymentAmount: number;
+  currencyType: Currency;
+  quoteExpirationDate: string;
+  paymentProvider: string;
+  /** Credits left over when the charge was raised to Stripe's minimum. */
+  excessWincAmount?: string;
+  /** ISO timestamp the quote was recorded. */
+  quoteCreationDate: string;
+  /**
+   * Rates at quote time. Verified against the live service: serialized as
+   * STRINGS, even though they are numeric server-side.
+   */
+  usdArRate?: string;
+  usdArioRate?: string;
+  type?: ArNSNameType;
+  years?: number;
+  increaseQty?: number;
+  processId?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * The Stripe object to complete payment with — a PaymentIntent or a Checkout
+ * Session depending on `method`. Typed loosely on purpose: this is Stripe's
+ * payload, passed through verbatim, and pinning it here would couple the SDK to
+ * a Stripe API version.
+ *
+ * `client_secret` is present on a PaymentIntent and on an embedded Checkout
+ * Session; a hosted Checkout Session exposes `url` instead.
+ */
+export type ArNSFiatPaymentSession = {
+  id: string;
+  client_secret?: string | null;
+  url?: string | null;
+  [key: string]: unknown;
+};
+
+export type ArNSFiatPurchaseQuoteResponse = {
+  purchaseQuote: ArNSFiatPurchaseQuote;
+  paymentSession: ArNSFiatPaymentSession;
+  /** Promo/discount adjustments applied to the fiat amount. */
+  adjustments: Adjustment[];
+  /** Inclusive fees folded into the price. */
+  fees: Adjustment[];
+};
+
 export interface TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (address: string) => Promise<TurboBalanceResponse>;
+  getFreeStatus: (address: string) => Promise<TurboFreeStatusResponse>;
+  getArNSPriceForName(params: ArNSPriceParams): Promise<ArNSPriceResponse>;
+  /**
+   * Preview what one of the eight non-purchase actions will debit, without
+   * creating it. `action` must not be one of the four ARIO-purchase actions
+   * (`buy-name`, `extend-lease`, `upgrade-name`, `increase-undername-limit`)
+   * — use {@link getArNSPriceForName} for those.
+   */
+  getArNSActionPrice(action: ArNSAction): Promise<ArNSActionPriceResponse>;
+  getArNSPurchaseStatus(p: {
+    nonce: string;
+  }): Promise<ArNSPurchaseStatusResponse>;
+  /**
+   * Returns the ArNS names a wallet owns or controls via Turbo's custodial
+   * ArNS-with-credits feature. This is a read-only listing endpoint; it does
+   * not require a signature. See `TurboArNSName` for field semantics. To
+   * read a name's current records or lease/expiration state, use
+   * `@ar.io/sdk` directly against the returned `antId`.
+   */
+  getArNSNames: (address: string) => Promise<TurboArNSNamesResponse>;
+  /** Fiat (Stripe) ArNS purchase quote — no Turbo Credits top-up in between. */
+  getArNSFiatPurchaseQuote(
+    params: ArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse>;
   getSupportedCurrencies(): Promise<TurboCurrenciesResponse>;
   getSupportedCountries(): Promise<TurboCountriesResponse>;
   getTurboCryptoWallets(): Promise<Record<TokenType, string>>;
@@ -948,6 +1639,23 @@ export type TurboFundWithTokensParams = {
 export interface TurboAuthenticatedPaymentServiceInterface
   extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
+  /** `address` defaults to the signer's native address. */
+  getArNSFiatPurchaseQuote(
+    params: AuthenticatedArNSFiatPurchaseQuoteParams,
+  ): Promise<ArNSFiatPurchaseQuoteResponse>;
+  getFreeStatus: (
+    userAddress?: UserAddress,
+  ) => Promise<TurboFreeStatusResponse>;
+
+  /**
+   * The signer's OWN completed top-up history (crypto + fiat), newest first.
+   * Signature-required and self-scoped — there is no by-address form.
+   */
+  getPaymentHistory(
+    params?: TurboPaymentHistoryParams,
+  ): Promise<TurboPaymentHistoryResponse>;
+
+  getArNSNames: (userAddress?: UserAddress) => Promise<TurboArNSNamesResponse>;
 
   getCreditShareApprovals(p: {
     userAddress?: UserAddress;
@@ -956,6 +1664,107 @@ export interface TurboAuthenticatedPaymentServiceInterface
   topUpWithTokens(
     p: TurboFundWithTokensParams,
   ): Promise<TurboCryptoFundResponse>;
+
+  // ===== ArNS actions (sponsored) =====
+  // Every operation is an action with one of two shapes, chosen by the SERVER.
+  // Callers branch on `status`, never on which action they asked for.
+
+  /** Create an action. Debits credits HERE, not at sign. */
+  createArNSAction(
+    action: ArNSAction,
+    params?: Record<string, unknown>,
+    ownerProof?: { owner: ArNSOwnerSigner; message: string },
+  ): Promise<ArNSActionResult>;
+  /** Submit the owner-signed transaction (full serialized tx, base64). */
+  signArNSAction(
+    nonce: string,
+    signedTransaction: string,
+  ): Promise<ArNSActionCompleted>;
+  /** Status by nonce. Open — needs no signature. */
+  getArNSActionStatus(
+    nonce: string,
+  ): Promise<ArNSActionResult & { failedDate?: string }>;
+
+  buyArNSName(params: {
+    name: string;
+    owner: ArNSOwnerSigner;
+    type?: ArNSNameType;
+    years?: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  extendArNSLease(params: {
+    name: string;
+    years: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  upgradeArNSName(params: {
+    name: string;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  increaseArNSUndernameLimit(params: {
+    name: string;
+    increaseQty: number;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  setArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    transactionId: string;
+    undername?: string;
+    ttlSeconds?: number;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  addArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSController(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target?: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  transferArNSAnt(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  setArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername?: string;
+    displayName?: string | null;
+    recordLogo?: string | null;
+    recordDescription?: string | null;
+    recordKeywords?: string[] | null;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  removeArNSRecordMetadata(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
+  transferArNSRecord(params: {
+    antId: string;
+    owner: ArNSOwnerSigner;
+    undername: string;
+    target: string;
+    onNonce?: (nonce: string) => void | Promise<void>;
+  }): Promise<ArNSActionCompleted>;
 }
 
 export interface TurboUnauthenticatedUploadServiceInterface {
