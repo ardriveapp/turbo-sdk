@@ -166,3 +166,82 @@ describe('x402 with chunking disabled', () => {
     assert.equal(res.id, 'stub-id');
   });
 });
+
+describe('x402 buffering of a web ReadableStream', () => {
+  const originalFetch = globalThis.fetch;
+  let sent: number[];
+
+  beforeEach(() => {
+    sent = [];
+    globalThis.fetch = (async (_i: RequestInfo | URL, init?: RequestInit) => {
+      const b = init?.body;
+      if (b instanceof Uint8Array) sent.push(b.byteLength);
+      else if (b instanceof Blob) sent.push(b.size);
+      return new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const webStream = (payload: Buffer, chunkSize = 1024) =>
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (let o = 0; o < payload.length; o += chunkSize) {
+          controller.enqueue(
+            new Uint8Array(payload.subarray(o, o + chunkSize)),
+          );
+        }
+        controller.close();
+      },
+    });
+
+  const service = () =>
+    new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+
+  // The browser build hands a web ReadableStream rather than a Node Readable,
+  // and it is drained by a different branch.
+  it('buffers a multi-chunk web stream to exactly the declared size', async () => {
+    const payload = Buffer.alloc(4096, 9);
+    await service().uploadSignedDataItem({
+      dataItemStreamFactory: () => webStream(payload) as never,
+      dataItemSizeFactory: () => payload.byteLength,
+      x402Options: { signer: {} as never },
+    });
+    assert.deepEqual(sent, [4096]);
+  });
+
+  it('rejects a web stream that overruns its declared size', async () => {
+    await assert.rejects(
+      service().uploadSignedDataItem({
+        dataItemStreamFactory: () => webStream(Buffer.alloc(4096, 9)) as never,
+        dataItemSizeFactory: () => 1024,
+        x402Options: { signer: {} as never },
+      }),
+      /exceeded its declared size of 1024 bytes/,
+    );
+    assert.deepEqual(sent, [], 'nothing should be sent');
+  });
+
+  it('cancels a web stream when the caller aborts', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(
+      service().uploadSignedDataItem({
+        dataItemStreamFactory: () => webStream(Buffer.alloc(4096, 9)) as never,
+        dataItemSizeFactory: () => 4096,
+        signal: controller.signal,
+        x402Options: { signer: {} as never },
+      }),
+      (e: Error) => /abort/i.test(e.name) || /abort/i.test(e.message),
+    );
+    assert.deepEqual(sent, []);
+  });
+});

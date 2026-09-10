@@ -16,6 +16,8 @@
 import { strict as assert } from 'node:assert';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
+import { testEthWallet } from '../../tests/helpers.js';
+import { TurboFactory } from '../node/factory.js';
 import { TurboHTTPService } from './http.js';
 import { TurboUnauthenticatedUploadService } from './index.js';
 import { Logger } from './logger.js';
@@ -139,6 +141,19 @@ describe('x402 refuses cleartext', () => {
     );
   });
 
+  it('treats an unparseable URL as insecure rather than throwing', async () => {
+    // isLoopback cannot parse it, so the guard must refuse rather than let a
+    // malformed URL through on a technicality.
+    await assert.rejects(
+      httpService('not-a-url').post({
+        endpoint: '/tx/base-usdc',
+        data: Buffer.from('x'),
+        x402Options: { signer },
+      }),
+      /non-HTTPS/,
+    );
+  });
+
   it('allows loopback, so local development still works', async () => {
     // Fails on connection, not on the cleartext guard.
     await assert.rejects(
@@ -148,5 +163,62 @@ describe('x402 refuses cleartext', () => {
       }),
       (e: Error) => !/non-HTTPS/.test(e.message),
     );
+  });
+});
+
+/*
+  The clients delegate to the upload service. Covered separately because the
+  delegation is where a wrong argument name or a dropped parameter would hide —
+  the service tests above would still pass.
+*/
+describe('x402 price lookups through the clients', () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrls: string[];
+
+  beforeEach(() => {
+    requestedUrls = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      requestedUrls.push(typeof input === 'string' ? input : input.toString());
+      return new Response(JSON.stringify({ usdcAmount: '1234' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('reaches the routes from an unauthenticated client', async () => {
+    const turbo = TurboFactory.unauthenticated({
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+    await turbo.getX402PriceForDataItem({
+      byteCount: 64,
+      network: 'base-sepolia',
+    });
+    await turbo.getX402PriceForRawData({ byteCount: 64, tagCount: 1 });
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/price/x402/data-item/usdc-base-sepolia/64',
+      'https://upload.example.com/v1/price/x402/data/usdc-base/64?tags=1',
+    ]);
+  });
+
+  it('reaches the routes from an authenticated client', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+    await turbo.getX402PriceForDataItem({ byteCount: 128 });
+    await turbo.getX402PriceForRawData({
+      byteCount: 128,
+      contentType: 'text/plain',
+    });
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/price/x402/data-item/usdc-base/128',
+      'https://upload.example.com/v1/price/x402/data/usdc-base/128?contentType=text%2Fplain',
+    ]);
   });
 });
