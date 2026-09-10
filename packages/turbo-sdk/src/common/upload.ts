@@ -473,6 +473,11 @@ export abstract class TurboAuthenticatedBaseUploadService
     this.logger.debug('Starting file upload', { params });
 
     let retries = 0;
+    // Carried ACROSS retry attempts. A paid chunked upload is bought before any
+    // chunk is accepted, so an attempt that fails after paying must hand its
+    // upload id to the next attempt. Rebuilding the uploader with no id is how
+    // a single upload gets billed once per retry.
+    let paidUploadId: string | undefined;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
       this.retryConfig.retryDelay ??
@@ -542,6 +547,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           dataItemByteCount: dataItemSizeFactory(),
           chunkingMode: params.chunkingMode,
           maxFinalizeMs: params.maxFinalizeMs,
+          paidUploadId,
           ...(x402Options ? { x402: x402Options } : {}),
           ...(x402Options
             ? {
@@ -553,14 +559,20 @@ export abstract class TurboAuthenticatedBaseUploadService
             : {}),
         });
         if (chunkedUploader.shouldUseChunkUploader) {
-          const response = await chunkedUploader.upload({
-            dataItemStreamFactory,
-            dataItemSizeFactory,
-            dataItemOpts,
-            signal,
-            events,
-          });
-          return { ...response, cryptoFundResult };
+          try {
+            const response = await chunkedUploader.upload({
+              dataItemStreamFactory,
+              dataItemSizeFactory,
+              dataItemOpts,
+              signal,
+              events,
+            });
+            return { ...response, cryptoFundResult };
+          } finally {
+            // Read on the way out, success or failure. On failure this is the
+            // whole point: the next attempt resumes what this one paid for.
+            paidUploadId = chunkedUploader.currentPaidUploadId ?? paidUploadId;
+          }
         }
 
         const response = await this.uploadSignedDataItem({

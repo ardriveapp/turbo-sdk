@@ -61,13 +61,18 @@ export class ChunkedUploader {
   /**
    * The upload id of an x402 upload we have ALREADY PAID FOR.
    *
-   * `uploadFile` retries a failed upload up to 6 times, and a retry re-enters
-   * `upload()` on this same instance. Without this memo each retry opens a
-   * NEW paid upload, so one 12 MiB upload whose finalization timed out billed
-   * the customer five times over — observed, not theoretical. The payment is
-   * bound to an upload id, so a retry must resume THAT upload, never buy
-   * another. Deliberately not reset on failure: re-paying is never the right
-   * recovery, and an upload that cannot be resumed is refunded server-side.
+   * `uploadFile` retries a failed upload up to 6 times. Without this memo each
+   * retry opens a NEW paid upload, so one 12 MiB upload whose finalization
+   * timed out billed the customer five times over — observed, not theoretical.
+   * The payment is bound to an upload id, so a retry must resume THAT upload,
+   * never buy another. Deliberately not reset on failure: re-paying is never
+   * the right recovery, and an upload that cannot be resumed is refunded
+   * server-side.
+   *
+   * A retry does NOT re-enter `upload()` on this instance: `uploadFile`
+   * constructs a fresh uploader each attempt, so this memo only survives
+   * because that caller reads {@link currentPaidUploadId} and hands it back
+   * through the constructor.
    */
   private paidUploadId: string | undefined;
   private readonly http: TurboHTTPService;
@@ -98,6 +103,7 @@ export class ChunkedUploader {
     dataItemByteCount,
     x402,
     x402RefundIdentity,
+    paidUploadId,
   }: {
     maxFinalizeMs?: number;
     http: TurboHTTPService;
@@ -117,6 +123,12 @@ export class ChunkedUploader {
      * place.
      */
     x402RefundIdentity?: { address: string; signatureType: number };
+    /**
+     * An upload this caller has ALREADY PAID FOR. `uploadFile` builds a new
+     * uploader per retry attempt, so the in-instance memo below cannot survive
+     * a retry on its own: the id has to be handed back in.
+     */
+    paidUploadId?: string;
   }) {
     this.assertChunkParams({
       chunkByteCount,
@@ -124,6 +136,7 @@ export class ChunkedUploader {
       maxChunkConcurrency,
       maxFinalizeMs,
     });
+    this.paidUploadId = paidUploadId;
     this.chunkByteCount = chunkByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
     this.maxFinalizeMs = maxFinalizeMs;
@@ -269,6 +282,15 @@ export class ChunkedUploader {
     }
     this.paidUploadId = res.id;
     return res.id;
+  }
+
+  /**
+   * The paid upload id, once one has been bought. `uploadFile` reads this after
+   * a failed attempt so the next attempt resumes the upload already paid for
+   * rather than buying a second one.
+   */
+  public get currentPaidUploadId(): string | undefined {
+    return this.paidUploadId;
   }
 
   private async initUpload(): Promise<string> {
