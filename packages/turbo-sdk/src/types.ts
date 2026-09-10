@@ -1767,6 +1767,77 @@ export interface TurboAuthenticatedPaymentServiceInterface
   }): Promise<ArNSActionCompleted>;
 }
 
+/**
+ * An x402 network the upload service prices against — `base` on mainnet,
+ * `base-sepolia` on testnet.
+ *
+ * NOT the SDK's `TokenType`. The route builds its token as `usdc-{network}`,
+ * so `base-usdc` is accepted on mainnet only because the network there is
+ * literally `base`; on testnet it must be `base-sepolia`.
+ */
+export type X402Network = string;
+
+/** The x402 payment requirements a 402 challenge would carry for this upload. */
+export type X402PaymentRequirements = {
+  scheme: string;
+  network: string;
+  maxAmountRequired: string;
+  resource: string;
+  description: string;
+  mimeType: string;
+  outputSchema?: unknown;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  asset: string;
+  extra?: Record<string, unknown>;
+};
+
+type TurboX402PriceBase = {
+  token: string;
+  currency: string;
+  network: string;
+  /** Storage cost in winston, for comparison with the credit price. */
+  winstonCost: string;
+  /** Amount to pay, in USDC's smallest unit (6 decimals). */
+  usdcAmount: string;
+  x402Version: number;
+  payment: X402PaymentRequirements;
+};
+
+/** Price for a data item the caller has already signed. */
+export type TurboX402DataItemPriceResponse = TurboX402PriceBase & {
+  byteCount: number;
+};
+
+/**
+ * Price for raw data the service will wrap into a data item itself.
+ *
+ * Reports the wrapping overhead, which the caller cannot compute: a data item
+ * is larger than its payload by its header, signature and tags.
+ */
+export type TurboX402RawDataPriceResponse = TurboX402PriceBase & {
+  rawDataSize: number;
+  userTagCount: number;
+  systemTagCount: number;
+  totalTagCount: number;
+  estimatedDataItemSize: number;
+  overhead: number;
+};
+
+export type TurboX402DataItemPriceParams = {
+  /** Size of the SIGNED data item, not of the payload inside it. */
+  byteCount: number;
+  network?: X402Network;
+};
+
+export type TurboX402RawDataPriceParams = {
+  byteCount: number;
+  network?: X402Network;
+  /** How many tags the caller will attach; changes the estimated overhead. */
+  tagCount?: number;
+  contentType?: string;
+};
+
 export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
@@ -1789,6 +1860,14 @@ export interface TurboUnauthenticatedUploadServiceInterface {
     tags?: { name: string; value: string }[];
     maxMUSDCAmount?: BigNumber;
   }): Promise<TurboUploadDataItemResponse>;
+
+  getX402PriceForDataItem(
+    p: TurboX402DataItemPriceParams,
+  ): Promise<TurboX402DataItemPriceResponse>;
+
+  getX402PriceForRawData(
+    p: TurboX402RawDataPriceParams,
+  ): Promise<TurboX402RawDataPriceResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
