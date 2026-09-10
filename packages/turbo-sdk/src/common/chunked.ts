@@ -24,6 +24,7 @@ import {
   TurboMultiPartStatusResponse,
   TurboUploadDataItemResponse,
   UploadSignedDataItemParams,
+  X402RequestCredentials,
   multipartFailedStatus,
   validChunkingModes,
 } from '../types.js';
@@ -52,7 +53,22 @@ const chunkingHeader = { 'x-chunking-version': '2' } as const;
  * Performs a chunked upload by splitting the stream into fixed-size buffers,
  * uploading them in parallel, and emitting progress/error events.
  */
+/**
+ * What a chunked upload needs in order to pay with x402 at CREATE.
+ *
+ * `address` and `signatureType` identify the wallet credited with any refund;
+ * the service cross-checks them at finalize against the item it assembles, so
+ * they must describe the signer that actually signed the data item.
+ */
+export type ChunkedX402Config = {
+  options: X402RequestCredentials;
+  address: string;
+  signatureType: number;
+};
+
 export class ChunkedUploader {
+  private x402?: ChunkedX402Config;
+  private dataItemByteCount: ByteCount;
   private chunkByteCount: number;
   private readonly maxChunkConcurrency: number;
   private readonly maxFinalizeMs: number | undefined;
@@ -72,6 +88,7 @@ export class ChunkedUploader {
     logger = Logger.default,
     chunkingMode = 'auto',
     dataItemByteCount,
+    x402,
   }: {
     maxFinalizeMs?: number;
     http: TurboHTTPService;
@@ -81,6 +98,7 @@ export class ChunkedUploader {
     maxChunkConcurrency?: number;
     chunkingMode?: TurboChunkingMode;
     dataItemByteCount: ByteCount;
+    x402?: ChunkedX402Config;
   }) {
     this.assertChunkParams({
       chunkByteCount,
@@ -89,6 +107,8 @@ export class ChunkedUploader {
       maxFinalizeMs,
     });
     this.chunkByteCount = chunkByteCount;
+    this.x402 = x402;
+    this.dataItemByteCount = dataItemByteCount;
     this.maxChunkConcurrency = maxChunkConcurrency;
     this.maxFinalizeMs = maxFinalizeMs;
     this.http = http;
@@ -182,14 +202,29 @@ export class ChunkedUploader {
    * Initialize or resume an upload session, returning the upload ID.
    */
   private async initUpload(): Promise<string> {
+    /*
+      With x402, CREATE is where payment happens: `totalBytes` opts the request
+      into it, the service quotes that declared size and challenges, and we pay
+      before a single chunk is stored. Settling here rather than at finalize is
+      what stops an unpaid upload from consuming storage — and it prices the
+      upload without ever transmitting it.
+    */
+    const query = new URLSearchParams({ chunkSize: `${this.chunkByteCount}` });
+    if (this.x402 !== undefined) {
+      query.set('totalBytes', `${this.dataItemByteCount}`);
+      query.set('address', this.x402.address);
+      query.set('signatureType', `${this.x402.signatureType}`);
+    }
+
     const res = await this.http.get<{
       id: string;
       min: number;
       max: number;
       chunkSize: number;
     }>({
-      endpoint: `/chunks/${this.token}/-1/-1?chunkSize=${this.chunkByteCount}`,
+      endpoint: `/chunks/${this.token}/-1/-1?${query.toString()}`,
       headers: chunkingHeader,
+      ...(this.x402 !== undefined ? { x402Options: this.x402.options } : {}),
     });
 
     if (res.chunkSize !== this.chunkByteCount) {

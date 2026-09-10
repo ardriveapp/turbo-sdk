@@ -72,15 +72,53 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     signal,
     allowedStatuses = [200, 202],
     headers,
+    x402Options,
   }: {
     endpoint: `/${string}`;
     signal?: AbortSignal;
     allowedStatuses?: number[];
     headers?: Partial<TurboSignedRequestHeaders> & Record<string, string>;
+    /**
+     * Pay for this GET if it answers 402.
+     *
+     * A GET carries no body, so the two requests the protocol needs are simply
+     * two requests — none of the body-replay trouble the POST path has. This is
+     * what makes paying at multipart CREATE the better shape: the payload is
+     * never sent to learn its price.
+     */
+    x402Options?: X402RequestCredentials;
   }): Promise<T> {
-    return this.withRetry<T>(
+    const send = () =>
+      fetch(this.baseURL + endpoint, {
+        method: 'GET',
+        headers: { ...defaultHeaders, ...headers },
+        signal,
+      });
+
+    if (x402Options === undefined) {
+      return this.withRetry<T>(() => send(), allowedStatuses);
+    }
+
+    /*
+      A GET has no body, so `wrapFetchWithPayment` is safe here in a way it is
+      not on the upload POST: its retry re-issues the request from the original
+      init, and with nothing to replay there is nothing to go wrong. That is
+      precisely why the multipart flow pays at CREATE rather than on the
+      payload.
+    */
+    const maxMUSDCAmount =
+      x402Options.maxMUSDCAmount !== undefined
+        ? BigInt(x402Options.maxMUSDCAmount.toString())
+        : undefined;
+    const fetchWithPay = wrapFetchWithPayment(
+      fetch,
+      x402Options.signer,
+      maxMUSDCAmount,
+    );
+
+    return this.tryRequest<T>(
       () =>
-        fetch(this.baseURL + endpoint, {
+        fetchWithPay(this.baseURL + endpoint, {
           method: 'GET',
           headers: { ...defaultHeaders, ...headers },
           signal,
