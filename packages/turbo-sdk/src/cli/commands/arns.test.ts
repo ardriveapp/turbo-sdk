@@ -23,18 +23,22 @@ import {
   InsufficientCreditsError,
 } from '../../utils/errors.js';
 import {
+  ArNSActionStatusOptions,
   ArNSPriceOptions,
   ArNSPurchaseOptions,
   ArNSPurchaseStatusOptions,
   RemoveArNSRecordOptions,
+  SetArNSRecordMetadataOptions,
   SetArNSRecordOptions,
   TransferArNSAntOptions,
 } from '../types.js';
 import {
+  ArNSActionStatusClient,
   ArNSCustodyClient,
   ArNSPriceClient,
   ArNSPurchaseClient,
   ArNSStatusClient,
+  arnsActionStatus,
   arnsFiatQuote,
   arnsPrice,
   arnsPriceParamsFromOptions,
@@ -44,6 +48,7 @@ import {
   increaseArNSUndernames,
   removeArNSRecord,
   setArNSRecord,
+  setArNSRecordMetadata,
   transferArNSAnt,
   upgradeArNSName,
 } from './arns.js';
@@ -55,7 +60,8 @@ class FakeTurbo
     ArNSPriceClient,
     ArNSStatusClient,
     ArNSPurchaseClient,
-    ArNSCustodyClient
+    ArNSCustodyClient,
+    ArNSActionStatusClient
 {
   public calls: { method: string; params: unknown }[] = [];
   public error: unknown = undefined;
@@ -77,10 +83,15 @@ class FakeTurbo
   } as unknown as Awaited<ReturnType<ArNSPurchaseClient['buyArNSName']>>;
 
   getArNSPriceForName(params: unknown) {
+    // The surcharge exceeds the name's own price, which is the shape a real
+    // Buy-Name response takes. Holding `winc` and `wincTotal` equal here is
+    // what previously let the CLI print the under-quoting field unnoticed.
     return this.record('getArNSPriceForName', params, {
       winc: '1500000000000',
       mARIO: '2500',
-      wincTotal: '1500000000000',
+      antSpawnSurchargeWinc: '2000000000000',
+      wincTotalWithAntSpawn: '3500000000000',
+      wincTotal: '3500000000000',
     });
   }
   getArNSPurchaseStatus(params: unknown) {
@@ -159,6 +170,14 @@ class FakeTurbo
       antId: 'ant-1',
       messageId: 'm',
     } as never);
+  }
+  getArNSActionStatus(nonce: string) {
+    return this.record('getArNSActionStatus', nonce, {
+      nonce,
+      action: 'buy-name' as const,
+      status: 'completed' as const,
+      messageId: 'msg-1',
+    });
   }
   setArNSRecordMetadata(params: unknown) {
     return this.record('setArNSRecordMetadata', params, {
@@ -337,6 +356,28 @@ describe('ArNS CLI commands', () => {
         processId: 'ant-1',
       });
     });
+
+    it('prints the total to pay, not the name-only price', async () => {
+      const lines: string[] = [];
+      const log = console.log;
+      console.log = (...args: unknown[]) => void lines.push(String(args[0]));
+      try {
+        await arnsPrice(
+          priceOptions({ name: 'foo', type: 'permabuy', processId: 'ant-1' }),
+          turbo,
+        );
+      } finally {
+        console.log = log;
+      }
+      const printed = JSON.parse(lines.join('\n'));
+      // The ANT spawn surcharge is part of what buy-arns-name debits, so the
+      // quoted figure has to include it.
+      assert.equal(printed.wincTotal, '3500000000000');
+      assert.equal(printed.nameOnlyWinc, '1500000000000');
+      assert.equal(printed.antSpawnSurchargeWinc, '2000000000000');
+      // 3.5 credits, not the 1.5 the name-only figure would have shown.
+      assert.equal(printed.credits, '3.500000000000');
+    });
   });
 
   describe('buyArNSName', () => {
@@ -498,6 +539,57 @@ describe('ArNS CLI commands', () => {
             turbo,
           ),
         /nonce/,
+      );
+    });
+  });
+
+  describe('arnsActionStatus', () => {
+    it('reads the action namespace, not the purchase namespace', async () => {
+      await arnsActionStatus(
+        { token: 'arweave', nonce: 'nonce-123' } as ArNSActionStatusOptions,
+        turbo,
+      );
+      // A credit-paid buy returns an ACTION nonce. Looking it up through
+      // getArNSPurchaseStatus hits /arns/purchase/, a separate namespace that
+      // answers "Purchase status not found".
+      assert.equal(turbo.last.method, 'getArNSActionStatus');
+      assert.equal(turbo.last.params, 'nonce-123');
+    });
+
+    it('requires a --nonce', async () => {
+      await assert.rejects(
+        () =>
+          arnsActionStatus(
+            { token: 'arweave' } as ArNSActionStatusOptions,
+            turbo,
+          ),
+        /nonce/,
+      );
+    });
+  });
+
+  describe('setArNSRecordMetadata option conflicts', () => {
+    it('rejects a value and its --clear- partner together', async () => {
+      await assert.rejects(
+        () =>
+          setArNSRecordMetadata(
+            {
+              token: 'arweave',
+              antId: 'ant-123',
+              undername: 'docs',
+              ownerKey: TEST_OWNER_KEY,
+              displayName: 'My Docs',
+              clearDisplayName: true,
+            } as unknown as SetArNSRecordMetadataOptions,
+            turbo,
+          ),
+        /Cannot pass both --display-name and --clear-display-name/,
+      );
+      // Nothing may reach the signed mutation: the old behaviour silently let
+      // the clear win and discarded the supplied value.
+      assert.equal(
+        turbo.calls.filter((c) => c.method === 'setArNSRecordMetadata').length,
+        0,
       );
     });
   });

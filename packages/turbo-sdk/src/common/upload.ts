@@ -698,7 +698,21 @@ export abstract class TurboAuthenticatedBaseUploadService
     await Promise.all(
       files.map((file) =>
         limit(async () => {
-          const contentHash = await this.computeContentHash(file);
+          let contentHash: string;
+          try {
+            contentHash = await this.computeContentHash(file);
+          } catch (error) {
+            // A file that cannot be read is left un-keyed and falls through to
+            // the per-file upload path, which reports it through `errors` under
+            // `throwOnFailure`. Rejecting here instead would abort the whole
+            // folder before any upload starts, so passing a folder index would
+            // silently change the failure contract.
+            this.logger.error('Failed to hash file for the folder index', {
+              file: this.getFileName(file),
+              error,
+            });
+            return;
+          }
           contentHashes.set(file, contentHash);
           itemKeys.set(
             file,
@@ -726,7 +740,13 @@ export abstract class TurboAuthenticatedBaseUploadService
     // the plan deduplicates within the folder as well as against the index.
     const claimed = new Set<string>();
     const filesToUpload = files.filter((file) => {
-      const key = itemKeys.get(file) as string;
+      const key = itemKeys.get(file);
+      // An un-keyed file could not be hashed. It is never a reuse candidate and
+      // must not share the dedup slot with the next un-keyed file, so it skips
+      // the claimed set entirely and always uploads.
+      if (key === undefined) {
+        return true;
+      }
       if (knownIds.has(key) || claimed.has(key)) {
         return false;
       }

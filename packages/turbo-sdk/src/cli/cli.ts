@@ -25,6 +25,7 @@ import { version } from '../version.js';
 import {
   addArNSController,
   arnsActionPrice,
+  arnsActionStatus,
   arnsFiatQuote,
   arnsPrice,
   arnsPurchaseStatus,
@@ -59,6 +60,7 @@ import { x402UploadUnsignedFile } from './commands/x402UploadUnsignedData.js';
 import {
   addArNSControllerOptions,
   arnsActionPriceOptions,
+  arnsActionStatusOptions,
   arnsFiatQuoteOptions,
   arnsPriceOptions,
   arnsPurchaseStatusOptions,
@@ -291,6 +293,17 @@ applyOptions(
   arnsPurchaseStatusOptions,
 ).action(async (_commandOptions, command: Command) => {
   await runCommand(command, arnsPurchaseStatus);
+});
+
+applyOptions(
+  program
+    .command('arns-action-status')
+    .description(
+      'Get the status of a credit-paid ArNS action by its nonce (buy, extend, upgrade, and the non-purchase actions)',
+    ),
+  arnsActionStatusOptions,
+).action(async (_commandOptions, command: Command) => {
+  await runCommand(command, arnsActionStatus);
 });
 
 applyOptions(

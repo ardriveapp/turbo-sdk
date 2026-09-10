@@ -21,17 +21,15 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [TurboUnauthenticatedClient](#turbounauthenticatedclient)
   - [TurboAuthenticatedClient](#turboauthenticatedclient)
 - [ArNS Names](#arns-names)
-  - [Purchase lifecycle](#purchase-lifecycle)
-  - [Connecting a signer](#connecting-a-signer)
-  - [Pricing a name](#pricing-a-name)
-  - [Buying a name](#buying-a-name)
-  - [Extend, increase undernames, upgrade](#extend-increase-undernames-upgrade)
-  - [Polling purchase status](#polling-purchase-status)
-  - [ANT custody: transfer & manage records](#ant-custody-transfer--manage-records)
-  - [Listing owned names](#listing-owned-names)
-  - [Error handling & retries](#error-handling--retries)
+  - [You need a Solana key, not Solana funds](#you-need-a-solana-key-not-solana-funds)
+  - [Two identities, never conflated](#two-identities-never-conflated)
+  - [The twelve sponsored actions](#the-twelve-sponsored-actions)
+  - [Not covered — these still cost you SOL](#not-covered--these-still-cost-you-sol)
+  - [Pricing — quote the total](#pricing--quote-the-total)
+  - [The two shapes, if you drive it yourself](#the-two-shapes-if-you-drive-it-yourself)
+  - [Nonces, retries and refunds](#nonces-retries-and-refunds)
+  - [Listing a wallet's names](#listing-a-wallets-names)
   - [Buying a name with a credit card (fiat / Stripe)](#buying-a-name-with-a-credit-card-fiat--stripe)
-  - [Dependency note (@solana/codecs)](#dependency-note-solanacodecs)
 - [Signers](#signers)
   - [Arweave](#arweave)
   - [Ethereum](#ethereum)
@@ -1247,11 +1245,14 @@ implement the interface directly rather than exposing a secret key:
 const owner = {
   getAddress: () => wallet.publicKey.toBase58(),
   signTransaction: async (txBase64) => {
+    // atob/btoa rather than Buffer: browsers do not provide Buffer unless the
+    // app polyfills it. The spread is safe here because a Solana transaction
+    // is capped at 1232 bytes.
     const tx = VersionedTransaction.deserialize(
-      Buffer.from(txBase64, 'base64'),
+      Uint8Array.from(atob(txBase64), (c) => c.charCodeAt(0)),
     );
     const signed = await wallet.signTransaction(tx);
-    return Buffer.from(signed.serialize()).toString('base64');
+    return btoa(String.fromCharCode(...signed.serialize()));
   },
   signMessage: (message) => wallet.signMessage(message),
 };
@@ -2033,9 +2034,9 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 #### ArNS Commands
 
-Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-purchase-status`.
+Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-action-status`. (`arns-purchase-status` reads a separate namespace, the one a fiat quote lands in.)
 
-All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither.
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither. `arns-action-status` reads nothing on-chain either, but takes a wallet because `getArNSActionStatus` lives on the authenticated client.
 
 When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
 
@@ -2182,19 +2183,38 @@ e.g:
 turbo arns-purchase-status --nonce 3f8c...e21 --payment-url http://localhost:4001
 ```
 
+##### `arns-action-status`
+
+Status of a credit-paid ArNS action by its nonce: the four purchase actions and the eight non-purchase ones. This is the command the buy/extend/upgrade output points at.
+
+`arns-purchase-status` is a different namespace (`/arns/purchase/`), which is where a fiat quote's nonce lands. Passing an action nonce to it returns "Purchase status not found".
+
+Command Options:
+
+- `--nonce <nonce>` - ArNS action nonce to look up
+
+e.g:
+
+```shell
+turbo arns-action-status --nonce 3f8c...e21 \
+  --wallet-file ../path/to/my/wallet.json
+```
+
 ##### `transfer-arns-ant`
 
 Self-custody exit: transfer a Turbo-custodied ANT to a Solana public key you control. Authenticated with an action-bound, single-use signature.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
 - `--target <address>` - Target Solana pubkey to transfer the ANT to
 
 e.g:
 
 ```shell
-turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+turbo transfer-arns-ant --ant-id ant-123 --target 7xKX...gAsU \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `set-arns-record`
@@ -2203,6 +2223,7 @@ Set a resolution record on a Turbo-custodied ANT.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to set a record on
 - `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
 - `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
@@ -2212,7 +2233,8 @@ e.g:
 
 ```shell
 turbo set-arns-record --ant-id ant-123 --undername docs \
-  --transaction-id A1b2...Xyz --ttl-seconds 900 --wallet-file ../path/to/my/wallet.json
+  --transaction-id A1b2...Xyz --ttl-seconds 900 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `remove-arns-record`
@@ -2221,13 +2243,15 @@ Remove a resolution record (undername) from a Turbo-custodied ANT.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a record from
 - `--undername <undername>` - Undername record to remove
 
 e.g:
 
 ```shell
-turbo remove-arns-record --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+turbo remove-arns-record --ant-id ant-123 --undername docs \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `set-arns-record-metadata`
@@ -2236,6 +2260,7 @@ Set a record's display name, logo, description, or keywords on a Turbo-custodied
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to set record metadata on
 - `--undername <undername>` - Undername record to set metadata on (defaults to `@`, the apex record)
 - `--display-name <displayName>` / `--clear-display-name`
@@ -2248,13 +2273,14 @@ e.g:
 ```shell
 turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
   --display-name "My Docs" --record-keywords arweave permaweb \
-  --wallet-file ../path/to/my/wallet.json
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ```shell
 # Clear the description, leave everything else unchanged
 turbo set-arns-record-metadata --ant-id ant-123 --undername docs \
-  --clear-record-description --wallet-file ../path/to/my/wallet.json
+  --clear-record-description \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `remove-arns-record-metadata`
@@ -2263,13 +2289,15 @@ Clear all of a record's metadata on a Turbo-custodied ANT.
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove record metadata from
 - `--undername <undername>` - Undername record whose metadata to clear
 
 e.g:
 
 ```shell
-turbo remove-arns-record-metadata --ant-id ant-123 --undername docs --wallet-file ../path/to/my/wallet.json
+turbo remove-arns-record-metadata --ant-id ant-123 --undername docs \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `transfer-arns-record`
@@ -2278,6 +2306,7 @@ Hand ONE record to another address — distinct from `transfer-arns-ant`, which 
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID whose record to transfer
 - `--undername <undername>` - Undername record to transfer
 - `--target <address>` - Target Solana pubkey to transfer the record to
@@ -2285,7 +2314,8 @@ Command Options:
 e.g:
 
 ```shell
-turbo transfer-arns-record --ant-id ant-123 --undername docs --target 7xKX...gAsU --wallet-file ../path/to/my/wallet.json
+turbo transfer-arns-record --ant-id ant-123 --undername docs --target 7xKX...gAsU \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `add-arns-controller`
@@ -2294,13 +2324,15 @@ Grant controller rights on a Turbo-custodied ANT. Owner-signed — changing an A
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to add a controller to
 - `--target <address>` - Solana pubkey to grant controller rights to (omit for Turbo itself, which is what makes `set-arns-record` a single call)
 
 e.g:
 
 ```shell
-turbo add-arns-controller --ant-id ant-123 --wallet-file ../path/to/my/wallet.json
+turbo add-arns-controller --ant-id ant-123 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `remove-arns-controller`
@@ -2309,13 +2341,15 @@ Revoke controller rights on a Turbo-custodied ANT — the escape hatch that keep
 
 Command Options:
 
+- `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a controller from
 - `--target <address>` - Solana pubkey to revoke (omit to revoke Turbo)
 
 e.g:
 
 ```shell
-turbo remove-arns-controller --ant-id ant-123 --wallet-file ../path/to/my/wallet.json
+turbo remove-arns-controller --ant-id ant-123 \
+  --owner-key <base58SolanaSecretKey> --wallet-file ../path/to/my/wallet.json
 ```
 
 ##### `arns-action-price`

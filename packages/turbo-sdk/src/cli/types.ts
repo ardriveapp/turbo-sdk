@@ -139,6 +139,14 @@ export type ArNSPurchaseStatusOptions = GlobalOptions & {
   nonce: string | undefined;
 };
 
+/**
+ * Authenticated, unlike `ArNSPurchaseStatusOptions`: `getArNSActionStatus`
+ * lives on the authenticated client even though the route needs no signature.
+ */
+export type ArNSActionStatusOptions = WalletOptions & {
+  nonce: string | undefined;
+};
+
 export type TransferArNSAntOptions = ArNSOwnerKeyOption &
   WalletOptions & {
     antId: string | undefined;

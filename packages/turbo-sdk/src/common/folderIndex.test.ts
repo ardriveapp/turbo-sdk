@@ -561,6 +561,26 @@ describe('createChainFolderIndex', () => {
     assert.deepEqual(await index.resolve?.([key]), { [key]: idA });
   });
 
+  it('skips a node whose tags are malformed alongside a valid hash tag', async () => {
+    const key = await keyFor(hashA, 'text/css');
+    // The hash tag is present and valid, so this node survives both earlier
+    // guards and reaches the key encoding, which reads .name/.value off every
+    // entry. An unguarded null here threw and took the whole sweep with it,
+    // and with it the uploadFolder call awaiting it.
+    const { fetchImpl } = fetchReturning(
+      gatewayResponse([
+        {
+          cursor: 'c1',
+          node: { id: idB, tags: [null, ...tagsFor(hashA, 'text/css')] },
+        },
+        { cursor: 'c2', node: { id: idA, tags: tagsFor(hashA, 'text/css') } },
+      ]),
+    );
+
+    const index = createChainFolderIndex({ owner, fetchImpl });
+    assert.deepEqual(await index.resolve?.([key]), { [key]: idA });
+  });
+
   it('stops on an empty page rather than re-issuing the same query', async () => {
     const { fetchImpl, requests } = fetchReturning(gatewayResponse([], true));
 

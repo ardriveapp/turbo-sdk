@@ -116,7 +116,15 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         async () =>
           fetchWithPay(this.baseURL + endpoint, {
             method: 'GET',
-            headers: { ...defaultHeaders, ...headers },
+            // This GET is not a read: it settles a payment and returns the
+            // resulting upload id. Nothing between here and the service may
+            // store or replay that response. Sent as a header rather than the
+            // `cache` init option, which undici does not honour consistently.
+            headers: {
+              ...defaultHeaders,
+              ...headers,
+              'Cache-Control': 'no-store',
+            },
             signal,
           }),
         allowedStatuses,
