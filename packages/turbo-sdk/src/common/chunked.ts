@@ -201,7 +201,7 @@ export class ChunkedUploader {
   /**
    * Initialize or resume an upload session, returning the upload ID.
    */
-  private async initUpload(): Promise<string> {
+  private async initUpload(signal?: AbortSignal): Promise<string> {
     /*
       With x402, CREATE is where payment happens: `totalBytes` opts the request
       into it, the service quotes that declared size and challenges, and we pay
@@ -224,6 +224,7 @@ export class ChunkedUploader {
     }>({
       endpoint: `/chunks/${this.token}/-1/-1?${query.toString()}`,
       headers: chunkingHeader,
+      signal,
       ...(this.x402 !== undefined ? { x402Options: this.x402.options } : {}),
     });
 
@@ -244,7 +245,7 @@ export class ChunkedUploader {
     signal,
     events,
   }: UploadSignedDataItemParams): Promise<TurboUploadDataItemResponse> {
-    const uploadId = await this.initUpload();
+    const uploadId = await this.initUpload(signal);
     const dataItemByteCount = dataItemSizeFactory();
 
     const emitter = new TurboEventEmitter(events);

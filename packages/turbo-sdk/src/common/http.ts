@@ -67,6 +67,21 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     this.retryConfig = retryConfig;
   }
 
+  /**
+   * Refuse to pay over cleartext.
+   *
+   * An x402 payment authorization is a bearer credential: anyone who sees it
+   * can submit it. Sending one over `http:` hands it to the network, so a
+   * misconfigured service URL must fail loudly rather than quietly leak.
+   */
+  private assertSecureForPayment(): void {
+    if (!this.baseURL.startsWith('https:') && !isLoopback(this.baseURL)) {
+      throw new Error(
+        `Refusing to send an x402 payment over a non-HTTPS URL: ${this.baseURL}`,
+      );
+    }
+  }
+
   async get<T>({
     endpoint,
     signal,
@@ -98,6 +113,8 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     if (x402Options === undefined) {
       return this.withRetry<T>(() => send(), allowedStatuses);
     }
+
+    this.assertSecureForPayment();
 
     /*
       A GET has no body, so `wrapFetchWithPayment` is safe here in a way it is
@@ -262,6 +279,8 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
       x402Options,
     });
 
+    this.assertSecureForPayment();
+
     const { body, duplex } = await toFetchBody(data);
 
     return this.tryRequest(async () => {
@@ -337,4 +356,16 @@ function isFirefoxOrSafari(): boolean {
       !ua.includes('Chrome') &&
       !ua.includes('Chromium'))
   );
+}
+
+/** Loopback is exempt: local development never leaves the machine. */
+function isLoopback(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return (
+      hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+    );
+  } catch {
+    return false;
+  }
 }

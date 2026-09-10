@@ -172,6 +172,7 @@ export class TurboUnauthenticatedUploadService
         streamWithUploadEvents,
         dataItemSize,
         resume,
+        signal,
       );
       return this.httpService.post<TurboUploadDataItemResponse>({
         endpoint: `/tx/${this.token}`,
@@ -1122,12 +1123,51 @@ async function streamToBuffer(
   stream: Readable | ReadableStream,
   byteCount: number,
   resume: () => void,
+  signal?: AbortSignal,
 ): Promise<Buffer> {
+  // A closure, so TypeScript does not narrow `aborted` away for the whole
+  // function — it genuinely can flip while the stream is draining.
+  const isAborted = () => signal?.aborted === true;
+  if (isAborted()) {
+    throw new AbortError();
+  }
+
   const chunks: Buffer[] = [];
+  let received = 0;
+  /*
+    Check as it fills, not at the end. A stream that overruns its declared size
+    would otherwise be held in memory in full before anyone objected, and
+    `chunkingMode: 'disabled'` can route an arbitrarily large item here.
+  */
+  const take = (chunk: Buffer) => {
+    received += chunk.byteLength;
+    if (received > byteCount) {
+      throw new Error(
+        `Data item stream exceeded its declared size of ${byteCount} bytes`,
+      );
+    }
+    chunks.push(chunk);
+  };
+
   if (stream instanceof Readable) {
     const done = new Promise<void>((resolve, reject) => {
-      stream.on('data', (c: Buffer) => chunks.push(Buffer.from(c)));
-      stream.on('end', () => resolve());
+      const onAbort = () => {
+        stream.destroy();
+        reject(new AbortError());
+      };
+      signal?.addEventListener('abort', onAbort, { once: true });
+      stream.on('data', (c: Buffer) => {
+        try {
+          take(Buffer.from(c));
+        } catch (error) {
+          stream.destroy();
+          reject(error);
+        }
+      });
+      stream.on('end', () => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      });
       stream.on('error', reject);
     });
     resume();
@@ -1135,12 +1175,22 @@ async function streamToBuffer(
   } else {
     const reader = (stream as ReadableStream<Uint8Array>).getReader();
     resume();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value !== undefined) chunks.push(Buffer.from(value));
+    try {
+      for (;;) {
+        if (isAborted()) {
+          await reader.cancel();
+          throw new AbortError();
+        }
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value !== undefined) take(Buffer.from(value));
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => undefined);
+      throw error;
     }
   }
+
   const buf = Buffer.concat(chunks);
   if (buf.byteLength !== byteCount) {
     throw new Error(

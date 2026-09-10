@@ -128,3 +128,39 @@ describe('single-request x402 body', () => {
     assert.equal(requests[0].chunked, false);
   });
 });
+
+describe('x402 safety rails', () => {
+  it('refuses to send a payment over cleartext http', async () => {
+    const svc = new TurboHTTPService({
+      url: 'http://upload.example.com',
+      logger: Logger.default,
+    } as never);
+
+    // An x402 authorization is a bearer credential — anyone who observes it can
+    // submit it — so a cleartext URL must fail loudly rather than leak it.
+    await assert.rejects(
+      svc.get({ endpoint: '/chunks/base-usdc/-1/-1', x402Options: { signer } }),
+      /non-HTTPS/,
+    );
+    await assert.rejects(
+      svc.post({
+        endpoint: '/tx/base-usdc',
+        data: Buffer.alloc(8),
+        x402Options: { signer },
+      }),
+      /non-HTTPS/,
+    );
+  });
+
+  it('still allows loopback, so local development works', async () => {
+    const svc = new TurboHTTPService({
+      url: 'http://localhost:9999',
+      logger: Logger.default,
+    } as never);
+    // Rejects by connection, not by the cleartext guard.
+    await assert.rejects(
+      svc.get({ endpoint: '/chunks/base-usdc/-1/-1', x402Options: { signer } }),
+      (e: Error) => !/non-HTTPS/.test(e.message),
+    );
+  });
+});
