@@ -1334,6 +1334,59 @@ await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 | `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
 | `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
 
+#### Point the name at your content while you buy it
+
+Pass `antState` and the ANT's opening record is written by the
+`ario_ant::initialize` that runs inside the transaction you already sign — free
+and atomic. No second action, no second signature, no second debit. Without it a
+fresh name resolves to the AR.IO logo, which is the on-chain default.
+
+```typescript
+await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'permabuy',
+  antState: {
+    transactionId: '<43-char Arweave tx id>', // the root `@` target
+    targetProtocol: 0, // 0 = Arweave (default), 1 = IPFS CID
+    ticker: 'MYSITE',
+  },
+});
+```
+
+`antState` is accepted on `buyArNSName` only — the service rejects it on every
+other action. Note it is nested: a **top-level** `transactionId` on a buy is a
+400 by design, because that spelling means the set-record target and silently
+accepting it would point the name at the logo while the caller believed
+otherwise.
+
+**Mind the size budget.** The sponsored mint is ONE Solana transaction against
+the 1232-byte packet limit, shared with Turbo's fee-payer transfer and an
+`add_controller` grant. At a worst-case 51-character name only ~71 bytes are
+spare:
+
+| Fields                                      | Cost      | Fits?  |
+| ------------------------------------------- | --------- | ------ |
+| `transactionId` + `targetProtocol`          | ~1 byte   | always |
+| `ticker` (16) + `logo` (43)                 | ~65 bytes | yes    |
+| `description` (512), or a full keyword list | —         | **no** |
+
+The budget is dynamic — a shorter name buys headroom — so this SDK imposes no
+client-side cap. The server measures the real transaction and returns a 400
+naming Solana's 1232-byte limit _before_ you are handed anything to sign, with
+the credit debit refunded inline. That error is deterministic: do not retry it,
+and surface the server's message rather than replacing it, because it names
+which fields to drop.
+
+Field limits, all rejected at the service edge before any debit: `description`
+≤ 512 characters, `keywords` ≤ 16 entries, and `logo` (plus `transactionId`
+when `targetProtocol` is 0 or unset) must be 43-character Arweave ids. When
+`targetProtocol` is 1 the target is an IPFS CID and is not shape-checked as an
+Arweave id.
+
+See [`ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state`](https://github.com/ar-io/ar-io-bundler/blob/main/docs/architecture/ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state)
+in `ar-io/ar-io-bundler` for the measured byte table.
+
 Every action costs credits — gas sponsorship was never meant to be _free_
 sponsorship. The four purchase actions charge the ARIO cost (plus, for
 `buyArNSName`, a rent-derived surcharge for the ANT it mints); the other eight

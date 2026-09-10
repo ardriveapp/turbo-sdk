@@ -20,9 +20,9 @@ import {
   ArNSActionCompleted,
   ArNSActionPriceResponse,
   ArNSActionResult,
+  ArNSBuyNameActionParams,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
-  ArNSNameType,
   ArNSOwnerSigner,
   ArNSPriceParams,
   ArNSPriceResponse,
@@ -464,14 +464,7 @@ export class TurboAuthenticatedClient
    * Buy a name. The ANT is minted straight to `owner`; Turbo never holds it.
    * The only action that always needs the owner's signature — once, ever.
    */
-  buyArNSName(params: {
-    name: string;
-    owner: ArNSOwnerSigner;
-    type?: ArNSNameType;
-    years?: number;
-    paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
-  }): Promise<ArNSActionCompleted> {
+  buyArNSName(params: ArNSBuyNameActionParams): Promise<ArNSActionCompleted> {
     return this.paymentService.buyArNSName(params);
   }
 
