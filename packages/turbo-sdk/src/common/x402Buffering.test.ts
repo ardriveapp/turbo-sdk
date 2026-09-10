@@ -17,6 +17,9 @@ import { strict as assert } from 'node:assert';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
+import { testEthWallet } from '../../tests/helpers.js';
+import { TurboFactory } from '../node/factory.js';
+import { X402Funding } from '../types.js';
 import { TurboUnauthenticatedUploadService } from './index.js';
 import { Logger } from './logger.js';
 
@@ -101,5 +104,65 @@ describe('x402 single-request buffering', () => {
     );
     // Nothing was sent, so nothing could have been paid for.
     assert.deepEqual(sentBodyLengths, []);
+  });
+});
+
+describe('x402 with chunking disabled', () => {
+  const originalFetch = globalThis.fetch;
+  let requests: number;
+
+  beforeEach(() => {
+    requests = 0;
+    globalThis.fetch = (async () => {
+      requests++;
+      return new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  /*
+    Buffering the single request is only safe because anything larger chunks.
+    Disabling chunking removes that guarantee, so an oversized item must be
+    refused up front rather than pulled into memory and then rejected by the
+    service for exceeding its single-item limit.
+  */
+  it('refuses an oversized item instead of buffering it', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+
+    await assert.rejects(
+      turbo.uploadFile({
+        fileStreamFactory: () => Readable.from(Buffer.alloc(64)),
+        fileSizeFactory: () => 200 * 1024 * 1024,
+        chunkingMode: 'disabled',
+        fundingMode: new X402Funding({ signer: {} as never }),
+      }),
+      /must be chunked/,
+    );
+    assert.equal(requests, 0, 'nothing should be sent');
+  });
+
+  it('leaves a normally-sized item alone', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+
+    const res = await turbo.uploadFile({
+      fileStreamFactory: () => Readable.from(Buffer.alloc(1024, 3)),
+      fileSizeFactory: () => 1024,
+      chunkingMode: 'disabled',
+      fundingMode: new X402Funding({ signer: {} as never }),
+    });
+    assert.equal(res.id, 'stub-id');
   });
 });

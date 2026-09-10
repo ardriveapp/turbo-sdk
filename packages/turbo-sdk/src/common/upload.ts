@@ -450,6 +450,26 @@ export abstract class TurboAuthenticatedBaseUploadService
       );
     }
 
+    /*
+      Buffering the single request is only safe because anything larger chunks.
+      `chunkingMode: 'disabled'` removes that guarantee, so an arbitrarily large
+      item would be pulled into memory — and the service caps single-request
+      items anyway, so it would be refused after the fact. Check before signing:
+      signing a large item only to reject it wastes the expensive part.
+    */
+    if (
+      fundingMode instanceof X402Funding &&
+      params.chunkingMode === 'disabled' &&
+      fileSizeFactory() > maxX402SingleRequestByteCount
+    ) {
+      throw new Error(
+        `An x402 upload of ${fileSizeFactory()} bytes must be chunked: the ` +
+          `single-request path buffers the item in memory and is limited to ` +
+          `${maxX402SingleRequestByteCount} bytes. Remove ` +
+          `chunkingMode: 'disabled' to upload this item.`,
+      );
+    }
+
     this.logger.debug('Starting file upload', { params });
 
     let retries = 0;
@@ -1462,6 +1482,16 @@ export abstract class TurboAuthenticatedBaseUploadService
     });
   }
 }
+
+/**
+ * The largest data item the x402 single-request path will buffer.
+ *
+ * Normally unreachable: anything over two chunks takes the chunked path, which
+ * pays at create and streams. It bites only when chunking is explicitly
+ * disabled, and it exists so that case fails with an explanation rather than
+ * by exhausting memory.
+ */
+const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
 
 /**
  * Drain a data-item stream into a Buffer, resuming it once the reader is
