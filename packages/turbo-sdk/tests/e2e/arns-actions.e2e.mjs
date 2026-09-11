@@ -100,25 +100,19 @@ try {
     the unit suite can only prove the SDK SENDS it — whether the server folds it
     into `ario_ant::initialize` is only observable against a real chain.
 
-    Deliberately small: a target and a ticker fit the 1232-byte packet budget at
-    any name length. A description would not, and the server would (correctly)
-    reject the whole buy with a 400 naming the limit.
-  */
-  /*
-    VERIFYING THIS NEEDS AN OUT-OF-BAND READ — and it must be the TICKER.
+    Kept small: a target and a ticker fit the 1232-byte packet budget at any
+    name length. A description would not, and the server would correctly reject
+    the whole buy with a 400 naming the limit.
 
-    This script has no `@ar.io/sdk` dependency, so it cannot read the ANT back;
-    it proves the buy succeeds with `antState`, not that the mint applied it.
-    A server that accepts and ignores the field returns a byte-identical
-    response.
-
-    When checking on chain, assert the TICKER, not the `@` record. Stages 5 and
-    8 below both set-record onto `@`, so by the end of a run `@` holds whatever
-    they wrote regardless of what the mint did. Nothing after the mint sets a
-    ticker, which makes it the only mint-only signal in the whole flow.
-
-    Add `@ar.io/sdk` as a devDependency if this assertion should live in the
-    script rather than in the runbook.
+    VERIFYING IT NEEDS AN OUT-OF-BAND READ, AND THE SIGNAL IS THE TICKER. This
+    script has no `@ar.io/sdk` dependency, so it cannot read the ANT back — it
+    proves the buy succeeds with `antState`, not that the mint applied it, and a
+    server that accepts and ignores the field returns a byte-identical response.
+    When checking on chain assert the ticker rather than `@`: stages 5 and 8
+    below both set-record onto `@`, so by the end of a run it holds whatever
+    they wrote regardless of what the mint did, while nothing after the mint
+    sets a ticker. Add `@ar.io/sdk` as a devDependency if this assertion belongs
+    in the script rather than the runbook.
   */
   const antState = {
     /*
@@ -182,7 +176,7 @@ try {
   );
   ok('-> proves buy-name granted Turbo controller in the SAME signed tx');
 
-  head(6, 'Undername set + remove, both free');
+  head(6, 'Undername set + remove - Turbo-alone, and both charge');
   const beforeFree = await winc();
   await turbo.setArNSRecord({
     antId,
@@ -208,7 +202,7 @@ try {
     'record actions DO charge the customer — sponsorship is not free',
   );
 
-  head('6d', 'Record metadata - set, then clear, both free and Turbo-alone');
+  head('6d', 'Record metadata - set, then clear, Turbo-alone, both charge');
   const beforeMeta = await winc();
   const metaSet = await turbo.setArNSRecordMetadata({
     antId,
