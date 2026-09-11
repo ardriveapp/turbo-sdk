@@ -733,6 +733,47 @@ await turbo.uploadFile({
 });
 ```
 
+Large items are uploaded in chunks and paid for when the upload is created, so
+the payload is never sent just to discover its price. Smaller items go in a
+single request, which is buffered in memory so its length can be declared — the
+service prices an x402 upload from `Content-Length`, and a streamed body has
+none. The service URL must be HTTPS: an x402 authorization is a bearer
+credential, so the SDK refuses to send one over cleartext.
+
+#### Pricing an x402 Upload Before Sending It
+
+`getX402PriceForDataItem` prices a signed data item from its byte count, so you
+can learn the cost without transmitting the payload. Without it the only way to
+get a price is to POST the data and read the 402 challenge.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
+
+const quote = await turbo.getX402PriceForDataItem({
+  byteCount: signedDataItemByteCount, // the SIGNED item, not the payload inside it
+});
+console.log(quote.usdcAmount); // amount to pay, in USDC's smallest unit
+```
+
+`getX402PriceForRawData` prices raw data that Turbo will wrap into a data item
+itself, and reports the wrapping overhead — a data item is larger than its
+payload by its header, signature and tags, which a caller cannot compute.
+
+```typescript
+const quote = await turbo.getX402PriceForRawData({
+  byteCount: myRawData.byteLength,
+  tagCount: 3, // tags you intend to attach; they change the overhead
+  contentType: 'image/png',
+});
+console.log(quote.overhead, quote.estimatedDataItemSize);
+```
+
+Both take an optional `network`, defaulting to `base`. **This is the x402
+network, not the SDK token type**: the route builds its token as
+`usdc-{network}`, so `base-usdc` is accepted on mainnet only because the
+network there is literally `base`. Against a testnet service, pass
+`network: 'base-sepolia'`.
+
 #### Raw x402 Data Uploads
 
 Using the x402 protocol, you can also upload raw data to Turbo without signing a data item. This method is ideal for quick agent workflows where the ownership of the data is not required to be tied to a specific wallet. The eventual data item on chain will be signed by Turbo's x402 EVM signer.
