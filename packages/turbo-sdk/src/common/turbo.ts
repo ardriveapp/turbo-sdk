@@ -79,6 +79,10 @@ import {
   TurboWincForFiatResponse,
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
+  TurboX402DataItemPriceParams,
+  TurboX402DataItemPriceResponse,
+  TurboX402RawDataPriceParams,
+  TurboX402RawDataPriceResponse,
   UploadDataInput,
   UploadDataType,
   UserAddress,
@@ -367,6 +371,26 @@ export class TurboUnauthenticatedClient
       signal,
       maxMUSDCAmount,
     });
+  }
+
+  /**
+   * Price a signed data item for an x402 upload without sending it. See
+   * `TurboUnauthenticatedUploadService.getX402PriceForDataItem`.
+   */
+  getX402PriceForDataItem(
+    p: TurboX402DataItemPriceParams,
+  ): Promise<TurboX402DataItemPriceResponse> {
+    return this.uploadService.getX402PriceForDataItem(p);
+  }
+
+  /**
+   * Price raw data for an x402 upload, including the data-item wrapping
+   * overhead. See `TurboUnauthenticatedUploadService.getX402PriceForRawData`.
+   */
+  getX402PriceForRawData(
+    p: TurboX402RawDataPriceParams,
+  ): Promise<TurboX402RawDataPriceResponse> {
+    return this.uploadService.getX402PriceForRawData(p);
   }
 }
 
@@ -771,5 +795,25 @@ export class TurboAuthenticatedClient
       signal,
       maxMUSDCAmount,
     });
+  }
+
+  /**
+   * Price a signed data item for an x402 upload without sending it. See
+   * `TurboUnauthenticatedUploadService.getX402PriceForDataItem`.
+   */
+  getX402PriceForDataItem(
+    p: TurboX402DataItemPriceParams,
+  ): Promise<TurboX402DataItemPriceResponse> {
+    return this.uploadService.getX402PriceForDataItem(p);
+  }
+
+  /**
+   * Price raw data for an x402 upload, including the data-item wrapping
+   * overhead. See `TurboUnauthenticatedUploadService.getX402PriceForRawData`.
+   */
+  getX402PriceForRawData(
+    p: TurboX402RawDataPriceParams,
+  ): Promise<TurboX402RawDataPriceResponse> {
+    return this.uploadService.getX402PriceForRawData(p);
   }
 }
