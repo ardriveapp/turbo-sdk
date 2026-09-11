@@ -33,7 +33,22 @@ const arg = (flag, fallback) => {
 const PAYMENT_URL = arg('--payment-url', 'http://localhost:4001');
 const WALLET = arg('--wallet', '/opt/ar-io-bundler/ops-test-wallet-arns.json');
 const NAME = arg('--name', `sdke2e${Date.now().toString().slice(-6)}`);
-const VALID_TX_ID = 'AnYvLJTWcG9lr2Ll5MwYWZR2o5uTE39WbpYB0zCxwKM';
+/*
+  Deliberately NOT `AnYvLJTWcG9lr2Ll5MwYWZR2o5uTE39WbpYB0zCxwKM`.
+
+  That id is the AR.IO logo — the on-chain default an ANT gets when nothing
+  sets its `@` record — so it is the value that SIGNALS a dropped `antState`.
+  It used to be this constant, which meant the set-record stages below wrote
+  the failure sentinel back onto `@` themselves: after a full run the record
+  read as the logo whether the mint had applied `antState` or not, and anyone
+  checking `@` to verify the feature got a false negative.
+
+  Scaffolding for the set-record stages, which only need a shape-valid target.
+  It must stay distinct from the `antState` target used at the mint, or a `@`
+  record set by the mint could not be told from one these stages wrote — which
+  is the other half of the same trap.
+*/
+const VALID_TX_ID = 'zK9wQm3TnB7sVpL2xRc5YdHfJgA8eU4iO1NvCbXtZrQ';
 
 let failures = 0;
 const ok = (msg) => console.log(`   PASS  ${msg}`);
@@ -89,8 +104,35 @@ try {
     any name length. A description would not, and the server would (correctly)
     reject the whole buy with a 400 naming the limit.
   */
+  /*
+    VERIFYING THIS NEEDS AN OUT-OF-BAND READ — and it must be the TICKER.
+
+    This script has no `@ar.io/sdk` dependency, so it cannot read the ANT back;
+    it proves the buy succeeds with `antState`, not that the mint applied it.
+    A server that accepts and ignores the field returns a byte-identical
+    response.
+
+    When checking on chain, assert the TICKER, not the `@` record. Stages 5 and
+    8 below both set-record onto `@`, so by the end of a run `@` holds whatever
+    they wrote regardless of what the mint did. Nothing after the mint sets a
+    ticker, which makes it the only mint-only signal in the whole flow.
+
+    Add `@ar.io/sdk` as a devDependency if this assertion should live in the
+    script rather than in the runbook.
+  */
   const antState = {
-    transactionId: 'UyC-d2ZkcK8mNlMNFgHYEyLwZPfFMrYMOKdwLZHhEBw',
+    /*
+      The ArNS landing page — the same id ar.io Console points a freshly bought
+      name at. Real and resolving, so the name this run leaves behind actually
+      goes somewhere.
+
+      Two things it must NOT be. Not the AR.IO logo
+      (AnYvLJTWcG9lr2Ll5MwYWZR2o5uTE39WbpYB0zCxwKM): that is the default a
+      dropped `antState` leaves behind, so using it here would make applied and
+      ignored indistinguishable. And not VALID_TX_ID, or a mint-set `@` could
+      not be told from one the set-record stages wrote.
+    */
+    transactionId: 'T9_V2HfiAq5qlLzObfyayj2-cjPujxpg25TRi4OZbe4',
     targetProtocol: 0,
     ticker: 'E2E',
   };
@@ -155,9 +197,15 @@ try {
     undername: 'docs',
   });
   check(removed.status === 'completed', 'undername removed');
+  /*
+    They are NOT free, and have not been since 2026-09-01: unmetered gas
+    sponsorship was a wallet-drain surface, so all twelve actions carry a
+    margin that recovers the SOL Turbo fronts. Asserting "costs nothing" here
+    failed on every run against a correctly-behaving service.
+  */
   check(
-    (await winc()) === beforeFree,
-    'record actions cost the customer NOTHING',
+    (await winc()) < beforeFree,
+    'record actions DO charge the customer — sponsorship is not free',
   );
 
   head('6d', 'Record metadata - set, then clear, both free and Turbo-alone');
@@ -180,8 +228,8 @@ try {
   });
   check(metaGone.status === 'completed', 'remove-record-metadata completed');
   check(
-    (await winc()) === beforeMeta,
-    'record metadata cost the customer NOTHING',
+    (await winc()) < beforeMeta,
+    'record metadata DOES charge the customer — see 6 above',
   );
 
   head('6e', 'transfer-record - hand ONE record over, not the whole ANT');
