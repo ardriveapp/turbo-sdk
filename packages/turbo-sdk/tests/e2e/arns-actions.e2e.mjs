@@ -80,11 +80,26 @@ try {
   head(2, 'Buy - one signature, and the money moves by exactly the quote');
   const before = await winc();
   let captured;
+  /*
+    `antState` rides the mint the customer already signs. Exercised here because
+    the unit suite can only prove the SDK SENDS it — whether the server folds it
+    into `ario_ant::initialize` is only observable against a real chain.
+
+    Deliberately small: a target and a ticker fit the 1232-byte packet budget at
+    any name length. A description would not, and the server would (correctly)
+    reject the whole buy with a 400 naming the limit.
+  */
+  const antState = {
+    transactionId: 'UyC-d2ZkcK8mNlMNFgHYEyLwZPfFMrYMOKdwLZHhEBw',
+    targetProtocol: 0,
+    ticker: 'E2E',
+  };
   const bought = await turbo.buyArNSName({
     name: NAME,
     owner,
     type: 'lease',
     years: 1,
+    antState,
     onNonce: (n) => {
       captured = n;
     },
