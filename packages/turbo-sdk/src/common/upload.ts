@@ -46,6 +46,10 @@ import {
   TurboUploadFileWithStreamFactoryParams,
   TurboUploadFolderParams,
   TurboUploadFolderResponse,
+  TurboX402DataItemPriceParams,
+  TurboX402DataItemPriceResponse,
+  TurboX402RawDataPriceParams,
+  TurboX402RawDataPriceResponse,
   UploadDataInput,
   UploadDataType,
   UploadSignedDataItemParams,
@@ -157,6 +161,35 @@ export class TurboUnauthenticatedUploadService
       }
     }
 
+    if (x402Options !== undefined) {
+      /*
+        x402 needs a body fetch can measure, and one it can send twice.
+
+        `content-length` is a forbidden header, so setting it above does
+        nothing: a streamed body goes out chunked with no length. The service
+        prices from that header, so without it there is no 402 challenge — and
+        the protocol's paid retry has a spent stream to replay, which fails
+        outright. Buffering fixes both: the length is declared honestly and the
+        body can be re-sent.
+
+        Bounded by the chunking decision above — anything over two chunks took
+        the chunked path, which pays at create and never reaches here.
+      */
+      const body = await streamToBuffer(
+        streamWithUploadEvents,
+        dataItemSize,
+        resume,
+        signal,
+      );
+      return this.httpService.post<TurboUploadDataItemResponse>({
+        endpoint: `/tx/${this.token}`,
+        signal,
+        data: body,
+        headers,
+        x402Options,
+      });
+    }
+
     // setup the post request using the stream with upload events
     const postPromise = this.httpService.post<TurboUploadDataItemResponse>({
       endpoint: `/tx/${this.token}`,
@@ -172,6 +205,56 @@ export class TurboUnauthenticatedUploadService
     return postPromise;
   }
 
+  /**
+   * Price a SIGNED data item for an x402 upload, without sending it.
+   *
+   * The only other way to learn an x402 price is to POST the payload and read
+   * the 402 challenge, which means transmitting it to find out what it costs.
+   *
+   * `byteCount` is the size of the signed data item — what
+   * `dataItemSizeFactory()` returns — not the payload inside it. Use
+   * `getX402PriceForRawData` when the service does the wrapping.
+   *
+   * `network` names the x402 network, not the SDK token: the route builds its
+   * token as `usdc-{network}`. `base-usdc` is accepted on mainnet only because
+   * the network there is literally `base`, so a testnet caller must pass
+   * `base-sepolia` explicitly.
+   */
+  public async getX402PriceForDataItem({
+    byteCount,
+    network = 'base',
+  }: TurboX402DataItemPriceParams): Promise<TurboX402DataItemPriceResponse> {
+    return this.httpService.get<TurboX402DataItemPriceResponse>({
+      endpoint: `/price/x402/data-item/usdc-${network}/${byteCount}`,
+    });
+  }
+
+  /**
+   * Price RAW data for an x402 upload, where the service wraps it into a data
+   * item itself.
+   *
+   * Also reports the wrapping overhead — a data item is larger than its
+   * payload by its header, signature and tags — which the caller has no way to
+   * compute. `tagCount` and `contentType` feed that estimate, so pass what the
+   * upload will actually carry or the quote will read low.
+   */
+  public async getX402PriceForRawData({
+    byteCount,
+    network = 'base',
+    tagCount,
+    contentType,
+  }: TurboX402RawDataPriceParams): Promise<TurboX402RawDataPriceResponse> {
+    const query = new URLSearchParams();
+    if (tagCount !== undefined) query.set('tags', `${tagCount}`);
+    if (contentType !== undefined) query.set('contentType', contentType);
+    const qs = query.toString();
+
+    return this.httpService.get<TurboX402RawDataPriceResponse>({
+      endpoint: `/price/x402/data/usdc-${network}/${byteCount}${
+        qs ? `?${qs}` : ''
+      }`,
+    });
+  }
   public async uploadRawX402Data({
     data,
     tags,
@@ -367,9 +450,34 @@ export abstract class TurboAuthenticatedBaseUploadService
       );
     }
 
+    /*
+      Buffering the single request is only safe because anything larger chunks.
+      `chunkingMode: 'disabled'` removes that guarantee, so an arbitrarily large
+      item would be pulled into memory — and the service caps single-request
+      items anyway, so it would be refused after the fact. Check before signing:
+      signing a large item only to reject it wastes the expensive part.
+    */
+    if (
+      fundingMode instanceof X402Funding &&
+      params.chunkingMode === 'disabled' &&
+      fileSizeFactory() > maxX402SingleRequestByteCount
+    ) {
+      throw new Error(
+        `An x402 upload of ${fileSizeFactory()} bytes must be chunked: the ` +
+          `single-request path buffers the item in memory and is limited to ` +
+          `${maxX402SingleRequestByteCount} bytes. Remove ` +
+          `chunkingMode: 'disabled' to upload this item.`,
+      );
+    }
+
     this.logger.debug('Starting file upload', { params });
 
     let retries = 0;
+    // Carried ACROSS retry attempts. A paid chunked upload is bought before any
+    // chunk is accepted, so an attempt that fails after paying must hand its
+    // upload id to the next attempt. Rebuilding the uploader with no id is how
+    // a single upload gets billed once per retry.
+    let paidUploadId: string | undefined;
     const maxRetries = this.retryConfig.retries ?? 3;
     const retryDelay =
       this.retryConfig.retryDelay ??
@@ -439,6 +547,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           dataItemByteCount: dataItemSizeFactory(),
           chunkingMode: params.chunkingMode,
           maxFinalizeMs: params.maxFinalizeMs,
+          paidUploadId,
           ...(x402Options ? { x402: x402Options } : {}),
           ...(x402Options
             ? {
@@ -450,14 +559,20 @@ export abstract class TurboAuthenticatedBaseUploadService
             : {}),
         });
         if (chunkedUploader.shouldUseChunkUploader) {
-          const response = await chunkedUploader.upload({
-            dataItemStreamFactory,
-            dataItemSizeFactory,
-            dataItemOpts,
-            signal,
-            events,
-          });
-          return { ...response, cryptoFundResult };
+          try {
+            const response = await chunkedUploader.upload({
+              dataItemStreamFactory,
+              dataItemSizeFactory,
+              dataItemOpts,
+              signal,
+              events,
+            });
+            return { ...response, cryptoFundResult };
+          } finally {
+            // Read on the way out, success or failure. On failure this is the
+            // whole point: the next attempt resumes what this one paid for.
+            paidUploadId = chunkedUploader.currentPaidUploadId ?? paidUploadId;
+          }
         }
 
         const response = await this.uploadSignedDataItem({
@@ -1378,4 +1493,98 @@ export abstract class TurboAuthenticatedBaseUploadService
       signer: this.signer,
     });
   }
+}
+
+/**
+ * The largest data item the x402 single-request path will buffer.
+ *
+ * Normally unreachable: anything over two chunks takes the chunked path, which
+ * pays at create and streams. It bites only when chunking is explicitly
+ * disabled, and it exists so that case fails with an explanation rather than
+ * by exhausting memory.
+ */
+const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
+
+/**
+ * Drain a data-item stream into a Buffer, resuming it once the reader is
+ * attached so upload-progress events still fire.
+ *
+ * Checks the running total as it fills rather than at the end: a stream that
+ * overruns its declared size would otherwise be held in memory in full before
+ * anything objected.
+ */
+async function streamToBuffer(
+  stream: Readable | ReadableStream,
+  byteCount: number,
+  resume: () => void,
+  signal?: AbortSignal,
+): Promise<Buffer> {
+  // A closure, so TypeScript does not narrow `aborted` away for the whole
+  // function — it genuinely can flip while the stream is draining.
+  const isAborted = () => signal?.aborted === true;
+  if (isAborted()) {
+    throw new AbortError();
+  }
+
+  const chunks: Buffer[] = [];
+  let received = 0;
+  const take = (chunk: Buffer) => {
+    received += chunk.byteLength;
+    if (received > byteCount) {
+      throw new Error(
+        `Data item stream exceeded its declared size of ${byteCount} bytes`,
+      );
+    }
+    chunks.push(chunk);
+  };
+
+  if (stream instanceof Readable) {
+    const done = new Promise<void>((resolve, reject) => {
+      const onAbort = () => {
+        stream.destroy();
+        reject(new AbortError());
+      };
+      signal?.addEventListener('abort', onAbort, { once: true });
+      stream.on('data', (c: Buffer) => {
+        try {
+          take(Buffer.from(c));
+        } catch (error) {
+          stream.destroy();
+          reject(error);
+        }
+      });
+      stream.on('end', () => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      });
+      stream.on('error', reject);
+    });
+    resume();
+    await done;
+  } else {
+    const reader = (stream as ReadableStream<Uint8Array>).getReader();
+    resume();
+    try {
+      for (;;) {
+        if (isAborted()) {
+          await reader.cancel();
+          throw new AbortError();
+        }
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value !== undefined) take(Buffer.from(value));
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => undefined);
+      throw error;
+    }
+  }
+
+  const buf = Buffer.concat(chunks);
+  if (buf.byteLength !== byteCount) {
+    throw new Error(
+      `Data item stream produced ${buf.byteLength} bytes, expected ${byteCount}`,
+    );
+  }
+  return buf;
 }

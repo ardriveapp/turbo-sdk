@@ -458,6 +458,98 @@ describe('ArNS actions - the thin wrappers', () => {
   });
 });
 
+describe("buy-name carries the ANT's opening state", () => {
+  // A dropped `antState` returns the IDENTICAL 200 as an applied one, so
+  // nothing downstream can catch it. These assert the arguments, which is the
+  // only place the difference is visible.
+
+  const awaitingThenCompleted = async () => [
+    {
+      nonce: 'n',
+      action: 'buy-name',
+      status: 'awaiting-signature',
+      transaction: await buildPreparedTx(),
+    },
+    { nonce: 'n', action: 'buy-name', status: 'completed', messageId: 'm' },
+  ];
+
+  it('forwards antState into the request body unchanged', async () => {
+    const http = new FakeHttp();
+    http.responses = await awaitingThenCompleted();
+    const antState = {
+      transactionId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      targetProtocol: 0 as const,
+      ticker: 'MYSITE',
+    };
+    await serviceWith(http).buyArNSName({
+      name: 'x',
+      owner,
+      type: 'permabuy',
+      antState,
+    });
+    assert.deepEqual(body(http.calls[0]).antState, antState);
+  });
+
+  it('sends antState as a nested object, never flattened', async () => {
+    // A TOP-LEVEL `transactionId` on buy-name is a 400 by design: that spelling
+    // means the set-record target. Flattening would let a customer believe the
+    // name points at their upload when it points at the AR.IO logo.
+    const http = new FakeHttp();
+    http.responses = await awaitingThenCompleted();
+    await serviceWith(http).buyArNSName({
+      name: 'x',
+      owner,
+      type: 'permabuy',
+      antState: { transactionId: 'tx', targetProtocol: 1 },
+    });
+    const sent = body(http.calls[0]);
+    assert.equal(typeof sent.antState, 'object');
+    assert.ok(!('transactionId' in sent), 'no top-level transactionId');
+    assert.ok(!('targetProtocol' in sent), 'no top-level targetProtocol');
+  });
+
+  it('omits the key entirely when no antState is given', async () => {
+    // Not `antState: undefined` — that serializes into the body and is a
+    // different request from omitting it.
+    const http = new FakeHttp();
+    http.responses = await awaitingThenCompleted();
+    await serviceWith(http).buyArNSName({ name: 'x', owner, type: 'permabuy' });
+    assert.ok(!('antState' in body(http.calls[0])));
+  });
+
+  it('never appears on a non-buy-name action', async () => {
+    // The server 400s antState on every other action, so no blanket param
+    // spread may ever carry it there.
+    const http = new FakeHttp();
+    http.responses = [
+      {
+        nonce: 'n',
+        action: 'extend-lease',
+        status: 'completed',
+        messageId: 'm',
+      },
+    ];
+    await serviceWith(http).extendArNSLease({ name: 'x', years: 1 });
+    assert.ok(!('antState' in body(http.last)));
+  });
+
+  it('adds no step — the response shape is unchanged', async () => {
+    // antState rides the mint the customer already signs: still
+    // awaiting-signature, then one POST to /sign.
+    const http = new FakeHttp();
+    http.responses = await awaitingThenCompleted();
+    const result = await serviceWith(http).buyArNSName({
+      name: 'x',
+      owner,
+      type: 'permabuy',
+      antState: { ticker: 'T' },
+    });
+    assert.equal(result.status, 'completed');
+    assert.equal(http.calls.length, 2);
+    assert.equal(http.calls[1].endpoint, '/arns/actions/n/sign');
+  });
+});
+
 describe('ArNS actions - raw endpoints and error paths', () => {
   it('signArNSAction posts the transaction to the nonce sign endpoint', async () => {
     const http = new FakeHttp();

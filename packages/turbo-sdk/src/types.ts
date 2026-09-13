@@ -1313,6 +1313,78 @@ export const arNSActions = [
 ] as const;
 export type ArNSAction = (typeof arNSActions)[number];
 
+/**
+ * The new ANT's opening state, applied during the `buy-name` mint.
+ *
+ * `ario_ant::initialize` runs inside the very transaction the customer already
+ * signs, so everything here is free and atomic: no second action, no second
+ * signature, no second debit. Without it a fresh name resolves to the AR.IO
+ * logo — the on-chain default, picked only to satisfy `is_valid_arweave_id`.
+ *
+ * Restated (not imported) from `@ar.io/sdk`'s `ArNSBuyAntState`, which
+ * `buyRecord` accepts on the direct-to-Solana path. `@ar.io/sdk` is not a
+ * dependency of this package; keep the two shapes identical.
+ *
+ * SIZE BUDGET — this rides one Solana transaction against the 1232-byte packet
+ * limit, sharing it with Turbo's fee-payer transfer and an `add_controller`
+ * grant. At a worst-case 51-character name only ~71 bytes are spare:
+ *
+ *   transactionId + targetProtocol   ~1 byte (replaces a 43-char default) — always fits
+ *   ticker (16) + logo (43)          ~65 bytes — fits
+ *   description (512) or a full keyword list — DOES NOT fit
+ *
+ * The budget is dynamic — a shorter name buys headroom — so this SDK does not
+ * impose a client-side cap. The server measures the real transaction and
+ * returns a 400 naming Solana's 1232-byte limit before the customer is handed
+ * anything to sign, refunding the debit inline. That error is deterministic:
+ * do not retry it, and surface the server's message rather than a generic one,
+ * because it names which fields to drop.
+ */
+export type ArNSBuyAntState = {
+  /** ANT ticker. Defaults to "ANT" on chain. */
+  ticker?: string;
+  /** Description, <= 512 characters. Rarely fits — see the size budget. */
+  description?: string;
+  /** Keywords, <= 16 entries. Rarely fits — see the size budget. */
+  keywords?: string[];
+  /** Logo, a 43-character Arweave transaction id. */
+  logo?: string;
+  /**
+   * The root `@` record's target: an Arweave transaction id, or an IPFS CID
+   * when `targetProtocol` is 1.
+   *
+   * NOT to be confused with a top-level `transactionId` on a buy-name request,
+   * which the server rejects with a 400. That spelling means the set-record
+   * target, and accepting both would let a customer believe their name points
+   * at their upload when it points at the AR.IO logo.
+   */
+  transactionId?: string;
+  /** Storage protocol for the `@` target: 0 = Arweave (default), 1 = IPFS. */
+  targetProtocol?: 0 | 1;
+};
+
+/**
+ * `buyArNSName` params.
+ *
+ * Named rather than inlined because this shape is declared in three places —
+ * the service, the client pass-through and the interface — and a field added
+ * to only two of them is invisible: a dropped `antState` returns the same 200
+ * as an applied one.
+ */
+export type ArNSBuyNameActionParams = {
+  name: string;
+  owner: ArNSOwnerSigner;
+  type?: ArNSNameType;
+  years?: number;
+  paidBy?: UserAddress | UserAddress[];
+  onNonce?: (nonce: string) => void | Promise<void>;
+  /**
+   * The new ANT's opening state. Buy-name only — the server 400s `antState` on
+   * every other action.
+   */
+  antState?: ArNSBuyAntState;
+};
+
 /** Turbo already held the authority — the write has landed on chain. */
 export type ArNSActionCompleted = {
   nonce: string;
@@ -1685,14 +1757,7 @@ export interface TurboAuthenticatedPaymentServiceInterface
     nonce: string,
   ): Promise<ArNSActionResult & { failedDate?: string }>;
 
-  buyArNSName(params: {
-    name: string;
-    owner: ArNSOwnerSigner;
-    type?: ArNSNameType;
-    years?: number;
-    paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
-  }): Promise<ArNSActionCompleted>;
+  buyArNSName(params: ArNSBuyNameActionParams): Promise<ArNSActionCompleted>;
   extendArNSLease(params: {
     name: string;
     years: number;
@@ -1767,6 +1832,77 @@ export interface TurboAuthenticatedPaymentServiceInterface
   }): Promise<ArNSActionCompleted>;
 }
 
+/**
+ * An x402 network the upload service prices against — `base` on mainnet,
+ * `base-sepolia` on testnet.
+ *
+ * NOT the SDK's `TokenType`. The route builds its token as `usdc-{network}`,
+ * so `base-usdc` is accepted on mainnet only because the network there is
+ * literally `base`; on testnet it must be `base-sepolia`.
+ */
+export type X402Network = string;
+
+/** The x402 payment requirements a 402 challenge would carry for this upload. */
+export type X402PaymentRequirements = {
+  scheme: string;
+  network: string;
+  maxAmountRequired: string;
+  resource: string;
+  description: string;
+  mimeType: string;
+  outputSchema?: unknown;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  asset: string;
+  extra?: Record<string, unknown>;
+};
+
+type TurboX402PriceBase = {
+  token: string;
+  currency: string;
+  network: string;
+  /** Storage cost in winston, for comparison with the credit price. */
+  winstonCost: string;
+  /** Amount to pay, in USDC's smallest unit (6 decimals). */
+  usdcAmount: string;
+  x402Version: number;
+  payment: X402PaymentRequirements;
+};
+
+/** Price for a data item the caller has already signed. */
+export type TurboX402DataItemPriceResponse = TurboX402PriceBase & {
+  byteCount: number;
+};
+
+/**
+ * Price for raw data the service will wrap into a data item itself.
+ *
+ * Reports the wrapping overhead, which the caller cannot compute: a data item
+ * is larger than its payload by its header, signature and tags.
+ */
+export type TurboX402RawDataPriceResponse = TurboX402PriceBase & {
+  rawDataSize: number;
+  userTagCount: number;
+  systemTagCount: number;
+  totalTagCount: number;
+  estimatedDataItemSize: number;
+  overhead: number;
+};
+
+export type TurboX402DataItemPriceParams = {
+  /** Size of the SIGNED data item, not of the payload inside it. */
+  byteCount: number;
+  network?: X402Network;
+};
+
+export type TurboX402RawDataPriceParams = {
+  byteCount: number;
+  network?: X402Network;
+  /** How many tags the caller will attach; changes the estimated overhead. */
+  tagCount?: number;
+  contentType?: string;
+};
+
 export interface TurboUnauthenticatedUploadServiceInterface {
   uploadSignedDataItem({
     dataItemStreamFactory,
@@ -1789,6 +1925,14 @@ export interface TurboUnauthenticatedUploadServiceInterface {
     tags?: { name: string; value: string }[];
     maxMUSDCAmount?: BigNumber;
   }): Promise<TurboUploadDataItemResponse>;
+
+  getX402PriceForDataItem(
+    p: TurboX402DataItemPriceParams,
+  ): Promise<TurboX402DataItemPriceResponse>;
+
+  getX402PriceForRawData(
+    p: TurboX402RawDataPriceParams,
+  ): Promise<TurboX402RawDataPriceResponse>;
 }
 
 export interface TurboAuthenticatedUploadServiceInterface
