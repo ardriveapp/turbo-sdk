@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 import { strict as assert } from 'node:assert';
+import { Readable } from 'node:stream';
 import { describe, it } from 'node:test';
 
+import { TurboFactory } from '../node/factory.js';
 import { TurboLogger } from '../types.js';
+import { X402Funding } from '../types.js';
 import { ChunkedUploader } from './chunked.js';
 import { TurboHTTPService } from './http.js';
 
@@ -126,5 +129,99 @@ describe('a paid chunked upload across uploadFile retries', () => {
     await initPaid(u);
 
     assert.equal(creates.length, 1);
+  });
+});
+
+/**
+ * The same guarantee, through `uploadFile` rather than around it.
+ *
+ * The tests above prove `ChunkedUploader` resumes when it is HANDED an id. They
+ * cannot prove the production code hands it over — that lives in `uploadFile`'s
+ * `finally`, which reads `currentPaidUploadId` on the way out of a failed
+ * attempt and passes it into the next uploader. Delete that block and every
+ * test above still passes, which is the gap this closes: the fix IS the
+ * carrying, so the carrying is what has to be tested.
+ *
+ * Reaching the outer retry takes some doing, and the failures that do not reach
+ * it are worth recording because each looks like it should:
+ *
+ *   - a failed CHUNK is retried inside `ChunkedUploader`, so the attempt still
+ *     succeeds and `uploadFile` never loops;
+ *   - a 4xx anywhere aborts immediately — "Failed to upload file after 1
+ *     attempts" — because `http.ts` treats 4xx as non-retryable;
+ *   - a single 5xx finalize is likewise absorbed internally.
+ *
+ * Only exhausting the internal retries surfaces the error to `uploadFile`,
+ * which then rebuilds the uploader — the exact moment a paid id is either
+ * carried or lost. Verified to discriminate: with the `finally` removed this
+ * buys TWO uploads, with it in place, one.
+ */
+describe('uploadFile carries the paid upload id across its own retries', () => {
+  const originalFetch = globalThis.fetch;
+  const ETH_KEY = `0x${'01'.repeat(32)}`;
+
+  it('buys ONE upload when an attempt fails after paying and is retried', async () => {
+    let creates = 0;
+    let finalizes = 0;
+
+    globalThis.fetch = (async (url: string | URL) => {
+      const u = String(url);
+      const json = (body: unknown, status = 200) =>
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        });
+
+      // The paid create. Counting these is the whole point.
+      if (u.includes('/-1/-1')) {
+        creates++;
+        return json({
+          id: `paid-upload-${creates}`,
+          chunkSize: 5 * 1024 * 1024,
+        });
+      }
+      /*
+        Fail finalize until the uploader's own retries are spent, so the error
+        reaches `uploadFile` and it rebuilds the uploader. Fewer failures are
+        absorbed internally and the outer loop never runs — which is how the
+        first version of this test passed with the fix removed.
+      */
+      if (u.includes('/finalize')) {
+        finalizes++;
+        return finalizes <= 5
+          ? json({ error: 'transient' }, 500)
+          : json({ id: 'data-item-id', winc: '0' });
+      }
+      if (u.includes('/status')) {
+        return json({ status: 'FINALIZED', receipt: { id: 'data-item-id' } });
+      }
+      return json({});
+    }) as typeof fetch;
+
+    try {
+      const turbo = TurboFactory.authenticated({
+        privateKey: ETH_KEY,
+        token: 'base-usdc',
+        uploadServiceConfig: { url: 'https://upload.example.com' },
+      });
+      await turbo.uploadFile({
+        fileStreamFactory: () =>
+          Readable.from(Buffer.alloc(12 * 1024 * 1024, 1)),
+        fileSizeFactory: () => 12 * 1024 * 1024,
+        chunkingMode: 'force',
+        fundingMode: new X402Funding({ signer: {} as never }),
+      });
+
+      // Guards the guard: if the retry stops happening this test would pass
+      // for the wrong reason, exactly as its first version did.
+      assert.ok(finalizes > 1, 'the attempt must actually have been retried');
+      assert.equal(
+        creates,
+        1,
+        `a retry must resume the upload already paid for, not buy a second one (bought ${creates})`,
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

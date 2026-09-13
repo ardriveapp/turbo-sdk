@@ -738,7 +738,9 @@ the payload is never sent just to discover its price. Smaller items go in a
 single request, which is buffered in memory so its length can be declared — the
 service prices an x402 upload from `Content-Length`, and a streamed body has
 none. The service URL must be HTTPS: an x402 authorization is a bearer
-credential, so the SDK refuses to send one over cleartext.
+credential, so the SDK refuses to send one over cleartext. Loopback is the
+exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
+local development against a bundler on your own machine still works.
 
 #### Pricing an x402 Upload Before Sending It
 
