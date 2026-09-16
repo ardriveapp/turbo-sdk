@@ -300,7 +300,11 @@ export class TurboUnauthenticatedUploadService
             unsignedData: true,
           };
 
-    return this.httpService.post({
+    const response = await this.httpService.post<
+      TurboUploadDataItemResponse & {
+        receipt?: Partial<TurboUploadDataItemResponse>;
+      }
+    >({
       data: dataBuffer,
       // Only reached when no signer was supplied; the x402 path recomputes this
       // from `unsignedData`. Both must name the same route.
@@ -310,8 +314,16 @@ export class TurboUnauthenticatedUploadService
         tags !== undefined
           ? { 'x-data-item-tags': JSON.stringify(tags) }
           : undefined,
+      // The service answers a stored, paid-for upload with 201. Refusing it
+      // reported a settled payment as a failure, and a retry paid again.
+      allowedStatuses: [200, 201, 202],
       x402Options,
     });
+
+    // The service nests the signed receipt (winc, timestamp, signature and the
+    // rest) under `receipt`. Lift those fields to the top level, where every
+    // other upload method returns them.
+    return { ...response.receipt, ...response } as TurboUploadDataItemResponse;
   }
 }
 
