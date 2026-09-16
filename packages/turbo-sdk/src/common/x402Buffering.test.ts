@@ -19,7 +19,8 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { testEthWallet } from '../../tests/helpers.js';
 import { TurboFactory } from '../node/factory.js';
-import { X402Funding } from '../types.js';
+import { TurboAuthenticatedUploadService } from '../node/index.js';
+import { ExistingBalanceFunding, X402Funding } from '../types.js';
 import { TurboUnauthenticatedUploadService } from './index.js';
 import { Logger } from './logger.js';
 
@@ -328,5 +329,99 @@ describe('x402 single-request upload events', () => {
     status = 500;
     await assert.rejects(upload(), /bundler unavailable/);
     assert.deepEqual(seen, ['progress 4096/4096', 'request', 'upload-error']);
+  });
+});
+
+/*
+  Auto mode sends an item in one request when it fits in two chunks, and x402
+  buffers that request. The cap on that buffer applied only with chunking
+  disabled, so a large `chunkByteCount` let an x402 item of up to 1 GiB be
+  pulled into memory. Over the cap, an x402 item now chunks.
+*/
+describe('x402 in auto mode with a large chunk size', () => {
+  const originalFetch = globalThis.fetch;
+  const cap = 100 * 1024 * 1024;
+  let requestedUrls: string[];
+  let streamOpened: boolean;
+
+  beforeEach(() => {
+    requestedUrls = [];
+    streamOpened = false;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      requestedUrls.push(url);
+      // Stop at the paid create: which request comes first is the point.
+      return url.includes('/-1/-1')
+        ? new Response('stop here', { status: 400 })
+        : new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  // Signing is stubbed: routing needs only the signed size, and an empty
+  // stream shows whether anything tried to buffer the item.
+  const uploadItemOf = (
+    signedByteCount: number,
+    fundingMode: X402Funding | ExistingBalanceFunding,
+  ) =>
+    new TurboAuthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+      retryConfig: {
+        retries: 1,
+        retryDelay: () => 0,
+        onRetry: () => undefined,
+      },
+      paymentService: {} as never,
+      signer: {
+        signer: { signatureType: 3 },
+        getNativeAddress: async () => '0xrefund',
+        signDataItem: async () => ({
+          dataItemStreamFactory: () => {
+            streamOpened = true;
+            return Readable.from(Buffer.alloc(0));
+          },
+          dataItemSizeFactory: () => signedByteCount,
+        }),
+      } as never,
+    }).uploadFile({
+      fileStreamFactory: () => Readable.from(Buffer.alloc(0)),
+      fileSizeFactory: () => signedByteCount,
+      chunkByteCount: 500 * 1024 * 1024,
+      fundingMode,
+    });
+
+  it('chunks an x402 item over the cap instead of buffering it', async () => {
+    await assert.rejects(
+      uploadItemOf(cap + 1, new X402Funding({ signer: {} as never })),
+      /stop here/,
+    );
+    assert.equal(streamOpened, false, 'nothing should be buffered');
+    assert.equal(requestedUrls.length, 1);
+    assert.match(requestedUrls[0], /\/v1\/chunks\/base-usdc\/-1\/-1\?/);
+  });
+
+  it('still sends an x402 item at the cap in one request', async () => {
+    // The empty stream fails the size check, which proves the item reached
+    // the single-request buffer without allocating 100 MiB here.
+    await assert.rejects(
+      uploadItemOf(cap, new X402Funding({ signer: {} as never })),
+      /produced 0 bytes, expected 104857600/,
+    );
+    assert.equal(streamOpened, true);
+    assert.deepEqual(requestedUrls, []);
+  });
+
+  it('leaves a credit-funded item in one request', async () => {
+    await uploadItemOf(cap + 1, new ExistingBalanceFunding());
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/tx/base-usdc',
+    ]);
   });
 });

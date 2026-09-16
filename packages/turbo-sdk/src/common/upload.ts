@@ -185,8 +185,9 @@ export class TurboUnauthenticatedUploadService
         outright. Buffering fixes both: the length is declared honestly and the
         body can be re-sent.
 
-        Bounded by the chunking decision above — anything over two chunks took
-        the chunked path, which pays at create and never reaches here.
+        Bounded by `uploadFile`: an item over `maxX402SingleRequestByteCount`
+        takes the chunked path, which pays at create and never reaches here,
+        or is refused before signing when chunking is disabled.
       */
       try {
         const body = await streamToBuffer(
@@ -560,6 +561,19 @@ export abstract class TurboAuthenticatedBaseUploadService
               }
             : undefined;
 
+        /*
+          Auto mode sends an item in one request when it fits in two chunks,
+          and x402 buffers that request. A large `chunkByteCount` stretches two
+          chunks far past the buffer cap, so an x402 item over the cap chunks
+          whatever the chunk size.
+        */
+        const chunkingMode =
+          x402Options !== undefined &&
+          (params.chunkingMode ?? 'auto') === 'auto' &&
+          dataItemSizeFactory() > maxX402SingleRequestByteCount
+            ? 'force'
+            : params.chunkingMode;
+
         const chunkedUploader = new ChunkedUploader({
           http: this.httpService,
           token: this.token,
@@ -567,7 +581,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           chunkByteCount,
           logger: this.logger,
           dataItemByteCount: dataItemSizeFactory(),
-          chunkingMode: params.chunkingMode,
+          chunkingMode,
           maxFinalizeMs: params.maxFinalizeMs,
           paidUploadId,
           ...(x402Options ? { x402: x402Options } : {}),
@@ -1627,10 +1641,9 @@ export abstract class TurboAuthenticatedBaseUploadService
 /**
  * The largest data item the x402 single-request path will buffer.
  *
- * Normally unreachable: anything over two chunks takes the chunked path, which
- * pays at create and streams. It bites only when chunking is explicitly
- * disabled, and it exists so that case fails with an explanation rather than
- * by exhausting memory.
+ * An x402 item over this size never takes that path. In auto mode it is
+ * chunked instead, whatever `chunkByteCount` is. With chunking disabled it is
+ * refused, with an explanation rather than by exhausting memory.
  */
 const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
 
