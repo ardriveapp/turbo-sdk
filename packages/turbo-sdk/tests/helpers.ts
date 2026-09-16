@@ -56,10 +56,11 @@ export async function expectAsyncErrorThrow({
  */
 export const turboDevelopmentConfigurations = {
   paymentServiceConfig: {
-    url: process.env.PAYMENT_SERVICE_URL ?? 'https://payment.ardrive.dev',
+    url:
+      process.env.PAYMENT_SERVICE_URL ?? 'https://payment.services.ar-io.dev',
   },
   uploadServiceConfig: {
-    url: process.env.UPLOAD_SERVICE_URL ?? 'https://upload.ardrive.dev',
+    url: process.env.UPLOAD_SERVICE_URL ?? 'https://upload.services.ar-io.dev',
   },
 };
 

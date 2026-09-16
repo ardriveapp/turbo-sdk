@@ -20,6 +20,7 @@ import {
   ArNSActionCompleted,
   ArNSActionPriceResponse,
   ArNSActionResult,
+  ArNSBuyNameActionParams,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
   ArNSNameType,
@@ -92,7 +93,8 @@ import { TurboHTTPService } from './http.js';
 import { Logger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
 
-export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
+export const developmentPaymentServiceURL =
+  'https://payment.services.ar-io.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
 
 export class TurboUnauthenticatedPaymentService
@@ -980,14 +982,8 @@ export class TurboAuthenticatedPaymentService
     years,
     paidBy,
     onNonce,
-  }: {
-    name: string;
-    owner: ArNSOwnerSigner;
-    type?: ArNSNameType;
-    years?: number;
-    paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
-  }): Promise<ArNSActionCompleted> {
+    antState,
+  }: ArNSBuyNameActionParams): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'buy-name',
       {
@@ -996,6 +992,13 @@ export class TurboAuthenticatedPaymentService
         type,
         ...(years !== undefined ? { years } : {}),
         ...(paidBy !== undefined ? { paidBy } : {}),
+        /*
+          Spread conditionally, like `paidBy` — an `antState: undefined` key
+          would serialize into the body and is not the same request as omitting
+          it. Sent whole in the BODY rather than the query string: it is an
+          object, and `createArNSAction` already posts every param as JSON.
+        */
+        ...(antState !== undefined ? { antState } : {}),
       },
       owner,
       { onNonce },

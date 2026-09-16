@@ -65,6 +65,7 @@
     "examples": "yarn example:esm & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
     "example:vite": "cd examples/vite && yarn && yarn start",
     "example:esm": "cd examples/esm && yarn && node index.mjs",
+    "example:folder-index": "cd examples/folder-index && yarn && node index.mjs",
     "example:cjs": "cd examples/cjs && yarn && node index.cjs",
     "example:web": "http-server --port 8080 --host -o examples/web",
     "example:ts:esm": "cd examples/typescript/esm && yarn && yarn test",

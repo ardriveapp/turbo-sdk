@@ -733,6 +733,49 @@ await turbo.uploadFile({
 });
 ```
 
+Large items are uploaded in chunks and paid for when the upload is created, so
+the payload is never sent just to discover its price. Smaller items go in a
+single request, which is buffered in memory so its length can be declared — the
+service prices an x402 upload from `Content-Length`, and a streamed body has
+none. The service URL must be HTTPS: an x402 authorization is a bearer
+credential, so the SDK refuses to send one over cleartext. Loopback is the
+exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
+local development against a bundler on your own machine still works.
+
+#### Pricing an x402 Upload Before Sending It
+
+`getX402PriceForDataItem` prices a signed data item from its byte count, so you
+can learn the cost without transmitting the payload. Without it the only way to
+get a price is to POST the data and read the 402 challenge.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
+
+const quote = await turbo.getX402PriceForDataItem({
+  byteCount: signedDataItemByteCount, // the SIGNED item, not the payload inside it
+});
+console.log(quote.usdcAmount); // amount to pay, in USDC's smallest unit
+```
+
+`getX402PriceForRawData` prices raw data that Turbo will wrap into a data item
+itself, and reports the wrapping overhead — a data item is larger than its
+payload by its header, signature and tags, which a caller cannot compute.
+
+```typescript
+const quote = await turbo.getX402PriceForRawData({
+  byteCount: myRawData.byteLength,
+  tagCount: 3, // tags you intend to attach; they change the overhead
+  contentType: 'image/png',
+});
+console.log(quote.overhead, quote.estimatedDataItemSize);
+```
+
+Both take an optional `network`, defaulting to `base`. **This is the x402
+network, not the SDK token type**: the route builds its token as
+`usdc-{network}`, so `base-usdc` is accepted on mainnet only because the
+network there is literally `base`. Against a testnet service, pass
+`network: 'base-sepolia'`.
+
 #### Raw x402 Data Uploads
 
 Using the x402 protocol, you can also upload raw data to Turbo without signing a data item. This method is ideal for quick agent workflows where the ownership of the data is not required to be tied to a specific wallet. The eventual data item on chain will be signed by Turbo's x402 EVM signer.
@@ -882,6 +925,8 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 ```
 
 ##### Incremental Folder Uploads
+
+A runnable version of everything below is in [`examples/folder-index`](examples/folder-index/index.mjs): it deploys the same folder three times and prints what each run uploaded and reused.
 
 An Arweave upload is permanent, so paying twice for byte identical files buys
 nothing. Pass a `folderIndex` and `uploadFolder` hashes every file, asks the
@@ -1332,6 +1377,59 @@ await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 | `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
 | `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
 
+#### Point the name at your content while you buy it
+
+Pass `antState` and the ANT's opening record is written by the
+`ario_ant::initialize` that runs inside the transaction you already sign — free
+and atomic. No second action, no second signature, no second debit. Without it a
+fresh name resolves to the AR.IO logo, which is the on-chain default.
+
+```typescript
+await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'permabuy',
+  antState: {
+    transactionId: '<43-char Arweave tx id>', // the root `@` target
+    targetProtocol: 0, // 0 = Arweave (default), 1 = IPFS CID
+    ticker: 'MYSITE',
+  },
+});
+```
+
+`antState` is accepted on `buyArNSName` only — the service rejects it on every
+other action. Note it is nested: a **top-level** `transactionId` on a buy is a
+400 by design, because that spelling means the set-record target and silently
+accepting it would point the name at the logo while the caller believed
+otherwise.
+
+**Mind the size budget.** The sponsored mint is ONE Solana transaction against
+the 1232-byte packet limit, shared with Turbo's fee-payer transfer and an
+`add_controller` grant. At a worst-case 51-character name only ~71 bytes are
+spare:
+
+| Fields                                      | Cost      | Fits?  |
+| ------------------------------------------- | --------- | ------ |
+| `transactionId` + `targetProtocol`          | ~1 byte   | always |
+| `ticker` (16) + `logo` (43)                 | ~65 bytes | yes    |
+| `description` (512), or a full keyword list | —         | **no** |
+
+The budget is dynamic — a shorter name buys headroom — so this SDK imposes no
+client-side cap. The server measures the real transaction and returns a 400
+naming Solana's 1232-byte limit _before_ you are handed anything to sign, with
+the credit debit refunded inline. That error is deterministic: do not retry it,
+and surface the server's message rather than replacing it, because it names
+which fields to drop.
+
+Field limits, all rejected at the service edge before any debit: `description`
+≤ 512 characters, `keywords` ≤ 16 entries, and `logo` (plus `transactionId`
+when `targetProtocol` is 0 or unset) must be 43-character Arweave ids. When
+`targetProtocol` is 1 the target is an IPFS CID and is not shape-checked as an
+Arweave id.
+
+See [`ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state`](https://github.com/ar-io/ar-io-bundler/blob/main/docs/architecture/ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state)
+in `ar-io/ar-io-bundler` for the measured byte table.
+
 Every action costs credits — gas sponsorship was never meant to be _free_
 sponsorship. The four purchase actions charge the ARIO cost (plus, for
 `buyArNSName`, a rent-derived surcharge for the ANT it mints); the other eight
@@ -1761,13 +1859,15 @@ Global options:
 
 - `-V, --version` - output the version number
 - `-h, --help` - display help for command
-- `--dev` - Enable development endpoints (default: false)
+- `--dev` - Use the ar.io Testnet Sandbox (`payment.services.ar-io.dev` and `upload.services.ar-io.dev`) with testnet gateways (default: false). See [Testnet Configuration](#testnet-configuration).
+- `--local` - Use services running on this machine: payment on port 4000, upload on port 3000, and a gateway on port 1984 (default: false)
 - `-g, --gateway <url>` - Set a custom crypto gateway URL
 - `--upload-url <url>` - Set a custom upload service URL
 - `--payment-url <url>` - Set a custom payment service URL
-- `--cu-url <url>` - Set a custom AO compute unit URL
-- `--process-id <id>` - Set a custom target process ID for AO action
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
+- `--debug` - Enable verbose logging (default: false)
+- `--quiet` - Disable logging (default: false)
+- `--skip-confirmation` - Skip all confirmation prompts (default: false)
 
 Wallet options:
 

@@ -20,9 +20,9 @@ import {
   ArNSActionCompleted,
   ArNSActionPriceResponse,
   ArNSActionResult,
+  ArNSBuyNameActionParams,
   ArNSFiatPurchaseQuoteParams,
   ArNSFiatPurchaseQuoteResponse,
-  ArNSNameType,
   ArNSOwnerSigner,
   ArNSPriceParams,
   ArNSPriceResponse,
@@ -79,6 +79,10 @@ import {
   TurboWincForFiatResponse,
   TurboWincForTokenParams,
   TurboWincForTokenResponse,
+  TurboX402DataItemPriceParams,
+  TurboX402DataItemPriceResponse,
+  TurboX402RawDataPriceParams,
+  TurboX402RawDataPriceResponse,
   UploadDataInput,
   UploadDataType,
   UserAddress,
@@ -368,6 +372,26 @@ export class TurboUnauthenticatedClient
       maxMUSDCAmount,
     });
   }
+
+  /**
+   * Price a signed data item for an x402 upload without sending it. See
+   * `TurboUnauthenticatedUploadService.getX402PriceForDataItem`.
+   */
+  getX402PriceForDataItem(
+    p: TurboX402DataItemPriceParams,
+  ): Promise<TurboX402DataItemPriceResponse> {
+    return this.uploadService.getX402PriceForDataItem(p);
+  }
+
+  /**
+   * Price raw data for an x402 upload, including the data-item wrapping
+   * overhead. See `TurboUnauthenticatedUploadService.getX402PriceForRawData`.
+   */
+  getX402PriceForRawData(
+    p: TurboX402RawDataPriceParams,
+  ): Promise<TurboX402RawDataPriceResponse> {
+    return this.uploadService.getX402PriceForRawData(p);
+  }
 }
 
 export class TurboAuthenticatedClient
@@ -464,14 +488,7 @@ export class TurboAuthenticatedClient
    * Buy a name. The ANT is minted straight to `owner`; Turbo never holds it.
    * The only action that always needs the owner's signature — once, ever.
    */
-  buyArNSName(params: {
-    name: string;
-    owner: ArNSOwnerSigner;
-    type?: ArNSNameType;
-    years?: number;
-    paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
-  }): Promise<ArNSActionCompleted> {
+  buyArNSName(params: ArNSBuyNameActionParams): Promise<ArNSActionCompleted> {
     return this.paymentService.buyArNSName(params);
   }
 
@@ -771,5 +788,25 @@ export class TurboAuthenticatedClient
       signal,
       maxMUSDCAmount,
     });
+  }
+
+  /**
+   * Price a signed data item for an x402 upload without sending it. See
+   * `TurboUnauthenticatedUploadService.getX402PriceForDataItem`.
+   */
+  getX402PriceForDataItem(
+    p: TurboX402DataItemPriceParams,
+  ): Promise<TurboX402DataItemPriceResponse> {
+    return this.uploadService.getX402PriceForDataItem(p);
+  }
+
+  /**
+   * Price raw data for an x402 upload, including the data-item wrapping
+   * overhead. See `TurboUnauthenticatedUploadService.getX402PriceForRawData`.
+   */
+  getX402PriceForRawData(
+    p: TurboX402RawDataPriceParams,
+  ): Promise<TurboX402RawDataPriceResponse> {
+    return this.uploadService.getX402PriceForRawData(p);
   }
 }
