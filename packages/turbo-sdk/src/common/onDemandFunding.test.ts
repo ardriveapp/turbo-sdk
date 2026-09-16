@@ -186,7 +186,71 @@ describe('on-demand funding estimate', () => {
     );
   });
 
-  it('prices a folder with two requests, however many files it holds', async () => {
+  // A folder's estimate must never come in under the service price, or a
+  // balance equal to the estimate skips a top-up the upload needs.
+  it('never prices a folder below the service, including items over 1 GiB', async () => {
+    const itemByteCounts = [2 ** 31, 2 ** 31, 3 * 2 ** 30, 1200, 2 ** 30];
+    const actualCost = itemByteCounts.reduce(
+      (sum, bytes) => sum.plus(servicePrice(bytes)),
+      new BigNumber(0),
+    );
+
+    await onDemand(
+      itemByteCounts,
+      new OnDemandFunding({ topUpBufferMultiplier: 1 }),
+    );
+
+    assert.ok(
+      toppedUpWinc().isGreaterThanOrEqualTo(actualCost),
+      `funded ${toppedUpWinc()} is below the ${actualCost} the service charges`,
+    );
+  });
+
+  // The case CodeRabbit raised on #480: extrapolating past 1 GiB lands low.
+  it('quotes items over 1 GiB exactly instead of extrapolating', async () => {
+    await onDemand(
+      [2048, 4096, 2 ** 31, 2 ** 31],
+      new OnDemandFunding({ topUpBufferMultiplier: 1 }),
+    );
+
+    assert.deepEqual(payment.priceRequests, [[1, 2 ** 30, 2 ** 31, 2 ** 31]]);
+    const actualCost = [2048, 4096, 2 ** 31, 2 ** 31].reduce(
+      (sum, bytes) => sum.plus(servicePrice(bytes)),
+      new BigNumber(0),
+    );
+    assert.ok(toppedUpWinc().isGreaterThanOrEqualTo(actualCost));
+  });
+
+  // The service rounds each item up. Rounding only the folder total can land
+  // up to one winc per item below the sum of those rounded prices.
+  it('never prices a folder below the service across many item sizes', async () => {
+    let seed = 7;
+    const nextSize = () => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31;
+      return 1200 + (seed % 5_000_000);
+    };
+
+    for (let run = 0; run < 300; run++) {
+      payment = new FakePaymentService();
+      const itemByteCounts = Array.from({ length: 2 + (run % 40) }, nextSize);
+      const actualCost = itemByteCounts.reduce(
+        (sum, bytes) => sum.plus(servicePrice(bytes)),
+        new BigNumber(0),
+      );
+
+      await onDemand(
+        itemByteCounts,
+        new OnDemandFunding({ topUpBufferMultiplier: 1 }),
+      );
+
+      assert.ok(
+        toppedUpWinc().isGreaterThanOrEqualTo(actualCost),
+        `run ${run}: funded ${toppedUpWinc()}, service charges ${actualCost}`,
+      );
+    }
+  });
+
+  it('estimates a folder with two price requests, however many files it holds', async () => {
     await onDemand(Array.from({ length: 5000 }, () => 2048));
 
     assert.deepEqual(payment.priceRequests, [[1, 2 ** 30]]);

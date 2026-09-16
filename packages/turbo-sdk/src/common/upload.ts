@@ -1347,45 +1347,61 @@ export abstract class TurboAuthenticatedBaseUploadService
   ];
 
   /**
-   * The winc the service will charge for the given items, rounded up.
+   * The winc the service will charge for the given items. Never less.
    *
    * The service prices an item as a per-byte rate plus a fixed per-item
-   * charge: a zero-byte item costs about 8M winc. Scaling the 1 GiB price down
-   * to the item size dropped that fixed part, so a small upload was under
-   * funded by up to ~38%, a folder by roughly the fixed charge per file, and
-   * `topUpBufferMultiplier: 1` could never succeed.
+   * charge, rounded up per item: a zero-byte item costs about 8M winc. Scaling
+   * the 1 GiB price down to the item size dropped that fixed part, so a small
+   * upload was under funded by up to ~38%, a folder by roughly the fixed charge
+   * per file, and `topUpBufferMultiplier: 1` could never succeed.
    *
-   * One item is quoted exactly. Several items are priced from two quotes,
-   * which recover the rate and the fixed charge, so a folder costs two price
-   * requests however many files it holds (`getUploadCosts` sends one request
-   * per size, with no concurrency limit).
+   * Items from 1 byte to 1 GiB are priced from two quotes, at 1 byte and 1 GiB.
+   * The line through those two (already rounded up) prices never falls below
+   * the service's unrounded price anywhere between them, so rounding each item
+   * up keeps every estimate, and their sum, at or above what the service
+   * charges. Rounding only the total could not promise that. Anything the line
+   * would have to extrapolate to, and a lone item, is quoted exactly.
+   *
+   * The two quotes are made once per estimate. Each file of a folder still
+   * checks its own price when it uploads.
    */
   private async estimateUploadWinc(itemByteCounts: number[]): Promise<string> {
-    if (itemByteCounts.length === 0) {
+    const oneGiB = 2 ** 30;
+    const inModelRange = (bytes: number) => bytes >= 1 && bytes <= oneGiB;
+    const useModel = itemByteCounts.filter(inModelRange).length > 1;
+    const modelled = useModel ? itemByteCounts.filter(inModelRange) : [];
+    const quoted = useModel
+      ? itemByteCounts.filter((bytes) => !inModelRange(bytes))
+      : itemByteCounts;
+
+    const bytes = useModel ? [1, oneGiB, ...quoted] : quoted;
+    if (bytes.length === 0) {
       return '0';
     }
+    const quotes = await this.paymentService.getUploadCosts({ bytes });
 
-    if (itemByteCounts.length === 1) {
-      const [{ winc }] = await this.paymentService.getUploadCosts({
-        bytes: itemByteCounts,
-      });
-      return new BigNumber(winc).toFixed(0, BigNumber.ROUND_UP);
+    let total = (useModel ? quotes.slice(2) : quotes).reduce(
+      (sum, { winc }) => sum.plus(winc),
+      new BigNumber(0),
+    );
+
+    if (useModel) {
+      const [oneByte, gibibyte] = quotes;
+      const perByte = new BigNumber(gibibyte.winc)
+        .minus(oneByte.winc)
+        .dividedBy(oneGiB - 1);
+      const perItem = new BigNumber(oneByte.winc).minus(perByte);
+      for (const itemBytes of modelled) {
+        total = total.plus(
+          perByte
+            .multipliedBy(itemBytes)
+            .plus(perItem)
+            .integerValue(BigNumber.ROUND_UP),
+        );
+      }
     }
 
-    const oneGiB = 2 ** 30;
-    const [oneByte, gibibyte] = await this.paymentService.getUploadCosts({
-      bytes: [1, oneGiB],
-    });
-    const perByte = new BigNumber(gibibyte.winc)
-      .minus(oneByte.winc)
-      .dividedBy(oneGiB - 1);
-    const perItem = new BigNumber(oneByte.winc).minus(perByte);
-    const totalBytes = itemByteCounts.reduce((sum, bytes) => sum + bytes, 0);
-
-    return perByte
-      .multipliedBy(totalBytes)
-      .plus(perItem.multipliedBy(itemByteCounts.length))
-      .toFixed(0, BigNumber.ROUND_UP);
+    return total.toFixed(0);
   }
 
   /**
