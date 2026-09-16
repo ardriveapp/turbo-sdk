@@ -491,6 +491,31 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
 
+    // Each attempt signs again, so it calls the factory again. The web signer
+    // reads the stream once per attempt, so a factory that returns one stream
+    // instance passes the first attempt, and the retry used to fail with a bare
+    // "ReadableStream is locked" that hid why the first attempt failed (#396).
+    const fileStreamFactoryForAttempt = (() => {
+      const stream = fileStreamFactory();
+      if (stream instanceof ReadableStream && stream.locked) {
+        const previous =
+          lastError === undefined
+            ? ''
+            : ` The previous attempt failed with: ${
+                lastError instanceof Error ? lastError.message : lastError
+              }`;
+        throw new TypeError(
+          'fileStreamFactory returned a ReadableStream that is already ' +
+            'locked, most likely read by an earlier upload attempt. Every ' +
+            'attempt calls the factory again, so it must return a new stream ' +
+            'on every call, for example () => file.stream().' +
+            previous,
+          { cause: lastError },
+        );
+      }
+      return stream;
+    }) as typeof fileStreamFactory;
+
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
     while (retries < maxRetries) {
@@ -501,7 +526,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       // TODO: create a SigningError class and throw that instead of the generic Error
       const { dataItemStreamFactory, dataItemSizeFactory } =
         await this.signer.signDataItem({
-          fileStreamFactory,
+          fileStreamFactory: fileStreamFactoryForAttempt,
           fileSizeFactory,
           dataItemOpts,
           emitter,

@@ -651,7 +651,7 @@ const uploadResult = await turbo.uploadFile({
 
 ##### Using `fileStreamFactory` and `fileSizeFactory`
 
-Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The SDK calls it again for every retry, and a stream can be read only once. In the browser, pass `() => file.stream()` rather than a stream you created ahead of time; a factory that returns one stream instance fails on the first retry. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
 ```typescript
 const filePath = path.join(__dirname, './my-unsigned-file.txt');
