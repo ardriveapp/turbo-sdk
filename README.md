@@ -1985,7 +1985,7 @@ turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
 ```
 
 ```shell
-turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/sol/secret-key.json
 ```
 
 ```shell

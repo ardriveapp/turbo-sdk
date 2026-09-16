@@ -74,7 +74,11 @@ import {
   fiatCurrencyTypes,
   isCurrency,
 } from '../types.js';
-import { isAnyValidUserAddress } from '../utils/common.js';
+import {
+  isAnyValidUserAddress,
+  isValidArweaveBase64URL,
+  isValidSolanaAddress,
+} from '../utils/common.js';
 import {
   FailedRequestError,
   FiatPaymentsDisabledError,
@@ -535,6 +539,17 @@ export class TurboUnauthenticatedPaymentService
 
     const queryParams = new URLSearchParams();
     queryParams.append('token', this.token);
+    // An ario account is a Solana account, but the payment service checks an
+    // `ario` destination as an Arweave address, and most base58 keys fail that
+    // check. Naming the address type lets the checkout credit the base58
+    // account that uploads are billed to.
+    if (
+      this.token === 'ario' &&
+      !isValidArweaveBase64URL(owner) &&
+      isValidSolanaAddress(owner)
+    ) {
+      queryParams.append('destinationAddressType', 'solana');
+    }
     if (uiMode) {
       queryParams.append('uiMode', uiMode);
     }
