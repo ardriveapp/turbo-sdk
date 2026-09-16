@@ -137,12 +137,25 @@ export class TurboUnauthenticatedUploadService
     // create the tapped stream with events
     const emitter = new TurboEventEmitter(events);
 
+    /*
+      The x402 path drains the stream into a buffer before it sends anything,
+      so the end of the stream is not the end of the upload. Its tap passes
+      progress through and nothing else: success and failure are reported
+      below, once the request has settled.
+    */
+    const tapEmitter =
+      x402Options === undefined
+        ? emitter
+        : new TurboEventEmitter({
+            onUploadProgress: (event) => emitter.emit('upload-progress', event),
+          });
+
     // create the stream with upload events
     const { stream: streamWithUploadEvents, resume } =
       createStreamWithUploadEvents({
         data: dataItemStreamFactory(),
         dataSize: dataItemSize,
-        emitter,
+        emitter: tapEmitter,
       });
 
     const headers = {
@@ -175,19 +188,27 @@ export class TurboUnauthenticatedUploadService
         Bounded by the chunking decision above — anything over two chunks took
         the chunked path, which pays at create and never reaches here.
       */
-      const body = await streamToBuffer(
-        streamWithUploadEvents,
-        dataItemSize,
-        resume,
-        signal,
-      );
-      return this.httpService.post<TurboUploadDataItemResponse>({
-        endpoint: `/tx/${this.token}`,
-        signal,
-        data: body,
-        headers,
-        x402Options,
-      });
+      try {
+        const body = await streamToBuffer(
+          streamWithUploadEvents,
+          dataItemSize,
+          resume,
+          signal,
+        );
+        const response =
+          await this.httpService.post<TurboUploadDataItemResponse>({
+            endpoint: `/tx/${this.token}`,
+            signal,
+            data: body,
+            headers,
+            x402Options,
+          });
+        emitter.emit('upload-success');
+        return response;
+      } catch (error) {
+        emitter.emit('upload-error', error);
+        throw error;
+      }
     }
 
     // setup the post request using the stream with upload events

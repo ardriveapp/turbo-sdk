@@ -272,3 +272,61 @@ describe('x402 buffering of a web ReadableStream', () => {
     assert.deepEqual(sent, []);
   });
 });
+
+/*
+  The body is buffered before the request is sent, and the payment happens
+  after that. A drained stream is therefore not a finished upload: reporting
+  success there told an app the upload was done before the wallet prompt, and
+  a request that then failed threw after success had already been reported.
+*/
+describe('x402 single-request upload events', () => {
+  const originalFetch = globalThis.fetch;
+  let seen: string[];
+  let status: number;
+
+  beforeEach(() => {
+    seen = [];
+    status = 200;
+    globalThis.fetch = (async () => {
+      seen.push('request');
+      return status === 200
+        ? new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+            status,
+            headers: { 'content-type': 'application/json' },
+          })
+        : new Response('bundler unavailable', { status });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const upload = () =>
+    new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    }).uploadSignedDataItem({
+      dataItemStreamFactory: () => Readable.from(Buffer.alloc(4096, 5)),
+      dataItemSizeFactory: () => 4096,
+      x402Options: { signer: {} as never },
+      events: {
+        onUploadProgress: ({ processedBytes, totalBytes }) =>
+          seen.push(`progress ${processedBytes}/${totalBytes}`),
+        onUploadSuccess: () => seen.push('upload-success'),
+        onUploadError: () => seen.push('upload-error'),
+      },
+    });
+
+  it('reports success only after the request has succeeded', async () => {
+    await upload();
+    // Progress still tracks the buffering, so it comes first.
+    assert.deepEqual(seen, ['progress 4096/4096', 'request', 'upload-success']);
+  });
+
+  it('reports a failed request as an error, never as a success', async () => {
+    status = 500;
+    await assert.rejects(upload(), /bundler unavailable/);
+    assert.deepEqual(seen, ['progress 4096/4096', 'request', 'upload-error']);
+  });
+});
