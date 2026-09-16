@@ -21,9 +21,17 @@ import {
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { testEthWallet, testJwk, testSolWallet } from '../../tests/helpers.js';
+import {
+  testArweaveNativeB64Address,
+  testEthWallet,
+  testJwk,
+  testSolNativeAddress,
+  testSolWallet,
+} from '../../tests/helpers.js';
+import { TurboFactory } from '../node/factory.js';
 import { TurboNodeSigner } from '../node/signer.js';
 import { TokenType, TurboSigner } from '../types.js';
+import { isValidUserAddress } from '../utils/common.js';
 
 describe('TurboDataItemAbstractSigner.generateSignedRequestHeaders', () => {
   // arbundles SignatureConfig: ARWEAVE=1, ETHEREUM=3, SOLANA=4
@@ -72,4 +80,60 @@ describe('TurboDataItemAbstractSigner.generateSignedRequestHeaders', () => {
       assert.ok(headers['x-signature']?.length > 0);
     });
   }
+});
+
+/*
+  #454 / #455: the native address of a `token: 'ario'` client.
+
+  ARIO is an SPL token, so a client built from a private key signs with a Solana
+  key. The payment service bills a Solana signature to the raw base58 public
+  key (it derives the address from the signature type, not the token). The SDK
+  used the Arweave derivation (sha256 of the key) for every `ario` signer, so
+  such a client read and reported one account while the service debited and
+  implicitly credited another.
+*/
+describe('native address for token: ario', () => {
+  const nativeAddress = (signer: TurboSigner, token: TokenType) =>
+    new TurboNodeSigner({ signer, token }).getNativeAddress();
+
+  it('uses the base58 public key for a Solana signer', async () => {
+    assert.equal(
+      await nativeAddress(new HexSolanaSigner(testSolWallet), 'ario'),
+      testSolNativeAddress,
+    );
+  });
+
+  it('matches what the same Solana key reports as token: solana', async () => {
+    const signer = new HexSolanaSigner(testSolWallet);
+    assert.equal(
+      await nativeAddress(signer, 'ario'),
+      await nativeAddress(signer, 'solana'),
+    );
+  });
+
+  // The reported path: a private key plus `token: 'ario'`.
+  it('uses the base58 public key for a client built from a private key', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testSolWallet,
+      token: 'ario',
+    });
+    assert.equal(await turbo.signer.getNativeAddress(), testSolNativeAddress);
+  });
+
+  // An Arweave signer is billed at its Arweave address, so this must not move.
+  it('keeps the Arweave address for an Arweave signer', async () => {
+    assert.equal(
+      await nativeAddress(new ArweaveSigner(testJwk), 'ario'),
+      testArweaveNativeB64Address,
+    );
+  });
+
+  // The SDK's own validator already expects a Solana address for `ario`.
+  it('reports an address the SDK itself accepts for token: ario', async () => {
+    const address = await nativeAddress(
+      new HexSolanaSigner(testSolWallet),
+      'ario',
+    );
+    assert.ok(isValidUserAddress(address, 'ario'));
+  });
 });
