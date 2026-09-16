@@ -460,12 +460,14 @@ export abstract class TurboAuthenticatedBaseUploadService
     if (
       fundingMode instanceof X402Funding &&
       params.chunkingMode === 'disabled' &&
-      fileSizeFactory() > maxX402SingleRequestByteCount
+      fileSizeFactory() + x402SignedItemOverheadByteCount >
+        maxX402SingleRequestByteCount
     ) {
       throw new Error(
         `An x402 upload of ${fileSizeFactory()} bytes must be chunked: the ` +
-          `single-request path buffers the item in memory and is limited to ` +
-          `${maxX402SingleRequestByteCount} bytes. Remove ` +
+          `single-request path buffers the SIGNED item in memory and is ` +
+          `limited to ${maxX402SingleRequestByteCount} bytes, of which ` +
+          `signing claims about ${x402SignedItemOverheadByteCount}. Remove ` +
           `chunkingMode: 'disabled' to upload this item.`,
       );
     }
@@ -1504,6 +1506,20 @@ export abstract class TurboAuthenticatedBaseUploadService
  * by exhausting memory.
  */
 const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
+
+/**
+ * Headroom for what signing ADDS, so the guard measures the thing that is
+ * actually buffered.
+ *
+ * The limit applies to the signed data item, not the file: ANS-104 headers,
+ * the signature and the caller's tags all ride along. Checking the raw size
+ * let a file in the top of the range through, to be signed, buffered, and then
+ * refused by the service — wasting precisely the expensive step the guard
+ * exists to skip.
+ *
+ * Same allowance folder uploads already use for the same overhead.
+ */
+const x402SignedItemOverheadByteCount = 1200;
 
 /**
  * Drain a data-item stream into a Buffer, resuming it once the reader is
