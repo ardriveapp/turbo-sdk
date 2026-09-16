@@ -627,6 +627,40 @@ export abstract class TurboAuthenticatedBaseUploadService
     throw new FailedRequestError(msg, lastStatusCode);
   }
 
+  /**
+   * Returns an upper bound on the bytes in a folder's manifest, if every file
+   * lands. Data item ids are always 43 characters, so placeholder ids give the
+   * real length, except for the index path: without an index file, the
+   * manifest indexes whichever file finished first, so the estimate allows for
+   * the longest path there.
+   */
+  private async plannedManifestByteCount({
+    relativePaths,
+    indexFile,
+    fallbackFile,
+  }: {
+    relativePaths: string[];
+    indexFile?: string;
+    fallbackFile?: string;
+  }): Promise<number> {
+    const placeholder = { id: 'x'.repeat(43) };
+    const paths: Record<string, { id: string }> = {};
+    let longestPathByteCount = 0;
+    for (const path of relativePaths) {
+      paths[path] = placeholder;
+      longestPathByteCount = Math.max(
+        longestPathByteCount,
+        Buffer.byteLength(JSON.stringify(path)),
+      );
+    }
+    const manifest = await this.generateManifest({
+      paths,
+      indexFile,
+      fallbackFile,
+    });
+    return Buffer.byteLength(JSON.stringify(manifest)) + longestPathByteCount;
+  }
+
   protected async generateManifest({
     paths,
     indexFile,
@@ -1170,11 +1204,26 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
     if (fundingMode instanceof OnDemandFunding) {
+      // allow extra per item for ANS-104 headers
+      const headerByteCount = 1200;
+      const itemByteCounts = filesToUpload.map(
+        (file) => this.getFileSize(file) + headerByteCount,
+      );
+      // The manifest spends the same balance. Left out of the estimate, it
+      // needed a second top-up of its own.
+      if (!disableManifest && files.length > 0) {
+        itemByteCounts.push(
+          (await this.plannedManifestByteCount({
+            relativePaths: files.map((file) =>
+              this.getRelativePath(file, params),
+            ),
+            indexFile,
+            fallbackFile,
+          })) + headerByteCount,
+        );
+      }
       cryptoFundResult = await this.onDemand({
-        // allow extra per file for ANS-104 headers
-        itemByteCounts: filesToUpload.map(
-          (file) => this.getFileSize(file) + 1200,
-        ),
+        itemByteCounts,
         onDemandFunding: fundingMode,
       });
     }

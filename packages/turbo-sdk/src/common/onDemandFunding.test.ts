@@ -13,17 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { HexSolanaSigner } from '@dha-team/arbundles';
 import { BigNumber } from 'bignumber.js';
 import { strict as assert } from 'node:assert';
-import { beforeEach, describe, it } from 'node:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 
+import { testSolWallet } from '../../tests/helpers.js';
 // Through the package entry point: importing '../node/upload.js' first enters
 // the upload -> index -> turbo import cycle in an order that leaves module
 // constants uninitialized.
 import {
+  FailedRequestError,
   OnDemandFunding,
   TurboAuthenticatedUploadService,
   TurboCryptoFundResponse,
+  TurboNodeSigner,
+  TurboUploadDataItemResponse,
+  TurboUploadFolderParams,
 } from '../node/index.js';
 import { Logger } from './logger.js';
 
@@ -282,5 +291,137 @@ describe('on-demand funding estimate', () => {
     assert.equal(result, undefined);
     assert.deepEqual(payment.priceRequests, []);
     assert.equal(payment.topUps.length, 0);
+  });
+});
+
+/** Also moves the balance: a top-up credits it and an upload spends it. */
+class LedgerPaymentService extends FakePaymentService {
+  async topUpWithTokens(args: {
+    tokenAmount: string;
+  }): Promise<TurboCryptoFundResponse> {
+    this.balance = new BigNumber(this.balance)
+      .plus(args.tokenAmount)
+      .toFixed(0);
+    return super.topUpWithTokens(args);
+  }
+
+  charge(dataItemByteCount: number) {
+    const price = servicePrice(dataItemByteCount);
+    if (price.isGreaterThan(this.balance)) {
+      throw new FailedRequestError('Insufficient balance', 402);
+    }
+    this.balance = new BigNumber(this.balance).minus(price).toFixed(0);
+  }
+}
+
+describe('on-demand funding for a folder', () => {
+  let folderPath: string;
+  let ledger: LedgerPaymentService;
+
+  beforeEach(() => {
+    folderPath = mkdtempSync(join(tmpdir(), 'turbo-on-demand-'));
+    ledger = new LedgerPaymentService();
+  });
+
+  afterEach(() => {
+    rmSync(folderPath, { recursive: true, force: true });
+  });
+
+  // Signs for real, so every data item has its true size, and spends from the
+  // ledger the way the service does. Each item, the manifest included, still
+  // runs its own on-demand check before it uploads.
+  const uploadFolder = (
+    params: Omit<TurboUploadFolderParams, 'folderPath'>,
+  ) => {
+    const service = new TurboAuthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'solana',
+      logger: Logger.default,
+      signer: new TurboNodeSigner({
+        signer: new HexSolanaSigner(testSolWallet),
+        token: 'solana',
+      }),
+      paymentService: ledger as never,
+    });
+    let uploads = 0;
+    (
+      service as unknown as {
+        uploadSignedDataItem: (p: {
+          dataItemSizeFactory: () => number;
+        }) => Promise<TurboUploadDataItemResponse>;
+      }
+    ).uploadSignedDataItem = async ({ dataItemSizeFactory }) => {
+      ledger.charge(dataItemSizeFactory());
+      return {
+        id: `item${uploads++}`.padEnd(43, 'x'),
+      } as TurboUploadDataItemResponse;
+    };
+    return service.uploadFolder({
+      folderPath,
+      ...params,
+    } as TurboUploadFolderParams);
+  };
+
+  const appTags = [
+    { name: 'App-Name', value: 'Example-Site-Publisher' },
+    { name: 'App-Version', value: '2.4.1' },
+    { name: 'Description', value: 'A static site. '.repeat(20) },
+  ];
+
+  // Found in review of #480. The manifest spends the same balance, so a
+  // top-up sized for the files alone left it short and it bought its own.
+  it('funds the files and the manifest with one top-up', async () => {
+    writeFileSync(join(folderPath, 'index.html'), 'x'.repeat(1024));
+
+    const result = await uploadFolder({
+      dataItemOpts: { tags: appTags },
+      fundingMode: new OnDemandFunding({ topUpBufferMultiplier: 1 }),
+    });
+
+    assert.ok(result.manifestResponse, 'expected a manifest upload');
+    assert.equal(ledger.topUps.length, 1);
+  });
+
+  // A long name appears twice in the manifest: once in its paths and once as
+  // the index.
+  it('funds a manifest with a long file name in the same top-up', async () => {
+    writeFileSync(
+      join(folderPath, 'n'.repeat(200) + '.html'),
+      'x'.repeat(1024),
+    );
+
+    await uploadFolder({ fundingMode: new OnDemandFunding({}) });
+
+    assert.equal(ledger.topUps.length, 1);
+  });
+
+  it('funds a folder of many files and its manifest in one top-up', async () => {
+    for (let i = 0; i < 40; i++) {
+      writeFileSync(
+        join(folderPath, `page-${i}-${'p'.repeat(i * 3)}.html`),
+        'x'.repeat(100 + i * 331),
+      );
+    }
+
+    await uploadFolder({
+      dataItemOpts: { tags: appTags },
+      fundingMode: new OnDemandFunding({ topUpBufferMultiplier: 1 }),
+    });
+
+    assert.equal(ledger.topUps.length, 1);
+  });
+
+  it('prices only the files when the manifest is disabled', async () => {
+    writeFileSync(join(folderPath, 'index.html'), 'x'.repeat(1024));
+
+    const result = await uploadFolder({
+      manifestOptions: { disableManifest: true },
+      fundingMode: new OnDemandFunding({ topUpBufferMultiplier: 1 }),
+    });
+
+    assert.equal(result.manifestResponse, undefined);
+    // One item, so the folder's estimate is a single exact quote.
+    assert.deepEqual(ledger.priceRequests[0], [1024 + 1200]);
+    assert.equal(ledger.topUps.length, 1);
   });
 });
