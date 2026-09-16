@@ -95,7 +95,7 @@ export const creditSharingTagNames = {
   revokeCredits: 'x-delete-payment-approval',
 };
 
-export const developmentUploadServiceURL = 'https://upload.ardrive.dev';
+export const developmentUploadServiceURL = 'https://upload.services.ar-io.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
 
 export class TurboUnauthenticatedUploadService

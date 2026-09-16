@@ -20,7 +20,7 @@ import fs from 'fs';
    * Alternatively instantiate your own clients independently.
    */
   const paymentService = new TurboUnauthenticatedPaymentService({
-    url: 'https://payment.ardrive.dev',
+    url: 'https://payment.services.ar-io.dev',
   });
   const supportedCurrencies = await paymentService.getSupportedCurrencies();
   console.log(

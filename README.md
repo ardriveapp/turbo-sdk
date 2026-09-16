@@ -1859,13 +1859,15 @@ Global options:
 
 - `-V, --version` - output the version number
 - `-h, --help` - display help for command
-- `--dev` - Enable development endpoints (default: false)
+- `--dev` - Use the ar.io Testnet Sandbox (`payment.services.ar-io.dev` and `upload.services.ar-io.dev`) with testnet gateways (default: false). See [Testnet Configuration](#testnet-configuration).
+- `--local` - Use services running on this machine: payment on port 4000, upload on port 3000, and a gateway on port 1984 (default: false)
 - `-g, --gateway <url>` - Set a custom crypto gateway URL
 - `--upload-url <url>` - Set a custom upload service URL
 - `--payment-url <url>` - Set a custom payment service URL
-- `--cu-url <url>` - Set a custom AO compute unit URL
-- `--process-id <id>` - Set a custom target process ID for AO action
 - `-t, --token <token>` - Token type for the command or connected wallet (default: "arweave")
+- `--debug` - Enable verbose logging (default: false)
+- `--quiet` - Disable logging (default: false)
+- `--skip-confirmation` - Skip all confirmation prompts (default: false)
 
 Wallet options:
 
