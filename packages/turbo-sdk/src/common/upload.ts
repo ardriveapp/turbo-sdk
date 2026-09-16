@@ -509,9 +509,8 @@ export abstract class TurboAuthenticatedBaseUploadService
         fundingMode instanceof OnDemandFunding &&
         cryptoFundResult === undefined
       ) {
-        const totalByteCount = dataItemSizeFactory();
         cryptoFundResult = await this.onDemand({
-          totalByteCount,
+          itemByteCounts: [dataItemSizeFactory()],
           onDemandFunding: fundingMode,
         });
       }
@@ -1171,11 +1170,11 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
     if (fundingMode instanceof OnDemandFunding) {
-      const totalByteCount = filesToUpload.reduce((acc, file) => {
-        return acc + this.getFileSize(file) + 1200; // allow extra per file for ANS-104 headers
-      }, 0);
       cryptoFundResult = await this.onDemand({
-        totalByteCount,
+        // allow extra per file for ANS-104 headers
+        itemByteCounts: filesToUpload.map(
+          (file) => this.getFileSize(file) + 1200,
+        ),
         onDemandFunding: fundingMode,
       });
     }
@@ -1348,6 +1347,48 @@ export abstract class TurboAuthenticatedBaseUploadService
   ];
 
   /**
+   * The winc the service will charge for the given items, rounded up.
+   *
+   * The service prices an item as a per-byte rate plus a fixed per-item
+   * charge: a zero-byte item costs about 8M winc. Scaling the 1 GiB price down
+   * to the item size dropped that fixed part, so a small upload was under
+   * funded by up to ~38%, a folder by roughly the fixed charge per file, and
+   * `topUpBufferMultiplier: 1` could never succeed.
+   *
+   * One item is quoted exactly. Several items are priced from two quotes,
+   * which recover the rate and the fixed charge, so a folder costs two price
+   * requests however many files it holds (`getUploadCosts` sends one request
+   * per size, with no concurrency limit).
+   */
+  private async estimateUploadWinc(itemByteCounts: number[]): Promise<string> {
+    if (itemByteCounts.length === 0) {
+      return '0';
+    }
+
+    if (itemByteCounts.length === 1) {
+      const [{ winc }] = await this.paymentService.getUploadCosts({
+        bytes: itemByteCounts,
+      });
+      return new BigNumber(winc).toFixed(0, BigNumber.ROUND_UP);
+    }
+
+    const oneGiB = 2 ** 30;
+    const [oneByte, gibibyte] = await this.paymentService.getUploadCosts({
+      bytes: [1, oneGiB],
+    });
+    const perByte = new BigNumber(gibibyte.winc)
+      .minus(oneByte.winc)
+      .dividedBy(oneGiB - 1);
+    const perItem = new BigNumber(oneByte.winc).minus(perByte);
+    const totalBytes = itemByteCounts.reduce((sum, bytes) => sum + bytes, 0);
+
+    return perByte
+      .multipliedBy(totalBytes)
+      .plus(perItem.multipliedBy(itemByteCounts.length))
+      .toFixed(0, BigNumber.ROUND_UP);
+  }
+
+  /**
    * Triggers an upload that will top-up the wallet with Credits for the amount before uploading.
    * First, it calculates the expected cost of the upload. Next, it checks the wallet for existing
    * balance. If the balance is insufficient, it will attempt the top-up with the wallet in the specified `token`
@@ -1355,25 +1396,17 @@ export abstract class TurboAuthenticatedBaseUploadService
    * Note: Only `ario`, `solana`, and `base-eth` tokens are currently supported for on-demand uploads.
    */
   private async onDemand({
-    totalByteCount,
+    itemByteCounts,
     onDemandFunding,
   }: {
-    totalByteCount: number;
+    /** One entry per data item the upload will send. */
+    itemByteCounts: number[];
     onDemandFunding: OnDemandFunding;
   }): Promise<TurboCryptoFundResponse | undefined> {
     const { maxTokenAmount, topUpBufferMultiplier } = onDemandFunding;
 
     const currentBalance = await this.paymentService.getBalance();
-    const wincPriceForOneGiB = (
-      await this.paymentService.getUploadCosts({
-        bytes: [2 ** 30],
-      })
-    )[0].winc;
-
-    const expectedWincPrice = new BigNumber(wincPriceForOneGiB)
-      .multipliedBy(totalByteCount)
-      .dividedBy(2 ** 30)
-      .toFixed(0, BigNumber.ROUND_UP);
+    const expectedWincPrice = await this.estimateUploadWinc(itemByteCounts);
 
     if (
       BigNumber(currentBalance.effectiveBalance).isGreaterThanOrEqualTo(
