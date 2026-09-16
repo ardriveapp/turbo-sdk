@@ -1861,15 +1861,19 @@ type TurboX402PriceBase = {
   token: string;
   currency: string;
   network: string;
-  /** Storage cost in winston, for comparison with the credit price. */
-  winstonCost: string;
   /** Amount to pay, in USDC's smallest unit (6 decimals). */
   usdcAmount: string;
   x402Version: number;
   payment: X402PaymentRequirements;
 };
 
-/** Price for a data item the caller has already signed. */
+/**
+ * Price for a data item the caller has already signed.
+ *
+ * Carries no `winstonCost`. The service stopped sending it on this route
+ * because it was an extrapolation about 1.2% off the real per-byte price, and
+ * the charge never used it. Use `usdcAmount`, which is the amount charged.
+ */
 export type TurboX402DataItemPriceResponse = TurboX402PriceBase & {
   byteCount: number;
 };
@@ -1881,6 +1885,8 @@ export type TurboX402DataItemPriceResponse = TurboX402PriceBase & {
  * is larger than its payload by its header, signature and tags.
  */
 export type TurboX402RawDataPriceResponse = TurboX402PriceBase & {
+  /** Storage cost in winston, for comparison with the credit price. */
+  winstonCost: string;
   rawDataSize: number;
   userTagCount: number;
   systemTagCount: number;

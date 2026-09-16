@@ -18,6 +18,10 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { testEthWallet } from '../../tests/helpers.js';
 import { TurboFactory } from '../node/factory.js';
+import {
+  TurboX402DataItemPriceResponse,
+  TurboX402RawDataPriceResponse,
+} from '../types.js';
 import { TurboHTTPService } from './http.js';
 import { TurboUnauthenticatedUploadService } from './index.js';
 import { Logger } from './logger.js';
@@ -98,6 +102,47 @@ describe('x402 price lookups', () => {
       'https://upload.example.com/v1/price/x402/data/usdc-base/10?tags=2',
       'https://upload.example.com/v1/price/x402/data/usdc-base/10?contentType=text%2Fplain',
     ]);
+  });
+});
+
+/*
+  The response types must match what the service sends. These bodies are the
+  key sets production returned on 2026-09-16 (values replaced). The data-item
+  route sends no `winstonCost`: typing it as present told callers they could
+  read a field that is always undefined.
+*/
+describe('x402 price response shapes', () => {
+  it('types a data-item price without winstonCost', () => {
+    const body: TurboX402DataItemPriceResponse = {
+      token: 'usdc-base',
+      currency: 'usdc',
+      network: 'base',
+      byteCount: 1024,
+      usdcAmount: '1',
+      x402Version: 1,
+      payment: {} as TurboX402DataItemPriceResponse['payment'],
+    };
+    // @ts-expect-error the data-item route never sends winstonCost
+    assert.equal(body.winstonCost, undefined);
+  });
+
+  it('types a raw-data price with winstonCost', () => {
+    const body: TurboX402RawDataPriceResponse = {
+      token: 'usdc-base',
+      currency: 'usdc',
+      network: 'base',
+      winstonCost: '1000',
+      usdcAmount: '1',
+      x402Version: 1,
+      payment: {} as TurboX402RawDataPriceResponse['payment'],
+      rawDataSize: 1024,
+      userTagCount: 0,
+      systemTagCount: 4,
+      totalTagCount: 4,
+      estimatedDataItemSize: 1700,
+      overhead: 676,
+    };
+    assert.equal(body.winstonCost, '1000');
   });
 });
 
