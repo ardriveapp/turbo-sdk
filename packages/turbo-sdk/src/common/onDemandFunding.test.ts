@@ -192,6 +192,26 @@ describe('on-demand funding estimate', () => {
     assert.deepEqual(payment.priceRequests, [[1, 2 ** 30]]);
   });
 
+  // #472: the message divided the top-up by the exponent (9 for solana) rather
+  // than 10^9, and printed the ceiling in base units, so a top-up 2.7x over the
+  // limit read as far under it.
+  it('reports the ceiling in whole tokens', async () => {
+    const bytes = 1024 * 1024; // costs ~13.6 SOL at this fake's rate
+    const funding = new OnDemandFunding({
+      topUpBufferMultiplier: 1,
+      maxTokenAmount: 5_000_000_000, // 5 SOL, in lamports
+    });
+
+    await assert.rejects(onDemand([bytes], funding), (error: Error) => {
+      assert.match(
+        error.message,
+        /^Top up token amount 13\.62\d* solana is greater than the maximum allowed amount of 5 solana$/,
+      );
+      return true;
+    });
+    assert.equal(payment.topUps.length, 0, 'nothing may be spent');
+  });
+
   it('asks for no price and no top-up when nothing will be uploaded', async () => {
     const result = await onDemand([]);
 

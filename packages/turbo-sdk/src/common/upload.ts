@@ -1449,10 +1449,18 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     if (maxTokenAmount !== undefined) {
       if (new BigNumber(topUpTokenAmount).isGreaterThan(maxTokenAmount)) {
+        // Both amounts are in base units. Report them in whole tokens: the
+        // exponent is the number of decimals, so divide by 10 to that power.
+        const baseUnitsPerToken = new BigNumber(10).pow(
+          exponentMap[this.token],
+        );
         throw new Error(
-          `Top up token amount ${new BigNumber(topUpTokenAmount).div(
-            exponentMap[this.token],
-          )} is greater than the maximum allowed amount of ${maxTokenAmount}`,
+          `Top up token amount ${new BigNumber(topUpTokenAmount)
+            .div(baseUnitsPerToken)
+            .toFixed()} ${this.token} is greater than the maximum allowed ` +
+            `amount of ${new BigNumber(maxTokenAmount)
+              .div(baseUnitsPerToken)
+              .toFixed()} ${this.token}`,
         );
       }
     }
