@@ -511,9 +511,8 @@ export abstract class TurboAuthenticatedBaseUploadService
         fundingMode instanceof OnDemandFunding &&
         cryptoFundResult === undefined
       ) {
-        const totalByteCount = dataItemSizeFactory();
         cryptoFundResult = await this.onDemand({
-          totalByteCount,
+          itemByteCounts: [dataItemSizeFactory()],
           onDemandFunding: fundingMode,
         });
       }
@@ -628,6 +627,40 @@ export abstract class TurboAuthenticatedBaseUploadService
       throw lastError;
     }
     throw new FailedRequestError(msg, lastStatusCode);
+  }
+
+  /**
+   * Returns an upper bound on the bytes in a folder's manifest, if every file
+   * lands. Data item ids are always 43 characters, so placeholder ids give the
+   * real length, except for the index path: without an index file, the
+   * manifest indexes whichever file finished first, so the estimate allows for
+   * the longest path there.
+   */
+  private async plannedManifestByteCount({
+    relativePaths,
+    indexFile,
+    fallbackFile,
+  }: {
+    relativePaths: string[];
+    indexFile?: string;
+    fallbackFile?: string;
+  }): Promise<number> {
+    const placeholder = { id: 'x'.repeat(43) };
+    const paths: Record<string, { id: string }> = {};
+    let longestPathByteCount = 0;
+    for (const path of relativePaths) {
+      paths[path] = placeholder;
+      longestPathByteCount = Math.max(
+        longestPathByteCount,
+        Buffer.byteLength(JSON.stringify(path)),
+      );
+    }
+    const manifest = await this.generateManifest({
+      paths,
+      indexFile,
+      fallbackFile,
+    });
+    return Buffer.byteLength(JSON.stringify(manifest)) + longestPathByteCount;
   }
 
   protected async generateManifest({
@@ -1173,11 +1206,26 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
     if (fundingMode instanceof OnDemandFunding) {
-      const totalByteCount = filesToUpload.reduce((acc, file) => {
-        return acc + this.getFileSize(file) + 1200; // allow extra per file for ANS-104 headers
-      }, 0);
+      // allow extra per item for ANS-104 headers
+      const headerByteCount = 1200;
+      const itemByteCounts = filesToUpload.map(
+        (file) => this.getFileSize(file) + headerByteCount,
+      );
+      // The manifest spends the same balance. Left out of the estimate, it
+      // needed a second top-up of its own.
+      if (!disableManifest && files.length > 0) {
+        itemByteCounts.push(
+          (await this.plannedManifestByteCount({
+            relativePaths: files.map((file) =>
+              this.getRelativePath(file, params),
+            ),
+            indexFile,
+            fallbackFile,
+          })) + headerByteCount,
+        );
+      }
       cryptoFundResult = await this.onDemand({
-        totalByteCount,
+        itemByteCounts,
         onDemandFunding: fundingMode,
       });
     }
@@ -1350,6 +1398,64 @@ export abstract class TurboAuthenticatedBaseUploadService
   ];
 
   /**
+   * The winc the service will charge for the given items. Never less.
+   *
+   * The service prices an item as a per-byte rate plus a fixed per-item
+   * charge, rounded up per item: a zero-byte item costs about 8M winc. Scaling
+   * the 1 GiB price down to the item size dropped that fixed part, so a small
+   * upload was under funded by up to ~38%, a folder by roughly the fixed charge
+   * per file, and `topUpBufferMultiplier: 1` could never succeed.
+   *
+   * Items from 1 byte to 1 GiB are priced from two quotes, at 1 byte and 1 GiB.
+   * The line through those two (already rounded up) prices never falls below
+   * the service's unrounded price anywhere between them, so rounding each item
+   * up keeps every estimate, and their sum, at or above what the service
+   * charges. Rounding only the total could not promise that. Anything the line
+   * would have to extrapolate to, and a lone item, is quoted exactly.
+   *
+   * The two quotes are made once per estimate. Each file of a folder still
+   * checks its own price when it uploads.
+   */
+  private async estimateUploadWinc(itemByteCounts: number[]): Promise<string> {
+    const oneGiB = 2 ** 30;
+    const inModelRange = (bytes: number) => bytes >= 1 && bytes <= oneGiB;
+    const useModel = itemByteCounts.filter(inModelRange).length > 1;
+    const modelled = useModel ? itemByteCounts.filter(inModelRange) : [];
+    const quoted = useModel
+      ? itemByteCounts.filter((bytes) => !inModelRange(bytes))
+      : itemByteCounts;
+
+    const bytes = useModel ? [1, oneGiB, ...quoted] : quoted;
+    if (bytes.length === 0) {
+      return '0';
+    }
+    const quotes = await this.paymentService.getUploadCosts({ bytes });
+
+    let total = (useModel ? quotes.slice(2) : quotes).reduce(
+      (sum, { winc }) => sum.plus(winc),
+      new BigNumber(0),
+    );
+
+    if (useModel) {
+      const [oneByte, gibibyte] = quotes;
+      const perByte = new BigNumber(gibibyte.winc)
+        .minus(oneByte.winc)
+        .dividedBy(oneGiB - 1);
+      const perItem = new BigNumber(oneByte.winc).minus(perByte);
+      for (const itemBytes of modelled) {
+        total = total.plus(
+          perByte
+            .multipliedBy(itemBytes)
+            .plus(perItem)
+            .integerValue(BigNumber.ROUND_UP),
+        );
+      }
+    }
+
+    return total.toFixed(0);
+  }
+
+  /**
    * Triggers an upload that will top-up the wallet with Credits for the amount before uploading.
    * First, it calculates the expected cost of the upload. Next, it checks the wallet for existing
    * balance. If the balance is insufficient, it will attempt the top-up with the wallet in the specified `token`
@@ -1357,25 +1463,17 @@ export abstract class TurboAuthenticatedBaseUploadService
    * Note: Only `ario`, `solana`, and `base-eth` tokens are currently supported for on-demand uploads.
    */
   private async onDemand({
-    totalByteCount,
+    itemByteCounts,
     onDemandFunding,
   }: {
-    totalByteCount: number;
+    /** One entry per data item the upload will send. */
+    itemByteCounts: number[];
     onDemandFunding: OnDemandFunding;
   }): Promise<TurboCryptoFundResponse | undefined> {
     const { maxTokenAmount, topUpBufferMultiplier } = onDemandFunding;
 
     const currentBalance = await this.paymentService.getBalance();
-    const wincPriceForOneGiB = (
-      await this.paymentService.getUploadCosts({
-        bytes: [2 ** 30],
-      })
-    )[0].winc;
-
-    const expectedWincPrice = new BigNumber(wincPriceForOneGiB)
-      .multipliedBy(totalByteCount)
-      .dividedBy(2 ** 30)
-      .toFixed(0, BigNumber.ROUND_UP);
+    const expectedWincPrice = await this.estimateUploadWinc(itemByteCounts);
 
     if (
       BigNumber(currentBalance.effectiveBalance).isGreaterThanOrEqualTo(
@@ -1418,10 +1516,18 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     if (maxTokenAmount !== undefined) {
       if (new BigNumber(topUpTokenAmount).isGreaterThan(maxTokenAmount)) {
+        // Both amounts are in base units. Report them in whole tokens: the
+        // exponent is the number of decimals, so divide by 10 to that power.
+        const baseUnitsPerToken = new BigNumber(10).pow(
+          exponentMap[this.token],
+        );
         throw new Error(
-          `Top up token amount ${new BigNumber(topUpTokenAmount).div(
-            exponentMap[this.token],
-          )} is greater than the maximum allowed amount of ${maxTokenAmount}`,
+          `Top up token amount ${new BigNumber(topUpTokenAmount)
+            .div(baseUnitsPerToken)
+            .toFixed()} ${this.token} is greater than the maximum allowed ` +
+            `amount of ${new BigNumber(maxTokenAmount)
+              .div(baseUnitsPerToken)
+              .toFixed()} ${this.token}`,
         );
       }
     }
