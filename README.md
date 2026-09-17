@@ -10,6 +10,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 
 - [Table of Contents](#table-of-contents)
 - [Installation](#installation)
+- [Dependency advisories](#dependency-advisories)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Web](#web)
@@ -64,6 +65,34 @@ or
 ```shell
 yarn add @ardrive/turbo-sdk
 ```
+
+## Dependency advisories
+
+A clean install of `@ardrive/turbo-sdk@1.44.1` reports 56 advisories from transitive dependencies: 3 critical, 8 high, 32 moderate, and 13 low.
+
+Three of the critical advisories come from `@dha-team/arbundles`, which depends on the ethers v5 packages (`elliptic` and `secp256k1`). These three critical advisories can be cleared with package manager overrides:
+
+**npm:**
+```json
+{
+  "overrides": {
+    "elliptic": "6.6.1",
+    "secp256k1": "5.0.1"
+  }
+}
+```
+
+**yarn:**
+```json
+{
+  "resolutions": {
+    "elliptic": "6.6.1",
+    "secp256k1": "5.0.1"
+  }
+}
+```
+
+With these overrides in place, the critical advisories are eliminated (3 critical to zero). The `ws@7.4.6` advisory originates from `@ethersproject/providers` and is not instantiated by any code path in this SDK.
 
 ## Quick Start
 
