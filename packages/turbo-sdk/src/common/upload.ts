@@ -501,9 +501,7 @@ export abstract class TurboAuthenticatedBaseUploadService
         const previous =
           lastError === undefined
             ? ''
-            : ` The previous attempt failed with: ${
-                lastError instanceof Error ? lastError.message : lastError
-              }`;
+            : ` The previous attempt failed with: ${lastError.message}`;
         throw new TypeError(
           'fileStreamFactory returned a ReadableStream that is already ' +
             'locked, most likely read by an earlier upload attempt. Every ' +

@@ -131,4 +131,27 @@ describe('web uploadFile retries with a streamed body', () => {
     );
     assert.equal(sentByteCounts.length, 1, 'only the first attempt is sent');
   });
+
+  // The same misuse on the very first attempt: nothing has failed yet, so the
+  // message names the factory alone.
+  it('names the factory when the first attempt is handed a locked stream', async () => {
+    const stream = newStream();
+    const reader = stream.getReader();
+
+    await assert.rejects(
+      turbo().uploadFile({
+        fileStreamFactory: () => stream,
+        fileSizeFactory: () => payload.byteLength,
+      }),
+      (error: Error) => {
+        assert.match(error.message, /fileStreamFactory/);
+        assert.match(error.message, /new stream on every call/);
+        assert.doesNotMatch(error.message, /previous attempt/);
+        assert.equal(error.cause, undefined);
+        return true;
+      },
+    );
+    assert.deepEqual(sentByteCounts, [], 'nothing is sent');
+    reader.releaseLock();
+  });
 });
