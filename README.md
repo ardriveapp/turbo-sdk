@@ -722,6 +722,14 @@ await turbo.upload({
 
 Another method of uploading files is via the x402 protocol. This method is optimized for agent workflows and allows for direct uploads to Arweave gateways that support the x402 protocol using an EVM wallet and base-usdc token type.
 
+> **Note:** x402 uploads need the optional peer dependency `x402-fetch`, which keeps its dependency tree out of installs that pay with credits:
+>
+> ```shell
+> npm install x402-fetch
+> ```
+>
+> Without it, credit-paid uploads and the x402 price routes work as usual, and an x402 upload fails before signing with a message naming this install. Browser consumers of the prebuilt bundle resolve `x402-fetch` themselves, through their bundler or an import map, because the bundle leaves it external.
+
 ```typescript
 const turbo = TurboFactory.authenticated({
   signer: ethereumSignerWithBaseUSDC,

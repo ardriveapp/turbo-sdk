@@ -66,7 +66,11 @@ import {
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { RetryConfig, defaultRetryConfig } from './http.js';
-import { TurboHTTPService, x402UploadEndpoints } from './http.js';
+import {
+  TurboHTTPService,
+  requireX402Fetch,
+  x402UploadEndpoints,
+} from './http.js';
 import { exponentMap, tokenToBaseMap } from './index.js';
 import { Logger } from './logger.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
@@ -482,6 +486,13 @@ export abstract class TurboAuthenticatedBaseUploadService
       throw new Error(
         'x402 uploads are not supported for token: ' + this.token,
       );
+    }
+
+    // Checked here, with the other x402 preconditions, so a missing optional
+    // peer dependency fails before signing and before the retry loop, where it
+    // would otherwise read as an upload failure after six attempts.
+    if (fundingMode instanceof X402Funding) {
+      await requireX402Fetch();
     }
 
     /*

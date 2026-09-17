@@ -79,6 +79,15 @@ let importX402Fetch: () => Promise<X402FetchModule> = () =>
 // Cached so an upload loop that pays repeatedly over x402 only imports once.
 let x402FetchModule: Promise<X402FetchModule> | undefined;
 
+/**
+ * Resolves the optional peer before an upload starts signing or sending, so a
+ * missing install fails once with the message that names it, rather than
+ * inside the retry loop where it reads as an upload failure.
+ */
+export async function requireX402Fetch(): Promise<void> {
+  await loadX402Fetch();
+}
+
 async function loadX402Fetch(): Promise<X402FetchModule> {
   if (x402FetchModule === undefined) {
     x402FetchModule = importX402Fetch().catch((cause) => {

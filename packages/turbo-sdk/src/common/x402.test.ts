@@ -15,9 +15,12 @@
  */
 import { ArweaveSigner, EthereumSigner } from '@dha-team/arbundles';
 import { strict as assert } from 'node:assert';
+import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { testEthWallet, testJwk } from '../../tests/helpers.js';
+import { TurboFactory } from '../node/factory.js';
+import { X402Funding } from '../types.js';
 import {
   TurboHTTPService,
   __setX402FetchLoaderForTests,
@@ -233,6 +236,39 @@ describe('x402-fetch as an optional peer dependency', () => {
     });
 
     assert.equal(importCount, 1);
+  });
+
+  // A missing module is not transient. uploadFile checks the peer with its
+  // other x402 preconditions, so the message arrives once, before signing,
+  // rather than wrapped in "failed after N attempts".
+  it('fails an x402 upload before signing, without retrying', async () => {
+    __setX402FetchLoaderForTests(() =>
+      Promise.reject(new Error("Cannot find package 'x402-fetch'")),
+    );
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+    let signed = false;
+
+    await assert.rejects(
+      turbo.uploadFile({
+        fileStreamFactory: () => {
+          signed = true;
+          return Readable.from(Buffer.from('payload'));
+        },
+        fileSizeFactory: () => 7,
+        fundingMode: new X402Funding({}),
+      }),
+      (error: Error) => {
+        assert.equal(error.message, installMessage);
+        return true;
+      },
+    );
+
+    assert.equal(signed, false, 'nothing was signed');
+    assert.deepEqual(requestedUrls, [], 'nothing was sent');
   });
 
   it('still uploads on credits and prices x402 routes when the peer is absent', async () => {
