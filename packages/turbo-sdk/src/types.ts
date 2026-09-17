@@ -363,18 +363,61 @@ export type TurboCurrenciesResponse = {
   supportedCurrencies: Currency[];
   limits: Record<Currency, CurrencyLimit>;
 };
+/**
+ * The result of an upload: the upload service's signed receipt for the data
+ * item, plus fields the service or the SDK adds around it.
+ *
+ * The service does not keep receipts. Store this object if you need proof of
+ * when an upload was accepted.
+ *
+ * The receipt fields (`timestamp`, `signature`, `public`, `version`,
+ * `deadlineHeight`) are on every response from `upload`, `uploadFile`,
+ * `uploadSignedDataItem` and the file and manifest responses of
+ * `uploadFolder`. That covers single-request and chunked uploads, free-tier
+ * uploads, x402-funded uploads, and duplicates of items the service already
+ * holds. They are optional so that objects built without them, such as test
+ * doubles written before they were typed, still compile.
+ *
+ * `uploadRawX402Data` is the exception: the service nests its signed receipt
+ * under a `receipt` key, so these top-level receipt fields and `winc` are
+ * absent from that response.
+ */
 export type TurboUploadDataItemResponse = {
   dataCaches: string[];
   fastFinalityIndexes: string[];
   id: TransactionId;
   owner: PublicArweaveAddress;
+  /**
+   * Winston Credits charged for the upload. `'0'` when the upload was free,
+   * paid over x402, or a duplicate of an item the service already holds.
+   */
   winc: string;
-  // Receipt fields — always present in API responses but optional here
-  // for backward compatibility with existing consumers/mocks.
+  /**
+   * When the service signed the receipt, in milliseconds since the Unix
+   * epoch. For a new upload, that is when the service accepted the data. For
+   * a duplicate of an item the service already holds, it is when this
+   * receipt was signed, not when the item was first uploaded.
+   */
   timestamp?: number;
+  /**
+   * The service's base64url-encoded RSA-PSS signature (SHA-256, salt length
+   * 0) over the ANS-104 deep hash of `'Bundlr'`, `version`, `id`,
+   * `deadlineHeight` and `timestamp`. It does not cover `winc`, `owner`,
+   * `dataCaches` or `fastFinalityIndexes`.
+   */
   signature?: string;
+  /**
+   * The public key that verifies `signature`: the modulus of the service's
+   * Arweave key, base64url encoded. It is not the uploader's key.
+   */
   public?: string;
+  /** The receipt format version, for example `'0.2.0'`. */
   version?: string;
+  /**
+   * The Arweave block height by which the service is to post the data item.
+   * The service sets it a fixed number of blocks past the current height when
+   * it signs the receipt.
+   */
   deadlineHeight?: number;
   createdApproval?: CreditShareApproval;
   revokedApprovals?: CreditShareApproval[];
@@ -1861,15 +1904,19 @@ type TurboX402PriceBase = {
   token: string;
   currency: string;
   network: string;
-  /** Storage cost in winston, for comparison with the credit price. */
-  winstonCost: string;
   /** Amount to pay, in USDC's smallest unit (6 decimals). */
   usdcAmount: string;
   x402Version: number;
   payment: X402PaymentRequirements;
 };
 
-/** Price for a data item the caller has already signed. */
+/**
+ * Price for a data item the caller has already signed.
+ *
+ * Carries no `winstonCost`. The service stopped sending it on this route
+ * because it was an extrapolation about 1.2% off the real per-byte price, and
+ * the charge never used it. Use `usdcAmount`, which is the amount charged.
+ */
 export type TurboX402DataItemPriceResponse = TurboX402PriceBase & {
   byteCount: number;
 };
@@ -1881,6 +1928,8 @@ export type TurboX402DataItemPriceResponse = TurboX402PriceBase & {
  * is larger than its payload by its header, signature and tags.
  */
 export type TurboX402RawDataPriceResponse = TurboX402PriceBase & {
+  /** Storage cost in winston, for comparison with the credit price. */
+  winstonCost: string;
   rawDataSize: number;
   userTagCount: number;
   systemTagCount: number;

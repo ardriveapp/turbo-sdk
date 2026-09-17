@@ -97,7 +97,8 @@ import { TurboHTTPService } from './http.js';
 import { Logger } from './logger.js';
 import { exponentMap, tokenToBaseMap } from './token/index.js';
 
-export const developmentPaymentServiceURL = 'https://payment.ardrive.dev';
+export const developmentPaymentServiceURL =
+  'https://payment.services.ar-io.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
 
 export class TurboUnauthenticatedPaymentService

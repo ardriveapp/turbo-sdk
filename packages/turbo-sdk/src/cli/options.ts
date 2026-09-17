@@ -80,7 +80,7 @@ export const optionMap = {
   },
   dev: {
     alias: '--dev',
-    description: 'Enable Turbo development endpoints',
+    description: 'Use the ar.io Testnet Sandbox endpoints',
     default: false,
   },
   local: {

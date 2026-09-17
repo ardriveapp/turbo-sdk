@@ -150,6 +150,33 @@ describe('x402 with chunking disabled', () => {
     assert.equal(requests, 0, 'nothing should be sent');
   });
 
+  /*
+    The limit governs the SIGNED item, not the file. A file just under the cap
+    still exceeds it once ANS-104 headers, the signature and the caller's tags
+    are added — and the guard used to compare the raw size, so such a file was
+    signed and buffered before the service refused it. That wastes the exact
+    step the guard exists to skip.
+  */
+  it('refuses a file that only exceeds the cap once signed', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+
+    await assert.rejects(
+      turbo.uploadFile({
+        fileStreamFactory: () => Readable.from(Buffer.alloc(64)),
+        // Inside the cap by 100 bytes, outside it once signed.
+        fileSizeFactory: () => 100 * 1024 * 1024 - 100,
+        chunkingMode: 'disabled',
+        fundingMode: new X402Funding({ signer: {} as never }),
+      }),
+      /must be chunked/,
+    );
+    assert.equal(requests, 0, 'nothing should be sent, and nothing signed');
+  });
+
   it('leaves a normally-sized item alone', async () => {
     const turbo = TurboFactory.authenticated({
       privateKey: testEthWallet,
