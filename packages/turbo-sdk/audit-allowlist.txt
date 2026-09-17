@@ -1,0 +1,30 @@
+# Packages with known advisories that are acceptable or cannot be fixed in this SDK
+
+# arbundles dependencies: upstream in arbundles, which still depends on the ethers v5 packages
+@dha-team/arbundles
+@ethersproject/providers
+@ethersproject/signing-key
+elliptic
+secp256k1
+ws
+
+# Solana migration: need the Solana v2 migration; bigint-buffer@1.1.5 is the latest release and is still affected
+bigint-buffer
+@solana/buffer-layout-utils
+@solana/spl-token
+@solana/web3.js
+
+# npm reports the root package itself whenever any dependency is affected
+@ardrive/turbo-sdk
+
+# x402 client tree: a separate change makes these optional
+x402-fetch
+x402
+wagmi
+@wagmi/connectors
+@walletconnect/ethereum-provider
+@reown/appkit
+viem
+undici
+@metamask/sdk
+@metamask/sdk-communication-layer
