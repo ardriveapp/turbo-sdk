@@ -425,3 +425,84 @@ describe('x402 in auto mode with a large chunk size', () => {
     ]);
   });
 });
+
+/*
+  Review of #500 found both of these: a settled x402 payment must not be
+  undone by the caller's own event listener, and the size guard before signing
+  works from an estimate, so the exact signed size still needs checking where
+  there is no chunked path to fall back to.
+*/
+describe('x402 single-request safeguards', () => {
+  const originalFetch = globalThis.fetch;
+  let requests: number;
+
+  beforeEach(() => {
+    requests = 0;
+    globalThis.fetch = (async () => {
+      requests++;
+      return new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('keeps a settled payment settled when an upload-success listener throws', async () => {
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+    const payload = Buffer.alloc(512, 3);
+
+    const response = await service.uploadSignedDataItem({
+      dataItemStreamFactory: () => Readable.from(payload),
+      dataItemSizeFactory: () => payload.byteLength,
+      x402Options: { signer: {} as never },
+      events: {
+        onUploadSuccess: () => {
+          throw new Error('listener blew up');
+        },
+      },
+    });
+
+    assert.equal(response.id, 'stub-id');
+    assert.equal(requests, 1, 'the request is not sent twice');
+  });
+
+  it('refuses an oversized signed item when chunking is disabled', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+    const overTheCap = 100 * 1024 * 1024 + 1;
+    // Signs to more than the cap while the payload stays under it, which is
+    // what large tags do to the estimate the pre-signing guard uses.
+    (
+      turbo as unknown as {
+        signer: { signDataItem: (p: unknown) => Promise<unknown> };
+      }
+    ).signer.signDataItem = async () => ({
+      dataItemStreamFactory: () => Readable.from(Buffer.alloc(1024)),
+      dataItemSizeFactory: () => overTheCap,
+    });
+
+    await assert.rejects(
+      turbo.uploadFile({
+        fileStreamFactory: () => Readable.from(Buffer.alloc(1024)),
+        fileSizeFactory: () => 1024,
+        chunkingMode: 'disabled',
+        fundingMode: new X402Funding({}),
+      }),
+      (error: Error) => {
+        assert.match(error.message, /signed x402 item is \d+ bytes/);
+        return true;
+      },
+    );
+    assert.equal(requests, 0, 'nothing was sent');
+  });
+});
