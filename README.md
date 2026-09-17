@@ -706,7 +706,7 @@ Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`)
 
 ```typescript
 const turbo = TurboFactory.authenticated({
-  signer: arweaveSignerWithARIO,
+  privateKey: bs58.encode(secretKey), // a Solana key holding $ARIO
   token: 'ario',
 });
 await turbo.upload({
@@ -1135,8 +1135,13 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 
 ##### AR.IO Network (ARIO) Crypto Top Up
 
+$ARIO is an SPL token on Solana, so pay with a Solana key. Without a `turboCreditDestinationAddress`, the credits go to the account of that key's base58 public key: the same account `getBalance()` reads and uploads signed by that key pay from.
+
 ```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'ario',
+});
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
@@ -1982,17 +1987,12 @@ turbo crypto-fund --tx-id 'my-valid-arweave-fund-transaction-id' --token arweave
 ```
 
 ```shell
-turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json
-```
-
-```shell
-# Use a custom AO process ID and compute unit:
-turbo crypto-fund --value 100 --token ario --process-id agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA --cu-url https://cu.ao-testnet.xyz
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/sol/secret-key.json
 ```
 
 ```shell
 # Send to custom destination address
-turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/arweave/wallet/with/ario.json --address 'Any-Valid-AR-EVM-SOL-KYVE-Native-Address'
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/sol/secret-key.json --address 'Any-Valid-AR-EVM-SOL-KYVE-Native-Address'
 ```
 
 ##### `upload-folder`

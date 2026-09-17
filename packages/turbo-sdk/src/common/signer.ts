@@ -16,7 +16,11 @@
 import { pubkeyToAddress } from '@cosmjs/amino';
 import { Secp256k1 } from '@cosmjs/crypto';
 import { toBase64 } from '@cosmjs/encoding';
-import { EthereumSigner, HexSolanaSigner } from '@dha-team/arbundles';
+import {
+  EthereumSigner,
+  HexSolanaSigner,
+  SignatureConfig,
+} from '@dha-team/arbundles';
 import { Signer as ArbundleSigner } from '@dha-team/arbundles';
 import { computePublicKey } from '@ethersproject/signing-key';
 import {
@@ -118,8 +122,22 @@ export abstract class TurboDataItemAbstractSigner
           'kyve',
         );
 
-      case 'arweave':
       case 'ario':
+        // ARIO is an SPL token, so an `ario` client created from a private key
+        // signs with a Solana key. The payment service bills a Solana signature
+        // to the raw base58 public key, and chooses that from the signature
+        // type in the data item, not from the token. Follow the signer here for
+        // the same reason: an `ario` client with an Arweave signer is still
+        // billed, and must still read its balance, at the Arweave address.
+        if (
+          this.signer.signatureType === SignatureConfig.ED25519 ||
+          this.signer.signatureType === SignatureConfig.SOLANA
+        ) {
+          return bs58.encode(Uint8Array.from(fromB64Url(owner)));
+        }
+        return ownerToB64Address(owner);
+
+      case 'arweave':
         return ownerToB64Address(owner);
     }
   }
