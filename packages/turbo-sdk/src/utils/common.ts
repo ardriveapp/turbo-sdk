@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Secp256k1HdWallet, makeCosmoshubPath } from '@cosmjs/amino';
-import { Slip10, Slip10Curve } from '@cosmjs/crypto';
-import { toHex } from '@cosmjs/encoding';
 import {
   ArweaveSigner,
   EthereumSigner,
@@ -31,7 +28,6 @@ import {
   TurboWallet,
   isEthPrivateKey,
   isJWK,
-  isKyvePrivateKey,
   tokenTypes,
 } from '../types.js';
 
@@ -54,7 +50,6 @@ export const tokenToDevGatewayMap: Record<TokenType, string> = {
   solana: 'https://api.devnet.solana.com',
   ethereum: ethTestnetRpc,
   'base-eth': baseTestnetRpc,
-  kyve: 'https://api.korellia.kyve.network',
   matic: polygonTestnetRpc,
   pol: polygonTestnetRpc,
   usdc: ethTestnetRpc,
@@ -68,7 +63,6 @@ export const defaultProdGatewayUrls: Record<TokenType, string> = {
   solana: 'https://api.mainnet-beta.solana.com',
   ethereum: 'https://cloudflare-eth.com/',
   'base-eth': baseMainnetRpc,
-  kyve: 'https://api.kyve.network/',
   matic: 'https://polygon-rpc.com/',
   pol: 'https://polygon-rpc.com/',
   usdc: 'https://cloudflare-eth.com/',
@@ -124,42 +118,12 @@ export function createTurboSigner({
         );
       }
       return new EthereumSigner(clientProvidedPrivateKey);
-    case 'kyve':
-      if (!isKyvePrivateKey(clientProvidedPrivateKey)) {
-        throw new Error(
-          'A valid Kyve private key must be provided for KyveSigner.',
-        );
-      }
-      return signerFromKyvePrivateKey(clientProvidedPrivateKey);
     case 'arweave':
       if (!isJWK(clientProvidedPrivateKey)) {
         throw new Error('A JWK must be provided for ArweaveSigner.');
       }
       return new ArweaveSigner(clientProvidedPrivateKey);
   }
-}
-
-export function signerFromKyvePrivateKey(privateKey: string): TurboSigner {
-  // TODO: Use KyveSigner when implemented for on chain native address support
-  return new EthereumSigner(privateKey);
-}
-
-export async function signerFromKyveMnemonic(
-  mnemonic: string,
-): Promise<TurboSigner> {
-  const kyveWallet = await Secp256k1HdWallet.fromMnemonic(mnemonic, {
-    prefix: 'kyve',
-  });
-
-  const privateKey = toHex(
-    Slip10.derivePath(
-      Slip10Curve.Secp256k1,
-      kyveWallet['seed'],
-      makeCosmoshubPath(0),
-    ).privkey,
-  );
-
-  return signerFromKyvePrivateKey(privateKey);
 }
 
 export function isBlob(val: unknown): val is Blob {
@@ -185,11 +149,6 @@ export function isValidECDSAAddress(address: string) {
   return ethAddressRegex.test(address);
 }
 
-export function isValidKyveAddress(address: string) {
-  const kyveAddressRegex = new RegExp('^kyve[a-zA-Z0-9]{39}$');
-  return kyveAddressRegex.test(address);
-}
-
 export function isValidUserAddress(address: string, type: TokenType): boolean {
   switch (type) {
     case 'arweave':
@@ -205,8 +164,6 @@ export function isValidUserAddress(address: string, type: TokenType): boolean {
     case 'usdc':
     case 'polygon-usdc':
       return isValidECDSAAddress(address);
-    case 'kyve':
-      return isValidKyveAddress(address);
   }
 }
 

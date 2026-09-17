@@ -2,7 +2,6 @@ import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
-  KyveSigner,
   createData,
 } from '@dha-team/arbundles';
 import { BigNumber } from 'bignumber.js';
@@ -27,10 +26,8 @@ import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
   ARToTokenAmount,
   ArweaveToken,
-  KyveToken,
   SolanaToken,
   WinstonToTokenAmount,
-  privateKeyFromKyveMnemonic,
 } from '../src/common/token/index.js';
 import {
   TurboAuthenticatedClient,
@@ -50,17 +47,15 @@ import {
   tokenTypes,
   validChunkingModes,
 } from '../src/types.js';
-import { signerFromKyveMnemonic, sleep } from '../src/utils/common.js';
+import { sleep } from '../src/utils/common.js';
 import { AbortError } from '../src/utils/errors.js';
 import { FailedRequestError } from '../src/utils/errors.js';
 import {
-  base64KyveAddress,
   delayedBlockMining,
   ethereumGatewayUrl,
   expectAsyncErrorThrow,
   fundArLocalWalletAddress,
   getRawBalance,
-  kyveUrlString,
   mineArLocalBlock,
   sendFundTransaction,
   solanaUrlString,
@@ -71,9 +66,6 @@ import {
   testEthNativeAddress,
   testEthWallet,
   testJwk,
-  testKyveMnemonic,
-  testKyveNativeAddress,
-  testKyvePrivatekey,
   testSolAddressBase64,
   testSolNativeAddress,
   testSolWallet,
@@ -94,7 +86,6 @@ describe('Node environment', () => {
       ethereum: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'base-eth': [new EthereumSigner(testEthWallet), testEthNativeAddress],
       solana: [new HexSolanaSigner(testSolWallet), testSolNativeAddress],
-      kyve: [new EthereumSigner(testKyvePrivatekey), testKyveNativeAddress],
       matic: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       pol: [new EthereumSigner(testEthWallet), testEthNativeAddress],
       'base-usdc': [new EthereumSigner(testEthWallet), testEthNativeAddress],
@@ -154,43 +145,17 @@ describe('Node environment', () => {
       assert.equal((turbo as any)['uploadService']['token'], 'ethereum');
     });
 
-    it('should return a TurboAuthenticatedClient when running in Node environment and a KyveSigner', async () => {
-      const turbo = TurboFactory.authenticated({
-        signer: new KyveSigner(testKyvePrivatekey),
-        ...turboTestEnvConfigurations,
-      });
-      assert.ok(turbo instanceof TurboAuthenticatedClient);
-      assert.equal(
-        await turbo.signer.getNativeAddress(),
-        testKyveNativeAddress,
-      );
-      assert.equal((turbo as any)['uploadService']['token'], 'kyve');
-    });
-
     it('should return a token of arweave when given an unrecognizable signatureType', async () => {
-      class UnrecognizedSigner extends KyveSigner {
+      class UnrecognizedSigner extends EthereumSigner {
         signatureType = 9999;
       }
       const turbo = TurboFactory.authenticated({
-        signer: new UnrecognizedSigner(testKyvePrivatekey),
+        signer: new UnrecognizedSigner(testEthWallet),
         ...turboTestEnvConfigurations,
       });
       assert.ok(turbo instanceof TurboAuthenticatedClient);
-      assert.equal(await turbo.signer.getNativeAddress(), base64KyveAddress);
+      assert.equal(await turbo.signer.getNativeAddress(), testEthAddressBase64);
       assert.equal((turbo as any)['uploadService']['token'], 'arweave');
-    });
-
-    it('should return a TurboAuthenticatedClient when running in Node environment and a provided KYVE private key', async () => {
-      const turbo = TurboFactory.authenticated({
-        privateKey: await privateKeyFromKyveMnemonic(testKyveMnemonic),
-        token: 'kyve',
-        ...turboTestEnvConfigurations,
-      });
-      assert.ok(turbo instanceof TurboAuthenticatedClient);
-      assert.equal(
-        await turbo.signer.getNativeAddress(),
-        testKyveNativeAddress,
-      );
     });
 
     it('should return a TurboAuthenticatedClient when running in Node environment and a HexSolanaSigner', async () => {
@@ -291,11 +256,6 @@ describe('Node environment', () => {
       assert.ok(error instanceof Error);
       assert.match(error.message, /Only EthereumSigner is supported/);
     });
-
-    it('signerFromKyveMnemonic() should return a TurboSigner', async () => {
-      const signer = await signerFromKyveMnemonic(testKyveMnemonic);
-      assert.ok(signer instanceof EthereumSigner);
-    });
   });
 
   describe('TurboUnauthenticatedNodeClient', () => {
@@ -334,7 +294,6 @@ describe('Node environment', () => {
       assert.ok(wallets.arweave !== undefined);
       assert.ok(wallets.ethereum !== undefined);
       assert.ok(wallets.solana !== undefined);
-      assert.ok(wallets.kyve !== undefined);
     });
 
     it('getSupportedCurrencies()', async () => {
@@ -2144,206 +2103,6 @@ describe('Node environment', () => {
       await turbo
         .topUpWithTokens({
           tokenAmount: 100_000, // 0.0001 SOL
-        })
-        .catch((error) => {
-          assert.ok(error instanceof Error);
-          assert.match(error.message, /Failed to submit fund transaction!/);
-        });
-    });
-  });
-
-  describe('TurboAuthenticatedNodeClient with KyveSigner', () => {
-    let turbo: TurboAuthenticatedClient;
-
-    const tokenTools = new KyveToken({
-      gatewayUrl: kyveUrlString,
-      pollingOptions: {
-        maxAttempts: 3,
-        pollingIntervalMs: 10,
-        initialBackoffMs: 0,
-      },
-    });
-
-    let signer: TurboSigner; // KyveSigner
-    before(async () => {
-      signer = await signerFromKyveMnemonic(testKyveMnemonic);
-
-      turbo = TurboFactory.authenticated({
-        signer,
-        ...turboTestEnvConfigurations,
-        token: 'kyve',
-        tokenTools,
-      });
-    });
-
-    it('should properly upload a Readable to turbo with events', async () => {
-      const fileSize = fs.statSync(oneKiBFilePath).size;
-      let uploadProgressCalled = false;
-      let uploadErrorCalled = false;
-      let uploadSuccessCalled = false;
-      let signingProgressCalled = false;
-      let signingErrorCalled = false;
-      let signingSuccessCalled = false;
-      let overallProgressCalled = false;
-      let overallErrorCalled = false;
-      let overallSuccessCalled = false;
-      const response = await turbo.uploadFile({
-        fileStreamFactory: () => fs.createReadStream(oneKiBFilePath),
-        fileSizeFactory: () => fileSize,
-        events: {
-          // overall events
-          onProgress: () => {
-            overallProgressCalled = true;
-          },
-          onError: () => {
-            overallErrorCalled = true;
-          },
-          onSuccess: () => {
-            overallSuccessCalled = true;
-          },
-          // upload events
-          onUploadProgress: () => {
-            uploadProgressCalled = true;
-          },
-          onUploadError: () => {
-            uploadErrorCalled = true;
-          },
-          onUploadSuccess: () => {
-            uploadSuccessCalled = true;
-          },
-          // signing events
-          onSigningProgress: () => {
-            signingProgressCalled = true;
-          },
-          onSigningError: () => {
-            signingErrorCalled = true;
-          },
-          onSigningSuccess: () => {
-            signingSuccessCalled = true;
-          },
-        },
-      });
-      assert.ok(response !== undefined);
-      assert.ok(response.fastFinalityIndexes !== undefined);
-      assert.ok(response.dataCaches !== undefined);
-      assert.ok(response.owner !== undefined);
-      assert.equal(response.owner, base64KyveAddress);
-
-      // signing events
-      assert.equal(signingProgressCalled, true);
-      assert.equal(signingErrorCalled, false);
-      assert.equal(signingSuccessCalled, true);
-
-      // upload events
-      assert.equal(uploadProgressCalled, true);
-      assert.equal(uploadErrorCalled, false);
-      assert.equal(uploadSuccessCalled, true);
-
-      // overall events
-      assert.equal(overallProgressCalled, true);
-      assert.equal(overallErrorCalled, false);
-      assert.equal(overallSuccessCalled, true);
-    });
-
-    it('should properly upload a Buffer to turbo with events', async () => {
-      // make non-deterministic data item IDs to avoid caching issues from CI
-      const signedDataItem = createData(
-        'signed data item' + Math.random().toString(),
-        signer,
-        {},
-      );
-      await signedDataItem.sign(signer);
-
-      let uploadProgressCalled = false;
-      let uploadErrorCalled = false;
-      let uploadSuccessCalled = false;
-      let signingProgressCalled = false;
-      let signingErrorCalled = false;
-      let signingSuccessCalled = false;
-      const response = await turbo.uploadSignedDataItem({
-        dataItemStreamFactory: () => signedDataItem.getRaw(),
-        dataItemSizeFactory: () => signedDataItem.getRaw().length,
-        events: {
-          onUploadProgress: () => {
-            uploadProgressCalled = true;
-          },
-          onUploadError: () => {
-            uploadErrorCalled = true;
-          },
-          onUploadSuccess: () => {
-            uploadSuccessCalled = true;
-          },
-          // @ts-expect-error - this is a test to check that the signing progress is not called for signed data
-          onSigningProgress: () => {
-            signingProgressCalled = true;
-          },
-          onSigningError: () => {
-            signingErrorCalled = true;
-          },
-          onSigningSuccess: () => {
-            signingSuccessCalled = true;
-          },
-        },
-      });
-
-      assert.ok(response !== undefined);
-      assert.ok(response.fastFinalityIndexes !== undefined);
-      assert.ok(response.dataCaches !== undefined);
-      assert.ok(response.owner !== undefined);
-      assert.equal(response.owner, base64KyveAddress);
-
-      // signing events should not be called at all
-      assert.equal(signingProgressCalled, false);
-      assert.equal(signingErrorCalled, false);
-      assert.equal(signingSuccessCalled, false);
-
-      // upload events
-      assert.equal(uploadProgressCalled, true);
-      assert.equal(uploadErrorCalled, false);
-      assert.equal(uploadSuccessCalled, true);
-    });
-
-    it(
-      'should get a checkout session with kyve token',
-      stripeTestOptions,
-      async () => {
-        const { adjustments, paymentAmount, quotedPaymentAmount, url, id } =
-          await turbo.createCheckoutSession({
-            amount: USD(10), // 10 USD
-            owner: testKyveNativeAddress,
-          });
-
-        assert.deepEqual(adjustments, []);
-        assert.equal(paymentAmount, 1000);
-        assert.equal(quotedPaymentAmount, 1000);
-        assert.ok(typeof url === 'string');
-        assert.ok(typeof id === 'string');
-      },
-    );
-
-    it.skip('should topUpWithTokens() to a KYVE wallet', async () => {
-      const { id, quantity, owner, winc, target } = await turbo.topUpWithTokens(
-        {
-          tokenAmount: 1_000, // 0.001_000 KYVE
-        },
-      );
-
-      assert.ok(typeof id === 'string');
-      assert.ok(typeof target === 'string');
-      assert.ok(typeof winc === 'string');
-      assert.equal(quantity, '1000');
-      assert.equal(owner, testKyveNativeAddress);
-    });
-
-    it('should fail to topUpWithTokens() to a KYVE wallet if tx is stubbed to succeed but wont exist on chain', async () => {
-      stub(tokenTools, 'createAndSubmitTx').resolves({
-        id: 'stubbed-tx-id',
-        target: 'fake target',
-      });
-
-      await turbo
-        .topUpWithTokens({
-          tokenAmount: 1_000, // 0.001_000 KYVE
         })
         .catch((error) => {
           assert.ok(error instanceof Error);

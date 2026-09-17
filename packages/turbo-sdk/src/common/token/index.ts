@@ -25,7 +25,6 @@ import { ARIOToTokenAmount, ARIOToken } from './ario.js';
 import { ARToTokenAmount, ArweaveToken } from './arweave.js';
 import { BaseEthToken } from './baseEth.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
-import { KYVEToTokenAmount, KyveToken } from './kyve.js';
 import { POLToTokenAmount, PolygonToken } from './polygon.js';
 import { SOLToTokenAmount, SolanaToken } from './solana.js';
 import { USDCToTokenAmount, USDCToken } from './usdc.js';
@@ -36,7 +35,6 @@ export const defaultTokenMap: TokenFactory = {
   solana: (config: TokenConfig) => new SolanaToken(config),
   ethereum: (config: TokenConfig) => new EthereumToken(config),
   'base-eth': (config: TokenConfig) => new BaseEthToken(config),
-  kyve: (config: TokenConfig) => new KyveToken(config),
   matic: (config: TokenConfig) => new PolygonToken(config),
   pol: (config: TokenConfig) => new PolygonToken(config),
   usdc: (config: TokenConfig) =>
@@ -57,7 +55,6 @@ export const exponentMap: Record<TokenType, number> = {
   solana: 9,
   ethereum: ethExponent,
   'base-eth': ethExponent,
-  kyve: 6,
   matic: ethExponent,
   pol: ethExponent,
   usdc: usdcExponent,
@@ -74,7 +71,6 @@ export const tokenToBaseMap: Record<
   solana: (a: BigNumber.Value) => SOLToTokenAmount(a),
   ethereum: (a: BigNumber.Value) => ETHToTokenAmount(a),
   'base-eth': (a: BigNumber.Value) => ETHToTokenAmount(a),
-  kyve: (a: BigNumber.Value) => KYVEToTokenAmount(a),
   matic: (a: BigNumber.Value) => POLToTokenAmount(a),
   pol: (a: BigNumber.Value) => POLToTokenAmount(a),
   usdc: (a: BigNumber.Value) => USDCToTokenAmount(a),
@@ -92,4 +88,3 @@ export * from './solana.js';
 export * from './ethereum.js';
 export * from './baseEth.js';
 export * from './polygon.js';
-export * from './kyve.js';

@@ -53,11 +53,7 @@ export const optionMap = {
   walletFile: {
     alias: '-w, --wallet-file <filePath>',
     description:
-      'Wallet file to use with the action. Formats accepted: JWK.json, KYVE or ETH private key as a string, or SOL Secret Key as a Uint8Array',
-  },
-  mnemonic: {
-    alias: '-m, --mnemonic <phrase>',
-    description: 'Mnemonic to use with the action',
+      'Wallet file to use with the action. Formats accepted: JWK.json, ETH private key as a string, or SOL Secret Key as a Uint8Array',
   },
   privateKey: {
     alias: '-p, --private-key <key>',
@@ -303,11 +299,7 @@ export const optionMap = {
   },
 } as const;
 
-export const walletOptions = [
-  optionMap.walletFile,
-  optionMap.mnemonic,
-  optionMap.privateKey,
-];
+export const walletOptions = [optionMap.walletFile, optionMap.privateKey];
 
 export const globalOptions = [
   optionMap.dev,
