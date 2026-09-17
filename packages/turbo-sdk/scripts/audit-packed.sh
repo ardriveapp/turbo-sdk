@@ -13,7 +13,9 @@ PACKAGE_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PACKAGE_DIR"
 
 # Pack the tarball
-TARBALL=$(npm pack --quiet --pack-destination "$TEMP_DIR" 2>&1 | tail -1)
+# npm writes warnings to stderr, and under yarn it warns about every unknown
+# env config yarn injects. Keep stderr out of anything parsed.
+TARBALL=$(npm pack --quiet --pack-destination "$TEMP_DIR" 2>/dev/null | tail -1)
 TARBALL_PATH="$TEMP_DIR/$TARBALL"
 
 # Create minimal package.json in temp directory
@@ -26,7 +28,7 @@ cd "$TEMP_DIR"
 npm install --no-audit --no-fund "$TARBALL_PATH" > /dev/null 2>&1
 
 # Run npm audit and get JSON output
-AUDIT_OUTPUT=$(npm audit --json 2>&1 || true)
+AUDIT_OUTPUT=$(npm audit --json 2>/dev/null || true)
 
 # Parse allowlist
 ALLOWLIST_FILE="$PACKAGE_DIR/audit-allowlist.txt"
@@ -46,6 +48,11 @@ while IFS= read -r line; do
 done < "$ALLOWLIST_FILE"
 
 # Run comprehensive audit check using node
+if [ -z "$AUDIT_OUTPUT" ] || [ "${AUDIT_OUTPUT:0:1}" != "{" ]; then
+  echo "Error: npm audit did not return JSON. First line: $(echo "$AUDIT_OUTPUT" | head -1)"
+  exit 1
+fi
+
 node -e "
 const auditData = JSON.parse(process.argv[1]);
 const allowedPackages = JSON.parse(process.argv[2]);
