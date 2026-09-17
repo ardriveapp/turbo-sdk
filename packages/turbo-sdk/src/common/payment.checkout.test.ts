@@ -123,6 +123,17 @@ describe('checkout address type', () => {
     );
   });
 
+  // An owner that is neither Arweave-shaped nor a Solana key gets no address
+  // type: the service rejects it either way, and naming a type it is not would
+  // make the refusal say the wrong thing. Without this case, an implementation
+  // that adds the parameter for any non-Arweave owner passes.
+  it('names no address type for an ario owner that is not a Solana key', async () => {
+    await checkout('ario', 'not-an-address-at-all');
+
+    assert.equal(query(http.endpoints[0]).get('token'), 'ario');
+    assert.equal(query(http.endpoints[0]).has('destinationAddressType'), false);
+  });
+
   // Each of these already passes the service's address check, so the request
   // stays exactly as it was.
   for (const [token, owner, label] of [

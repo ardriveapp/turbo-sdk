@@ -17,6 +17,7 @@ import {
   ArweaveSigner,
   EthereumSigner,
   HexSolanaSigner,
+  SignatureConfig,
 } from '@dha-team/arbundles';
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
@@ -99,6 +100,25 @@ describe('native address for token: ario', () => {
   it('uses the base58 public key for a Solana signer', async () => {
     assert.equal(
       await nativeAddress(new HexSolanaSigner(testSolWallet), 'ario'),
+      testSolNativeAddress,
+    );
+  });
+
+  // A wallet adapter or an injected Solana wallet signs as ED25519 (type 2),
+  // not SOLANA (type 4), and the service maps both to the base58 key. Without
+  // this case, an implementation that handles only type 4 passes.
+  it('uses the base58 public key for an ED25519 signer', async () => {
+    const solanaSigner = new HexSolanaSigner(testSolWallet);
+    const ed25519Signer = Object.create(
+      Object.getPrototypeOf(solanaSigner),
+    ) as TurboSigner;
+    Object.assign(ed25519Signer, solanaSigner, {
+      signatureType: SignatureConfig.ED25519,
+    });
+
+    assert.equal(ed25519Signer.signatureType, SignatureConfig.ED25519);
+    assert.equal(
+      await nativeAddress(ed25519Signer, 'ario'),
       testSolNativeAddress,
     );
   });
