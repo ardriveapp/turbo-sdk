@@ -485,6 +485,9 @@ export class ChunkedUploader {
         ...chunkingHeader,
       },
       signal,
+      // The service answers 201 when the item is already stored and it could
+      // not sign a fresh receipt. The status poll that follows reports it.
+      allowedStatuses: [200, 201, 202],
     });
 
     this.logger.debug(
