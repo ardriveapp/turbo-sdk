@@ -378,9 +378,10 @@ export type TurboCurrenciesResponse = {
  * holds. They are optional so that objects built without them, such as test
  * doubles written before they were typed, still compile.
  *
- * `uploadRawX402Data` is the exception: the service nests its signed receipt
- * under a `receipt` key, so these top-level receipt fields and `winc` are
- * absent from that response.
+ * `uploadRawX402Data` is a special case: the service nests its signed receipt
+ * under a `receipt` key, and the SDK lifts those fields to the top level, so
+ * the shape here holds. That response also carries `receipt`, `payer` and
+ * `x402Payment`.
  */
 export type TurboUploadDataItemResponse = {
   dataCaches: string[];
