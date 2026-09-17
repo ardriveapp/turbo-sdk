@@ -22,10 +22,8 @@ import {
   HexSolanaSigner,
   InjectedEthereumSigner,
 } from '@dha-team/arbundles';
-import { arrayify } from '@ethersproject/bytes';
-import { recoverPublicKey } from '@ethersproject/signing-key';
 import { PublicKey } from '@solana/web3.js';
-import { hashMessage } from 'ethers';
+import { SigningKey, getBytes, hashMessage } from 'ethers';
 
 import {
   TokenType,
@@ -95,8 +93,11 @@ export function createTurboSigner({
         const signedMsg =
           await clientProvidedSigner['signer'].signMessage(message);
         const hash = hashMessage(message);
-        const recoveredKey = recoverPublicKey(arrayify(hash), signedMsg);
-        clientProvidedSigner.publicKey = Buffer.from(arrayify(recoveredKey));
+        const recoveredKey = SigningKey.recoverPublicKey(
+          getBytes(hash),
+          signedMsg,
+        );
+        clientProvidedSigner.publicKey = Buffer.from(getBytes(recoveredKey));
       };
     }
     return clientProvidedSigner;
