@@ -14,6 +14,7 @@ import { after, afterEach, before, describe, it } from 'node:test';
 import { restore, stub } from 'sinon';
 
 import { USD } from '../src/common/currency.js';
+import { JWKInterface } from '../src/common/jwk.js';
 import { Logger } from '../src/common/logger.js';
 import { EthereumToken } from '../src/common/token/ethereum.js';
 import {
@@ -481,8 +482,21 @@ describe('Browser environment', () => {
     });
 
     describe('submitFundTransaction()', () => {
+      /*
+        A sender of this file's own. The node integration file funds the shared
+        test wallet with the same 1000 winston in its own copy of this test,
+        and the two files run in parallel, so a credit from that run landed
+        inside the balance window below and the delta read 1532 rather than
+        766. Crediting a wallet only this file sends from keeps the delta this
+        test's own.
+      */
+      let funderJwk: JWKInterface;
+      let funderAddress: string;
+
       before(async () => {
-        await fundArLocalWalletAddress(testArweaveNativeB64Address);
+        funderJwk = await testArweave.wallets.generate();
+        funderAddress = await testArweave.wallets.jwkToAddress(funderJwk);
+        await fundArLocalWalletAddress(funderAddress);
 
         await mineArLocalBlock();
       });
@@ -515,9 +529,9 @@ describe('Browser environment', () => {
 
       const minConfirmations = 25;
       it('should properly submit an existing payment transaction ID to the Turbo Payment Service for processing a confirmed tx', async () => {
-        const balanceBefore = await getRawBalance(testArweaveNativeB64Address);
+        const balanceBefore = await getRawBalance(funderAddress);
 
-        const txId = await sendFundTransaction(1000);
+        const txId = await sendFundTransaction(1000, funderJwk);
         await mineArLocalBlock(minConfirmations);
 
         const { id, winc, owner, token, status } =
@@ -525,12 +539,12 @@ describe('Browser environment', () => {
             txId,
           });
         assert.equal(id, txId);
-        assert.equal(owner, testArweaveNativeB64Address);
+        assert.equal(owner, funderAddress);
         assert.equal(winc, '766');
         assert.equal(token, 'arweave');
         assert.equal(status, 'confirmed');
 
-        const balanceAfter = await getRawBalance(testArweaveNativeB64Address);
+        const balanceAfter = await getRawBalance(funderAddress);
 
         assert.equal(+balanceAfter - +balanceBefore, 766);
       });
