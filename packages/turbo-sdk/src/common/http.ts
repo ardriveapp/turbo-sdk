@@ -382,8 +382,12 @@ function isFirefoxOrSafari(): boolean {
 function isLoopback(url: string): boolean {
   try {
     const { hostname } = new URL(url);
+    // An IPv6 hostname keeps its brackets: the hostname of `http://[::1]:3000`
+    // is `[::1]`, never `::1`.
     return (
-      hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]'
     );
   } catch {
     return false;
