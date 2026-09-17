@@ -18,7 +18,11 @@ import { strict as assert } from 'node:assert';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { testEthWallet, testJwk } from '../../tests/helpers.js';
-import { TurboHTTPService, x402UploadEndpoints } from './http.js';
+import {
+  TurboHTTPService,
+  __setX402FetchLoaderForTests,
+  x402UploadEndpoints,
+} from './http.js';
 // Via the barrel, not './upload.js': entering the upload -> index -> turbo ->
 // upload cycle at upload.ts leaves `developmentUploadServiceURL` uninitialized.
 import { TurboUnauthenticatedUploadService } from './index.js';
@@ -128,6 +132,136 @@ describe('x402 upload endpoints', () => {
       /x402 uploads are not supported for token: arweave/,
     );
     assert.deepEqual(requestedUrls, []);
+  });
+});
+
+describe('x402-fetch as an optional peer dependency', () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrls: string[];
+
+  beforeEach(() => {
+    requestedUrls = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      requestedUrls.push(typeof input === 'string' ? input : input.toString());
+      return new Response(JSON.stringify({ id: 'stub-id' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    // Restore the real dynamic import so later tests in this process exercise
+    // the actual package rather than a leftover stub.
+    __setX402FetchLoaderForTests();
+  });
+
+  const httpService = () =>
+    new TurboHTTPService({
+      url: 'https://upload.example.com/v1',
+      logger: Logger.default,
+      retryConfig: {
+        retries: 1,
+        retryDelay: () => 0,
+        onRetry: () => undefined,
+      },
+    });
+
+  const installMessage =
+    'x402 payments need the optional peer dependency x402-fetch. ' +
+    'Install it with: npm install x402-fetch';
+
+  it('names the install and sends nothing when x402-fetch cannot be loaded (POST)', async () => {
+    __setX402FetchLoaderForTests(() =>
+      Promise.reject(new Error("Cannot find package 'x402-fetch'")),
+    );
+
+    await assert.rejects(
+      () =>
+        httpService().post({
+          endpoint: '/ignored-when-x402',
+          data: Buffer.from('hello'),
+          x402Options: { signer: {} as never, unsignedData: false },
+        }),
+      (error: Error) => {
+        assert.equal(error.message, installMessage);
+        return true;
+      },
+    );
+
+    assert.deepEqual(requestedUrls, []);
+  });
+
+  it('names the install and sends nothing when x402-fetch cannot be loaded (paid GET)', async () => {
+    __setX402FetchLoaderForTests(() =>
+      Promise.reject(new Error("Cannot find package 'x402-fetch'")),
+    );
+
+    await assert.rejects(
+      () =>
+        httpService().get({
+          endpoint: '/chunks/base-usdc/-1/-1',
+          x402Options: { signer: {} as never },
+        }),
+      (error: Error) => {
+        assert.equal(error.message, installMessage);
+        return true;
+      },
+    );
+
+    assert.deepEqual(requestedUrls, []);
+  });
+
+  it('only imports x402-fetch once across repeated x402 requests', async () => {
+    let importCount = 0;
+    __setX402FetchLoaderForTests(async () => {
+      importCount++;
+      return { wrapFetchWithPayment: () => fetch } as unknown as never;
+    });
+
+    const service = httpService();
+    await service.post({
+      endpoint: '/ignored-when-x402',
+      data: Buffer.from('one'),
+      x402Options: { signer: {} as never, unsignedData: false },
+    });
+    await service.post({
+      endpoint: '/ignored-when-x402',
+      data: Buffer.from('two'),
+      x402Options: { signer: {} as never, unsignedData: false },
+    });
+
+    assert.equal(importCount, 1);
+  });
+
+  it('still uploads on credits and prices x402 routes when the peer is absent', async () => {
+    __setX402FetchLoaderForTests(() =>
+      Promise.reject(new Error("Cannot find package 'x402-fetch'")),
+    );
+
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+
+    // A credit-paid POST carries no x402Options, so it never reaches the
+    // dynamic import.
+    await httpService().post({
+      endpoint: '/tx/base-usdc',
+      data: Buffer.from('hello'),
+    });
+
+    // Pricing an x402 upload is a plain GET; only paying over x402 needs the
+    // peer.
+    const price = await service.getX402PriceForDataItem({ byteCount: 100 });
+
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/tx/base-usdc',
+      'https://upload.example.com/v1/price/x402/data-item/usdc-base/100',
+    ]);
+    assert.deepEqual(price, { id: 'stub-id' });
   });
 });
 

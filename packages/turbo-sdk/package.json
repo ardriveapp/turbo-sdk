@@ -91,7 +91,15 @@
     "plimit-lit": "^3.0.1",
     "prompts": "^2.4.2",
     "tweetnacl": "^1.0.3",
+    "viem": "^2.21.26"
+  },
+  "peerDependencies": {
     "x402-fetch": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "x402-fetch": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
@@ -125,6 +133,7 @@
     "node-fetch": "^3.3.2",
     "semantic-release": "^25.0.1",
     "sinon": "^15.2.0",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "x402-fetch": "^1.0.0"
   }
 }

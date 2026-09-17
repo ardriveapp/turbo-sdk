@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import { Readable } from 'node:stream';
-import { wrapFetchWithPayment } from 'x402-fetch';
 
 import {
   TurboHTTPServiceInterface,
@@ -60,6 +59,50 @@ export const x402UploadEndpoints = {
   signed: '/x402/upload/signed',
   unsigned: '/x402/upload/unsigned',
 } as const;
+
+type X402FetchModule = typeof import('x402-fetch');
+
+/**
+ * `x402-fetch` is an optional peer dependency: it pulls in wagmi, WalletConnect
+ * and AppKit, which a consumer paying with credits never touches. Loading it
+ * through a dynamic import means the SDK, credit-paid uploads and the x402
+ * price routes all work without the package installed — only a caller that
+ * actually attempts an x402 payment needs it present.
+ *
+ * Held behind a swappable reference (rather than called directly) so tests can
+ * stand in for the dynamic import without uninstalling the package. See
+ * {@link __setX402FetchLoaderForTests}.
+ */
+let importX402Fetch: () => Promise<X402FetchModule> = () =>
+  import('x402-fetch');
+
+// Cached so an upload loop that pays repeatedly over x402 only imports once.
+let x402FetchModule: Promise<X402FetchModule> | undefined;
+
+async function loadX402Fetch(): Promise<X402FetchModule> {
+  if (x402FetchModule === undefined) {
+    x402FetchModule = importX402Fetch().catch((cause) => {
+      throw new Error(
+        'x402 payments need the optional peer dependency x402-fetch. ' +
+          'Install it with: npm install x402-fetch',
+        { cause },
+      );
+    });
+  }
+  return x402FetchModule;
+}
+
+/**
+ * Test-only seam for {@link loadX402Fetch}. Pass a loader that rejects to
+ * exercise the missing-peer path, or call with no argument to restore the real
+ * dynamic import. Always resets the cache so the next call re-resolves.
+ */
+export function __setX402FetchLoaderForTests(
+  loader?: () => Promise<X402FetchModule>,
+): void {
+  importX402Fetch = loader ?? (() => import('x402-fetch'));
+  x402FetchModule = undefined;
+}
 
 export class TurboHTTPService implements TurboHTTPServiceInterface {
   protected baseURL: string;
@@ -123,28 +166,27 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         x402Options.maxMUSDCAmount !== undefined
           ? BigInt(x402Options.maxMUSDCAmount.toString())
           : undefined;
-      const fetchWithPay = wrapFetchWithPayment(
-        fetch,
-        x402Options.signer,
-        maxMUSDCAmount,
-      );
-      return this.tryRequest(
-        async () =>
-          fetchWithPay(this.baseURL + endpoint, {
-            method: 'GET',
-            // This GET is not a read: it settles a payment and returns the
-            // resulting upload id. Nothing between here and the service may
-            // store or replay that response. Sent as a header rather than the
-            // `cache` init option, which undici does not honour consistently.
-            headers: {
-              ...defaultHeaders,
-              ...headers,
-              'Cache-Control': 'no-store',
-            },
-            signal,
-          }),
-        allowedStatuses,
-      ) as Promise<T>;
+      return this.tryRequest(async () => {
+        const { wrapFetchWithPayment } = await loadX402Fetch();
+        const fetchWithPay = wrapFetchWithPayment(
+          fetch,
+          x402Options.signer,
+          maxMUSDCAmount,
+        );
+        return fetchWithPay(this.baseURL + endpoint, {
+          method: 'GET',
+          // This GET is not a read: it settles a payment and returns the
+          // resulting upload id. Nothing between here and the service may
+          // store or replay that response. Sent as a header rather than the
+          // `cache` init option, which undici does not honour consistently.
+          headers: {
+            ...defaultHeaders,
+            ...headers,
+            'Cache-Control': 'no-store',
+          },
+          signal,
+        });
+      }, allowedStatuses) as Promise<T>;
     }
     return this.withRetry<T>(
       () =>
@@ -309,6 +351,7 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
           ? BigInt(x402Options.maxMUSDCAmount.toString())
           : undefined;
 
+      const { wrapFetchWithPayment } = await loadX402Fetch();
       const fetchWithPay = wrapFetchWithPayment(
         fetch,
         x402Options.signer,

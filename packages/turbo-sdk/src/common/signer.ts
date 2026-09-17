@@ -38,7 +38,9 @@ import nacl from 'tweetnacl';
 import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
-import { Signer as x402Signer } from 'x402-fetch';
+// Type-only: constructing the wallet client below never touches x402-fetch's
+// runtime, so this import must never become a require of the optional peer.
+import type { Signer as x402Signer } from 'x402-fetch';
 
 import {
   FileStreamFactory,

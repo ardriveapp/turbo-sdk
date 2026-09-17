@@ -25,7 +25,10 @@ import {
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
-import { Signer as x402Signer } from 'x402-fetch';
+// Type-only: these are public API shapes, not a runtime dependency. This SDK
+// never requires the optional peer x402-fetch just for a caller to reference
+// X402Funding or X402RequestCredentials.
+import type { Signer as x402Signer } from 'x402-fetch';
 
 import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
