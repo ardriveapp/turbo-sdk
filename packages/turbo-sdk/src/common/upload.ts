@@ -137,12 +137,25 @@ export class TurboUnauthenticatedUploadService
     // create the tapped stream with events
     const emitter = new TurboEventEmitter(events);
 
+    /*
+      The x402 path drains the stream into a buffer before it sends anything,
+      so the end of the stream is not the end of the upload. Its tap passes
+      progress through and nothing else: success and failure are reported
+      below, once the request has settled.
+    */
+    const tapEmitter =
+      x402Options === undefined
+        ? emitter
+        : new TurboEventEmitter({
+            onUploadProgress: (event) => emitter.emit('upload-progress', event),
+          });
+
     // create the stream with upload events
     const { stream: streamWithUploadEvents, resume } =
       createStreamWithUploadEvents({
         data: dataItemStreamFactory(),
         dataSize: dataItemSize,
-        emitter,
+        emitter: tapEmitter,
       });
 
     const headers = {
@@ -172,22 +185,31 @@ export class TurboUnauthenticatedUploadService
         outright. Buffering fixes both: the length is declared honestly and the
         body can be re-sent.
 
-        Bounded by the chunking decision above — anything over two chunks took
-        the chunked path, which pays at create and never reaches here.
+        Bounded by `uploadFile`: an item over `maxX402SingleRequestByteCount`
+        takes the chunked path, which pays at create and never reaches here,
+        or is refused before signing when chunking is disabled.
       */
-      const body = await streamToBuffer(
-        streamWithUploadEvents,
-        dataItemSize,
-        resume,
-        signal,
-      );
-      return this.httpService.post<TurboUploadDataItemResponse>({
-        endpoint: `/tx/${this.token}`,
-        signal,
-        data: body,
-        headers,
-        x402Options,
-      });
+      try {
+        const body = await streamToBuffer(
+          streamWithUploadEvents,
+          dataItemSize,
+          resume,
+          signal,
+        );
+        const response =
+          await this.httpService.post<TurboUploadDataItemResponse>({
+            endpoint: `/tx/${this.token}`,
+            signal,
+            data: body,
+            headers,
+            x402Options,
+          });
+        emitter.emit('upload-success');
+        return response;
+      } catch (error) {
+        emitter.emit('upload-error', error);
+        throw error;
+      }
     }
 
     // setup the post request using the stream with upload events
@@ -300,7 +322,11 @@ export class TurboUnauthenticatedUploadService
             unsignedData: true,
           };
 
-    return this.httpService.post({
+    const response = await this.httpService.post<
+      TurboUploadDataItemResponse & {
+        receipt?: Partial<TurboUploadDataItemResponse>;
+      }
+    >({
       data: dataBuffer,
       // Only reached when no signer was supplied; the x402 path recomputes this
       // from `unsignedData`. Both must name the same route.
@@ -310,8 +336,16 @@ export class TurboUnauthenticatedUploadService
         tags !== undefined
           ? { 'x-data-item-tags': JSON.stringify(tags) }
           : undefined,
+      // The service answers a stored, paid-for upload with 201. Refusing it
+      // reported a settled payment as a failure, and a retry paid again.
+      allowedStatuses: [200, 201, 202],
       x402Options,
     });
+
+    // The service nests the signed receipt (winc, timestamp, signature and the
+    // rest) under `receipt`. Lift those fields to the top level, where every
+    // other upload method returns them.
+    return { ...response.receipt, ...response } as TurboUploadDataItemResponse;
   }
 }
 
@@ -491,6 +525,29 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     let cryptoFundResult: TurboCryptoFundResponse | undefined;
 
+    // Each attempt signs again, so it calls the factory again. The web signer
+    // reads the stream once per attempt, so a factory that returns one stream
+    // instance passes the first attempt, and the retry used to fail with a bare
+    // "ReadableStream is locked" that hid why the first attempt failed (#396).
+    const fileStreamFactoryForAttempt = (() => {
+      const stream = fileStreamFactory();
+      if (stream instanceof ReadableStream && stream.locked) {
+        const previous =
+          lastError === undefined
+            ? ''
+            : ` The previous attempt failed with: ${lastError.message}`;
+        throw new TypeError(
+          'fileStreamFactory returned a ReadableStream that is already ' +
+            'locked, most likely read by an earlier upload attempt. Every ' +
+            'attempt calls the factory again, so it must return a new stream ' +
+            'on every call, for example () => file.stream().' +
+            previous,
+          { cause: lastError },
+        );
+      }
+      return stream;
+    }) as typeof fileStreamFactory;
+
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
     while (retries < maxRetries) {
@@ -501,7 +558,7 @@ export abstract class TurboAuthenticatedBaseUploadService
       // TODO: create a SigningError class and throw that instead of the generic Error
       const { dataItemStreamFactory, dataItemSizeFactory } =
         await this.signer.signDataItem({
-          fileStreamFactory,
+          fileStreamFactory: fileStreamFactoryForAttempt,
           fileSizeFactory,
           dataItemOpts,
           emitter,
@@ -539,6 +596,19 @@ export abstract class TurboAuthenticatedBaseUploadService
               }
             : undefined;
 
+        /*
+          Auto mode sends an item in one request when it fits in two chunks,
+          and x402 buffers that request. A large `chunkByteCount` stretches two
+          chunks far past the buffer cap, so an x402 item over the cap chunks
+          whatever the chunk size.
+        */
+        const chunkingMode =
+          x402Options !== undefined &&
+          (params.chunkingMode ?? 'auto') === 'auto' &&
+          dataItemSizeFactory() > maxX402SingleRequestByteCount
+            ? 'force'
+            : params.chunkingMode;
+
         const chunkedUploader = new ChunkedUploader({
           http: this.httpService,
           token: this.token,
@@ -546,7 +616,7 @@ export abstract class TurboAuthenticatedBaseUploadService
           chunkByteCount,
           logger: this.logger,
           dataItemByteCount: dataItemSizeFactory(),
-          chunkingMode: params.chunkingMode,
+          chunkingMode,
           maxFinalizeMs: params.maxFinalizeMs,
           paidUploadId,
           ...(x402Options ? { x402: x402Options } : {}),
@@ -1606,10 +1676,9 @@ export abstract class TurboAuthenticatedBaseUploadService
 /**
  * The largest data item the x402 single-request path will buffer.
  *
- * Normally unreachable: anything over two chunks takes the chunked path, which
- * pays at create and streams. It bites only when chunking is explicitly
- * disabled, and it exists so that case fails with an explanation rather than
- * by exhausting memory.
+ * An x402 item over this size never takes that path. In auto mode it is
+ * chunked instead, whatever `chunkByteCount` is. With chunking disabled it is
+ * refused, with an explanation rather than by exhausting memory.
  */
 const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
 
