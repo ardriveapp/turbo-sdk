@@ -22,7 +22,6 @@ import {
   SignatureConfig,
 } from '@dha-team/arbundles';
 import { Signer as ArbundleSigner } from '@dha-team/arbundles';
-import { computePublicKey } from '@ethersproject/signing-key';
 import {
   Connection,
   PublicKey,
@@ -34,7 +33,7 @@ import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
 import { randomBytes } from 'crypto';
 import { Wallet as EthereumWallet, ethers, parseEther } from 'ethers';
-import { computeAddress } from 'ethers';
+import { SigningKey, computeAddress } from 'ethers';
 import nacl from 'tweetnacl';
 import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -109,7 +108,7 @@ export abstract class TurboDataItemAbstractSigner
       case 'usdc':
       case 'base-usdc':
       case 'polygon-usdc':
-        return computeAddress(computePublicKey(fromB64Url(owner)));
+        return computeAddress(SigningKey.computePublicKey(fromB64Url(owner)));
 
       case 'kyve':
         return pubkeyToAddress(
