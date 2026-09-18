@@ -25,10 +25,13 @@ import {
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
-// Type-only: these are public API shapes, not a runtime dependency. This SDK
-// never requires the optional peer x402-fetch just for a caller to reference
-// X402Funding or X402RequestCredentials.
-import type { Signer as x402Signer } from 'x402-fetch';
+import type {
+  Account,
+  Chain,
+  LocalAccount,
+  Transport,
+  WalletClient,
+} from 'viem';
 
 import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
@@ -459,8 +462,18 @@ export class OnDemandFunding {
   }
 }
 
+/**
+ * The signer an x402 payment is authorized with: a viem wallet client or a
+ * local account, which is what the optional peer accepts. Declared from viem,
+ * a direct dependency, so the published types resolve for a consumer who has
+ * not installed `x402-fetch`.
+ */
+export type TurboX402Signer =
+  | WalletClient<Transport, Chain, Account>
+  | LocalAccount;
+
 export class X402Funding {
-  public signer: x402Signer | undefined;
+  public signer: TurboX402Signer | undefined;
   public maxMUSDCAmount: BigNumber | undefined;
 
   constructor({
@@ -471,7 +484,7 @@ export class X402Funding {
      * Optionally provide a custom signer for X402 funding.
      * One will be created from the provided Turbo signer if not provided.
      */
-    signer?: x402Signer;
+    signer?: TurboX402Signer;
     maxMUSDCAmount?: BigNumber.Value;
   }) {
     this.signer = signer;
@@ -2045,7 +2058,7 @@ export type TokenFactory = Record<
 >;
 
 export type X402RequestCredentials = {
-  signer: x402Signer;
+  signer: TurboX402Signer;
   maxMUSDCAmount?: BigNumber.Value;
   unsignedData?: boolean;
 };

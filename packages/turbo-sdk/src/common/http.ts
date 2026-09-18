@@ -19,6 +19,7 @@ import {
   TurboHTTPServiceInterface,
   TurboLogger,
   TurboSignedRequestHeaders,
+  TurboX402Signer,
   X402RequestCredentials,
 } from '../types.js';
 import { sleep } from '../utils/common.js';
@@ -60,7 +61,18 @@ export const x402UploadEndpoints = {
   unsigned: '/x402/upload/unsigned',
 } as const;
 
-type X402FetchModule = typeof import('x402-fetch');
+/**
+ * The one export this SDK uses from the optional peer, declared structurally
+ * rather than as `typeof import('x402-fetch')`, so the published types never
+ * name a package the consumer may not have installed.
+ */
+type X402FetchModule = {
+  wrapFetchWithPayment: (
+    fetchFn: typeof fetch,
+    signer: TurboX402Signer,
+    maxValue?: bigint,
+  ) => typeof fetch;
+};
 
 /**
  * `x402-fetch` is an optional peer dependency: it pulls in wagmi, WalletConnect
@@ -73,8 +85,13 @@ type X402FetchModule = typeof import('x402-fetch');
  * stand in for the dynamic import without uninstalling the package. See
  * {@link __setX402FetchLoaderForTests}.
  */
-let importX402Fetch: () => Promise<X402FetchModule> = () =>
-  import('x402-fetch');
+// The cast is the boundary: the peer's own `Signer` union is wider than what
+// this SDK ever passes, and naming it here would put the package back into the
+// published types.
+const loadPeer = () =>
+  import('x402-fetch') as unknown as Promise<X402FetchModule>;
+
+let importX402Fetch: () => Promise<X402FetchModule> = loadPeer;
 
 // Cached so an upload loop that pays repeatedly over x402 only imports once.
 let x402FetchModule: Promise<X402FetchModule> | undefined;
@@ -109,7 +126,7 @@ async function loadX402Fetch(): Promise<X402FetchModule> {
 export function __setX402FetchLoaderForTests(
   loader?: () => Promise<X402FetchModule>,
 ): void {
-  importX402Fetch = loader ?? (() => import('x402-fetch'));
+  importX402Fetch = loader ?? loadPeer;
   x402FetchModule = undefined;
 }
 

@@ -35,9 +35,6 @@ import nacl from 'tweetnacl';
 import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
-// Type-only: constructing the wallet client below never touches x402-fetch's
-// runtime, so this import must never become a require of the optional peer.
-import type { Signer as x402Signer } from 'x402-fetch';
 
 import {
   FileStreamFactory,
@@ -51,6 +48,7 @@ import {
   TurboSignedDataItemFactory,
   TurboSignedRequestHeaders,
   TurboSigner,
+  TurboX402Signer,
   WalletAdapter,
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
@@ -288,7 +286,7 @@ export abstract class TurboDataItemAbstractSigner
  */
 export async function makeX402Signer(
   arbundlesSigner: ArbundleSigner,
-): Promise<x402Signer> {
+): Promise<TurboX402Signer> {
   // Node: our SDK uses EthereumSigner with a raw private key
   if (arbundlesSigner instanceof EthereumSigner) {
     return createWalletClient({
@@ -298,7 +296,7 @@ export async function makeX402Signer(
       ),
       chain: base,
       transport: http(),
-    }) as unknown as x402Signer;
+    }) as unknown as TurboX402Signer;
   }
 
   // Browser: use injected wallet + selected account
@@ -322,7 +320,7 @@ export async function makeX402Signer(
       account,
       chain: base,
       transport: custom(provider),
-    }) as unknown as x402Signer;
+    }) as unknown as TurboX402Signer;
   }
 
   throw new Error('Unable to construct x402 signer for x402 options');
