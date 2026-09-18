@@ -480,6 +480,7 @@ describe('x402 single-request safeguards', () => {
       uploadServiceConfig: { url: 'https://upload.example.com' },
     });
     const overTheCap = 100 * 1024 * 1024 + 1;
+    let signings = 0;
     // Signs to more than the cap while the payload stays under it, which is
     // what large tags do to the estimate the pre-signing guard uses.
     (
@@ -487,6 +488,7 @@ describe('x402 single-request safeguards', () => {
         signer: { signDataItem: (p: unknown) => Promise<unknown> };
       }
     ).signer.signDataItem = async () => ({
+      ...(signings++, {}),
       dataItemStreamFactory: () => Readable.from(Buffer.alloc(1024)),
       dataItemSizeFactory: () => overTheCap,
     });
@@ -504,5 +506,8 @@ describe('x402 single-request safeguards', () => {
       },
     );
     assert.equal(requests, 0, 'nothing was sent');
+    // The refusal is not retried: the caller's input does not change between
+    // attempts, so one signing is all this costs.
+    assert.equal(signings, 1, 'the item is signed once, with no retry');
   });
 });
