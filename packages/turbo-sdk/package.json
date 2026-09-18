@@ -76,8 +76,6 @@
     "docs": "markdown-toc-gen insert README.md --max-depth 3"
   },
   "dependencies": {
-    "@cosmjs/proto-signing": "^0.33.1",
-    "@cosmjs/stargate": "^0.33.1",
     "@dha-team/arbundles": "^1.0.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.95.5",

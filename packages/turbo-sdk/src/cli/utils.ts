@@ -32,8 +32,8 @@ import {
   fiatCurrencyTypes,
   isCurrency,
   isTokenType,
-  privateKeyFromKyveMnemonic,
   tokenToBaseMap,
+  tokenTypes,
 } from '../node/index.js';
 import { tokenToDevGatewayMap } from '../utils/common.js';
 import { NoWalletProvidedError } from './errors.js';
@@ -88,7 +88,9 @@ export function tokenFromOptions(options: unknown): TokenType {
   }
 
   if (!isTokenType(token)) {
-    throw new Error('Invalid token type');
+    throw new Error(
+      `Invalid token type ${token}. Must be one of ${tokenTypes.join(', ')}`,
+    );
   }
   return token;
 }
@@ -145,21 +147,11 @@ export async function optionalPrivateKeyFromOptions(options: WalletOptions) {
 }
 
 export async function privateKeyFromOptions({
-  mnemonic,
   privateKey,
   walletFile,
   token,
 }: WalletOptions): Promise<string> {
-  if (mnemonic !== undefined) {
-    if (token === 'kyve') {
-      return privateKeyFromKyveMnemonic(mnemonic);
-    } else {
-      // TODO: Implement other token types mnemonic to wallet
-      throw new Error(
-        'mnemonic provided but this token type mnemonic to wallet is not supported',
-      );
-    }
-  } else if (walletFile !== undefined) {
+  if (walletFile !== undefined) {
     const wallet = JSON.parse(readFileSync(walletFile, 'utf-8'));
 
     return token === 'solana' || token === 'ario'
@@ -168,7 +160,7 @@ export async function privateKeyFromOptions({
   } else if (privateKey !== undefined) {
     return privateKey;
   }
-  // TODO: Get TURBO_WALLET_FILE, TURBO_MNEMONIC, TURBO_PRIVATE_KEY or similar from ENV variables
+  // TODO: Get TURBO_WALLET_FILE, TURBO_PRIVATE_KEY or similar from ENV variables
   // TODO: Add prompts for selecting wallet type and secure input
 
   throw new NoWalletProvidedError();

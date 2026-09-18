@@ -36,7 +36,6 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
   - [Ethereum](#ethereum)
   - [Base](#base)
   - [Solana](#solana)
-  - [KYVE](#kyve)
 - [Events](#events)
   - [File Upload Events](#file-upload-events)
   - [Folder Upload Events](#folder-upload-events)
@@ -505,17 +504,6 @@ const turbo = TurboFactory.unauthenticated({ token: 'pol' });
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
   amount: USD(10.0), // $10.00 USD
   owner: publicPolygonAddress,
-});
-```
-
-##### KYVE Fiat Top Up
-
-```typescript
-const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
-
-const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
-  amount: USD(10.0), // $10.00 USD
-  owner: publicKyveAddress,
 });
 ```
 
@@ -1142,7 +1130,7 @@ Tops up the connected wallet with Credits by submitting a payment transaction fo
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
-- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -1152,7 +1140,7 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
-  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR native destination address
 });
 ```
 
@@ -1238,16 +1226,6 @@ const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: SOLToTokenAmount(0.00001), // 0.00001 SOL
-});
-```
-
-##### KYVE Crypto Top Up
-
-```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
-
-const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-  tokenAmount: KYVEToTokenAmount(0.00001), // 0.00001 KYVE
 });
 ```
 
@@ -1686,28 +1664,6 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-### KYVE
-
-#### KYVE Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: kyveHexadecimalPrivateKey,
-  token: 'kyve',
-});
-```
-
-#### KYVE Mnemonic
-
-```typescript
-import { privateKeyFromKyveMnemonic } from '@ardrive/turbo-sdk';
-
-const turbo = TurboFactory.authenticated({
-  privateKey: privateKeyFromKyveMnemonic(mnemonic),
-  token: 'kyve',
-});
-```
-
 ## Events
 
 The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, `uploadFolder`, and `uploadSignedDataItem` methods.
@@ -1899,8 +1855,7 @@ Global options:
 
 Wallet options:
 
-- `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, KYVE, ETH, or POL private key as a string, or SOL Secret Key as a Uint8Array
-- `-m, --mnemonic <phrase>` - Mnemonic to use with the action (KYVE only)
+- `-w, --wallet-file <filePath>` - Wallet file to use with the action. Formats accepted: JWK.json, ETH, or POL private key as a string, or SOL Secret Key as a Uint8Array
 - `-p, --private-key <key>` - Private key to use with the action
 
 Upload options:
@@ -1990,7 +1945,7 @@ Fund a wallet with Turbo Credits by submitting a payment transaction for the cry
 
 Command Options:
 
-- `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 KYVE
+- `-v, --value <value>` - Value of crypto token for fund. e.g: 0.0001 for 0.0001 ETH
 - `-i, --tx-id <txId>` - Transaction ID of an existing funding transaction
 - `-a, --address <nativeAddress>` - Optional native address to send the Turbo credits to
 
@@ -1998,11 +1953,7 @@ e.g:
 
 ```shell
 # Fund any valid destination wallet with 10 USDC worth of Turbo Credits on Base Network
-turbo crypto-fund --value 10 --token base-usdc --private-key '0xabc...123' --address 'any-valid-evm-sol-ar-kyve-native-address'
-```
-
-```shell
-turbo crypto-fund --value 0.0001 --token kyve --private-key 'b27...45c'
+turbo crypto-fund --value 10 --token base-usdc --private-key '0xabc...123' --address 'any-valid-evm-sol-ar-native-address'
 ```
 
 ```shell
@@ -2015,7 +1966,7 @@ turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/sol/secret-k
 
 ```shell
 # Send to custom destination address
-turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/sol/secret-key.json --address 'Any-Valid-AR-EVM-SOL-KYVE-Native-Address'
+turbo crypto-fund --value 100 --token ario --wallet-file ../path/to/sol/secret-key.json --address 'Any-Valid-AR-EVM-SOL-Native-Address'
 ```
 
 ##### `upload-folder`
@@ -2063,7 +2014,7 @@ Get the current credit price estimate from Turbo Payment Service for a given val
 Command Options:
 
 - `--value <value>` - Value to get the price for. e.g: 10.50 for $10.50 USD, 1024 for 1 KiB, 1.1 for 1.1 AR
-- `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'kyve'. Default: 'bytes'
+- `--type <type>` - Type of price to get. e.g: 'bytes', 'arweave', 'usd', 'ethereum'. Default: 'bytes'
 - `--currency <currency>` - Currency unit of the reported price (e.g: 'usd', 'eur', 'gbp').
 
 e.g:
@@ -2157,7 +2108,7 @@ turbo list-shares --address 2cor...VUa --wallet-file ../path/to/my/wallet
 
 Buy and manage [ArNS](#arns-names) names by paying with Turbo Credits. Purchases resolve on-chain asynchronously: buy/extend/upgrade commands return a `nonce` you can poll with `arns-action-status`. (`arns-purchase-status` reads a separate namespace, the one a fiat quote lands in.)
 
-All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file`, `--private-key`, or `--mnemonic`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither. `arns-action-status` reads nothing on-chain either, but takes a wallet because `getArNSActionStatus` lives on the authenticated client.
+All ArNS commands accept the global `--payment-url <url>` option to target a specific bundler/payment service (e.g. a local or devnet bundler at `http://localhost:4001`), and `--token <token>` (e.g. `arweave`, `solana`, `ethereum`) to select the wallet/identity type. Every write command requires a wallet (`--wallet-file` or `--private-key`) to pay; the ANT-scoped ones (`transfer-arns-ant`, `set-arns-record`, `remove-arns-record`, `set-arns-record-metadata`, `remove-arns-record-metadata`, `transfer-arns-record`, `add-arns-controller`, `remove-arns-controller`) also require `--owner-key` for the owner proof. The read-only commands (`arns-price`, `arns-action-price`, `arns-purchase-status`, `arns-fiat-quote`) need neither. `arns-action-status` reads nothing on-chain either, but takes a wallet because `getArNSActionStatus` lives on the authenticated client.
 
 When a purchase is rejected for lack of Turbo Credits (HTTP 402), the command prints a clear "insufficient credits — top up your balance and retry" message and exits non-zero.
 
