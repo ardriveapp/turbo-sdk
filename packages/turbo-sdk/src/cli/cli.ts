@@ -57,6 +57,7 @@ import { revokeCredits } from './commands/revokeCredits.js';
 import { shareCredits } from './commands/shareCredits.js';
 import { tokenPrice } from './commands/tokenPrice.js';
 import { x402UploadUnsignedFile } from './commands/x402UploadUnsignedData.js';
+import { isCliEntrypoint } from './entrypoint.js';
 import {
   addArNSControllerOptions,
   arnsActionPriceOptions,
@@ -465,9 +466,6 @@ applyOptions(
   });
 });
 
-if (
-  process.argv[1].includes('bin/turbo') || // Running from global .bin
-  process.argv[1].includes('cli/cli') // Running from source
-) {
+if (isCliEntrypoint(process.argv[1])) {
   program.parse(process.argv);
 }

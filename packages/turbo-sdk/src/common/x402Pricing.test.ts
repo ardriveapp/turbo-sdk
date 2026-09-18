@@ -209,6 +209,31 @@ describe('x402 refuses cleartext', () => {
       (e: Error) => !/non-HTTPS/.test(e.message),
     );
   });
+
+  /*
+    An IPv6 hostname keeps its brackets: the hostname of `http://[::1]:9` is
+    `[::1]`. Comparing it with a bare `::1` never matched, so IPv6 loopback
+    was refused although the README lists it as exempt.
+  */
+  it('allows IPv6 loopback too', async () => {
+    await assert.rejects(
+      httpService('http://[::1]:9/v1').get({
+        endpoint: '/chunks/base-usdc/-1/-1',
+        x402Options: { signer },
+      }),
+      (e: Error) => !/non-HTTPS/.test(e.message),
+    );
+  });
+
+  it('still refuses an IPv6 address that is not loopback', async () => {
+    await assert.rejects(
+      httpService('http://[2001:db8::1]/v1').get({
+        endpoint: '/chunks/base-usdc/-1/-1',
+        x402Options: { signer },
+      }),
+      /non-HTTPS/,
+    );
+  });
 });
 
 /*

@@ -19,7 +19,8 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { testEthWallet } from '../../tests/helpers.js';
 import { TurboFactory } from '../node/factory.js';
-import { X402Funding } from '../types.js';
+import { TurboAuthenticatedUploadService } from '../node/index.js';
+import { ExistingBalanceFunding, X402Funding } from '../types.js';
 import { TurboUnauthenticatedUploadService } from './index.js';
 import { Logger } from './logger.js';
 
@@ -270,5 +271,243 @@ describe('x402 buffering of a web ReadableStream', () => {
       (e: Error) => /abort/i.test(e.name) || /abort/i.test(e.message),
     );
     assert.deepEqual(sent, []);
+  });
+});
+
+/*
+  The body is buffered before the request is sent, and the payment happens
+  after that. A drained stream is therefore not a finished upload: reporting
+  success there told an app the upload was done before the wallet prompt, and
+  a request that then failed threw after success had already been reported.
+*/
+describe('x402 single-request upload events', () => {
+  const originalFetch = globalThis.fetch;
+  let seen: string[];
+  let status: number;
+
+  beforeEach(() => {
+    seen = [];
+    status = 200;
+    globalThis.fetch = (async () => {
+      seen.push('request');
+      return status === 200
+        ? new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+            status,
+            headers: { 'content-type': 'application/json' },
+          })
+        : new Response('bundler unavailable', { status });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const upload = () =>
+    new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    }).uploadSignedDataItem({
+      dataItemStreamFactory: () => Readable.from(Buffer.alloc(4096, 5)),
+      dataItemSizeFactory: () => 4096,
+      x402Options: { signer: {} as never },
+      events: {
+        onUploadProgress: ({ processedBytes, totalBytes }) =>
+          seen.push(`progress ${processedBytes}/${totalBytes}`),
+        onUploadSuccess: () => seen.push('upload-success'),
+        onUploadError: () => seen.push('upload-error'),
+      },
+    });
+
+  it('reports success only after the request has succeeded', async () => {
+    await upload();
+    // Progress still tracks the buffering, so it comes first.
+    assert.deepEqual(seen, ['progress 4096/4096', 'request', 'upload-success']);
+  });
+
+  it('reports a failed request as an error, never as a success', async () => {
+    status = 500;
+    await assert.rejects(upload(), /bundler unavailable/);
+    assert.deepEqual(seen, ['progress 4096/4096', 'request', 'upload-error']);
+  });
+});
+
+/*
+  Auto mode sends an item in one request when it fits in two chunks, and x402
+  buffers that request. The cap on that buffer applied only with chunking
+  disabled, so a large `chunkByteCount` let an x402 item of up to 1 GiB be
+  pulled into memory. Over the cap, an x402 item now chunks.
+*/
+describe('x402 in auto mode with a large chunk size', () => {
+  const originalFetch = globalThis.fetch;
+  const cap = 100 * 1024 * 1024;
+  let requestedUrls: string[];
+  let streamOpened: boolean;
+
+  beforeEach(() => {
+    requestedUrls = [];
+    streamOpened = false;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      requestedUrls.push(url);
+      // Stop at the paid create: which request comes first is the point.
+      return url.includes('/-1/-1')
+        ? new Response('stop here', { status: 400 })
+        : new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  // Signing is stubbed: routing needs only the signed size, and an empty
+  // stream shows whether anything tried to buffer the item.
+  const uploadItemOf = (
+    signedByteCount: number,
+    fundingMode: X402Funding | ExistingBalanceFunding,
+  ) =>
+    new TurboAuthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+      retryConfig: {
+        retries: 1,
+        retryDelay: () => 0,
+        onRetry: () => undefined,
+      },
+      paymentService: {} as never,
+      signer: {
+        signer: { signatureType: 3 },
+        getNativeAddress: async () => '0xrefund',
+        signDataItem: async () => ({
+          dataItemStreamFactory: () => {
+            streamOpened = true;
+            return Readable.from(Buffer.alloc(0));
+          },
+          dataItemSizeFactory: () => signedByteCount,
+        }),
+      } as never,
+    }).uploadFile({
+      fileStreamFactory: () => Readable.from(Buffer.alloc(0)),
+      fileSizeFactory: () => signedByteCount,
+      chunkByteCount: 500 * 1024 * 1024,
+      fundingMode,
+    });
+
+  it('chunks an x402 item over the cap instead of buffering it', async () => {
+    await assert.rejects(
+      uploadItemOf(cap + 1, new X402Funding({ signer: {} as never })),
+      /stop here/,
+    );
+    assert.equal(streamOpened, false, 'nothing should be buffered');
+    assert.equal(requestedUrls.length, 1);
+    assert.match(requestedUrls[0], /\/v1\/chunks\/base-usdc\/-1\/-1\?/);
+  });
+
+  it('still sends an x402 item at the cap in one request', async () => {
+    // The empty stream fails the size check, which proves the item reached
+    // the single-request buffer without allocating 100 MiB here.
+    await assert.rejects(
+      uploadItemOf(cap, new X402Funding({ signer: {} as never })),
+      /produced 0 bytes, expected 104857600/,
+    );
+    assert.equal(streamOpened, true);
+    assert.deepEqual(requestedUrls, []);
+  });
+
+  it('leaves a credit-funded item in one request', async () => {
+    await uploadItemOf(cap + 1, new ExistingBalanceFunding());
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/tx/base-usdc',
+    ]);
+  });
+});
+
+/*
+  Review of #500 found both of these: a settled x402 payment must not be
+  undone by the caller's own event listener, and the size guard before signing
+  works from an estimate, so the exact signed size still needs checking where
+  there is no chunked path to fall back to.
+*/
+describe('x402 single-request safeguards', () => {
+  const originalFetch = globalThis.fetch;
+  let requests: number;
+
+  beforeEach(() => {
+    requests = 0;
+    globalThis.fetch = (async () => {
+      requests++;
+      return new Response(JSON.stringify({ id: 'stub-id', winc: '0' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('keeps a settled payment settled when an upload-success listener throws', async () => {
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+    const payload = Buffer.alloc(512, 3);
+
+    const response = await service.uploadSignedDataItem({
+      dataItemStreamFactory: () => Readable.from(payload),
+      dataItemSizeFactory: () => payload.byteLength,
+      x402Options: { signer: {} as never },
+      events: {
+        onUploadSuccess: () => {
+          throw new Error('listener blew up');
+        },
+      },
+    });
+
+    assert.equal(response.id, 'stub-id');
+    assert.equal(requests, 1, 'the request is not sent twice');
+  });
+
+  it('refuses an oversized signed item when chunking is disabled', async () => {
+    const turbo = TurboFactory.authenticated({
+      privateKey: testEthWallet,
+      token: 'base-usdc',
+      uploadServiceConfig: { url: 'https://upload.example.com' },
+    });
+    const overTheCap = 100 * 1024 * 1024 + 1;
+    let signings = 0;
+    // Signs to more than the cap while the payload stays under it, which is
+    // what large tags do to the estimate the pre-signing guard uses.
+    (
+      turbo as unknown as {
+        signer: { signDataItem: (p: unknown) => Promise<unknown> };
+      }
+    ).signer.signDataItem = async () => ({
+      ...(signings++, {}),
+      dataItemStreamFactory: () => Readable.from(Buffer.alloc(1024)),
+      dataItemSizeFactory: () => overTheCap,
+    });
+
+    await assert.rejects(
+      turbo.uploadFile({
+        fileStreamFactory: () => Readable.from(Buffer.alloc(1024)),
+        fileSizeFactory: () => 1024,
+        chunkingMode: 'disabled',
+        fundingMode: new X402Funding({}),
+      }),
+      (error: Error) => {
+        assert.match(error.message, /signed x402 item is \d+ bytes/);
+        return true;
+      },
+    );
+    assert.equal(requests, 0, 'nothing was sent');
+    // The refusal is not retried: the caller's input does not change between
+    // attempts, so one signing is all this costs.
+    assert.equal(signings, 1, 'the item is signed once, with no retry');
   });
 });
