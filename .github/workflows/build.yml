@@ -68,6 +68,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The job installs dependencies, which runs their lifecycle
+          # scripts. It needs no token, so do not leave one on disk.
+          persist-credentials: false
 
       - name: Set Up node
         uses: actions/setup-node@v4
