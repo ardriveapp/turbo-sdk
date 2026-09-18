@@ -27,6 +27,38 @@ EOF
 cd "$TEMP_DIR"
 npm install --no-audit --no-fund "$TARBALL_PATH" > /dev/null 2>&1
 
+# Load the installed build before auditing it.
+#
+# This install has no optional peer and no devDependencies, which is what a
+# consumer gets. A dependency that a package imports but never declares
+# resolves in this repo, where something else brings it along, and fails here.
+# @dha-team/arbundles imports axios without declaring it, and the SDK only kept
+# loading because @cosmjs and x402-fetch each pulled axios in; removing both
+# broke every entry point. Unit tests, lint and the integration suite all pass
+# in that state, so this is the only check that sees it.
+load_or_fail() {
+  local label="$1"
+  local code="$2"
+  if ! OUTPUT=$(node -e "$code" 2>&1); then
+    echo "Error: $label failed on a clean install of the packed build:"
+    echo "$OUTPUT" | head -5
+    exit 1
+  fi
+}
+
+load_or_fail "the ESM node entry point" \
+  "import('@ardrive/turbo-sdk/node').then((m) => { if (typeof m.TurboFactory.unauthenticated !== 'function') { throw new Error('TurboFactory missing'); } })"
+load_or_fail "the CommonJS node entry point" \
+  "if (typeof require('@ardrive/turbo-sdk/node').TurboFactory.unauthenticated !== 'function') { throw new Error('TurboFactory missing'); }"
+load_or_fail "the root entry point" \
+  "import('@ardrive/turbo-sdk').then((m) => { if (typeof m.TurboFactory.unauthenticated !== 'function') { throw new Error('TurboFactory missing'); } })"
+
+if ! CLI_OUTPUT=$(./node_modules/.bin/turbo --version 2>&1); then
+  echo "Error: the turbo CLI failed on a clean install of the packed build:"
+  echo "$CLI_OUTPUT" | head -5
+  exit 1
+fi
+
 # Run npm audit and get JSON output
 AUDIT_OUTPUT=$(npm audit --json 2>/dev/null || true)
 

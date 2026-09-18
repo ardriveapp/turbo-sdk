@@ -82,5 +82,9 @@ jobs:
       - name: Install dependencies
         run: yarn --immutable --immutable-cache
 
-      - name: Run dependency audit
+      # The packed tarball ships lib/, and the check loads it.
+      - name: Build
+        run: yarn workspace @ardrive/turbo-sdk build
+
+      - name: Audit and load the packed build
         run: yarn workspace @ardrive/turbo-sdk test:audit
