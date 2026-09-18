@@ -123,10 +123,6 @@ export abstract class TurboBaseFactory {
             token = 'arweave';
             break;
 
-          case SignatureConfig.KYVE:
-            token = 'kyve';
-            break;
-
           default:
             break;
         }

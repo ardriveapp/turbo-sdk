@@ -89,7 +89,7 @@ function resolveOwnerAddress(owner: ChainFolderUploadIndexOwner): string {
 
 /**
  * What `getPublicKey()` returns across the supported signers: ed25519 for
- * Solana and ario, uncompressed secp256k1 for Ethereum, Base, Polygon and KYVE,
+ * Solana and ario, uncompressed secp256k1 for Ethereum, Base and Polygon,
  * and a 4096 bit RSA modulus for Arweave.
  *
  * A 32 byte value declared as a `publicKey` is still taken at its word, since
