@@ -63,6 +63,9 @@ jobs:
 
   audit:
     runs-on: ubuntu-latest
+    # Reads the repository and queries the npm registry; nothing else.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

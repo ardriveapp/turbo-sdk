@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Create temporary directory and set up cleanup trap
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+trap 'rm -rf -- "$TEMP_DIR"' EXIT
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -30,60 +30,65 @@ npm install --no-audit --no-fund "$TARBALL_PATH" > /dev/null 2>&1
 # Run npm audit and get JSON output
 AUDIT_OUTPUT=$(npm audit --json 2>/dev/null || true)
 
-# Parse allowlist
+# The allowlist names accepted ADVISORY ids, not packages, so a new advisory
+# against an already listed package still fails. Format, one per line:
+#   GHSA-xxxx-xxxx-xxxx  package  # why it is accepted
 ALLOWLIST_FILE="$PACKAGE_DIR/audit-allowlist.txt"
 if [ ! -f "$ALLOWLIST_FILE" ]; then
   echo "Error: audit-allowlist.txt not found at $ALLOWLIST_FILE"
   exit 1
 fi
 
-# Build JSON string of allowed packages
-ALLOWED_JSON="{}"
-while IFS= read -r line; do
-  # Remove comments and trim whitespace
-  line="${line%%#*}"
-  line="$(echo "$line" | xargs)"
-  [ -z "$line" ] && continue
-  ALLOWED_JSON=$(node -e "const obj = JSON.parse(process.argv[1]); obj[process.argv[2]] = true; console.log(JSON.stringify(obj))" "$ALLOWED_JSON" "$line")
-done < "$ALLOWLIST_FILE"
-
-# Run comprehensive audit check using node
 if [ -z "$AUDIT_OUTPUT" ] || [ "${AUDIT_OUTPUT:0:1}" != "{" ]; then
   echo "Error: npm audit did not return JSON. First line: $(echo "$AUDIT_OUTPUT" | head -1)"
   exit 1
 fi
 
-node -e "
-const auditData = JSON.parse(process.argv[1]);
-const allowedPackages = JSON.parse(process.argv[2]);
+node -e '
+const [auditJson, allowlistText] = process.argv.slice(1);
+const audit = JSON.parse(auditJson);
 
-const metadata = auditData.metadata || {};
-const vulnerabilities = metadata.vulnerabilities || {};
-
-console.log('Advisory counts: ' + vulnerabilities.critical + ' critical, ' + vulnerabilities.high + ' high, ' + vulnerabilities.moderate + ' moderate, ' + vulnerabilities.low + ' low');
-
-const criticalOrHigh = vulnerabilities.critical > 0 || vulnerabilities.high > 0;
-
-if (!criticalOrHigh) {
-  process.exit(0);
+const accepted = new Set();
+for (const rawLine of allowlistText.split("\n")) {
+  const line = rawLine.replace(/#.*$/, "").trim();
+  if (line === "") continue;
+  const [advisory, pkg] = line.split(/\s+/);
+  if (advisory === undefined || pkg === undefined) {
+    console.log(`Error: allowlist line needs an advisory id and a package: ${rawLine}`);
+    process.exit(1);
+  }
+  accepted.add(`${advisory} ${pkg}`);
 }
 
-// Find offenders: high/critical advisories for non-allowlisted packages
-const offenders = [];
-const vulnsByPackage = auditData.vulnerabilities || {};
+const counts = audit.metadata?.vulnerabilities ?? {};
+console.log(
+  `Advisory counts: ${counts.critical} critical, ${counts.high} high, ` +
+    `${counts.moderate} moderate, ${counts.low} low`,
+);
 
-for (const [pkgName, pkgVulns] of Object.entries(vulnsByPackage)) {
-  const severity = pkgVulns.severity;
-  if ((severity === 'critical' || severity === 'high') && !allowedPackages[pkgName]) {
-    offenders.push(pkgName);
+// An advisory reaches us through one package at a time. npm reports the chain
+// under each affected package, so read the ids from the `via` entries that
+// carry them and attribute each to the package it was reported under.
+const unaccepted = [];
+for (const [pkg, entry] of Object.entries(audit.vulnerabilities ?? {})) {
+  for (const via of entry.via ?? []) {
+    if (typeof via !== "object") continue;
+    if (via.severity !== "high" && via.severity !== "critical") continue;
+    const id = (via.url ?? "").split("/").pop() || `source-${via.source}`;
+    const key = `${id} ${via.name ?? pkg}`;
+    if (!accepted.has(key)) {
+      unaccepted.push(`${key}  (${via.severity}, reported under ${pkg}): ${via.title ?? ""}`);
+    }
   }
 }
 
-if (offenders.length > 0) {
-  console.log('High and critical advisories for non-allowlisted packages:');
-  offenders.sort().forEach(pkg => console.log('  - ' + pkg));
+if (unaccepted.length > 0) {
+  console.log("High and critical advisories that are not accepted in audit-allowlist.txt:");
+  [...new Set(unaccepted)].sort().forEach((line) => console.log(`  - ${line}`));
+  console.log("");
+  console.log("Fix the dependency, or add the advisory id and package to the allowlist with a reason.");
   process.exit(1);
 }
 
 process.exit(0);
-" "$AUDIT_OUTPUT" "$ALLOWED_JSON"
+' "$AUDIT_OUTPUT" "$(cat "$ALLOWLIST_FILE")"
