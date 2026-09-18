@@ -207,7 +207,6 @@ services:
       ARWEAVE_GATEWAY: ${ARWEAVE_GATEWAY:-http://arlocal:1984} # AR local gateway
       SOLANA_GATEWAY: ${SOLANA_GATEWAY:-https://api.devnet.solana.com} # SOL devnet gateway
       ETHEREUM_GATEWAY: ${ETHEREUM_GATEWAY:-https://sepolia.gateway.tenderly.co} # ETH sepolia testnet gateway
-      KYVE_GATEWAY: ${KYVE_GATEWAY:-https://api.korellia.kyve.network} # KYVE testnet gateway
       PAYMENT_TX_POLLING_WAIT_TIME_MS: 10
     depends_on:
       payment-service-pg:

@@ -17,6 +17,6 @@ import { BaseError } from '../utils/errors.js';
 
 export class NoWalletProvidedError extends BaseError {
   constructor() {
-    super('mnemonic or wallet file or private key is required');
+    super('wallet file or private key is required');
   }
 }

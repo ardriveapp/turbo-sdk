@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { pubkeyToAddress } from '@cosmjs/amino';
-import { Secp256k1 } from '@cosmjs/crypto';
-import { toBase64 } from '@cosmjs/encoding';
 import {
   EthereumSigner,
   HexSolanaSigner,
@@ -109,17 +106,6 @@ export abstract class TurboDataItemAbstractSigner
       case 'base-usdc':
       case 'polygon-usdc':
         return computeAddress(SigningKey.computePublicKey(fromB64Url(owner)));
-
-      case 'kyve':
-        return pubkeyToAddress(
-          {
-            type: 'tendermint/PubKeySecp256k1',
-            value: toBase64(
-              Secp256k1.compressPubkey(Uint8Array.from(fromB64Url(owner))),
-            ),
-          },
-          'kyve',
-        );
 
       case 'ario':
         // ARIO is an SPL token, so an `ario` client created from a private key

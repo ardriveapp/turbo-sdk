@@ -31,8 +31,9 @@ import {
 } from '../../tests/helpers.js';
 import { TurboFactory } from '../node/factory.js';
 import { TurboNodeSigner } from '../node/signer.js';
-import { TokenType, TurboSigner } from '../types.js';
+import { TokenType, TurboSigner, tokenTypes } from '../types.js';
 import { isValidUserAddress } from '../utils/common.js';
+import { TurboAuthenticatedClient } from './turbo.js';
 
 describe('TurboDataItemAbstractSigner.generateSignedRequestHeaders', () => {
   // arbundles SignatureConfig: ARWEAVE=1, ETHEREUM=3, SOLANA=4
@@ -156,4 +157,60 @@ describe('native address for token: ario', () => {
     );
     assert.ok(isValidUserAddress(address, 'ario'));
   });
+});
+
+/*
+  #497: KYVE support was removed because Turbo's backend stopped accepting it
+  months ago -- no funding address, and a `kyve` client billed one account
+  while reporting another. This is the regression pin for what is left: one
+  authenticated client per declared TokenType, checked against the native
+  address that token's mapping derives today.
+
+  The expected addresses are literal strings captured from the code on `main`
+  before this removal, not re-derived from the fixtures used to build the
+  signers below, so a change to a token's derivation trips this test even if
+  the fixture moved too. The `Record<TokenType, ...>` object literals below
+  also make this a compile-time completeness check: adding, removing, or
+  renaming a TokenType without updating both maps fails the build.
+*/
+describe('TurboFactory.authenticated across tokenTypes', () => {
+  const signerForToken: Record<TokenType, TurboSigner> = {
+    arweave: new ArweaveSigner(testJwk),
+    ario: new ArweaveSigner(testJwk),
+    solana: new HexSolanaSigner(testSolWallet),
+    ethereum: new EthereumSigner(testEthWallet),
+    'base-eth': new EthereumSigner(testEthWallet),
+    matic: new EthereumSigner(testEthWallet),
+    pol: new EthereumSigner(testEthWallet),
+    usdc: new EthereumSigner(testEthWallet),
+    'base-usdc': new EthereumSigner(testEthWallet),
+    'polygon-usdc': new EthereumSigner(testEthWallet),
+  };
+
+  const expectedNativeAddress: Record<TokenType, string> = {
+    arweave: 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4',
+    ario: 'sYFSpEH7Gls-5Spq5FjuP85JCZj6QYzNvCm9BdKEJs4',
+    solana: 'BTV1zY7njS5an91v9nphCK48d2vnMuecEgHLYiP25ycj',
+    ethereum: '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    'base-eth': '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    matic: '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    pol: '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    usdc: '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    'base-usdc': '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    'polygon-usdc': '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+  };
+
+  for (const token of tokenTypes) {
+    it(`constructs an authenticated client and derives the current address for token: ${token}`, async () => {
+      const turbo = TurboFactory.authenticated({
+        signer: signerForToken[token],
+        token,
+      });
+      assert.ok(turbo instanceof TurboAuthenticatedClient);
+      assert.equal(
+        await turbo.signer.getNativeAddress(),
+        expectedNativeAddress[token],
+      );
+    });
+  }
 });

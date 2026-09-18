@@ -29,7 +29,6 @@ export type GlobalOptions = {
 
 export type WalletOptions = GlobalOptions & {
   walletFile: string | undefined;
-  mnemonic: string | undefined;
   privateKey: string | undefined;
 };
 
