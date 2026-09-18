@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { testEthWallet, testJwk } from '../../tests/helpers.js';
 import { TurboFactory } from '../node/factory.js';
+import { TurboDataItemSigner } from '../types.js';
 import { X402Funding } from '../types.js';
 import {
   TurboHTTPService,
@@ -241,6 +242,35 @@ describe('x402-fetch as an optional peer dependency', () => {
   // A missing module is not transient. uploadFile checks the peer with its
   // other x402 preconditions, so the message arrives once, before signing,
   // rather than wrapped in "failed after N attempts".
+  it('fails uploadRawX402Data before it builds a signer', async () => {
+    __setX402FetchLoaderForTests(() =>
+      Promise.reject(new Error("Cannot find package 'x402-fetch'")),
+    );
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+    let signerTouched = false;
+    const signer = {
+      get signer() {
+        signerTouched = true;
+        return {} as never;
+      },
+    } as unknown as TurboDataItemSigner;
+
+    await assert.rejects(
+      service.uploadRawX402Data({ data: Buffer.from('hello'), signer }),
+      (error: Error) => {
+        assert.equal(error.message, installMessage);
+        return true;
+      },
+    );
+
+    assert.equal(signerTouched, false, 'no signer was built');
+    assert.deepEqual(requestedUrls, [], 'nothing was sent');
+  });
+
   it('fails an x402 upload before signing, without retrying', async () => {
     __setX402FetchLoaderForTests(() =>
       Promise.reject(new Error("Cannot find package 'x402-fetch'")),
