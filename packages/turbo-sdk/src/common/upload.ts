@@ -54,6 +54,7 @@ import {
   UploadDataType,
   UploadSignedDataItemParams,
   X402Funding,
+  X402RequestCredentials,
 } from '../types.js';
 import { isBlob, isValidArweaveBase64URL, sleep } from '../utils/common.js';
 import { AbortError, ProvidedInputError } from '../utils/errors.js';
@@ -305,11 +306,6 @@ export class TurboUnauthenticatedUploadService
       );
     }
 
-    // Resolved before the signer is built, so a missing optional peer fails
-    // with the install message rather than after the signing work, the same
-    // contract uploadFile keeps.
-    await requireX402Fetch();
-
     this.logger.debug('Uploading raw x402 data...', {
       maxMUSDCAmount: maxMUSDCAmount?.toString(),
     });
@@ -327,14 +323,21 @@ export class TurboUnauthenticatedUploadService
       throw new TypeError('Invalid data type for x402 upload');
     }
 
-    const x402Options =
-      signer === undefined
-        ? undefined
-        : {
-            signer: await makeX402Signer(signer.signer),
-            maxMUSDCAmount,
-            unsignedData: true,
-          };
+    // With no signer this is a plain POST that pays nothing, which is what
+    // the unsigned route is for, so it must keep working with no optional peer
+    // installed. Only the paying branch needs it, and it resolves there before
+    // the signer is built, so a missing peer fails with the install message
+    // rather than after the signing work. That is the contract uploadFile
+    // keeps.
+    let x402Options: X402RequestCredentials | undefined;
+    if (signer !== undefined) {
+      await requireX402Fetch();
+      x402Options = {
+        signer: await makeX402Signer(signer.signer),
+        maxMUSDCAmount,
+        unsignedData: true,
+      };
+    }
 
     const response = await this.httpService.post<
       TurboUploadDataItemResponse & {

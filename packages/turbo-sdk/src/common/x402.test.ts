@@ -271,6 +271,26 @@ describe('x402-fetch as an optional peer dependency', () => {
     assert.deepEqual(requestedUrls, [], 'nothing was sent');
   });
 
+  // The unsigned route pays nothing when no signer is passed, so requiring the
+  // peer for every call to this function would break a caller who never asked
+  // to pay over x402. The peer check belongs on the paying branch alone.
+  it('uploads raw data with no signer while the peer is missing', async () => {
+    __setX402FetchLoaderForTests(() =>
+      Promise.reject(new Error("Cannot find package 'x402-fetch'")),
+    );
+    const service = new TurboUnauthenticatedUploadService({
+      url: 'https://upload.example.com',
+      token: 'base-usdc',
+      logger: Logger.default,
+    });
+
+    await service.uploadRawX402Data({ data: Buffer.from('hello') });
+
+    assert.deepEqual(requestedUrls, [
+      'https://upload.example.com/v1/x402/upload/unsigned',
+    ]);
+  });
+
   it('fails an x402 upload before signing, without retrying', async () => {
     __setX402FetchLoaderForTests(() =>
       Promise.reject(new Error("Cannot find package 'x402-fetch'")),
