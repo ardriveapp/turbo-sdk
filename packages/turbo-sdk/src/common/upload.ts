@@ -56,7 +56,7 @@ import {
   X402Funding,
 } from '../types.js';
 import { isBlob, isValidArweaveBase64URL, sleep } from '../utils/common.js';
-import { AbortError } from '../utils/errors.js';
+import { AbortError, ProvidedInputError } from '../utils/errors.js';
 import { FailedRequestError } from '../utils/errors.js';
 import {
   contentHashFromFolderIndexKey,
@@ -208,10 +208,15 @@ export class TurboUnauthenticatedUploadService
             headers,
             x402Options,
           });
-        emitter.emit('upload-success');
+        /*
+          Emitted outside the try, and with listener failures contained. A
+          settled x402 payment must not be reported as an upload failure: the
+          retry loop above would send a second paid request.
+        */
+        emitQuietly(emitter, this.logger, 'upload-success');
         return response;
       } catch (error) {
-        emitter.emit('upload-error', error);
+        emitQuietly(emitter, this.logger, 'upload-error', error);
         throw error;
       }
     }
@@ -613,6 +618,24 @@ export abstract class TurboAuthenticatedBaseUploadService
           chunks far past the buffer cap, so an x402 item over the cap chunks
           whatever the chunk size.
         */
+        /*
+          The guard before signing works from an estimate of the signing
+          overhead, so an item with large tags can pass it and still exceed the
+          cap once signed. With chunking disabled there is no chunked path to
+          fall back to, so refuse it here rather than buffering it.
+        */
+        if (
+          x402Options !== undefined &&
+          params.chunkingMode === 'disabled' &&
+          dataItemSizeFactory() > maxX402SingleRequestByteCount
+        ) {
+          throw new ProvidedInputError(
+            `The signed x402 item is ${dataItemSizeFactory()} bytes, over the ` +
+              `${maxX402SingleRequestByteCount}-byte single-request limit. ` +
+              `Remove chunkingMode: 'disabled' to upload this item.`,
+          );
+        }
+
         const chunkingMode =
           x402Options !== undefined &&
           (params.chunkingMode ?? 'auto') === 'auto' &&
@@ -669,6 +692,11 @@ export abstract class TurboAuthenticatedBaseUploadService
       } catch (error) {
         // Store the last encountered error and status for re-throwing after retries
         lastError = error;
+        // Nothing about the caller's input changes between attempts, so a
+        // rejected input fails once rather than after every retry.
+        if (error instanceof ProvidedInputError) {
+          throw error;
+        }
         if (error instanceof FailedRequestError) {
           lastStatusCode = error.status;
         } else {
@@ -1706,6 +1734,29 @@ const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
  * Same allowance folder uploads already use for the same overhead.
  */
 const x402SignedItemOverheadByteCount = 1200;
+
+/**
+ * Emits an event whose listeners belong to the caller, so one that throws
+ * cannot change the result of a request that already settled. A settled x402
+ * payment reported as a failure would be retried, and paid for twice. The
+ * listener's failure is logged instead.
+ */
+function emitQuietly(
+  emitter: TurboEventEmitter,
+  logger: TurboLogger,
+  event: 'upload-success' | 'upload-error',
+  error?: unknown,
+): void {
+  try {
+    if (event === 'upload-error') {
+      emitter.emit('upload-error', error as Error);
+    } else {
+      emitter.emit('upload-success');
+    }
+  } catch (listenerError) {
+    logger.error(`A ${event} listener threw`, listenerError);
+  }
+}
 
 /**
  * Drain a data-item stream into a Buffer, resuming it once the reader is
