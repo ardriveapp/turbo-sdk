@@ -1,0 +1,17 @@
+# Accepted high and critical advisories, named by advisory id and package.
+#
+# Allowlisting an id rather than a package is deliberate: a new advisory
+# against a package listed here still fails the gate. Add a line only with a
+# reason, or fix the dependency.
+
+# @dha-team/arbundles depends on the ethers v5 packages, which pin the affected
+# versions. A consumer can clear both criticals today with package overrides;
+# the README's "Dependency advisories" section gives the block.
+GHSA-vjh7-7g9h-fjfh  elliptic       # critical: private key extraction when signing a malformed input. Fixed in 6.6.1, which arbundles' chain does not take.
+GHSA-584q-6j8j-r5pm  secp256k1      # high: private key extraction over ECDH. Fixed in 5.0.1, same chain.
+GHSA-3h5v-q93c-6h6q  ws             # high: DoS from a request with many HTTP headers. Only ws@7.4.6 is affected, under @ethersproject/providers, whose WebSocket provider no SDK code path instantiates.
+GHSA-96hv-2xvq-fx4p  ws             # high: memory exhaustion from tiny fragments. Same copy, same reason.
+
+# @solana/web3.js v1 and @solana/spl-token v0.4 pull this. 1.1.5 is the latest
+# release and is still affected, so only the Solana v2 migration removes it.
+GHSA-3gc7-fjrx-p6mg  bigint-buffer  # high: buffer overflow via toBigIntLE().

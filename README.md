@@ -10,6 +10,7 @@ Welcome to the `@ardrive/turbo-sdk`! This SDK provides functionality for interac
 
 - [Table of Contents](#table-of-contents)
 - [Installation](#installation)
+- [Dependency advisories](#dependency-advisories)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Web](#web)
@@ -63,6 +64,28 @@ or
 ```shell
 yarn add @ardrive/turbo-sdk
 ```
+
+## Dependency advisories
+
+A clean install reports advisories from transitive dependencies, none from this package's own code. The list moves as those dependencies publish, so run `npm audit` for the current one.
+
+Three critical advisories come from `elliptic`, which reaches the tree through `@dha-team/arbundles` and its ethers v5 dependencies, along with a high advisory in `secp256k1`. Both clear with a package manager override, measured as three criticals to zero:
+
+```json
+{
+  "overrides": {
+    "elliptic": "6.6.1",
+    "secp256k1": "5.0.1"
+  }
+}
+```
+
+Yarn reads the same pinning under `resolutions`.
+
+Two notes on what the remaining advisories mean here:
+
+- The one `ws` copy inside an advisory range, `7.4.6`, sits under `@ethersproject/providers`. Its WebSocket provider is never instantiated by this SDK.
+- `npm audit fix --force` offers to downgrade this package to 1.13.0. That is npm giving up inside the version ranges, not a fix.
 
 ## Quick Start
 

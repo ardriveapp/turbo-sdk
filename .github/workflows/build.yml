@@ -60,3 +60,31 @@ jobs:
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  audit:
+    runs-on: ubuntu-latest
+    # Reads the repository and queries the npm registry; nothing else.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The job installs dependencies, which runs their lifecycle
+          # scripts. It needs no token, so do not leave one on disk.
+          persist-credentials: false
+
+      - name: Set Up node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn --immutable --immutable-cache
+
+      # The packed tarball ships lib/, and the check loads it.
+      - name: Build
+        run: yarn workspace @ardrive/turbo-sdk build
+
+      - name: Audit and load the packed build
+        run: yarn workspace @ardrive/turbo-sdk test:audit
