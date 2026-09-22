@@ -1,0 +1,1368 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TurboAuthenticatedBaseUploadService = exports.TurboUnauthenticatedUploadService = exports.defaultUploadServiceURL = exports.developmentUploadServiceURL = exports.creditSharingTagNames = void 0;
+/**
+ * Copyright (C) 2022-2024 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+const bignumber_js_1 = require("bignumber.js");
+const node_stream_1 = require("node:stream");
+const plimit_lit_1 = require("plimit-lit");
+const types_js_1 = require("../types.js");
+const common_js_1 = require("../utils/common.js");
+const errors_js_1 = require("../utils/errors.js");
+const errors_js_2 = require("../utils/errors.js");
+const folderIndex_js_1 = require("../utils/folderIndex.js");
+const chunked_js_1 = require("./chunked.js");
+const events_js_1 = require("./events.js");
+const http_js_1 = require("./http.js");
+const http_js_2 = require("./http.js");
+const index_js_1 = require("./index.js");
+const logger_js_1 = require("./logger.js");
+const signer_js_1 = require("./signer.js");
+function isTurboUploadFileWithStreamFactoryParams(params) {
+    return 'fileStreamFactory' in params;
+}
+function isTurboUploadFileWithFileOrPathParams(params) {
+    return 'file' in params;
+}
+exports.creditSharingTagNames = {
+    shareCredits: 'x-approve-payment',
+    sharedWincAmount: 'x-amount',
+    approvalExpiresBySeconds: 'x-expires-seconds',
+    revokeCredits: 'x-delete-payment-approval',
+};
+exports.developmentUploadServiceURL = 'https://upload.services.ar-io.dev';
+exports.defaultUploadServiceURL = 'https://upload.ardrive.io';
+class TurboUnauthenticatedUploadService {
+    constructor({ url = exports.defaultUploadServiceURL, logger = logger_js_1.Logger.default, retryConfig = (0, http_js_1.defaultRetryConfig)(logger), token = 'arweave', }) {
+        this.x402EnabledTokens = ['base-usdc'];
+        this.token = token;
+        this.logger = logger;
+        this.httpService = new http_js_2.TurboHTTPService({
+            url: `${url}/v1`,
+            retryConfig,
+            logger: this.logger,
+        });
+        this.retryConfig = retryConfig;
+    }
+    async uploadSignedDataItem({ dataItemStreamFactory, dataItemSizeFactory, dataItemOpts, signal, events = {}, x402Options, }) {
+        const dataItemSize = dataItemSizeFactory();
+        this.logger.debug('Uploading signed data item...');
+        // create the tapped stream with events
+        const emitter = new events_js_1.TurboEventEmitter(events);
+        /*
+          The x402 path drains the stream into a buffer before it sends anything,
+          so the end of the stream is not the end of the upload. Its tap passes
+          progress through and nothing else: success and failure are reported
+          below, once the request has settled.
+        */
+        const tapEmitter = x402Options === undefined
+            ? emitter
+            : new events_js_1.TurboEventEmitter({
+                onUploadProgress: (event) => emitter.emit('upload-progress', event),
+            });
+        // create the stream with upload events
+        const { stream: streamWithUploadEvents, resume } = (0, events_js_1.createStreamWithUploadEvents)({
+            data: dataItemStreamFactory(),
+            dataSize: dataItemSize,
+            emitter: tapEmitter,
+        });
+        const headers = {
+            'content-type': 'application/octet-stream',
+            'content-length': `${dataItemSize}`,
+        };
+        if (dataItemOpts !== undefined && dataItemOpts.paidBy !== undefined) {
+            const paidBy = Array.isArray(dataItemOpts.paidBy)
+                ? dataItemOpts.paidBy
+                : [dataItemOpts.paidBy];
+            // TODO: these should be comma separated values vs. an array of headers
+            if (dataItemOpts.paidBy.length > 0) {
+                headers['x-paid-by'] = paidBy;
+            }
+        }
+        if (x402Options !== undefined) {
+            /*
+              x402 needs a body fetch can measure, and one it can send twice.
+      
+              `content-length` is a forbidden header, so setting it above does
+              nothing: a streamed body goes out chunked with no length. The service
+              prices from that header, so without it there is no 402 challenge — and
+              the protocol's paid retry has a spent stream to replay, which fails
+              outright. Buffering fixes both: the length is declared honestly and the
+              body can be re-sent.
+      
+              Bounded by `uploadFile`: an item over `maxX402SingleRequestByteCount`
+              takes the chunked path, which pays at create and never reaches here,
+              or is refused before signing when chunking is disabled.
+            */
+            try {
+                const body = await streamToBuffer(streamWithUploadEvents, dataItemSize, resume, signal);
+                const response = await this.httpService.post({
+                    endpoint: `/tx/${this.token}`,
+                    signal,
+                    data: body,
+                    headers,
+                    x402Options,
+                });
+                /*
+                  Emitted outside the try, and with listener failures contained. A
+                  settled x402 payment must not be reported as an upload failure: the
+                  retry loop above would send a second paid request.
+                */
+                emitQuietly(emitter, this.logger, 'upload-success');
+                return response;
+            }
+            catch (error) {
+                emitQuietly(emitter, this.logger, 'upload-error', error);
+                throw error;
+            }
+        }
+        // setup the post request using the stream with upload events
+        const postPromise = this.httpService.post({
+            endpoint: `/tx/${this.token}`,
+            signal,
+            data: streamWithUploadEvents,
+            headers,
+            x402Options,
+        });
+        // resume the stream so events start flowing to the post
+        resume();
+        return postPromise;
+    }
+    /**
+     * Price a SIGNED data item for an x402 upload, without sending it.
+     *
+     * The only other way to learn an x402 price is to POST the payload and read
+     * the 402 challenge, which means transmitting it to find out what it costs.
+     *
+     * `byteCount` is the size of the signed data item — what
+     * `dataItemSizeFactory()` returns — not the payload inside it. Use
+     * `getX402PriceForRawData` when the service does the wrapping.
+     *
+     * `network` names the x402 network, not the SDK token: the route builds its
+     * token as `usdc-{network}`. `base-usdc` is accepted on mainnet only because
+     * the network there is literally `base`, so a testnet caller must pass
+     * `base-sepolia` explicitly.
+     */
+    async getX402PriceForDataItem({ byteCount, network = 'base', }) {
+        return this.httpService.get({
+            endpoint: `/price/x402/data-item/usdc-${network}/${byteCount}`,
+        });
+    }
+    /**
+     * Price RAW data for an x402 upload, where the service wraps it into a data
+     * item itself.
+     *
+     * Also reports the wrapping overhead — a data item is larger than its
+     * payload by its header, signature and tags — which the caller has no way to
+     * compute. `tagCount` and `contentType` feed that estimate, so pass what the
+     * upload will actually carry or the quote will read low.
+     */
+    async getX402PriceForRawData({ byteCount, network = 'base', tagCount, contentType, }) {
+        const query = new URLSearchParams();
+        if (tagCount !== undefined)
+            query.set('tags', `${tagCount}`);
+        if (contentType !== undefined)
+            query.set('contentType', contentType);
+        const qs = query.toString();
+        return this.httpService.get({
+            endpoint: `/price/x402/data/usdc-${network}/${byteCount}${qs ? `?${qs}` : ''}`,
+        });
+    }
+    async uploadRawX402Data({ data, tags, signal, maxMUSDCAmount, signer, }) {
+        if (!this.x402EnabledTokens.includes(this.token)) {
+            throw new Error('x402 uploads are not supported for token: ' + this.token);
+        }
+        this.logger.debug('Uploading raw x402 data...', {
+            maxMUSDCAmount: maxMUSDCAmount?.toString(),
+        });
+        let dataBuffer;
+        if (Buffer.isBuffer(data)) {
+            dataBuffer = data;
+        }
+        else if (typeof data === 'string' || data instanceof Uint8Array) {
+            dataBuffer = Buffer.from(data);
+        }
+        else if ((0, common_js_1.isBlob)(data)) {
+            dataBuffer = Buffer.from(await data.arrayBuffer());
+        }
+        else if (data instanceof ArrayBuffer) {
+            dataBuffer = Buffer.from(data);
+        }
+        else {
+            throw new TypeError('Invalid data type for x402 upload');
+        }
+        // With no signer this is a plain POST that pays nothing, which is what
+        // the unsigned route is for, so it must keep working with no optional peer
+        // installed. Only the paying branch needs it, and it resolves there before
+        // the signer is built, so a missing peer fails with the install message
+        // rather than after the signing work. That is the contract uploadFile
+        // keeps.
+        let x402Options;
+        if (signer !== undefined) {
+            await (0, http_js_2.requireX402Fetch)();
+            x402Options = {
+                signer: await (0, signer_js_1.makeX402Signer)(signer.signer),
+                maxMUSDCAmount,
+                unsignedData: true,
+            };
+        }
+        const response = await this.httpService.post({
+            data: dataBuffer,
+            // Only reached when no signer was supplied; the x402 path recomputes this
+            // from `unsignedData`. Both must name the same route.
+            endpoint: http_js_2.x402UploadEndpoints.unsigned,
+            signal,
+            headers: tags !== undefined
+                ? { 'x-data-item-tags': JSON.stringify(tags) }
+                : undefined,
+            // The service answers a stored, paid-for upload with 201. Refusing it
+            // reported a settled payment as a failure, and a retry paid again.
+            allowedStatuses: [200, 201, 202],
+            x402Options,
+        });
+        // The service nests the signed receipt (winc, timestamp, signature and the
+        // rest) under `receipt`. Lift those fields to the top level, where every
+        // other upload method returns them.
+        return { ...response.receipt, ...response };
+    }
+}
+exports.TurboUnauthenticatedUploadService = TurboUnauthenticatedUploadService;
+// NOTE: to avoid redundancy, we use inheritance here - but generally prefer composition over inheritance
+class TurboAuthenticatedBaseUploadService extends TurboUnauthenticatedUploadService {
+    constructor({ url = exports.defaultUploadServiceURL, retryConfig, signer, logger, token, paymentService, }) {
+        super({ url, retryConfig, logger, token });
+        this.enabledOnDemandTokens = [
+            'ario',
+            'solana',
+            'base-eth',
+            'base-usdc',
+        ];
+        this.signer = signer;
+        this.paymentService = paymentService;
+    }
+    /**
+     * Signs and uploads raw data to the Turbo Upload Service.
+     */
+    upload({ data, dataItemOpts, signal, events, chunkByteCount, chunkingMode, maxChunkConcurrency, fundingMode, maxFinalizeMs, }) {
+        // This function is intended to be usable in both Node and browser environments.
+        if ((0, common_js_1.isBlob)(data)) {
+            const streamFactory = () => data.stream();
+            const sizeFactory = () => data.size;
+            return this.uploadFile({
+                fileStreamFactory: streamFactory,
+                fileSizeFactory: sizeFactory,
+                signal,
+                dataItemOpts,
+                events,
+                chunkByteCount,
+                chunkingMode,
+                maxChunkConcurrency,
+                fundingMode,
+                maxFinalizeMs,
+            });
+        }
+        const dataBuffer = (() => {
+            if (Buffer.isBuffer(data))
+                return data;
+            // Need type narrowing to ensure the correct Buffer.from overload is used
+            if (typeof data === 'string' || data instanceof Uint8Array) {
+                return Buffer.from(data);
+            }
+            return Buffer.from(data); // Only other option is ArrayBuffer
+        })();
+        return this.uploadFile({
+            fileStreamFactory: () => dataBuffer,
+            fileSizeFactory: () => dataBuffer.byteLength,
+            signal,
+            dataItemOpts,
+            events,
+            chunkByteCount,
+            chunkingMode,
+            maxChunkConcurrency,
+            fundingMode,
+            maxFinalizeMs,
+        });
+    }
+    resolveUploadFileConfig(params) {
+        let fileStreamFactory;
+        let fileSizeFactory;
+        if (isTurboUploadFileWithStreamFactoryParams(params)) {
+            fileStreamFactory = params.fileStreamFactory;
+            fileSizeFactory = params.fileSizeFactory;
+        }
+        else if (isTurboUploadFileWithFileOrPathParams(params)) {
+            const file = params.file;
+            /**
+             * this is pretty gross, but it's the only way to get the type inference to work without overhauling
+             * the abstract method to accept a generic, which we would need to perform a check on anyways.
+             */
+            fileStreamFactory =
+                file instanceof File
+                    ? () => this.getFileStreamForFile(file)
+                    : () => this.getFileStreamForFile(file);
+            fileSizeFactory = () => this.getFileSize(params.file);
+        }
+        else {
+            throw new TypeError('Invalid upload file params. Must be either TurboUploadFileWithStreamFactoryParams or TurboUploadFileWithFileOrPathParams');
+        }
+        return {
+            fileStreamFactory,
+            fileSizeFactory,
+            ...params,
+        };
+    }
+    async uploadFile(params) {
+        const { signal, dataItemOpts, events, fileStreamFactory, fileSizeFactory, fundingMode = new types_js_1.ExistingBalanceFunding(), } = this.resolveUploadFileConfig(params);
+        if (fundingMode instanceof types_js_1.X402Funding &&
+            !this.x402EnabledTokens.includes(this.token)) {
+            throw new Error('x402 uploads are not supported for token: ' + this.token);
+        }
+        // Checked here, with the other x402 preconditions, so a missing optional
+        // peer dependency fails before signing and before the retry loop, where it
+        // would otherwise read as an upload failure after six attempts.
+        if (fundingMode instanceof types_js_1.X402Funding) {
+            await (0, http_js_2.requireX402Fetch)();
+        }
+        /*
+          Buffering the single request is only safe because anything larger chunks.
+          `chunkingMode: 'disabled'` removes that guarantee, so an arbitrarily large
+          item would be pulled into memory — and the service caps single-request
+          items anyway, so it would be refused after the fact. Check before signing:
+          signing a large item only to reject it wastes the expensive part.
+        */
+        if (fundingMode instanceof types_js_1.X402Funding &&
+            params.chunkingMode === 'disabled' &&
+            fileSizeFactory() + x402SignedItemOverheadByteCount >
+                maxX402SingleRequestByteCount) {
+            throw new Error(`An x402 upload of ${fileSizeFactory()} bytes must be chunked: the ` +
+                `single-request path buffers the SIGNED item in memory and is ` +
+                `limited to ${maxX402SingleRequestByteCount} bytes, of which ` +
+                `signing claims about ${x402SignedItemOverheadByteCount}. Remove ` +
+                `chunkingMode: 'disabled' to upload this item.`);
+        }
+        this.logger.debug('Starting file upload', { params });
+        let retries = 0;
+        // Carried ACROSS retry attempts. A paid chunked upload is bought before any
+        // chunk is accepted, so an attempt that fails after paying must hand its
+        // upload id to the next attempt. Rebuilding the uploader with no id is how
+        // a single upload gets billed once per retry.
+        let paidUploadId;
+        const maxRetries = this.retryConfig.retries ?? 3;
+        const retryDelay = this.retryConfig.retryDelay ??
+            ((retryNumber) => retryNumber * 1000);
+        let lastError = undefined; // Store the last error for throwing
+        let lastStatusCode = undefined; // Store the last status code for throwing
+        const emitter = new events_js_1.TurboEventEmitter(events);
+        // avoid duplicating signing on failures here - these errors will immediately be thrown
+        let cryptoFundResult;
+        // Each attempt signs again, so it calls the factory again. The web signer
+        // reads the stream once per attempt, so a factory that returns one stream
+        // instance passes the first attempt, and the retry used to fail with a bare
+        // "ReadableStream is locked" that hid why the first attempt failed (#396).
+        const fileStreamFactoryForAttempt = (() => {
+            const stream = fileStreamFactory();
+            if (stream instanceof ReadableStream && stream.locked) {
+                const previous = lastError === undefined
+                    ? ''
+                    : ` The previous attempt failed with: ${lastError.message}`;
+                throw new TypeError('fileStreamFactory returned a ReadableStream that is already ' +
+                    'locked, most likely read by an earlier upload attempt. Every ' +
+                    'attempt calls the factory again, so it must return a new stream ' +
+                    'on every call, for example () => file.stream().' +
+                    previous, { cause: lastError });
+            }
+            return stream;
+        });
+        // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
+        while (retries < maxRetries) {
+            if (signal?.aborted) {
+                throw new errors_js_1.AbortError();
+            }
+            // TODO: create a SigningError class and throw that instead of the generic Error
+            const { dataItemStreamFactory, dataItemSizeFactory } = await this.signer.signDataItem({
+                fileStreamFactory: fileStreamFactoryForAttempt,
+                fileSizeFactory,
+                dataItemOpts,
+                emitter,
+            });
+            if (fundingMode instanceof types_js_1.OnDemandFunding &&
+                cryptoFundResult === undefined) {
+                cryptoFundResult = await this.onDemand({
+                    itemByteCounts: [dataItemSizeFactory()],
+                    onDemandFunding: fundingMode,
+                });
+            }
+            // Now that we have the signed data item, we can upload it using the uploadSignedDataItem method
+            // which will create a new emitter with upload events. We await
+            // this result due to the wrapped retry logic of this method.
+            try {
+                const { chunkByteCount, maxChunkConcurrency } = params;
+                // Built here rather than after the chunked branch so BOTH paths can
+                // pay with it. Chunked x402 uploads used to be impossible — the
+                // bundler had no way to charge for a multipart upload — so this branch
+                // deliberately fell back to a single request, which capped x402 at the
+                // single-item limit no matter how the client chunked. The bundler now
+                // settles at create, so the fallback is no longer needed.
+                const x402Options = fundingMode instanceof types_js_1.X402Funding
+                    ? {
+                        signer: fundingMode.signer ??
+                            (await (0, signer_js_1.makeX402Signer)(this.signer.signer)),
+                        maxMUSDCAmount: fundingMode.maxMUSDCAmount,
+                    }
+                    : undefined;
+                /*
+                  Auto mode sends an item in one request when it fits in two chunks,
+                  and x402 buffers that request. A large `chunkByteCount` stretches two
+                  chunks far past the buffer cap, so an x402 item over the cap chunks
+                  whatever the chunk size.
+                */
+                /*
+                  The guard before signing works from an estimate of the signing
+                  overhead, so an item with large tags can pass it and still exceed the
+                  cap once signed. With chunking disabled there is no chunked path to
+                  fall back to, so refuse it here rather than buffering it.
+                */
+                if (x402Options !== undefined &&
+                    params.chunkingMode === 'disabled' &&
+                    dataItemSizeFactory() > maxX402SingleRequestByteCount) {
+                    throw new errors_js_1.ProvidedInputError(`The signed x402 item is ${dataItemSizeFactory()} bytes, over the ` +
+                        `${maxX402SingleRequestByteCount}-byte single-request limit. ` +
+                        `Remove chunkingMode: 'disabled' to upload this item.`);
+                }
+                const chunkingMode = x402Options !== undefined &&
+                    (params.chunkingMode ?? 'auto') === 'auto' &&
+                    dataItemSizeFactory() > maxX402SingleRequestByteCount
+                    ? 'force'
+                    : params.chunkingMode;
+                const chunkedUploader = new chunked_js_1.ChunkedUploader({
+                    http: this.httpService,
+                    token: this.token,
+                    maxChunkConcurrency,
+                    chunkByteCount,
+                    logger: this.logger,
+                    dataItemByteCount: dataItemSizeFactory(),
+                    chunkingMode,
+                    maxFinalizeMs: params.maxFinalizeMs,
+                    paidUploadId,
+                    ...(x402Options ? { x402: x402Options } : {}),
+                    ...(x402Options
+                        ? {
+                            x402RefundIdentity: {
+                                address: await this.signer.getNativeAddress(),
+                                signatureType: this.signer.signer.signatureType,
+                            },
+                        }
+                        : {}),
+                });
+                if (chunkedUploader.shouldUseChunkUploader) {
+                    try {
+                        const response = await chunkedUploader.upload({
+                            dataItemStreamFactory,
+                            dataItemSizeFactory,
+                            dataItemOpts,
+                            signal,
+                            events,
+                        });
+                        return { ...response, cryptoFundResult };
+                    }
+                    finally {
+                        // Read on the way out, success or failure. On failure this is the
+                        // whole point: the next attempt resumes what this one paid for.
+                        paidUploadId = chunkedUploader.currentPaidUploadId ?? paidUploadId;
+                    }
+                }
+                const response = await this.uploadSignedDataItem({
+                    dataItemStreamFactory,
+                    dataItemSizeFactory,
+                    dataItemOpts,
+                    signal,
+                    events,
+                    x402Options,
+                });
+                return { ...response, cryptoFundResult };
+            }
+            catch (error) {
+                // Store the last encountered error and status for re-throwing after retries
+                lastError = error;
+                // Nothing about the caller's input changes between attempts, so a
+                // rejected input fails once rather than after every retry.
+                if (error instanceof errors_js_1.ProvidedInputError) {
+                    throw error;
+                }
+                if (error instanceof errors_js_2.FailedRequestError) {
+                    lastStatusCode = error.status;
+                }
+                else {
+                    lastStatusCode = error.response?.status;
+                }
+                if (lastStatusCode !== undefined &&
+                    lastStatusCode >= 400 &&
+                    lastStatusCode < 500) {
+                    // Don't retry client error codes
+                    break;
+                }
+                this.logger.debug(`Upload failed on attempt ${retries + 1}/${maxRetries + 1}`, { message: error instanceof Error ? error.message : error }, error);
+                retries++;
+                const abortEventPromise = new Promise((resolve) => {
+                    signal?.addEventListener('abort', () => {
+                        resolve();
+                    });
+                });
+                await Promise.race([(0, common_js_1.sleep)(retryDelay(retries)), abortEventPromise]);
+            }
+        }
+        const msg = `Failed to upload file after ${retries + 1} attempts\n${lastError instanceof Error ? lastError.message : lastError}`;
+        // After all retries, throw the last error for catching
+        if (lastError instanceof errors_js_2.FailedRequestError) {
+            lastError.message = msg;
+            throw lastError;
+        }
+        throw new errors_js_2.FailedRequestError(msg, lastStatusCode);
+    }
+    /**
+     * Returns an upper bound on the bytes in a folder's manifest, if every file
+     * lands. Data item ids are always 43 characters, so placeholder ids give the
+     * real length, except for the index path: without an index file, the
+     * manifest indexes whichever file finished first, so the estimate allows for
+     * the longest path there.
+     */
+    async plannedManifestByteCount({ relativePaths, indexFile, fallbackFile, }) {
+        const placeholder = { id: 'x'.repeat(43) };
+        const paths = {};
+        let longestPathByteCount = 0;
+        for (const path of relativePaths) {
+            paths[path] = placeholder;
+            longestPathByteCount = Math.max(longestPathByteCount, Buffer.byteLength(JSON.stringify(path)));
+        }
+        const manifest = await this.generateManifest({
+            paths,
+            indexFile,
+            fallbackFile,
+        });
+        return Buffer.byteLength(JSON.stringify(manifest)) + longestPathByteCount;
+    }
+    async generateManifest({ paths, indexFile, fallbackFile, }) {
+        const indexPath = 
+        // Use the user provided index file if it exists,
+        indexFile !== undefined && paths[indexFile]?.id !== undefined
+            ? indexFile
+            : // Else use index.html if it exists,
+                paths['index.html']?.id !== undefined
+                    ? 'index.html'
+                    : // Else use the first file in the paths object.
+                        Object.keys(paths)[0];
+        const fallbackId = 
+        // Use the user provided fallback file if it exists,
+        fallbackFile !== undefined && paths[fallbackFile]?.id !== undefined
+            ? paths[fallbackFile].id
+            : // Else use 404.html if it exists, else use the index path.
+                paths['404.html']?.id ?? paths[indexPath].id;
+        const manifest = {
+            manifest: 'arweave/paths',
+            version: '0.2.0',
+            index: { path: indexPath },
+            paths,
+            fallback: { id: fallbackId },
+        };
+        return manifest;
+    }
+    /**
+     * The sha-256 of a file's bytes, as lowercase hex. The key of a
+     * {@link TurboFolderUploadIndex}.
+     *
+     * This default consumes the file's stream and digests it with the platform
+     * WebCrypto implementation, which serves the browser. NodeJS overrides it
+     * with a streaming digest so a large file is never held in memory.
+     */
+    async computeContentHash(file) {
+        const stream = this.getFileStreamForFile(file);
+        const chunks = [];
+        if ('getReader' in stream) {
+            const reader = stream.getReader();
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done)
+                    break;
+                chunks.push(value);
+            }
+        }
+        else {
+            for await (const chunk of stream) {
+                chunks.push(new Uint8Array(chunk));
+            }
+        }
+        const digest = await crypto.subtle.digest('SHA-256', Buffer.concat(chunks));
+        return Buffer.from(digest).toString('hex');
+    }
+    /**
+     * The exact tag set a folder upload writes for one file. Shared by the
+     * planner and the uploader, so that the tags a folder index key is computed
+     * from are, without question, the tags the data item ends up carrying.
+     */
+    folderFileTags({ file, dataItemOpts, contentHash, hashTagName = folderIndex_js_1.contentHashTagName, }) {
+        return [
+            ...(dataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type' &&
+                // Only stripped when this upload is going to write its own. Without a
+                // folder index, a caller's File-SHA256 tag is theirs to keep.
+                (contentHash === undefined || tag.name !== hashTagName)) ?? []),
+            {
+                name: 'Content-Type',
+                value: this.getContentType(file, dataItemOpts),
+            },
+            ...(contentHash !== undefined
+                ? [{ name: hashTagName, value: contentHash }]
+                : []),
+        ];
+    }
+    /**
+     * A folder index is a cache, so a layer that is unreachable must mean a miss
+     * and not an aborted deploy. The write side is forgiving for the same reason.
+     */
+    async readFolderIndex(folderIndex, keys, signal) {
+        const knownIds = new Map();
+        const unresolved = [];
+        for (const key of keys) {
+            let id;
+            try {
+                id = await folderIndex.get(key);
+            }
+            catch (error) {
+                this.logger.error('Failed to read from folder index', error);
+            }
+            if (id !== undefined && (0, common_js_1.isValidArweaveBase64URL)(id)) {
+                knownIds.set(key, id);
+            }
+            else {
+                unresolved.push(key);
+            }
+        }
+        if (unresolved.length > 0 && folderIndex.resolve !== undefined) {
+            try {
+                const resolved = await folderIndex.resolve(unresolved, { signal });
+                for (const [key, id] of Object.entries(resolved)) {
+                    if ((0, common_js_1.isValidArweaveBase64URL)(id)) {
+                        knownIds.set(key, id);
+                    }
+                }
+            }
+            catch (error) {
+                this.logger.error('Failed to resolve from folder index', error);
+            }
+        }
+        return knownIds;
+    }
+    /**
+     * Hashes every file and derives its folder index key, then works out which of
+     * those keys already have a data item id -- from the index, or from an
+     * identical file earlier in this same folder.
+     */
+    async planFolderIndex({ files, folderIndex, dataItemOpts, limit, signal, }) {
+        const contentHashes = new Map();
+        const itemKeys = new Map();
+        await Promise.all(files.map((file) => limit(async () => {
+            let contentHash;
+            try {
+                contentHash = await this.computeContentHash(file);
+            }
+            catch (error) {
+                // A file that cannot be read is left un-keyed and falls through to
+                // the per-file upload path, which reports it through `errors` under
+                // `throwOnFailure`. Rejecting here instead would abort the whole
+                // folder before any upload starts, so passing a folder index would
+                // silently change the failure contract.
+                this.logger.error('Failed to hash file for the folder index', {
+                    file: this.getFileName(file),
+                    error,
+                });
+                return;
+            }
+            contentHashes.set(file, contentHash);
+            itemKeys.set(file, await (0, folderIndex_js_1.folderIndexKey)({
+                contentHash,
+                tags: this.folderFileTags({
+                    file,
+                    dataItemOpts,
+                    contentHash,
+                    hashTagName: folderIndex.hashTagName,
+                }),
+            }));
+        })));
+        const knownIds = await this.readFolderIndex(folderIndex, [...new Set(itemKeys.values())], signal);
+        // Two files that would produce the same data item share a single upload, so
+        // the plan deduplicates within the folder as well as against the index.
+        const claimed = new Set();
+        const filesToUpload = files.filter((file) => {
+            const key = itemKeys.get(file);
+            // An un-keyed file could not be hashed. It is never a reuse candidate and
+            // must not share the dedup slot with the next un-keyed file, so it skips
+            // the claimed set entirely and always uploads.
+            if (key === undefined) {
+                return true;
+            }
+            if (knownIds.has(key) || claimed.has(key)) {
+                return false;
+            }
+            claimed.add(key);
+            return true;
+        });
+        this.logger.debug('Planned folder index', {
+            folderIndex: folderIndex.name,
+            totalFiles: files.length,
+            filesToUpload: filesToUpload.length,
+        });
+        await this.warnOnStaleTagMisses({ folderIndex, itemKeys, knownIds });
+        return { contentHashes, itemKeys, knownIds, filesToUpload };
+    }
+    /**
+     * A key covers the tags on a file as well as its bytes, so a tag in
+     * `dataItemOpts` that changes between deploys re-uploads the whole folder at
+     * full price. That is the right answer -- a reused data item is never one
+     * this call would not have made -- but on its own it is a silent cost cliff:
+     * a successful deploy, a full bill, and nothing saying why.
+     *
+     * The signature of that mistake is exact, and it is already in hand. A key is
+     * `<bytes>.<tags>`, so a file whose *bytes half* the index knows under some
+     * other tags half is a file whose content is already paid for and whose tags
+     * moved. Nothing else produces that: a folder the index has never seen has
+     * unknown bytes, and a layer that could not be reached reports nothing known.
+     * It also catches one file in a hundred, not just all of them.
+     */
+    async warnOnStaleTagMisses({ folderIndex, itemKeys, knownIds, }) {
+        if (folderIndex.knownContentHashes === undefined) {
+            return;
+        }
+        // Counted in files, not in keys: the message is about a bill, and the bill
+        // is per file. Two files that share a key are one upload but the reader is
+        // looking for their own file count.
+        const filesPerKey = new Map();
+        for (const key of itemKeys.values()) {
+            filesPerKey.set(key, (filesPerKey.get(key) ?? 0) + 1);
+        }
+        const missed = [...filesPerKey.keys()].filter((key) => !knownIds.has(key));
+        if (missed.length === 0) {
+            return;
+        }
+        const filesFor = (keys) => keys.reduce((count, key) => count + (filesPerKey.get(key) ?? 0), 0);
+        const missedFiles = filesFor(missed);
+        const missedByContentHash = new Map();
+        for (const key of missed) {
+            const contentHash = (0, folderIndex_js_1.contentHashFromFolderIndexKey)(key);
+            missedByContentHash.set(contentHash, [
+                ...(missedByContentHash.get(contentHash) ?? []),
+                key,
+            ]);
+        }
+        let staleTagged = [];
+        try {
+            staleTagged =
+                (await folderIndex.knownContentHashes([
+                    ...missedByContentHash.keys(),
+                ])) ?? [];
+        }
+        catch (error) {
+            this.logger.error('Failed to read from folder index', error);
+            return;
+        }
+        const affected = staleTagged.reduce((count, contentHash) => count + filesFor(missedByContentHash.get(contentHash) ?? []), 0);
+        if (affected === 0) {
+            return;
+        }
+        this.logger.warn(`${affected} of the ${missedFiles} file(s) this run is about to upload are already on Arweave byte for byte, under a different set of tags. ` +
+            'Their content has not changed but their tags have, so they are being paid for again. A folder index key covers the tags ' +
+            'on a file as well as its bytes. That is usually a tag in dataItemOpts whose value changes between deploys -- a commit ' +
+            'sha, a build number, a timestamp -- in which case move it to manifestDataItemOpts rather than paying for these files ' +
+            'again. It can also be a file that kept its content but changed its Content-Type, through a rename or a new extension, ' +
+            'which is expected and costs one upload.');
+    }
+    getContentType(file, dataItemOpts) {
+        const userDefinedContentType = dataItemOpts?.tags?.find((tag) => tag.name === 'Content-Type')?.value;
+        if (userDefinedContentType !== undefined) {
+            return userDefinedContentType;
+        }
+        return this.contentTypeFromFile(file);
+    }
+    async uploadFolder(params) {
+        this.logger.debug('Uploading folder...', { params });
+        const { dataItemOpts, manifestDataItemOpts = dataItemOpts, folderIndex, signal, manifestOptions = {}, maxConcurrentUploads = 1, throwOnFailure = true, maxChunkConcurrency, chunkByteCount, chunkingMode, fundingMode = new types_js_1.ExistingBalanceFunding(), maxFinalizeMs, events = {}, } = params;
+        const { disableManifest, indexFile, fallbackFile } = manifestOptions;
+        // Create event emitter from events parameter
+        const emitter = new events_js_1.TurboEventEmitter(events);
+        const paths = {};
+        const response = {
+            fileResponses: [],
+        };
+        const errors = [];
+        const limit = (0, plimit_lit_1.pLimit)(maxConcurrentUploads);
+        // Get files and calculate total bytes upfront for progress tracking
+        const files = await this.getFiles(params);
+        // With an index, only the files whose bytes are not already on Arweave are
+        // signed, uploaded and paid for. Progress totals cover that subset, since
+        // it is all this call actually does.
+        let contentHashes = new Map();
+        let itemKeys = new Map();
+        let knownIds = new Map();
+        let filesToUpload = files;
+        if (folderIndex !== undefined) {
+            ({ contentHashes, itemKeys, knownIds, filesToUpload } =
+                await this.planFolderIndex({
+                    files,
+                    folderIndex,
+                    dataItemOpts,
+                    limit,
+                    signal,
+                }));
+        }
+        const totalFiles = filesToUpload.length;
+        let totalBytes = 0;
+        let folderBytes = 0;
+        const fileSizes = new Map();
+        files.forEach((file) => {
+            const size = this.getFileSize(file);
+            fileSizes.set(file, size);
+            folderBytes += size;
+        });
+        filesToUpload.forEach((file) => {
+            totalBytes += fileSizes.get(file) ?? 0;
+        });
+        // Track progress across all files
+        let processedFiles = 0;
+        let processedBytes = 0;
+        const uploadFile = async (file, fileIndex) => {
+            const fileName = this.getFileName(file);
+            const fileSize = fileSizes.get(file) ?? 0;
+            // Emit file-upload-start event
+            emitter.emit('file-upload-start', {
+                fileName,
+                fileSize,
+                fileIndex,
+                totalFiles,
+            });
+            const contentHash = contentHashes.get(file);
+            const dataItemOptsWithContentType = {
+                ...dataItemOpts,
+                tags: this.folderFileTags({
+                    file,
+                    dataItemOpts,
+                    contentHash,
+                    hashTagName: folderIndex?.hashTagName,
+                }),
+            };
+            try {
+                const result = await this.uploadFile({
+                    // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    fileStreamFactory: () => this.getFileStreamForFile(file),
+                    fileSizeFactory: () => fileSize,
+                    signal,
+                    dataItemOpts: dataItemOptsWithContentType,
+                    chunkByteCount,
+                    maxChunkConcurrency,
+                    chunkingMode,
+                    events: {
+                        onProgress: (event) => {
+                            // Bridge individual file progress to folder events
+                            emitter.emit('file-upload-progress', {
+                                fileName,
+                                fileIndex,
+                                totalFiles,
+                                fileProcessedBytes: event.processedBytes,
+                                fileTotalBytes: event.totalBytes,
+                                step: event.step,
+                            });
+                            // Update folder progress
+                            const currentFileProgress = event.processedBytes;
+                            emitter.emit('folder-progress', {
+                                processedFiles,
+                                totalFiles,
+                                processedBytes: processedBytes + currentFileProgress,
+                                totalBytes,
+                                currentPhase: 'files',
+                            });
+                        },
+                        onError: (error) => {
+                            emitter.emit('file-upload-error', {
+                                fileName,
+                                fileIndex,
+                                totalFiles,
+                                error,
+                            });
+                        },
+                    },
+                    fundingMode,
+                });
+                const itemKey = itemKeys.get(file);
+                if (itemKey !== undefined) {
+                    // Recorded before anything else can fail, so a run that is killed
+                    // part way through never loses a file it has already paid for.
+                    knownIds.set(itemKey, result.id);
+                    try {
+                        await folderIndex?.set(itemKey, result.id);
+                    }
+                    catch (error) {
+                        // A failed index write costs the next run a re-upload; it must not
+                        // fail this one, which has already paid for and landed the bytes.
+                        this.logger.error('Failed to write to folder index', error);
+                    }
+                }
+                else {
+                    const relativePath = this.getRelativePath(file, params);
+                    paths[relativePath] = { id: result.id };
+                }
+                response.fileResponses.push(result);
+                // Update processed counts after file completes
+                processedFiles++;
+                processedBytes += fileSize;
+                // Emit file-upload-complete event
+                emitter.emit('file-upload-complete', {
+                    fileName,
+                    fileIndex,
+                    totalFiles,
+                    id: result.id,
+                });
+                // Emit folder progress after file completes
+                emitter.emit('folder-progress', {
+                    processedFiles,
+                    totalFiles,
+                    processedBytes,
+                    totalBytes,
+                    currentPhase: 'files',
+                });
+            }
+            catch (error) {
+                emitter.emit('file-upload-error', {
+                    fileName,
+                    fileIndex,
+                    totalFiles,
+                    error,
+                });
+                if (throwOnFailure) {
+                    emitter.emit('folder-error', error);
+                    throw error;
+                }
+                this.logger.error(`Error uploading file: ${file}`, error);
+                errors.push(error);
+            }
+        };
+        let cryptoFundResult;
+        if (fundingMode instanceof types_js_1.OnDemandFunding) {
+            // allow extra per item for ANS-104 headers
+            const headerByteCount = 1200;
+            const itemByteCounts = filesToUpload.map((file) => this.getFileSize(file) + headerByteCount);
+            // The manifest spends the same balance. Left out of the estimate, it
+            // needed a second top-up of its own.
+            if (!disableManifest && files.length > 0) {
+                itemByteCounts.push((await this.plannedManifestByteCount({
+                    relativePaths: files.map((file) => this.getRelativePath(file, params)),
+                    indexFile,
+                    fallbackFile,
+                })) + headerByteCount);
+            }
+            cryptoFundResult = await this.onDemand({
+                itemByteCounts,
+                onDemandFunding: fundingMode,
+            });
+        }
+        await Promise.all(filesToUpload.map((file, index) => limit(() => uploadFile(file, index))));
+        this.logger.debug('Finished uploading files', {
+            numFiles: filesToUpload.length,
+            numErrors: errors.length,
+            results: response.fileResponses,
+        });
+        if (errors.length > 0) {
+            response.errors = errors;
+        }
+        if (folderIndex !== undefined) {
+            // Built in folder order rather than in completion order, so an unchanged
+            // folder produces byte identical manifest bytes -- and therefore an
+            // identical manifest data item id -- run after run.
+            for (const file of files) {
+                const id = knownIds.get(itemKeys.get(file));
+                if (id !== undefined) {
+                    paths[this.getRelativePath(file, params)] = { id };
+                }
+            }
+            response.folderIndexSummary = {
+                totalFiles: files.length,
+                totalBytes: folderBytes,
+                // What landed, not what was planned. With throwOnFailure: false a file
+                // can be planned, paid for nothing, and never arrive.
+                uploadedFiles: processedFiles,
+                uploadedBytes: processedBytes,
+                reusedFiles: files.length - filesToUpload.length,
+                reusedBytes: folderBytes - totalBytes,
+            };
+        }
+        if (disableManifest) {
+            emitter.emit('folder-success');
+            return response;
+        }
+        // Emit folder progress for manifest phase
+        emitter.emit('folder-progress', {
+            processedFiles,
+            totalFiles,
+            processedBytes,
+            totalBytes,
+            currentPhase: 'manifest',
+        });
+        const manifest = await this.generateManifest({
+            paths,
+            indexFile,
+            fallbackFile,
+        });
+        const tagsWithManifestContentType = [
+            ...(manifestDataItemOpts?.tags?.filter((tag) => tag.name !== 'Content-Type') ?? []),
+            { name: 'Content-Type', value: 'application/x.arweave-manifest+json' },
+        ];
+        const manifestBuffer = Buffer.from(JSON.stringify(manifest));
+        const manifestResponse = await this.uploadFile({
+            // TODO: can fix this type by passing a class generic and specifying in the node/web abstracts which stream type to use
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fileStreamFactory: () => this.createManifestStream(manifestBuffer),
+            fileSizeFactory: () => manifestBuffer.byteLength,
+            signal,
+            dataItemOpts: {
+                ...manifestDataItemOpts,
+                tags: tagsWithManifestContentType,
+            },
+            chunkByteCount,
+            maxChunkConcurrency,
+            maxFinalizeMs,
+            chunkingMode,
+            fundingMode,
+        });
+        emitter.emit('folder-success');
+        return {
+            ...response,
+            manifest,
+            manifestResponse,
+            cryptoFundResult,
+        };
+    }
+    async shareCredits({ approvedAddress, approvedWincAmount, expiresBySeconds, }) {
+        const dataItemOpts = {
+            tags: [
+                {
+                    name: exports.creditSharingTagNames.shareCredits,
+                    value: approvedAddress,
+                },
+                {
+                    name: exports.creditSharingTagNames.sharedWincAmount,
+                    value: approvedWincAmount.toString(),
+                },
+            ],
+        };
+        if (expiresBySeconds !== undefined) {
+            dataItemOpts.tags.push({
+                name: exports.creditSharingTagNames.approvalExpiresBySeconds,
+                value: expiresBySeconds.toString(),
+            });
+        }
+        const nonceData = Buffer.from(approvedAddress + approvedWincAmount + Date.now());
+        const { createdApproval, ...uploadResponse } = await this.uploadFile({
+            fileStreamFactory: () => nonceData,
+            fileSizeFactory: () => nonceData.byteLength,
+            dataItemOpts,
+        });
+        if (!createdApproval) {
+            throw new Error('Failed to create credit share approval but upload has succeeded\n' +
+                JSON.stringify(uploadResponse));
+        }
+        return createdApproval;
+    }
+    async revokeCredits({ revokedAddress, }) {
+        const dataItemOpts = {
+            tags: [
+                {
+                    name: exports.creditSharingTagNames.revokeCredits,
+                    value: revokedAddress,
+                },
+            ],
+        };
+        const nonceData = Buffer.from(revokedAddress + Date.now());
+        const { revokedApprovals, ...uploadResponse } = await this.uploadFile({
+            fileStreamFactory: () => nonceData,
+            fileSizeFactory: () => nonceData.byteLength,
+            dataItemOpts,
+        });
+        if (!revokedApprovals) {
+            throw new Error('Failed to revoke credit share approvals but upload has succeeded\n' +
+                JSON.stringify(uploadResponse));
+        }
+        return revokedApprovals;
+    }
+    /**
+     * The winc the service will charge for the given items. Never less.
+     *
+     * The service prices an item as a per-byte rate plus a fixed per-item
+     * charge, rounded up per item: a zero-byte item costs about 8M winc. Scaling
+     * the 1 GiB price down to the item size dropped that fixed part, so a small
+     * upload was under funded by up to ~38%, a folder by roughly the fixed charge
+     * per file, and `topUpBufferMultiplier: 1` could never succeed.
+     *
+     * Items from 1 byte to 1 GiB are priced from two quotes, at 1 byte and 1 GiB.
+     * The line through those two (already rounded up) prices never falls below
+     * the service's unrounded price anywhere between them, so rounding each item
+     * up keeps every estimate, and their sum, at or above what the service
+     * charges. Rounding only the total could not promise that. Anything the line
+     * would have to extrapolate to, and a lone item, is quoted exactly.
+     *
+     * The two quotes are made once per estimate. Each file of a folder still
+     * checks its own price when it uploads.
+     */
+    async estimateUploadWinc(itemByteCounts) {
+        const oneGiB = 2 ** 30;
+        const inModelRange = (bytes) => bytes >= 1 && bytes <= oneGiB;
+        const useModel = itemByteCounts.filter(inModelRange).length > 1;
+        const modelled = useModel ? itemByteCounts.filter(inModelRange) : [];
+        const quoted = useModel
+            ? itemByteCounts.filter((bytes) => !inModelRange(bytes))
+            : itemByteCounts;
+        const bytes = useModel ? [1, oneGiB, ...quoted] : quoted;
+        if (bytes.length === 0) {
+            return '0';
+        }
+        const quotes = await this.paymentService.getUploadCosts({ bytes });
+        let total = (useModel ? quotes.slice(2) : quotes).reduce((sum, { winc }) => sum.plus(winc), new bignumber_js_1.BigNumber(0));
+        if (useModel) {
+            const [oneByte, gibibyte] = quotes;
+            const perByte = new bignumber_js_1.BigNumber(gibibyte.winc)
+                .minus(oneByte.winc)
+                .dividedBy(oneGiB - 1);
+            const perItem = new bignumber_js_1.BigNumber(oneByte.winc).minus(perByte);
+            for (const itemBytes of modelled) {
+                total = total.plus(perByte
+                    .multipliedBy(itemBytes)
+                    .plus(perItem)
+                    .integerValue(bignumber_js_1.BigNumber.ROUND_UP));
+            }
+        }
+        return total.toFixed(0);
+    }
+    /**
+     * Triggers an upload that will top-up the wallet with Credits for the amount before uploading.
+     * First, it calculates the expected cost of the upload. Next, it checks the wallet for existing
+     * balance. If the balance is insufficient, it will attempt the top-up with the wallet in the specified `token`
+     * and await for the balance to be credited.
+     * Note: Only `ario`, `solana`, and `base-eth` tokens are currently supported for on-demand uploads.
+     */
+    async onDemand({ itemByteCounts, onDemandFunding, }) {
+        const { maxTokenAmount, topUpBufferMultiplier } = onDemandFunding;
+        const currentBalance = await this.paymentService.getBalance();
+        const expectedWincPrice = await this.estimateUploadWinc(itemByteCounts);
+        if ((0, bignumber_js_1.BigNumber)(currentBalance.effectiveBalance).isGreaterThanOrEqualTo(expectedWincPrice)) {
+            this.logger.debug('Sufficient balance for on demand upload', {
+                currentBalance,
+                expectedWincPrice,
+            });
+            return undefined;
+        }
+        this.logger.debug('Insufficient balance for on demand upload', {
+            currentBalance,
+            expectedWincPrice,
+        });
+        if (!this.enabledOnDemandTokens.includes(this.token)) {
+            throw new Error(`On-demand uploads are not supported for token: ${this.token}`);
+        }
+        const topUpWincAmount = (0, bignumber_js_1.BigNumber)(expectedWincPrice)
+            .minus(currentBalance.effectiveBalance)
+            .multipliedBy(topUpBufferMultiplier) // add buffer to avoid underpayment
+            .toFixed(0, bignumber_js_1.BigNumber.ROUND_UP);
+        const wincPriceForOneToken = (await this.paymentService.getWincForToken({
+            tokenAmount: index_js_1.tokenToBaseMap[this.token](1),
+        })).winc;
+        const topUpTokenAmount = new bignumber_js_1.BigNumber(topUpWincAmount)
+            .dividedBy(wincPriceForOneToken)
+            .multipliedBy(index_js_1.tokenToBaseMap[this.token](1))
+            .toFixed(0, bignumber_js_1.BigNumber.ROUND_UP);
+        if (maxTokenAmount !== undefined) {
+            if (new bignumber_js_1.BigNumber(topUpTokenAmount).isGreaterThan(maxTokenAmount)) {
+                // Both amounts are in base units. Report them in whole tokens: the
+                // exponent is the number of decimals, so divide by 10 to that power.
+                const baseUnitsPerToken = new bignumber_js_1.BigNumber(10).pow(index_js_1.exponentMap[this.token]);
+                throw new Error(`Top up token amount ${new bignumber_js_1.BigNumber(topUpTokenAmount)
+                    .div(baseUnitsPerToken)
+                    .toFixed()} ${this.token} is greater than the maximum allowed ` +
+                    `amount of ${new bignumber_js_1.BigNumber(maxTokenAmount)
+                        .div(baseUnitsPerToken)
+                        .toFixed()} ${this.token}`);
+            }
+        }
+        this.logger.debug(`Topping up wallet with ${topUpTokenAmount} ${this.token} for ${topUpWincAmount} winc`);
+        const topUpResponse = await this.paymentService.topUpWithTokens({
+            tokenAmount: topUpTokenAmount,
+        });
+        this.logger.debug('Top up transaction submitted', { topUpResponse });
+        const pollingOptions = {
+            pollIntervalMs: 3 * 1000, // poll every 3 seconds
+            timeoutMs: 120 * 1000, // wait up to 2 minutes
+        };
+        let tries = 1;
+        const maxTries = Math.ceil(pollingOptions.timeoutMs / pollingOptions.pollIntervalMs) - 1; // -1 because we already tried once with the initial request
+        while (topUpResponse.status !== 'confirmed' && tries < maxTries) {
+            this.logger.debug('Tx not yet confirmed, waiting to poll again', {
+                tries,
+                maxTries,
+            });
+            await (0, common_js_1.sleep)(pollingOptions.pollIntervalMs);
+            tries++;
+            try {
+                const submitFundResult = await this.paymentService.submitFundTransaction({
+                    txId: topUpResponse.id,
+                });
+                if (submitFundResult.status === 'confirmed') {
+                    this.logger.debug('Top-up transaction confirmed and balance updated', { submitFundResult });
+                    topUpResponse.status = 'confirmed';
+                    break;
+                }
+            }
+            catch (error) {
+                this.logger.warn('Error fetching fund transaction during polling', {
+                    message: error instanceof Error ? error.message : error,
+                });
+            }
+        }
+        if (tries >= maxTries) {
+            this.logger.warn('Timed out waiting for fund tx to confirm after top-up. Will continue to attempt upload but it may fail if balance is insufficient.');
+        }
+        return topUpResponse;
+    }
+    async uploadRawX402Data({ data, tags, signal, maxMUSDCAmount, }) {
+        return super.uploadRawX402Data({
+            data,
+            tags,
+            signal,
+            maxMUSDCAmount,
+            signer: this.signer,
+        });
+    }
+}
+exports.TurboAuthenticatedBaseUploadService = TurboAuthenticatedBaseUploadService;
+/**
+ * The largest data item the x402 single-request path will buffer.
+ *
+ * An x402 item over this size never takes that path. In auto mode it is
+ * chunked instead, whatever `chunkByteCount` is. With chunking disabled it is
+ * refused, with an explanation rather than by exhausting memory.
+ */
+const maxX402SingleRequestByteCount = 100 * 1024 * 1024;
+/**
+ * Headroom for what signing ADDS, so the guard measures the thing that is
+ * actually buffered.
+ *
+ * The limit applies to the signed data item, not the file: ANS-104 headers,
+ * the signature and the caller's tags all ride along. Checking the raw size
+ * let a file in the top of the range through, to be signed, buffered, and then
+ * refused by the service — wasting precisely the expensive step the guard
+ * exists to skip.
+ *
+ * Same allowance folder uploads already use for the same overhead.
+ */
+const x402SignedItemOverheadByteCount = 1200;
+/**
+ * Emits an event whose listeners belong to the caller, so one that throws
+ * cannot change the result of a request that already settled. A settled x402
+ * payment reported as a failure would be retried, and paid for twice. The
+ * listener's failure is logged instead.
+ */
+function emitQuietly(emitter, logger, event, error) {
+    try {
+        if (event === 'upload-error') {
+            emitter.emit('upload-error', error);
+        }
+        else {
+            emitter.emit('upload-success');
+        }
+    }
+    catch (listenerError) {
+        logger.error(`A ${event} listener threw`, listenerError);
+    }
+}
+/**
+ * Drain a data-item stream into a Buffer, resuming it once the reader is
+ * attached so upload-progress events still fire.
+ *
+ * Checks the running total as it fills rather than at the end: a stream that
+ * overruns its declared size would otherwise be held in memory in full before
+ * anything objected.
+ */
+async function streamToBuffer(stream, byteCount, resume, signal) {
+    // A closure, so TypeScript does not narrow `aborted` away for the whole
+    // function — it genuinely can flip while the stream is draining.
+    const isAborted = () => signal?.aborted === true;
+    if (isAborted()) {
+        throw new errors_js_1.AbortError();
+    }
+    const chunks = [];
+    let received = 0;
+    const take = (chunk) => {
+        received += chunk.byteLength;
+        if (received > byteCount) {
+            throw new Error(`Data item stream exceeded its declared size of ${byteCount} bytes`);
+        }
+        chunks.push(chunk);
+    };
+    if (stream instanceof node_stream_1.Readable) {
+        const done = new Promise((resolve, reject) => {
+            const onAbort = () => {
+                stream.destroy();
+                reject(new errors_js_1.AbortError());
+            };
+            signal?.addEventListener('abort', onAbort, { once: true });
+            stream.on('data', (c) => {
+                try {
+                    take(Buffer.from(c));
+                }
+                catch (error) {
+                    stream.destroy();
+                    reject(error);
+                }
+            });
+            stream.on('end', () => {
+                signal?.removeEventListener('abort', onAbort);
+                resolve();
+            });
+            stream.on('error', reject);
+        });
+        resume();
+        await done;
+    }
+    else {
+        const reader = stream.getReader();
+        resume();
+        try {
+            for (;;) {
+                if (isAborted()) {
+                    await reader.cancel();
+                    throw new errors_js_1.AbortError();
+                }
+                const { done, value } = await reader.read();
+                if (done)
+                    break;
+                if (value !== undefined)
+                    take(Buffer.from(value));
+            }
+        }
+        catch (error) {
+            await reader.cancel().catch(() => undefined);
+            throw error;
+        }
+    }
+    const buf = Buffer.concat(chunks);
+    if (buf.byteLength !== byteCount) {
+        throw new Error(`Data item stream produced ${buf.byteLength} bytes, expected ${byteCount}`);
+    }
+    return buf;
+}
