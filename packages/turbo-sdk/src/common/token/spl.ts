@@ -51,6 +51,16 @@ import { memoProgramId } from './solana.js';
  * token — so a second SPL token (USDC) is a mint and a decimals value, not a
  * second implementation. The payment service verifies both with one class too
  * (`SolanaSplGateway`).
+ *
+ * Two constraints worth knowing before pointing this at a third token:
+ *  - The associated token accounts are derived for the CLASSIC SPL Token
+ *    program (Tokenkeg), which is what ARIO and USDC use. A Token-2022 mint
+ *    derives a different ATA, so it would need its own program id threading
+ *    through `getAssociatedTokenAddressSync`. It fails loudly on-chain rather
+ *    than silently paying the wrong account.
+ *  - `decimals` must match the mint's own. `transferChecked` carries the value
+ *    and the chain rejects a mismatch, so a wrong value fails the transaction
+ *    instead of transferring a wrong amount.
  */
 export class SplToken implements TokenTools {
   protected logger: TurboLogger;
