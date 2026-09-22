@@ -1,0 +1,29 @@
+# Routine version updates go to alpha, so they ship through the same
+# alpha -> main flow as everything else. Security updates are separate: GitHub
+# always opens those against the default branch (main), and they are merged by
+# hand.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: alpha
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: alpha
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']

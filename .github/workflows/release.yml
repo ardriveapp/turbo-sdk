@@ -1,8 +1,12 @@
 name: Release
 
+# One queue per branch. A merge to main must never cancel an alpha release,
+# and a release is never cancelled once it starts: npm publish is not
+# atomic with the steps after it, so a cancelled run can leave a version on
+# npm with no tag or GitHub release. The next run waits instead.
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 on:
   push:
@@ -12,7 +16,9 @@ on:
 
 jobs:
   build:
-    uses: ardriveapp/turbo-sdk/.github/workflows/build.yml@alpha
+    # The build.yml at this commit, so each branch releases with its own CI
+    # definition. Pinning @alpha ran alpha's jobs against main's code.
+    uses: ./.github/workflows/build.yml
     secrets: inherit
   release:
     runs-on: ubuntu-latest
