@@ -53,6 +53,7 @@
     "clean": "rimraf [ lib coverage bundles ]",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.alltests.json",
     "test": "c8 node --import=./register.mjs --test --test-timeout=500000 --enable-source-maps \"{src,tests}/**/*.{test,web.test,node.test}.ts\"",
     "test:only": "c8 node --import=./register.mjs --test --test-only --test-timeout=500000 --enable-source-maps \"{src,tests}/**/*.{test,web.test,node.test}.ts\"",
     "test:unit": "c8 node --import=./register.mjs --test --test-timeout=500000 --enable-source-maps src/**/*.test.ts",
