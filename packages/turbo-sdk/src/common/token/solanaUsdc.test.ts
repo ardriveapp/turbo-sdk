@@ -1,7 +1,11 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { defaultTokenMap, exponentMap, tokenToBaseMap } from '../token/index.js';
+import {
+  defaultTokenMap,
+  exponentMap,
+  tokenToBaseMap,
+} from '../token/index.js';
 import {
   DEVNET_SOLANA_USDC_MINT_ADDRESS,
   SOLANA_USDC_MINT_ADDRESS,
