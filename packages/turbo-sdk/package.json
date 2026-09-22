@@ -62,6 +62,7 @@
     "test:node:only": "c8 node --import=./register.mjs --test --test-only --test-timeout=500000 --enable-source-maps tests/**/*.node.test.ts",
     "test:docker": "./run-tests.sh",
     "test:docker:only": "./run-tests.sh --only",
+    "test:audit": "bash scripts/audit-packed.sh",
     "examples": "yarn example:esm & yarn example:cjs & yarn example:ts:esm & yarn example:ts:cjs",
     "example:vite": "cd examples/vite && yarn && yarn start",
     "example:esm": "cd examples/esm && yarn && node index.mjs",
@@ -75,12 +76,11 @@
     "docs": "markdown-toc-gen insert README.md --max-depth 3"
   },
   "dependencies": {
-    "@cosmjs/proto-signing": "^0.33.1",
-    "@cosmjs/stargate": "^0.33.1",
     "@dha-team/arbundles": "^1.0.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.95.5",
     "arweave": "^1.15.1",
+    "axios": "^1.18.0",
     "bignumber.js": "^9.1.2",
     "bs58": "^5.0.0",
     "cli-progress": "^3.12.0",
@@ -91,7 +91,15 @@
     "plimit-lit": "^3.0.1",
     "prompts": "^2.4.2",
     "tweetnacl": "^1.0.3",
+    "viem": "^2.21.26"
+  },
+  "peerDependencies": {
     "x402-fetch": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "x402-fetch": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
@@ -125,6 +133,7 @@
     "node-fetch": "^3.3.2",
     "semantic-release": "^25.0.1",
     "sinon": "^15.2.0",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "x402-fetch": "^1.0.0"
   }
 }

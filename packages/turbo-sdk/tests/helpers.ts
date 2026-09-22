@@ -136,14 +136,6 @@ export const testSolWallet = bs58.encode(
   ),
 );
 
-export const testKyveMnemonic = // cspell:disable
-  'industry addict wink hero diet bitter obscure need melt road fuel error category jealous eye cushion castle satoshi hungry clean observe lobster normal lazy';
-export const testKyvePrivatekey =
-  'b271ff821a011e89ce35b952c6336c810aa553646fd52c187f10cf910e45545c';
-export const testKyveNativeAddress =
-  'kyve1xddfun7awnee70xdq5fnt5ja3vxh93v3dj4k8v';
-export const base64KyveAddress = 'Rdhf8cqIdoeb7scy9l0d1iVmhu6nmRJIGR-V7YQPKy8'; // cspell:enable
-
 export const arweaveUrlString =
   process.env.ARWEAVE_GATEWAY ?? 'http://localhost:1984';
 const arweaveUrl = new URL(arweaveUrlString);
@@ -158,9 +150,6 @@ export const solanaUrlString = // TODO: Local SOL net in integration test
 
 export const ethereumGatewayUrl = // TODO: Local ETH net in integration test -- 'http://localhost:8545'
   process.env.ETHEREUM_GATEWAY ?? 'https://sepolia.gateway.tenderly.co'; // sepolia testnet rpc
-
-export const kyveUrlString = // TODO: Local KYVE net in integration test
-  process.env.KYVE_GATEWAY ?? 'https://api.korellia.kyve.network';
 
 export async function fundArLocalWalletAddress(address: string): Promise<void> {
   await testArweave.api.get(`mint/${address}/9999999999999999`);

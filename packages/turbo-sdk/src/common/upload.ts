@@ -54,6 +54,7 @@ import {
   UploadDataType,
   UploadSignedDataItemParams,
   X402Funding,
+  X402RequestCredentials,
 } from '../types.js';
 import { isBlob, isValidArweaveBase64URL, sleep } from '../utils/common.js';
 import { AbortError, ProvidedInputError } from '../utils/errors.js';
@@ -66,7 +67,11 @@ import {
 import { ChunkedUploader } from './chunked.js';
 import { TurboEventEmitter, createStreamWithUploadEvents } from './events.js';
 import { RetryConfig, defaultRetryConfig } from './http.js';
-import { TurboHTTPService, x402UploadEndpoints } from './http.js';
+import {
+  TurboHTTPService,
+  requireX402Fetch,
+  x402UploadEndpoints,
+} from './http.js';
 import { exponentMap, tokenToBaseMap } from './index.js';
 import { Logger } from './logger.js';
 import { TurboAuthenticatedPaymentService } from './payment.js';
@@ -318,14 +323,21 @@ export class TurboUnauthenticatedUploadService
       throw new TypeError('Invalid data type for x402 upload');
     }
 
-    const x402Options =
-      signer === undefined
-        ? undefined
-        : {
-            signer: await makeX402Signer(signer.signer),
-            maxMUSDCAmount,
-            unsignedData: true,
-          };
+    // With no signer this is a plain POST that pays nothing, which is what
+    // the unsigned route is for, so it must keep working with no optional peer
+    // installed. Only the paying branch needs it, and it resolves there before
+    // the signer is built, so a missing peer fails with the install message
+    // rather than after the signing work. That is the contract uploadFile
+    // keeps.
+    let x402Options: X402RequestCredentials | undefined;
+    if (signer !== undefined) {
+      await requireX402Fetch();
+      x402Options = {
+        signer: await makeX402Signer(signer.signer),
+        maxMUSDCAmount,
+        unsignedData: true,
+      };
+    }
 
     const response = await this.httpService.post<
       TurboUploadDataItemResponse & {
@@ -487,6 +499,13 @@ export abstract class TurboAuthenticatedBaseUploadService
       throw new Error(
         'x402 uploads are not supported for token: ' + this.token,
       );
+    }
+
+    // Checked here, with the other x402 preconditions, so a missing optional
+    // peer dependency fails before signing and before the retry loop, where it
+    // would otherwise read as an upload failure after six attempts.
+    if (fundingMode instanceof X402Funding) {
+      await requireX402Fetch();
     }
 
     /*

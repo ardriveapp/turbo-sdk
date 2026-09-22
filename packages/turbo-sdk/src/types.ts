@@ -25,7 +25,13 @@ import {
 import { BigNumber } from 'bignumber.js';
 import { JsonRpcSigner } from 'ethers';
 import { Readable } from 'node:stream';
-import { Signer as x402Signer } from 'x402-fetch';
+import type {
+  Account,
+  Chain,
+  LocalAccount,
+  Transport,
+  WalletClient,
+} from 'viem';
 
 import { CurrencyMap } from './common/currency.js';
 import { TurboEventEmitter } from './common/events.js';
@@ -66,7 +72,6 @@ export const tokenTypes = [
   'ario',
   'solana',
   'ethereum',
-  'kyve',
   'matic',
   'pol',
   'base-eth',
@@ -457,8 +462,18 @@ export class OnDemandFunding {
   }
 }
 
+/**
+ * The signer an x402 payment is authorized with: a viem wallet client or a
+ * local account, which is what the optional peer accepts. Declared from viem,
+ * a direct dependency, so the published types resolve for a consumer who has
+ * not installed `x402-fetch`.
+ */
+export type TurboX402Signer =
+  | WalletClient<Transport, Chain, Account>
+  | LocalAccount;
+
 export class X402Funding {
-  public signer: x402Signer | undefined;
+  public signer: TurboX402Signer | undefined;
   public maxMUSDCAmount: BigNumber | undefined;
 
   constructor({
@@ -469,7 +484,7 @@ export class X402Funding {
      * Optionally provide a custom signer for X402 funding.
      * One will be created from the provided Turbo signer if not provided.
      */
-    signer?: x402Signer;
+    signer?: TurboX402Signer;
     maxMUSDCAmount?: BigNumber.Value;
   }) {
     this.signer = signer;
@@ -802,16 +817,7 @@ export type SolSecretKey = Base58String;
 
 type HexadecimalString = string;
 export type EthPrivateKey = HexadecimalString;
-export type KyvePrivateKey = HexadecimalString;
 
-export function isKyvePrivateKey(
-  wallet: TurboWallet,
-): wallet is KyvePrivateKey {
-  if (typeof wallet !== 'string') return false;
-
-  // TODO: Hexadecimal regex
-  return true;
-}
 export function isEthPrivateKey(wallet: TurboWallet): wallet is EthPrivateKey {
   if (typeof wallet !== 'string') return false;
 
@@ -2052,7 +2058,7 @@ export type TokenFactory = Record<
 >;
 
 export type X402RequestCredentials = {
-  signer: x402Signer;
+  signer: TurboX402Signer;
   maxMUSDCAmount?: BigNumber.Value;
   unsignedData?: boolean;
 };

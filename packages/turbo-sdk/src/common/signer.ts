@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { pubkeyToAddress } from '@cosmjs/amino';
-import { Secp256k1 } from '@cosmjs/crypto';
-import { toBase64 } from '@cosmjs/encoding';
 import {
   EthereumSigner,
   HexSolanaSigner,
@@ -38,7 +35,6 @@ import nacl from 'tweetnacl';
 import { type EIP1193Provider, createWalletClient, custom, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
-import { Signer as x402Signer } from 'x402-fetch';
 
 import {
   FileStreamFactory,
@@ -52,6 +48,7 @@ import {
   TurboSignedDataItemFactory,
   TurboSignedRequestHeaders,
   TurboSigner,
+  TurboX402Signer,
   WalletAdapter,
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
@@ -109,17 +106,6 @@ export abstract class TurboDataItemAbstractSigner
       case 'base-usdc':
       case 'polygon-usdc':
         return computeAddress(SigningKey.computePublicKey(fromB64Url(owner)));
-
-      case 'kyve':
-        return pubkeyToAddress(
-          {
-            type: 'tendermint/PubKeySecp256k1',
-            value: toBase64(
-              Secp256k1.compressPubkey(Uint8Array.from(fromB64Url(owner))),
-            ),
-          },
-          'kyve',
-        );
 
       case 'ario':
         // ARIO is an SPL token, so an `ario` client created from a private key
@@ -300,7 +286,7 @@ export abstract class TurboDataItemAbstractSigner
  */
 export async function makeX402Signer(
   arbundlesSigner: ArbundleSigner,
-): Promise<x402Signer> {
+): Promise<TurboX402Signer> {
   // Node: our SDK uses EthereumSigner with a raw private key
   if (arbundlesSigner instanceof EthereumSigner) {
     return createWalletClient({
@@ -310,7 +296,7 @@ export async function makeX402Signer(
       ),
       chain: base,
       transport: http(),
-    }) as unknown as x402Signer;
+    }) as unknown as TurboX402Signer;
   }
 
   // Browser: use injected wallet + selected account
@@ -334,7 +320,7 @@ export async function makeX402Signer(
       account,
       chain: base,
       transport: custom(provider),
-    }) as unknown as x402Signer;
+    }) as unknown as TurboX402Signer;
   }
 
   throw new Error('Unable to construct x402 signer for x402 options');
