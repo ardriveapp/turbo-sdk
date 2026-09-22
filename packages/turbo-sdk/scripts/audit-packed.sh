@@ -80,6 +80,19 @@ node -e '
 const [auditJson, allowlistText] = process.argv.slice(1);
 const audit = JSON.parse(auditJson);
 
+// npm answers a failed audit (a registry outage, ENOAUDIT, a network error)
+// with JSON too, carrying `error` and none of the fields read below. Reading
+// on would find no advisories and pass, so a broken audit would look clean.
+if (audit.error !== undefined) {
+  const { code, summary } = audit.error ?? {};
+  console.log(`Error: npm audit failed: ${summary ?? code ?? "no summary or code given"}`);
+  process.exit(1);
+}
+if (audit.metadata?.vulnerabilities === undefined) {
+  console.log("Error: npm audit returned no vulnerability counts, so its result cannot be trusted.");
+  process.exit(1);
+}
+
 const accepted = new Set();
 for (const rawLine of allowlistText.split("\n")) {
   const line = rawLine.replace(/#.*$/, "").trim();
@@ -92,7 +105,7 @@ for (const rawLine of allowlistText.split("\n")) {
   accepted.add(`${advisory} ${pkg}`);
 }
 
-const counts = audit.metadata?.vulnerabilities ?? {};
+const counts = audit.metadata.vulnerabilities;
 console.log(
   `Advisory counts: ${counts.critical} critical, ${counts.high} high, ` +
     `${counts.moderate} moderate, ${counts.low} low`,
