@@ -1,0 +1,14 @@
+{
+  // Typechecks the TEST sources too, which the build config deliberately does
+  // not: `tsconfig.json` has `include: ["src"]` and excludes `src/**/*.test.ts`,
+  // so `tsc -p tsconfig.json` is green even when a test file does not compile.
+  // ts-node then fails at RUNTIME with an opaque `[Object: null prototype] {}`
+  // at module load, which reads like an infrastructure failure rather than a
+  // type error. Adding a TokenType is the case that keeps hitting this: every
+  // `Record<TokenType, ...>` fixture in a test becomes incomplete.
+  //
+  //   yarn typecheck:tests
+  "extends": "./tsconfig.json",
+  "include": ["src", "tests"],
+  "exclude": ["lib", "node_modules"]
+}

@@ -154,7 +154,7 @@ export async function privateKeyFromOptions({
   if (walletFile !== undefined) {
     const wallet = JSON.parse(readFileSync(walletFile, 'utf-8'));
 
-    return token === 'solana' || token === 'ario'
+    return token === 'solana' || token === 'ario' || token === 'solana-usdc'
       ? bs58.encode(wallet)
       : wallet;
   } else if (privateKey !== undefined) {

@@ -185,6 +185,8 @@ describe('TurboFactory.authenticated across tokenTypes', () => {
     usdc: new EthereumSigner(testEthWallet),
     'base-usdc': new EthereumSigner(testEthWallet),
     'polygon-usdc': new EthereumSigner(testEthWallet),
+    // USDC on Solana is paid by an ordinary Solana wallet, not an EVM one.
+    'solana-usdc': new HexSolanaSigner(testSolWallet),
   };
 
   const expectedNativeAddress: Record<TokenType, string> = {
@@ -198,6 +200,8 @@ describe('TurboFactory.authenticated across tokenTypes', () => {
     usdc: '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
     'base-usdc': '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
     'polygon-usdc': '0x20c1DF6f3310600c8396111EB5182af9213828Dc',
+    // Same bs58 native address as `solana` — same keypair, different token.
+    'solana-usdc': 'BTV1zY7njS5an91v9nphCK48d2vnMuecEgHLYiP25ycj',
   };
 
   for (const token of tokenTypes) {

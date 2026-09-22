@@ -95,7 +95,11 @@ export abstract class TurboDataItemAbstractSigner
 
   private ownerToNativeAddress(owner: string, token: TokenType): NativeAddress {
     switch (token) {
+      // `solana-usdc` is an ordinary Solana wallet paying with an SPL token,
+      // and the payment service credits the base58 sender address it reads off
+      // the transfer — so its native address is the same bs58 form as `solana`.
       case 'solana':
+      case 'solana-usdc':
         return bs58.encode(Uint8Array.from(fromB64Url(owner)));
 
       case 'ethereum':
