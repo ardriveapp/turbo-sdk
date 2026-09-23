@@ -27,6 +27,7 @@ import { BaseEthToken } from './baseEth.js';
 import { ETHToTokenAmount, EthereumToken } from './ethereum.js';
 import { POLToTokenAmount, PolygonToken } from './polygon.js';
 import { SOLToTokenAmount, SolanaToken } from './solana.js';
+import { SolanaUsdcToken } from './solanaUsdc.js';
 import { USDCToTokenAmount, USDCToken } from './usdc.js';
 
 export const defaultTokenMap: TokenFactory = {
@@ -43,6 +44,7 @@ export const defaultTokenMap: TokenFactory = {
     new USDCToken({ network: 'base', ...config }),
   'polygon-usdc': (config: TokenConfig) =>
     new USDCToken({ network: 'polygon', ...config }),
+  'solana-usdc': (config: TokenConfig) => new SolanaUsdcToken(config),
 } as const;
 
 const ethExponent = 18;
@@ -60,6 +62,7 @@ export const exponentMap: Record<TokenType, number> = {
   usdc: usdcExponent,
   'base-usdc': usdcExponent,
   'polygon-usdc': usdcExponent,
+  'solana-usdc': usdcExponent,
 } as const;
 
 export const tokenToBaseMap: Record<
@@ -76,6 +79,7 @@ export const tokenToBaseMap: Record<
   usdc: (a: BigNumber.Value) => USDCToTokenAmount(a),
   'base-usdc': (a: BigNumber.Value) => USDCToTokenAmount(a),
   'polygon-usdc': (a: BigNumber.Value) => USDCToTokenAmount(a),
+  'solana-usdc': (a: BigNumber.Value) => USDCToTokenAmount(a),
 } as const;
 
 export function isTokenType(token: string): token is TokenType {
@@ -88,3 +92,5 @@ export * from './solana.js';
 export * from './ethereum.js';
 export * from './baseEth.js';
 export * from './polygon.js';
+export * from './spl.js';
+export * from './solanaUsdc.js';

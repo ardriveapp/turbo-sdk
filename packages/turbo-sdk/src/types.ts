@@ -78,6 +78,8 @@ export const tokenTypes = [
   'usdc',
   'base-usdc',
   'polygon-usdc',
+  // USDC (SPL) on Solana — signed with the Solana signer, not an EVM one.
+  'solana-usdc',
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 

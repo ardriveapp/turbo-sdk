@@ -55,6 +55,7 @@ export const tokenToDevGatewayMap: Record<TokenType, string> = {
   usdc: ethTestnetRpc,
   'base-usdc': baseTestnetRpc,
   'polygon-usdc': polygonTestnetRpc,
+  'solana-usdc': 'https://api.devnet.solana.com',
 };
 
 export const defaultProdGatewayUrls: Record<TokenType, string> = {
@@ -68,6 +69,7 @@ export const defaultProdGatewayUrls: Record<TokenType, string> = {
   usdc: 'https://cloudflare-eth.com/',
   'base-usdc': baseMainnetRpc,
   'polygon-usdc': 'https://polygon-rpc.com/',
+  'solana-usdc': 'https://api.mainnet-beta.solana.com',
 };
 
 export function createTurboSigner({
@@ -104,6 +106,7 @@ export function createTurboSigner({
   switch (token) {
     case 'solana':
     case 'ario':
+    case 'solana-usdc':
       return new HexSolanaSigner(clientProvidedPrivateKey);
     case 'ethereum':
     case 'pol':
@@ -155,6 +158,7 @@ export function isValidUserAddress(address: string, type: TokenType): boolean {
       return isValidArweaveBase64URL(address);
     case 'ario':
     case 'solana':
+    case 'solana-usdc':
       return isValidSolanaAddress(address);
     case 'ethereum':
     case 'base-eth':

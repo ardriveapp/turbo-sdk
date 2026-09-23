@@ -713,7 +713,7 @@ With the upload methods, you can choose to Top Up with selected crypto token on 
 
 This is done by providing the `OnDemandFunding` class to the `fundingMode` parameter on upload methods. The `maxTokenAmount` (optional) is the maximum amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with. The `topUpBufferMultiplier` (optional) is the multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations on longer uploads. Defaults to 1.1, meaning a 10% buffer.
 
-Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`) and $USDC on Base Network (`base-usdc`) token types.
+Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`), $USDC on Base Network (`base-usdc`) and $USDC on Solana (`solana-usdc`) token types.
 
 ```typescript
 const turbo = TurboFactory.authenticated({
@@ -1194,6 +1194,37 @@ const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
   token: 'polygon-usdc',
 }).topUpWithTokens({
   tokenAmount: USDCToTokenAmount(1), // 1 USDC
+});
+
+// USDC (SPL) on Solana — signed with a SOLANA wallet, not an EVM one. The
+// payment is an SPL transfer into Turbo's associated token account, so the
+// payer just needs USDC plus a little SOL for fees.
+const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana-usdc',
+}).topUpWithTokens({
+  tokenAmount: USDCToTokenAmount(1), // 1 USDC
+});
+```
+
+The mint for `solana-usdc` is chosen from the RPC you point at: a `gatewayUrl`
+whose host contains `devnet` uses Circle's devnet USDC, otherwise mainnet USDC.
+That is a heuristic — if you use a **private or paid devnet RPC** whose hostname
+does not say `devnet`, name the mint explicitly, or you will sign a transfer of
+the wrong mint:
+
+```typescript
+import { SolanaUsdcToken, TurboFactory } from '@ardrive/turbo-sdk';
+
+const gatewayUrl = 'https://my-rpc.example.com/<key>';
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana-usdc',
+  gatewayUrl,
+  tokenTools: new SolanaUsdcToken({
+    gatewayUrl,
+    mintAddress: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // devnet USDC
+  }),
 });
 ```
 
@@ -1962,6 +1993,10 @@ e.g:
 ```shell
 # Fund any valid destination wallet with 10 USDC worth of Turbo Credits on Base Network
 turbo crypto-fund --value 10 --token base-usdc --private-key '0xabc...123' --address 'any-valid-evm-sol-ar-native-address'
+
+# Same, paying in USDC on SOLANA — a Solana wallet file (or bs58 private key),
+# which needs USDC plus a little SOL for transaction fees
+turbo crypto-fund --value 10 --token solana-usdc --wallet-file '../path/to/solana-wallet.json'
 ```
 
 ```shell
