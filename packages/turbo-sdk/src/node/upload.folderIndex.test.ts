@@ -300,10 +300,10 @@ describe('uploadFolder with a folder index', () => {
 
       const byId = new Map(uploads.map((upload) => [upload.id, upload]));
       assert.equal(byId.get(paths['a.css'].id)?.contentType, 'text/css');
-      assert.equal(
-        byId.get(paths['b.js'].id)?.contentType,
-        'application/javascript',
-      );
+      // `text/javascript`, not `application/javascript`: mime-types v3 follows
+      // RFC 9239, which made the former the standard and obsoleted the latter.
+      // This is what the SDK now tags uploaded .js files with, on chain.
+      assert.equal(byId.get(paths['b.js'].id)?.contentType, 'text/javascript');
       // Same bytes, so the same content hash tag on both.
       assert.equal(uploads[0].contentHash, uploads[1].contentHash);
     } finally {
