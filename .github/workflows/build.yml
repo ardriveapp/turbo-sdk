@@ -12,10 +12,10 @@ jobs:
         node_version: [18.x, 20.x, 22.x, 24.x]
         command: ['lint', 'format', 'build']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set Up node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node_version }}
           cache: 'yarn'
@@ -30,10 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set Up node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: 'yarn'
@@ -42,7 +42,7 @@ jobs:
         run: yarn --immutable --immutable-cache
 
       - name: Log in to the GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -55,7 +55,7 @@ jobs:
           BUNDLER_ARWEAVE_WALLET: ${{ secrets.BUNDLER_ARWEAVE_WALLET }}
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: false
         env:
@@ -67,14 +67,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The job installs dependencies, which runs their lifecycle
           # scripts. It needs no token, so do not leave one on disk.
           persist-credentials: false
 
       - name: Set Up node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: 'yarn'
