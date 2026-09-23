@@ -1,0 +1,153 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.defaultProdGatewayUrls = exports.tokenToDevGatewayMap = void 0;
+exports.sleep = sleep;
+exports.isWeb = isWeb;
+exports.createTurboSigner = createTurboSigner;
+exports.isBlob = isBlob;
+exports.isValidArweaveBase64URL = isValidArweaveBase64URL;
+exports.isValidSolanaAddress = isValidSolanaAddress;
+exports.isValidECDSAAddress = isValidECDSAAddress;
+exports.isValidUserAddress = isValidUserAddress;
+exports.isAnyValidUserAddress = isAnyValidUserAddress;
+/**
+ * Copyright (C) 2022-2024 Permanent Data Solutions, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+const arbundles_1 = require("@dha-team/arbundles");
+const web3_js_1 = require("@solana/web3.js");
+const ethers_1 = require("ethers");
+const types_js_1 = require("../types.js");
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isWeb() {
+    return typeof window !== 'undefined';
+}
+const ethTestnetRpc = 'https://sepolia.gateway.tenderly.co';
+const baseTestnetRpc = 'https://sepolia.base.org';
+const polygonTestnetRpc = 'https://rpc-amoy.polygon.technology';
+const baseMainnetRpc = 'https://mainnet.base.org';
+exports.tokenToDevGatewayMap = {
+    arweave: 'https://turbo-gateway.com', // No arweave test net
+    ario: 'https://api.devnet.solana.com',
+    solana: 'https://api.devnet.solana.com',
+    ethereum: ethTestnetRpc,
+    'base-eth': baseTestnetRpc,
+    matic: polygonTestnetRpc,
+    pol: polygonTestnetRpc,
+    usdc: ethTestnetRpc,
+    'base-usdc': baseTestnetRpc,
+    'polygon-usdc': polygonTestnetRpc,
+    'solana-usdc': 'https://api.devnet.solana.com',
+};
+exports.defaultProdGatewayUrls = {
+    arweave: 'https://turbo-gateway.com',
+    ario: 'https://api.mainnet-beta.solana.com',
+    solana: 'https://api.mainnet-beta.solana.com',
+    ethereum: 'https://cloudflare-eth.com/',
+    'base-eth': baseMainnetRpc,
+    matic: 'https://polygon-rpc.com/',
+    pol: 'https://polygon-rpc.com/',
+    usdc: 'https://cloudflare-eth.com/',
+    'base-usdc': baseMainnetRpc,
+    'polygon-usdc': 'https://polygon-rpc.com/',
+    'solana-usdc': 'https://api.mainnet-beta.solana.com',
+};
+function createTurboSigner({ signer: clientProvidedSigner, privateKey: clientProvidedPrivateKey, token = 'arweave', }) {
+    if (clientProvidedSigner !== undefined) {
+        if (clientProvidedSigner instanceof arbundles_1.InjectedEthereumSigner) {
+            // Override the setPublicKey method to resolve a generic string to sign
+            clientProvidedSigner.setPublicKey = async () => {
+                const message = 'sign this message to connect to your account';
+                const signedMsg = await clientProvidedSigner['signer'].signMessage(message);
+                const hash = (0, ethers_1.hashMessage)(message);
+                const recoveredKey = ethers_1.SigningKey.recoverPublicKey((0, ethers_1.getBytes)(hash), signedMsg);
+                clientProvidedSigner.publicKey = Buffer.from((0, ethers_1.getBytes)(recoveredKey));
+            };
+        }
+        return clientProvidedSigner;
+    }
+    if (clientProvidedPrivateKey === undefined) {
+        throw new Error('A privateKey or signer must be provided.');
+    }
+    switch (token) {
+        case 'solana':
+        case 'ario':
+        case 'solana-usdc':
+            return new arbundles_1.HexSolanaSigner(clientProvidedPrivateKey);
+        case 'ethereum':
+        case 'pol':
+        case 'matic':
+        case 'base-eth':
+        case 'usdc':
+        case 'base-usdc':
+        case 'polygon-usdc':
+            if (!(0, types_js_1.isEthPrivateKey)(clientProvidedPrivateKey)) {
+                throw new Error('A valid Ethereum private key must be provided for EthereumSigner.');
+            }
+            return new arbundles_1.EthereumSigner(clientProvidedPrivateKey);
+        case 'arweave':
+            if (!(0, types_js_1.isJWK)(clientProvidedPrivateKey)) {
+                throw new Error('A JWK must be provided for ArweaveSigner.');
+            }
+            return new arbundles_1.ArweaveSigner(clientProvidedPrivateKey);
+    }
+}
+function isBlob(val) {
+    return typeof Blob !== 'undefined' && val instanceof Blob;
+}
+// check if it is a valid arweave base64url for a wallet public address, transaction id or smartweave contract
+function isValidArweaveBase64URL(base64URL) {
+    const base64URLRegex = new RegExp('^[a-zA-Z0-9_-]{43}$');
+    return base64URLRegex.test(base64URL);
+}
+function isValidSolanaAddress(address) {
+    try {
+        return web3_js_1.PublicKey.isOnCurve(address);
+    }
+    catch {
+        return false;
+    }
+}
+function isValidECDSAAddress(address) {
+    const ethAddressRegex = new RegExp('^0x[a-fA-F0-9]{40}$');
+    return ethAddressRegex.test(address);
+}
+function isValidUserAddress(address, type) {
+    switch (type) {
+        case 'arweave':
+            return isValidArweaveBase64URL(address);
+        case 'ario':
+        case 'solana':
+        case 'solana-usdc':
+            return isValidSolanaAddress(address);
+        case 'ethereum':
+        case 'base-eth':
+        case 'matic':
+        case 'pol':
+        case 'base-usdc':
+        case 'usdc':
+        case 'polygon-usdc':
+            return isValidECDSAAddress(address);
+    }
+}
+function isAnyValidUserAddress(address) {
+    for (const type of types_js_1.tokenTypes) {
+        if (isValidUserAddress(address, type)) {
+            return type;
+        }
+    }
+    return false;
+}
