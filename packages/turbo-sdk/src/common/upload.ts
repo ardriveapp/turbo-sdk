@@ -1512,6 +1512,7 @@ export abstract class TurboAuthenticatedBaseUploadService
     'solana',
     'base-eth',
     'base-usdc',
+    'solana-usdc',
   ];
 
   /**
