@@ -550,8 +550,8 @@ export async function arnsPurchaseStatus(
     status.failedDate !== undefined
       ? 'failed'
       : status.messageId
-      ? 'success'
-      : 'pending';
+        ? 'success'
+        : 'pending';
 
   console.log(JSON.stringify({ state, ...status }, null, 2));
 }
@@ -578,8 +578,8 @@ export async function arnsActionStatus(
     status.failedDate !== undefined
       ? 'failed'
       : status.messageId
-      ? 'success'
-      : 'pending';
+        ? 'success'
+        : 'pending';
 
   console.log(JSON.stringify({ state, ...status }, null, 2));
 }

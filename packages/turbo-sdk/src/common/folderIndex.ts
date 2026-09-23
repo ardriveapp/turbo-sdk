@@ -328,8 +328,9 @@ export function createChainFolderIndex({
           ) {
             continue;
           }
-          const contentHash = tags.find((tag) => tag?.name === hashTagName)
-            ?.value;
+          const contentHash = tags.find(
+            (tag) => tag?.name === hashTagName,
+          )?.value;
           if (!isValidContentHash(contentHash)) {
             continue;
           }
