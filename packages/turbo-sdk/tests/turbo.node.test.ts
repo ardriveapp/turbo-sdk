@@ -371,14 +371,22 @@ describe('Node environment', () => {
       }
     });
 
+    /**
+     * Tokens the SDK has shipped that the payment service under test may not
+     * have yet. Only these may answer 400 "not supported" without failing the
+     * suite — every other token is expected to price, so a real pricing
+     * regression on an established token still fails here rather than being
+     * skipped.
+     *
+     * Remove an entry once the service ships it. `solana-usdc` is here because
+     * the integration stack runs ghcr.io/ardriveapp/payment-service:latest,
+     * which does not know the token yet.
+     */
+    const tokensTheServiceMayNotHaveYet: TokenType[] = ['solana-usdc'];
+
     describe('getTokenPriceForBytes()', async () => {
       for (const token of tokenTypes) {
         it(`should return the correct token price for the given bytes for ${token}`, async () => {
-          // The SDK's token list and a given payment service's supported set are
-          // versioned independently: whichever ships a new token first, the other
-          // lags. So a token the SERVICE has not shipped yet must not fail this
-          // suite — it answers 400 "not supported", which is a correct answer.
-          // Any other failure (5xx, network, a malformed price) still fails here.
           let price;
           try {
             price = await TurboFactory.unauthenticated({
@@ -388,8 +396,12 @@ describe('Node environment', () => {
               byteCount: oneHundredMiBInBytes,
             });
           } catch (error) {
-            if (error instanceof FailedRequestError && error.status === 400) {
-              return; // service does not support this token yet
+            if (
+              error instanceof FailedRequestError &&
+              error.status === 400 &&
+              tokensTheServiceMayNotHaveYet.includes(token)
+            ) {
+              return; // this service has not shipped this token yet
             }
             throw error;
           }
