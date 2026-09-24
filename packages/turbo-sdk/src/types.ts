@@ -292,8 +292,7 @@ export type TurboFiatPaymentHistoryItem = {
 };
 
 export type TurboPaymentHistoryItem =
-  | TurboCryptoPaymentHistoryItem
-  | TurboFiatPaymentHistoryItem;
+  TurboCryptoPaymentHistoryItem | TurboFiatPaymentHistoryItem;
 
 export type TurboPaymentHistoryResponse = {
   /** One page of the signer's own top-ups, newest first. */
@@ -471,8 +470,7 @@ export class OnDemandFunding {
  * not installed `x402-fetch`.
  */
 export type TurboX402Signer =
-  | WalletClient<Transport, Chain, Account>
-  | LocalAccount;
+  WalletClient<Transport, Chain, Account> | LocalAccount;
 
 export class X402Funding {
   public signer: TurboX402Signer | undefined;
@@ -707,8 +705,7 @@ export type WebUploadFolderParams = {
   files: File[];
 } & UploadFolderParams;
 export type TurboUploadFolderParams =
-  | NodeUploadFolderParams
-  | WebUploadFolderParams;
+  NodeUploadFolderParams | WebUploadFolderParams;
 export const isNodeUploadFolderParams = (
   p: TurboUploadFolderParams,
 ): p is NodeUploadFolderParams =>
@@ -1134,8 +1131,7 @@ export type TurboUploadFileWithFileOrPathParams = {
   TurboChunkingParams;
 
 export type TurboUploadFileParams =
-  | TurboUploadFileWithStreamFactoryParams
-  | TurboUploadFileWithFileOrPathParams;
+  TurboUploadFileWithStreamFactoryParams | TurboUploadFileWithFileOrPathParams;
 
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
@@ -1279,8 +1275,7 @@ export type ArNSBuyNamePermabuyParams = {
   processId?: string;
 };
 export type ArNSBuyNameParams =
-  | ArNSBuyNameLeaseParams
-  | ArNSBuyNamePermabuyParams;
+  ArNSBuyNameLeaseParams | ArNSBuyNamePermabuyParams;
 export type ArNSExtendLeaseParams = {
   intent: 'Extend-Lease';
   name: string;
@@ -1479,8 +1474,7 @@ export type ArNSActionAwaitingSignature = {
  * `awaiting-signature` the moment the customer revokes Turbo.
  */
 export type ArNSActionResult =
-  | ArNSActionCompleted
-  | ArNSActionAwaitingSignature;
+  ArNSActionCompleted | ArNSActionAwaitingSignature;
 
 /**
  * The flat-margin credits price for one of the eight actions that don't
@@ -1585,8 +1579,7 @@ export const arNSFiatPurchaseMethods = [
   'checkout-session',
 ] as const;
 export type ArNSFiatPurchaseMethod =
-  | (typeof arNSFiatPurchaseMethods)[number]
-  | (string & Record<never, never>);
+  (typeof arNSFiatPurchaseMethods)[number] | (string & Record<never, never>);
 
 /**
  * Params for a fiat (Stripe) ArNS purchase quote.
@@ -1760,8 +1753,7 @@ export type TurboFundWithTokensParams = {
   turboCreditDestinationAddress?: UserAddress;
 };
 
-export interface TurboAuthenticatedPaymentServiceInterface
-  extends TurboUnauthenticatedPaymentServiceInterface {
+export interface TurboAuthenticatedPaymentServiceInterface extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
   /** `address` defaults to the signer's native address. */
   getArNSFiatPurchaseQuote(
@@ -1993,8 +1985,7 @@ export interface TurboUnauthenticatedUploadServiceInterface {
   ): Promise<TurboX402RawDataPriceResponse>;
 }
 
-export interface TurboAuthenticatedUploadServiceInterface
-  extends TurboUnauthenticatedUploadServiceInterface {
+export interface TurboAuthenticatedUploadServiceInterface extends TurboUnauthenticatedUploadServiceInterface {
   upload({
     data,
     events,
@@ -2017,10 +2008,12 @@ export interface TurboAuthenticatedUploadServiceInterface
 }
 
 export interface TurboUnauthenticatedClientInterface
-  extends TurboUnauthenticatedPaymentServiceInterface,
+  extends
+    TurboUnauthenticatedPaymentServiceInterface,
     TurboUnauthenticatedUploadServiceInterface {}
 export interface TurboAuthenticatedClientInterface
-  extends TurboAuthenticatedPaymentServiceInterface,
+  extends
+    TurboAuthenticatedPaymentServiceInterface,
     TurboAuthenticatedUploadServiceInterface {}
 
 export type TokenCreateTxParams = {

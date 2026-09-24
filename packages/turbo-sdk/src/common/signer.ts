@@ -65,9 +65,7 @@ import { memoProgramId } from './token/solana.js';
 /**
  * Abstract class for signing TurboDataItems.
  */
-export abstract class TurboDataItemAbstractSigner
-  implements TurboDataItemSigner
-{
+export abstract class TurboDataItemAbstractSigner implements TurboDataItemSigner {
   public signer: TurboSigner;
   public walletAdapter: WalletAdapter | undefined;
 
