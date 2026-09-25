@@ -328,7 +328,7 @@ days); it is never posted to mainnet Arweave. See
 
 #### `getSupportedCurrencies()`
 
-Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in `winc`).
+Returns the list of currencies supported by the Turbo Payment Service for topping up a Turbo Credits balance, which is counted in `winc`.
 
 ```typescript
 const currencies = await turbo.getSupportedCurrencies();
@@ -525,7 +525,7 @@ const { status, id, ...fundResult } = await turbo.submitFundTransaction({
 
 #### `getBalance()`
 
-Issues a signed request to get the credit balance of a wallet measured in AR (measured in `winc`).
+Issues a signed request to get the Turbo Credits balance of a wallet, in `winc`.
 
 ```typescript
 const { winc: balance } = await turbo.getBalance();
