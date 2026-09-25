@@ -328,7 +328,7 @@ days); it is never posted to mainnet Arweave. See
 
 #### `getSupportedCurrencies()`
 
-Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
+Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in `winc`).
 
 ```typescript
 const currencies = await turbo.getSupportedCurrencies();
@@ -360,7 +360,7 @@ const rates = await turbo.getFiatRates();
 
 #### `getWincForFiat({ amount })`
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency.
 
 ```typescript
 const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
@@ -371,7 +371,7 @@ const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
 
 #### `getWincForToken({ tokenAmount })`
 
-Returns the current amount of Winston Credits including all adjustments for the provided token amount.
+Returns the current amount of `winc` including all adjustments for the provided token amount.
 
 ```typescript
 const { winc, actualTokenAmount, equivalentWincTokenAmount } =
@@ -423,7 +423,7 @@ console.log(tokenPrice); // Estimated SOL Price for 100 MiB
 
 #### `getUploadCosts({ bytes })`
 
-Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
+Returns the estimated cost in `winc` for the provided file sizes, including all upload adjustments and fees.
 
 ```typescript
 const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
@@ -525,7 +525,7 @@ const { status, id, ...fundResult } = await turbo.submitFundTransaction({
 
 #### `getBalance()`
 
-Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
+Issues a signed request to get the credit balance of a wallet measured in AR (measured in `winc`).
 
 ```typescript
 const { winc: balance } = await turbo.getBalance();
@@ -572,7 +572,7 @@ const address = await turbo.signer.getNativeAddress();
 
 #### `getWincForFiat({ amount, promoCodes })`
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
 ```typescript
 const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
