@@ -83,8 +83,7 @@ export class ChunkedUploader {
   private maxBacklogQueue: number;
   private x402: X402RequestCredentials | undefined;
   private x402RefundIdentity:
-    | { address: string; signatureType: number }
-    | undefined;
+    { address: string; signatureType: number } | undefined;
   /**
    * The size declared at create. For x402 this is what gets PAID FOR, so it
    * must be the real serialized size — the service reconciles against the bytes
@@ -464,10 +463,10 @@ export class ChunkedUploader {
       dataItemByteCount < 1024 * 1024 * 100
         ? 2000
         : // files smaller than 3 GiB will wait 4 seconds,
-        dataItemByteCount < 1024 * 1024 * 1024 * 3
-        ? 4000
-        : // and larger files will wait 1.5 second per GiB with max of 15 seconds
-          Math.max(1500 * fileSizeInGiB, 15000);
+          dataItemByteCount < 1024 * 1024 * 1024 * 3
+          ? 4000
+          : // and larger files will wait 1.5 second per GiB with max of 15 seconds
+            Math.max(1500 * fileSizeInGiB, 15000);
 
     const paidByHeader: Record<string, string> = {};
     if (paidBy !== undefined) {

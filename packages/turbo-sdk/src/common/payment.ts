@@ -101,9 +101,7 @@ export const developmentPaymentServiceURL =
   'https://payment.services.ar-io.dev';
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
 
-export class TurboUnauthenticatedPaymentService
-  implements TurboUnauthenticatedPaymentServiceInterface
-{
+export class TurboUnauthenticatedPaymentService implements TurboUnauthenticatedPaymentServiceInterface {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected readonly token: TokenType;

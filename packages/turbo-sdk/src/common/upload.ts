@@ -103,9 +103,7 @@ export const creditSharingTagNames = {
 export const developmentUploadServiceURL = 'https://upload.services.ar-io.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
 
-export class TurboUnauthenticatedUploadService
-  implements TurboUnauthenticatedUploadServiceInterface
-{
+export class TurboUnauthenticatedUploadService implements TurboUnauthenticatedUploadServiceInterface {
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected token: TokenType;
@@ -794,17 +792,17 @@ export abstract class TurboAuthenticatedBaseUploadService
       indexFile !== undefined && paths[indexFile]?.id !== undefined
         ? indexFile
         : // Else use index.html if it exists,
-        paths['index.html']?.id !== undefined
-        ? 'index.html'
-        : // Else use the first file in the paths object.
-          Object.keys(paths)[0];
+          paths['index.html']?.id !== undefined
+          ? 'index.html'
+          : // Else use the first file in the paths object.
+            Object.keys(paths)[0];
 
     const fallbackId =
       // Use the user provided fallback file if it exists,
       fallbackFile !== undefined && paths[fallbackFile]?.id !== undefined
         ? paths[fallbackFile].id
         : // Else use 404.html if it exists, else use the index path.
-          paths['404.html']?.id ?? paths[indexPath].id;
+          (paths['404.html']?.id ?? paths[indexPath].id);
 
     const manifest: ArweaveManifest = {
       manifest: 'arweave/paths',

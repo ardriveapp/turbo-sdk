@@ -122,9 +122,7 @@ export const defaultTurboConfiguration = {
   },
 };
 
-export class TurboUnauthenticatedClient
-  implements TurboUnauthenticatedClientInterface
-{
+export class TurboUnauthenticatedClient implements TurboUnauthenticatedClientInterface {
   protected paymentService: TurboUnauthenticatedPaymentServiceInterface;
   protected uploadService: TurboUnauthenticatedUploadServiceInterface;
 

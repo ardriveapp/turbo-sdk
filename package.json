@@ -23,12 +23,12 @@
   "devDependencies": {
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
-    "@trivago/prettier-plugin-sort-imports": "^6.0.0",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "eslint": "^8.47.0",
     "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-prettier": "^5.5.6",
     "husky": "^8.0.3",
-    "prettier": "^3.0.2",
+    "prettier": "^3.9.8",
     "rimraf": "^5.0.1",
     "typescript": "^5.5.4"
   },

@@ -489,8 +489,7 @@ describe('TurboEventEmitter', () => {
 
     let overallProgressCalled = false;
     let overallProgressPayload:
-      | TurboTotalEventsAndPayloads['overall-progress']
-      | undefined;
+      TurboTotalEventsAndPayloads['overall-progress'] | undefined;
     emitter.on('overall-progress', (event) => {
       overallProgressCalled = true;
       overallProgressPayload = event;
@@ -510,8 +509,7 @@ describe('TurboEventEmitter', () => {
     const testError = new Error('Signing error');
     let overallErrorCalled = false;
     let overallErrorPayload:
-      | TurboTotalEventsAndPayloads['overall-error']
-      | undefined;
+      TurboTotalEventsAndPayloads['overall-error'] | undefined;
     emitter.on('overall-error', (error) => {
       overallErrorCalled = true;
       overallErrorPayload = error;
@@ -526,8 +524,7 @@ describe('TurboEventEmitter', () => {
     const testError = new Error('Upload error');
     let overallErrorCalled = false;
     let overallErrorPayload:
-      | TurboTotalEventsAndPayloads['overall-error']
-      | undefined;
+      TurboTotalEventsAndPayloads['overall-error'] | undefined;
     emitter.on('overall-error', (event) => {
       overallErrorCalled = true;
       overallErrorPayload = event;
@@ -541,8 +538,7 @@ describe('TurboEventEmitter', () => {
     const emitter = new TurboEventEmitter();
     let overallProgressCalled = false;
     let overallProgressPayload:
-      | TurboTotalEventsAndPayloads['overall-progress']
-      | undefined;
+      TurboTotalEventsAndPayloads['overall-progress'] | undefined;
     emitter.on('overall-progress', (event) => {
       overallProgressCalled = true;
       overallProgressPayload = event;
