@@ -31,11 +31,13 @@ import bs58 from 'bs58';
 
 import {
   AoProcessConfig,
+  SolanaWalletAdapter,
   TokenConfig,
   TokenCreateTxParams,
   TokenPollingOptions,
   TokenTools,
   TurboLogger,
+  isSolanaWalletAdapter,
 } from '../../types.js';
 import { defaultProdGatewayUrls, sleep } from '../../utils/common.js';
 import { Logger } from '../logger.js';
@@ -158,12 +160,14 @@ export class SplToken implements TokenTools {
       );
     }
 
-    const serializedTx = tx.serializeMessage();
-    const signature = await signer.signData(Uint8Array.from(serializedTx));
-    tx.addSignature(ownerPublicKey, Buffer.from(signature));
+    const { signedTx, signature } =
+      signer.walletAdapter !== undefined &&
+      isSolanaWalletAdapter(signer.walletAdapter)
+        ? await this.signWithWallet(tx, signer.walletAdapter)
+        : await this.signWithKey(tx, ownerPublicKey, signer);
 
     const txId = bs58.encode(signature);
-    await this.submitTx(tx, txId);
+    await this.submitTx(signedTx, txId);
 
     this.logger.debug(
       `Submitted ${this.tokenName} SPL transfer transaction...`,
@@ -178,6 +182,45 @@ export class SplToken implements TokenTools {
     );
 
     return { id: txId, target, reward: '0' };
+  }
+
+  /** Sign the message bytes directly: a private-key signer holds the key. */
+  private async signWithKey(
+    tx: Transaction,
+    ownerPublicKey: PublicKey,
+    signer: TokenCreateTxParams['signer'],
+  ): Promise<{ signedTx: Transaction; signature: Uint8Array }> {
+    const signature = await signer.signData(
+      Uint8Array.from(tx.serializeMessage()),
+    );
+    tx.addSignature(ownerPublicKey, Buffer.from(signature));
+    return { signedTx: tx, signature };
+  }
+
+  /**
+   * Have a browser wallet sign the transaction itself, as the SOL path does.
+   *
+   * A wallet signs through `signTransaction`, not `signMessage`: it refuses, or
+   * cannot display, a serialized transaction handed to it as a message. It may
+   * also add instructions of its own before signing (compute budget, guards),
+   * so the transaction submitted is the one it returns, never ours with its
+   * signature attached. Deserializing drops `lastValidBlockHeight`, so that is
+   * carried over for confirmation.
+   */
+  private async signWithWallet(
+    tx: Transaction,
+    walletAdapter: SolanaWalletAdapter,
+  ): Promise<{ signedTx: Transaction; signature: Uint8Array }> {
+    const signedTx: Transaction = await walletAdapter.signTransaction(tx);
+    const signature = signedTx.signature;
+    if (signature === null) {
+      throw new Error(
+        `Wallet returned an unsigned ${this.tokenName} transfer transaction`,
+      );
+    }
+    signedTx.recentBlockhash ??= tx.recentBlockhash;
+    signedTx.lastValidBlockHeight ??= tx.lastValidBlockHeight;
+    return { signedTx, signature: Uint8Array.from(signature) };
   }
 
   private async submitTx(tx: Transaction, id: string): Promise<void> {
