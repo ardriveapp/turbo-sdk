@@ -83,6 +83,17 @@ export const tokenTypes = [
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
+/**
+ * Tokens paid from a Solana wallet: SOL natively, and ARIO and USDC as SPL
+ * transfers signed by the same ed25519 key. A private key for any of these
+ * builds a Solana signer, so a Solana wallet adapter must as well.
+ */
+export const supportedSolanaSignerTokens = new Set<TokenType>([
+  'solana',
+  'ario',
+  'solana-usdc',
+]);
+
 export const supportedEvmSignerTokens = new Set([
   'ethereum',
   'base-eth',
