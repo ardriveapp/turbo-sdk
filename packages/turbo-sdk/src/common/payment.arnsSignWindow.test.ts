@@ -50,6 +50,7 @@ type Event =
       signature?: string;
     }
   | { kind: 'owner-sign-tx' }
+  | { kind: 'owner-sign-message' }
   | { kind: 'on-nonce' };
 
 // A real base58 key: the owner proof decodes it.
@@ -96,6 +97,7 @@ function harness(responses: unknown[], error?: unknown) {
       return `signed:${tx}`;
     },
     async signMessage() {
+      events.push({ kind: 'owner-sign-message' });
       return new Uint8Array(64);
     },
   };
@@ -146,29 +148,36 @@ describe('ArNS /sign carries no payer signature', () => {
     assert.equal(sign.signature, undefined, 'no x-signature on /sign');
   });
 
-  for (const [name, call] of [
+  // `proof`: the record family also asks the owner for an OFF-CHAIN proof,
+  // which must come before create, never inside the window.
+  for (const [name, proof, call] of [
     [
       'addArNSController',
+      false,
       (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
         s.addArNSController({ antId: 'ant1', owner }),
     ],
     [
       'removeArNSController',
+      false,
       (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
         s.removeArNSController({ antId: 'ant1', owner }),
     ],
     [
       'transferArNSAnt',
+      false,
       (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
         s.transferArNSAnt({ antId: 'ant1', owner, target: 'T' }),
     ],
     [
       'setArNSRecord (after a revoke)',
+      true,
       (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
         s.setArNSRecord({ antId: 'ant1', owner, transactionId: 'tx' }),
     ],
     [
       'setArNSRecordMetadata (after a revoke)',
+      true,
       (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
         s.setArNSRecordMetadata({ antId: 'ant1', owner, displayName: 'd' }),
     ],
@@ -181,10 +190,11 @@ describe('ArNS /sign carries no payer signature', () => {
       await call(service, owner);
       assert.equal(payerSigns(events), 1);
       assert.deepEqual(kinds(events), [
-        'payer-sign',
-        'post',
-        'owner-sign-tx',
-        'post',
+        'payer-sign', // create headers
+        ...(proof ? ['owner-sign-message' as const] : []), // x-owner-* proof
+        'post', // create: the window opens here
+        'owner-sign-tx', // the only prompt inside the window
+        'post', // /sign
       ]);
       assert.equal(signPost(events).signature, undefined);
     });
@@ -193,7 +203,11 @@ describe('ArNS /sign carries no payer signature', () => {
   it('an action that completes alone is unchanged: one payer prompt, one POST', async () => {
     const { service, events, owner } = harness([completed('n4', 'set-record')]);
     await service.setArNSRecord({ antId: 'ant1', owner, transactionId: 'tx' });
-    assert.deepEqual(kinds(events), ['payer-sign', 'post']);
+    assert.deepEqual(kinds(events), [
+      'payer-sign',
+      'owner-sign-message',
+      'post',
+    ]);
   });
 
   it('an alreadyCompleted /sign replay is returned as-is', async () => {
