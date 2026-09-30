@@ -85,6 +85,40 @@ export class FiatPaymentsDisabledError extends BaseError {
   }
 }
 
+/**
+ * Raised when an ArNS action's owner-signed transaction reaches `/sign` too
+ * late: its Solana blockhash (valid ~60-90 s from creation) or the action
+ * itself has expired. Signing again cannot help — the transaction Turbo
+ * prepared is dead.
+ *
+ * `creditsReleased` says what happened to the credits debited at creation:
+ * - `true` (409): the service has already released them.
+ * - `false` (400 "expired", 503 "Blockhash not found"): they are still held
+ *   and are refunded when the action's reservation lapses (`expiresAt`).
+ *
+ * Recovery: poll `getArNSActionStatus(nonce)` to confirm, then create a NEW
+ * action if the change is still wanted.
+ */
+export class ArNSActionExpiredError extends BaseError {
+  public readonly nonce: string;
+  public readonly status: number;
+  public readonly creditsReleased: boolean;
+  constructor(
+    nonce: string,
+    status: number,
+    creditsReleased: boolean,
+    message?: string,
+  ) {
+    super(
+      message ??
+        `ArNS action ${nonce} expired before its signed transaction was submitted.`,
+    );
+    this.nonce = nonce;
+    this.status = status;
+    this.creditsReleased = creditsReleased;
+  }
+}
+
 export class AbortError extends BaseError {
   constructor(message = 'Request was aborted') {
     super(message);
