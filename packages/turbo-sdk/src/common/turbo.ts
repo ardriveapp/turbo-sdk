@@ -457,9 +457,9 @@ export class TurboAuthenticatedClient
   }
 
   /**
-   * Submit the owner-signed transaction (FULL serialized tx, base64). Pass
-   * `headers` signed before the action was created to keep the payer's
-   * prompt out of the blockhash window.
+   * Submit the owner-signed transaction (FULL serialized tx, base64).
+   * Authorised by the owner's signature inside the transaction; payer
+   * `headers` are optional, for services that require them.
    */
   signArNSAction(
     nonce: string,

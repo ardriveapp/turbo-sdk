@@ -104,28 +104,38 @@ export const developmentPaymentServiceURL =
 export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
 
 /**
- * Translate a `/sign` failure into the error a caller can act on.
+ * Translate a `/sign` failure into the error a caller can act on, matching
+ * the payment service's own response bodies.
  *
  * - 402 → {@link InsufficientCreditsError}, as `createArNSAction` maps it.
- * - Expired → {@link ArNSActionExpiredError}. 409 means the service has
- *   already released the credits; 400 "expired" and 503 "Blockhash not
- *   found" mean they are held until the reservation lapses and is refunded.
- *   Matched on the body as well as the status, because 400/409/503 also
- *   carry unrelated failures that must not be mislabelled as expiry.
- * - Anything else is returned unchanged.
+ * - 409 → {@link ArNSActionExpiredError}: the chain confirmed the signed
+ *   bytes can never land. The body says whether the credits came back.
+ * - 400 `Action <nonce> expired …` → {@link ArNSActionExpiredError}. Matched
+ *   on THIS nonce, because the same status carries on-chain program
+ *   rejections ("Lease has expired", "Record is expired") that are not about
+ *   the action at all.
+ * - Anything else — including 503 "Blockhash not found", which the service
+ *   returns only when it cannot PROVE expiry — is returned unchanged.
  */
 function arNSSignError(nonce: string, error: unknown): unknown {
   if (!(error instanceof FailedRequestError)) return error;
   const { status, message } = error;
   if (status === 402) return new InsufficientCreditsError(message);
   if (status === 409 && /expired/i.test(message)) {
-    return new ArNSActionExpiredError(nonce, status, true, message);
+    return new ArNSActionExpiredError(
+      nonce,
+      status,
+      /credits have been returned/i.test(message),
+      message,
+    );
   }
-  if (status === 400 && /expired/i.test(message)) {
-    return new ArNSActionExpiredError(nonce, status, false, message);
-  }
-  if (status === 503 && /blockhash not found/i.test(message)) {
-    return new ArNSActionExpiredError(nonce, status, false, message);
+  if (status === 400 && message.includes(`Action ${nonce} expired`)) {
+    return new ArNSActionExpiredError(
+      nonce,
+      status,
+      /expired and was refunded/i.test(message),
+      message,
+    );
   }
   return error;
 }
@@ -937,24 +947,29 @@ export class TurboAuthenticatedPaymentService
    * the signature. Replaying a completed action returns `alreadyCompleted:
    * true` rather than buying twice, so this is safe to call again if a
    * response is lost.
+   *
+   * The route is authorised by the ANT owner's signature INSIDE the
+   * transaction, not by the payer: the credits were debited when the action
+   * was created. So no payer signature is sent by default — for a browser
+   * payer that would be a second wallet prompt inside the ~30 s blockhash
+   * window. Pass `headers` only for a service that requires them.
+   *
+   * Failures: {@link ArNSActionExpiredError} when the action or its
+   * transaction has provably expired (create a new action);
+   * {@link InsufficientCreditsError} on 402. A 503 "Blockhash not found"
+   * means expiry could not be proven — re-posting the SAME signed bytes is
+   * idempotent and may still succeed; do not re-create the action.
    */
   public async signArNSAction(
     nonce: string,
     signedTransaction: string,
-    /**
-     * Payer headers signed in advance. Omit to sign them now (one payer
-     * prompt). `completeArNSAction` passes headers it signed BEFORE creating
-     * the action, so no payer prompt lands inside the blockhash window.
-     */
     headers?: TurboSignedRequestHeaders,
   ): Promise<ArNSActionCompleted> {
-    const payerHeaders =
-      headers ?? (await this.signer.generateSignedRequestHeaders(uuidV4()));
     try {
       return await this.httpService.post<ArNSActionCompleted>({
         endpoint: `/arns/actions/${nonce}/sign`,
         headers: {
-          ...payerHeaders,
+          ...(headers ?? {}),
           'content-type': 'application/json',
         },
         data: Buffer.from(JSON.stringify({ transaction: signedTransaction })),
@@ -994,30 +1009,6 @@ export class TurboAuthenticatedPaymentService
     opts: { onNonce?: ArNSActionNonceCallback } = {},
     ownerProofMessage?: string,
   ): Promise<ArNSActionCompleted> {
-    // Sign the payer's `/sign` headers NOW, before the action exists.
-    //
-    // Creating the action starts a clock: Turbo returns a transaction whose
-    // Solana blockhash is valid for only ~60-90 s. For a browser payer
-    // (Solana adapter, injected Ethereum, Wander) every payer signature is a
-    // wallet prompt, so signing these headers after the owner has signed put
-    // a SECOND prompt inside that window — and users who took their time got
-    // 503 "Blockhash not found". Signing here leaves the owner's transaction
-    // signature as the only prompt in the window.
-    //
-    // Safe to sign early: the header nonce is a random UUID and the payload
-    // is `nonce` alone (see `generateSignedRequestHeaders`) — no timestamp,
-    // nothing bound to the action — so the headers do not go stale.
-    //
-    // Only when a signature will certainly be needed: an owner is given and
-    // the action carries no owner proof. Proof-bearing actions (the record
-    // family) normally complete while Turbo is a controller, and a pre-signed
-    // header there would be an extra prompt for nothing; they sign lazily
-    // below, as before.
-    const signHeaders =
-      owner !== undefined && ownerProofMessage === undefined
-        ? await this.signer.generateSignedRequestHeaders(uuidV4())
-        : undefined;
-
     const created = await this.createArNSAction(
       action,
       params,
@@ -1041,7 +1032,9 @@ export class TurboAuthenticatedPaymentService
     }
 
     const signed = await owner.signTransaction(created.transaction);
-    return this.signArNSAction(created.nonce, signed, signHeaders);
+    // The owner's signature is the only prompt between create and submit:
+    // `/sign` needs no payer signature (see `signArNSAction`).
+    return this.signArNSAction(created.nonce, signed);
   }
 
   /**

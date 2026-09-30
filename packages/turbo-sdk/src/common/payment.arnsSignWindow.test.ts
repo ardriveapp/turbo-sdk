@@ -33,17 +33,22 @@ import {
 import { TurboAuthenticatedPaymentService } from './payment.js';
 
 /*
-  The blockhash window. Creating an action starts a ~60-90 s clock on the
-  transaction Turbo returns. For a browser payer every payer signature is a
-  wallet prompt, so the `/sign` headers must be signed BEFORE the action is
-  created — leaving the owner's transaction signature as the only prompt
-  inside the window.
+  The signing window. Solana accepts the transaction Turbo builds for only
+  about 30 seconds, so nothing but the owner's signature may sit between
+  create and `/sign`. `/sign` is authorised by that signature alone, so the
+  payer — a wallet prompt for a browser payer — signs once per action: the
+  create request.
 */
 
 /** One ordered log across payer signer, HTTP and owner, so order is testable. */
 type Event =
   | { kind: 'payer-sign'; nonce: string }
-  | { kind: 'post'; endpoint: string; headerNonce?: string }
+  | {
+      kind: 'post';
+      endpoint: string;
+      headerNonce?: string;
+      signature?: string;
+    }
   | { kind: 'owner-sign-tx' }
   | { kind: 'on-nonce' };
 
@@ -59,6 +64,7 @@ function harness(responses: unknown[], error?: unknown) {
         kind: 'post',
         endpoint: args.endpoint,
         headerNonce: args.headers?.['x-nonce'],
+        signature: args.headers?.['x-signature'],
       });
       if (args.endpoint.endsWith('/sign') && error !== undefined) throw error;
       return queue.shift();
@@ -113,8 +119,15 @@ const completed = (nonce: string, action = 'buy-name') => ({
 
 const kinds = (events: Event[]) => events.map((e) => e.kind);
 
-describe('ArNS /sign headers are signed before the blockhash window opens', () => {
-  it('signs the /sign headers before the create POST, never after the owner signs', async () => {
+const payerSigns = (events: Event[]) =>
+  events.filter((e) => e.kind === 'payer-sign').length;
+const signPost = (events: Event[]) =>
+  events.find(
+    (e) => e.kind === 'post' && e.endpoint.endsWith('/sign'),
+  ) as Extract<Event, { kind: 'post' }>;
+
+describe('ArNS /sign carries no payer signature', () => {
+  it('buy-name: one payer prompt (create), only the owner inside the window', async () => {
     const { service, events, owner } = harness([
       awaiting('n1'),
       completed('n1'),
@@ -122,20 +135,15 @@ describe('ArNS /sign headers are signed before the blockhash window opens', () =
     await service.buyArNSName({ name: 'x', owner, type: 'permabuy' });
 
     assert.deepEqual(kinds(events), [
-      'payer-sign', // /sign headers, pre-signed
       'payer-sign', // create headers
       'post', // create — the window opens here
       'owner-sign-tx', // the ONLY prompt inside the window
       'post', // /sign
     ]);
-    const presigned = events[0] as { nonce: string };
-    const signPost = events[4] as { endpoint: string; headerNonce?: string };
-    assert.equal(signPost.endpoint, '/arns/actions/n1/sign');
-    assert.equal(
-      signPost.headerNonce,
-      presigned.nonce,
-      '/sign carries the pre-signed headers',
-    );
+    const sign = signPost(events);
+    assert.equal(sign.endpoint, '/arns/actions/n1/sign');
+    assert.equal(sign.headerNonce, undefined, 'no x-nonce on /sign');
+    assert.equal(sign.signature, undefined, 'no x-signature on /sign');
   });
 
   for (const [name, call] of [
@@ -154,143 +162,183 @@ describe('ArNS /sign headers are signed before the blockhash window opens', () =
       (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
         s.transferArNSAnt({ antId: 'ant1', owner, target: 'T' }),
     ],
+    [
+      'setArNSRecord (after a revoke)',
+      (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
+        s.setArNSRecord({ antId: 'ant1', owner, transactionId: 'tx' }),
+    ],
+    [
+      'setArNSRecordMetadata (after a revoke)',
+      (s: TurboAuthenticatedPaymentService, owner: ArNSOwnerSigner) =>
+        s.setArNSRecordMetadata({ antId: 'ant1', owner, displayName: 'd' }),
+    ],
   ] as const) {
-    it(`${name} pre-signs too (owner-only, always awaits a signature)`, async () => {
+    it(`${name}: exactly one payer prompt when a signature is needed`, async () => {
       const { service, events, owner } = harness([
         awaiting('n2', 'transfer'),
         completed('n2', 'transfer'),
       ]);
       await call(service, owner);
+      assert.equal(payerSigns(events), 1);
       assert.deepEqual(kinds(events), [
-        'payer-sign',
         'payer-sign',
         'post',
         'owner-sign-tx',
         'post',
       ]);
+      assert.equal(signPost(events).signature, undefined);
     });
   }
 
-  it('adds no payer prompt to an action that needs no owner', async () => {
-    const { service, events } = harness([completed('n3', 'extend-lease')]);
-    await service.extendArNSLease({ name: 'x', years: 1 });
-    assert.deepEqual(kinds(events), ['payer-sign', 'post']);
-  });
-
-  it('adds no payer prompt to a record write that completes alone', async () => {
-    // The record family carries an owner, but completes while Turbo is a
-    // controller — pre-signing there would be a prompt for nothing.
+  it('an action that completes alone is unchanged: one payer prompt, one POST', async () => {
     const { service, events, owner } = harness([completed('n4', 'set-record')]);
     await service.setArNSRecord({ antId: 'ant1', owner, transactionId: 'tx' });
     assert.deepEqual(kinds(events), ['payer-sign', 'post']);
   });
 
-  it('a record write that DOES await a signature still completes (lazy /sign headers)', async () => {
-    const { service, events, owner } = harness([
-      awaiting('n5', 'set-record'),
-      completed('n5', 'set-record'),
-    ]);
-    const result = await service.setArNSRecord({
-      antId: 'ant1',
+  it('an alreadyCompleted /sign replay is returned as-is', async () => {
+    const replay = { ...completed('n5'), alreadyCompleted: true };
+    const { service, owner } = harness([awaiting('n5'), replay]);
+    const result = await service.buyArNSName({
+      name: 'x',
       owner,
-      transactionId: 'tx',
+      type: 'permabuy',
     });
-    assert.equal(result.status, 'completed');
-    assert.deepEqual(kinds(events), [
-      'payer-sign',
-      'post',
-      'owner-sign-tx',
-      'payer-sign',
-      'post',
-    ]);
+    assert.deepEqual(result, replay);
   });
 });
 
 describe('signArNSAction', () => {
-  it('uses provided headers and does not sign again', async () => {
+  it('sends only content-type by default and signs nothing', async () => {
     const { service, events } = harness([completed('n6')]);
+    await service.signArNSAction('n6', 'SIGNED');
+    assert.deepEqual(kinds(events), ['post']);
+    assert.equal(signPost(events).signature, undefined);
+  });
+
+  it('passes caller-supplied payer headers through unchanged', async () => {
+    const { service, events } = harness([completed('n7')]);
     const headers: TurboSignedRequestHeaders = {
       'x-public-key': 'pk',
-      'x-nonce': 'presigned-nonce',
+      'x-nonce': 'caller-nonce',
       'x-signature': 'sig',
       'x-signature-type': '1',
     };
-    await service.signArNSAction('n6', 'SIGNED', headers);
+    await service.signArNSAction('n7', 'SIGNED', headers);
     assert.deepEqual(kinds(events), ['post']);
-    assert.equal(
-      (events[0] as { headerNonce?: string }).headerNonce,
-      'presigned-nonce',
-    );
-  });
-
-  it('signs its own headers when none are given (unchanged behaviour)', async () => {
-    const { service, events } = harness([completed('n7')]);
-    await service.signArNSAction('n7', 'SIGNED');
-    assert.deepEqual(kinds(events), ['payer-sign', 'post']);
+    assert.equal(signPost(events).headerNonce, 'caller-nonce');
+    assert.equal(signPost(events).signature, 'sig');
   });
 });
 
-describe('/sign error mapping', () => {
+// Bodies copied from the payment service (ar-io-bundler payment-service:
+// SignedTransactionExpired, routes/arnsActions.ts, respondToArNSActionError).
+const EXPIRED_409 = (refunded: boolean) =>
+  'The signed transaction expired before it could be submitted: Solana ' +
+  'only accepts a transaction for about 30 seconds after it is built. ' +
+  (refunded
+    ? 'Your credits have been returned. Start the action again and approve it promptly.'
+    : 'Start the action again and approve it promptly.');
+
+describe('/sign error mapping (real service bodies)', () => {
   const cases: {
     label: string;
     error: FailedRequestError;
     check: (err: unknown) => void;
   }[] = [
     {
-      label: '409 expired → ArNSActionExpiredError, credits released',
-      error: new FailedRequestError(
-        'signed transaction expired; credits released',
-        409,
-      ),
+      label: '409 refunded → ArNSActionExpiredError, credits released',
+      error: new FailedRequestError(EXPIRED_409(true), 409),
       check: (err) => {
         assert.ok(err instanceof ArNSActionExpiredError);
+        assert.ok(
+          err instanceof FailedRequestError,
+          'still a FailedRequestError',
+        );
         assert.equal(err.nonce, 'n8');
         assert.equal(err.status, 409);
         assert.equal(err.creditsReleased, true);
+        assert.match(err.message, /about 30 seconds/);
+        assert.doesNotMatch(
+          err.message,
+          /Failed request.*Failed request/,
+          'prefix not doubled',
+        );
       },
     },
     {
-      label: '400 expired → ArNSActionExpiredError, credits held',
-      error: new FailedRequestError('Action n8 expired', 400),
+      label: '409 not refunded → ArNSActionExpiredError, credits held',
+      error: new FailedRequestError(EXPIRED_409(false), 409),
       check: (err) => {
         assert.ok(err instanceof ArNSActionExpiredError);
-        assert.equal(err.status, 400);
         assert.equal(err.creditsReleased, false);
       },
     },
     {
-      label: '503 blockhash → ArNSActionExpiredError, credits held',
+      label: '400 "expired and was refunded" → released',
+      error: new FailedRequestError(
+        'Action n8 expired and was refunded; create a new one.',
+        400,
+      ),
+      check: (err) => {
+        assert.ok(err instanceof ArNSActionExpiredError);
+        assert.equal(err.status, 400);
+        assert.equal(err.creditsReleased, true);
+      },
+    },
+    {
+      label: '400 "expired at …" → held until the automatic refund',
+      error: new FailedRequestError(
+        'Action n8 expired at 2026-01-01T00:15:00.000Z — its blockhash is no ' +
+          'longer valid. Create a new action; the credits for this one are ' +
+          'refunded automatically.',
+        400,
+      ),
+      check: (err) => {
+        assert.ok(err instanceof ArNSActionExpiredError);
+        assert.equal(err.creditsReleased, false);
+      },
+    },
+    {
+      label: '400 for a DIFFERENT nonce is not mapped',
+      error: new FailedRequestError(
+        'Action other expired and was refunded; create a new one.',
+        400,
+      ),
+      check: (err) => {
+        assert.ok(!(err instanceof ArNSActionExpiredError));
+      },
+    },
+    ...[
+      'Lease has expired (LeaseExpired, 6012)',
+      'Record is expired (RecordExpired, 6020)',
+      'Reservation has expired (ReservationExpired, 6031)',
+      'Name not expired (NameNotExpired, 6014)',
+    ].map((body) => ({
+      label: `400 Anchor "${body}" stays FailedRequestError`,
+      error: new FailedRequestError(body, 400),
+      check: (err: unknown) => {
+        assert.ok(!(err instanceof ArNSActionExpiredError));
+        assert.ok(err instanceof FailedRequestError);
+        assert.equal(err.status, 400);
+      },
+    })),
+    {
+      label:
+        '503 "Blockhash not found" stays FailedRequestError (retry the same bytes)',
       error: new FailedRequestError(
         'Transaction simulation failed: Blockhash not found',
         503,
       ),
       check: (err) => {
-        assert.ok(err instanceof ArNSActionExpiredError);
-        assert.equal(err.status, 503);
-        assert.equal(err.creditsReleased, false);
-        assert.equal(err.nonce, 'n8');
-      },
-    },
-    {
-      label: '503 other → FailedRequestError unchanged',
-      error: new FailedRequestError('Internal Server Error: rpc down', 503),
-      check: (err) => {
         assert.ok(!(err instanceof ArNSActionExpiredError));
         assert.ok(err instanceof FailedRequestError);
         assert.equal(err.status, 503);
-      },
-    },
-    {
-      label: '400 other → FailedRequestError unchanged',
-      error: new FailedRequestError('invalid transaction encoding', 400),
-      check: (err) => {
-        assert.ok(!(err instanceof ArNSActionExpiredError));
-        assert.ok(err instanceof FailedRequestError);
       },
     },
     {
       label: '402 → InsufficientCreditsError',
-      error: new FailedRequestError('insufficient credits', 402),
+      error: new FailedRequestError("Insufficient balance for 'abc'", 402),
       check: (err) => {
         assert.ok(err instanceof InsufficientCreditsError);
         assert.equal(err.status, 402);
@@ -314,14 +362,14 @@ describe('/sign error mapping', () => {
   it('maps errors on the completeArNSAction path too', async () => {
     const { service, owner } = harness(
       [awaiting('n9')],
-      new FailedRequestError('Blockhash not found', 503),
+      new FailedRequestError(EXPIRED_409(true), 409),
     );
     await assert.rejects(
       () => service.buyArNSName({ name: 'x', owner, type: 'permabuy' }),
       (err) =>
         err instanceof ArNSActionExpiredError &&
         err.nonce === 'n9' &&
-        !err.creditsReleased,
+        err.creditsReleased,
     );
   });
 

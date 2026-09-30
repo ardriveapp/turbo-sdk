@@ -1479,17 +1479,15 @@ export type ArNSActionAwaitingSignature = {
   antId?: string;
   /**
    * The last block height at which `transaction`'s blockhash is valid. This,
-   * not `expiresAt`, is the signing deadline: roughly 60-90 s after the
-   * action is created. Submitting later fails with
+   * not `expiresAt`, bounds signing: Solana accepts the transaction for only
+   * about 30 seconds after Turbo builds it. Past that, `/sign` fails with
    * {@link ArNSActionExpiredError}.
    */
   lastValidBlockHeight?: string;
   /**
-   * The RESERVATION deadline (~15 min after creation): when Turbo gives up on
-   * this action and refunds the debited credits. It is NOT the signing
-   * deadline — `transaction` is valid only for its blockhash lifetime
-   * (~60-90 s, see `lastValidBlockHeight` when present), so a signature
-   * collected well before `expiresAt` can still be too late.
+   * The RESERVATION deadline (~15 min after creation): when Turbo refunds an
+   * action that was never completed. It is NOT the signing deadline — see
+   * `lastValidBlockHeight`.
    */
   expiresAt?: string;
   [key: string]: unknown;
@@ -1838,8 +1836,8 @@ export interface TurboAuthenticatedPaymentServiceInterface
   ): Promise<ArNSActionResult>;
   /**
    * Submit the owner-signed transaction (full serialized tx, base64).
-   * `headers`: payer headers signed in advance, so no payer prompt lands
-   * inside the blockhash window.
+   * Authorised by the owner's signature inside the transaction; `headers`
+   * (payer) are optional, for services that require them.
    */
   signArNSAction(
     nonce: string,
