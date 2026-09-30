@@ -1440,7 +1440,7 @@ export type ArNSBuyNameActionParams = {
   type?: ArNSNameType;
   years?: number;
   paidBy?: UserAddress | UserAddress[];
-  onNonce?: (nonce: string) => void | Promise<void>;
+  onNonce?: ArNSActionNonceCallback;
   /**
    * The new ANT's opening state. Buy-name only — the server 400s `antState` on
    * every other action.
@@ -1477,11 +1477,35 @@ export type ArNSActionAwaitingSignature = {
   transaction: string;
   feePayer?: string;
   antId?: string;
+  /**
+   * The last block height at which `transaction`'s blockhash is valid. This,
+   * not `expiresAt`, bounds signing: Solana accepts the transaction for only
+   * about 30 seconds after Turbo builds it. Past that, `/sign` fails with
+   * {@link ArNSActionExpiredError}.
+   */
   lastValidBlockHeight?: string;
-  /** The blockhash dies in ~60-90s; past this, create a new action. */
+  /**
+   * The RESERVATION deadline (~15 min after creation): when Turbo refunds an
+   * action that was never completed. It is NOT the signing deadline — see
+   * `lastValidBlockHeight`.
+   */
   expiresAt?: string;
   [key: string]: unknown;
 };
+
+/**
+ * Called once an action exists — BEFORE any wallet prompt — with its nonce.
+ * Credits are already debited at that point, so persist the nonce: polling it
+ * is the only way back to a paid-for action after a reload.
+ *
+ * `action` is the full create response (`completed` or
+ * `awaiting-signature`). Optional and additive: a callback that reads only
+ * `nonce` is unaffected.
+ */
+export type ArNSActionNonceCallback = (
+  nonce: string,
+  action?: ArNSActionResult,
+) => void | Promise<void>;
 
 /**
  * An action has exactly one of two shapes, and THE SERVER picks which.
@@ -1810,10 +1834,15 @@ export interface TurboAuthenticatedPaymentServiceInterface
     params?: Record<string, unknown>,
     ownerProof?: { owner: ArNSOwnerSigner; message: string },
   ): Promise<ArNSActionResult>;
-  /** Submit the owner-signed transaction (full serialized tx, base64). */
+  /**
+   * Submit the owner-signed transaction (full serialized tx, base64).
+   * Authorised by the owner's signature inside the transaction; `headers`
+   * (payer) are optional, for services that require them.
+   */
   signArNSAction(
     nonce: string,
     signedTransaction: string,
+    headers?: TurboSignedRequestHeaders,
   ): Promise<ArNSActionCompleted>;
   /** Status by nonce. Open — needs no signature. */
   getArNSActionStatus(
@@ -1825,18 +1854,18 @@ export interface TurboAuthenticatedPaymentServiceInterface
     name: string;
     years: number;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   upgradeArNSName(params: {
     name: string;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   increaseArNSUndernameLimit(params: {
     name: string;
     increaseQty: number;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   setArNSRecord(params: {
     antId: string;
@@ -1844,31 +1873,31 @@ export interface TurboAuthenticatedPaymentServiceInterface
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   addArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   transferArNSAnt(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   setArNSRecordMetadata(params: {
     antId: string;
@@ -1878,20 +1907,20 @@ export interface TurboAuthenticatedPaymentServiceInterface
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSRecordMetadata(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   transferArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
 }
 
