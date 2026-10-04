@@ -810,10 +810,10 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+NOTE: For free uploads under 105 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
 
 ```ts
-// Unsigned free upload of raw data under 100 KiB
+// Unsigned free upload of raw data under 105 KiB
 const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
 await turbo.uploadRawX402Data({
   data: myRawData,
