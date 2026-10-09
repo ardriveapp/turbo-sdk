@@ -2518,7 +2518,7 @@ The Turbo SDK provides the following methods to manage Credit Share Approvals:
 
 - `shareCredits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
 - `revokeCredits`: Revokes all Credit Share Approvals for the specified wallet address.
-- `listShares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `getCreditShareApprovals`: Lists all Credit Share Approvals given or received by the specified wallet address or the connected wallet.
 - `dataItemOpts: { ...opts, paidBy: string[] }`: Upload methods now accept 'paidBy', an array of wallet addresses that have provided credit share approvals to the user from which to pay, in the order provided and as necessary, for the upload.
 
 The Turbo CLI provides the following commands to manage Credit Share Approvals:
