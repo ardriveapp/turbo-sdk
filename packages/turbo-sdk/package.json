@@ -106,7 +106,7 @@
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.1.0",
-    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/git": "^11.0.1",
     "@types/chai": "^4.3.5",
     "@types/cli-progress": "^3.11.6",
     "@types/eventemitter3": "^2.0.4",
