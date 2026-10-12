@@ -12,7 +12,7 @@
   },
   "files": [
     "lib",
-    "LICENSE",
+    "LICENSE.md",
     "README.md"
   ],
   "author": {
@@ -45,6 +45,8 @@
   },
   "license": "Apache-2.0",
   "scripts": {
+    "prepack": "cp ../../README.md ../../LICENSE.md .",
+    "postpack": "rm -f README.md LICENSE.md",
     "build:web": "node bundle.mjs",
     "build:esm": "yarn tsc -p tsconfig.json",
     "build:cjs": "yarn tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > lib/cjs/package.json",

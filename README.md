@@ -810,10 +810,10 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+NOTE: For free uploads under 105 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
 
 ```ts
-// Unsigned free upload of raw data under 100 KiB
+// Unsigned free upload of raw data under 105 KiB
 const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
 await turbo.uploadRawX402Data({
   data: myRawData,
@@ -1571,6 +1571,27 @@ Credits are debited when the action is **created**, not when it is signed. So:
 
 `InsufficientCreditsError` (HTTP 402) is thrown when the balance is short;
 prompt a top-up, then create a **fresh** action.
+
+**The owner has about 30 seconds to sign.** Solana accepts the transaction
+Turbo builds for only about 30 seconds after the action is created, so prompt
+the owner straight away. `expiresAt` is not that deadline: it is the
+~15-minute point at which an uncompleted action is refunded.
+
+`signArNSAction` throws `ArNSActionExpiredError` (a `FailedRequestError`, with
+`nonce`, `status` and `creditsReleased`) when the signature arrived too late:
+a 409, or a 400 reading `Action <nonce> expired...`. `creditsReleased` is
+`true` when the service has already returned the credits, and `false` when
+they are held until the ~15-minute refund. Either way, create a **new**
+action if the change is still wanted.
+
+A 503 `Blockhash not found` is different: the service could not prove the
+transaction expired. Re-post the **same** signed bytes to `signArNSAction`
+rather than creating a new action; a resubmission is idempotent.
+
+`/sign` needs no payer signature: the owner's signature inside the
+transaction authorises it, and the credits were debited at create. So
+`signArNSAction` sends no payer headers by default. Its optional third
+argument, `headers`, is for a service that requires them.
 
 ### Listing a wallet's names
 
@@ -2497,7 +2518,7 @@ The Turbo SDK provides the following methods to manage Credit Share Approvals:
 
 - `shareCredits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
 - `revokeCredits`: Revokes all Credit Share Approvals for the specified wallet address.
-- `listShares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `getCreditShareApprovals`: Lists all Credit Share Approvals given or received by the specified wallet address or the connected wallet.
 - `dataItemOpts: { ...opts, paidBy: string[] }`: Upload methods now accept 'paidBy', an array of wallet addresses that have provided credit share approvals to the user from which to pay, in the order provided and as necessary, for the upload.
 
 The Turbo CLI provides the following commands to manage Credit Share Approvals:

@@ -85,6 +85,43 @@ export class FiatPaymentsDisabledError extends BaseError {
   }
 }
 
+/**
+ * Raised when an ArNS action's owner-signed transaction reaches `/sign` too
+ * late. Solana accepts the transaction for only about 30 seconds after Turbo
+ * builds it; signing again cannot help, because that transaction is dead.
+ *
+ * `creditsReleased` says whether the credits debited at creation are back:
+ * - 409: the chain confirmed the bytes can never land. `true` when the
+ *   service says "Your credits have been returned"; `false` means its
+ *   immediate refund did not go through and the reconciler will refund.
+ * - 400 `Action <nonce> expired …`: `true` for "expired and was refunded";
+ *   `false` for the variant refused before submission, refunded
+ *   automatically once the reservation (`expiresAt`, ~15 min) lapses.
+ *
+ * Extends {@link FailedRequestError}, so existing `status` checks still work.
+ * Recovery: create a NEW action if the change is still wanted.
+ */
+export class ArNSActionExpiredError extends FailedRequestError {
+  public readonly nonce: string;
+  public readonly creditsReleased: boolean;
+  public declare status: number;
+  constructor(
+    nonce: string,
+    status: number,
+    creditsReleased: boolean,
+    /** The service's response body, or a `FailedRequestError` message. */
+    message?: string,
+  ) {
+    super(
+      message?.replace(/^Failed request \(Status \d+\): /, '') ??
+        `ArNS action ${nonce} expired before its signed transaction was submitted.`,
+      status,
+    );
+    this.nonce = nonce;
+    this.creditsReleased = creditsReleased;
+  }
+}
+
 export class AbortError extends BaseError {
   constructor(message = 'Request was aborted') {
     super(message);
