@@ -64,6 +64,12 @@ import { memoProgramId } from './solana.js';
  *    and the chain rejects a mismatch, so a wrong value fails the transaction
  *    instead of transferring a wrong amount.
  */
+/**
+ * Extra blocks allowed when a wallet replaced the blockhash: about 60 s, the
+ * length of one blockhash's validity window.
+ */
+const WALLET_BLOCKHASH_MARGIN = 150;
+
 export class SplToken implements TokenTools {
   protected logger: TurboLogger;
 
@@ -206,11 +212,23 @@ export class SplToken implements TokenTools {
    * so the transaction submitted is the one it returns, never ours with its
    * signature attached. Deserializing drops `lastValidBlockHeight`, so that is
    * carried over for confirmation.
+   *
+   * A wallet can also replace the blockhash. Our `lastValidBlockHeight` then
+   * belongs to a different blockhash, and confirming against it can report a
+   * landed transfer as expired, which invites a second payment. So fetch a
+   * fresh height instead, plus a margin: the wallet's RPC or commitment can
+   * run a few blocks ahead of ours. A height that is too high only waits
+   * longer before giving up on a transaction that never lands; one that is
+   * too low can report a late-landing transfer as expired.
+   *
+   * Ours is copied before signing, because a wallet can change the
+   * transaction it was given and return that same object.
    */
   private async signWithWallet(
     tx: Transaction,
     walletAdapter: SolanaWalletAdapter,
   ): Promise<{ signedTx: Transaction; signature: Uint8Array }> {
+    const { recentBlockhash, lastValidBlockHeight } = tx;
     const signedTx: Transaction = await walletAdapter.signTransaction(tx);
     const signature = signedTx.signature;
     if (signature === null) {
@@ -218,8 +236,14 @@ export class SplToken implements TokenTools {
         `Wallet returned an unsigned ${this.tokenName} transfer transaction`,
       );
     }
-    signedTx.recentBlockhash ??= tx.recentBlockhash;
-    signedTx.lastValidBlockHeight ??= tx.lastValidBlockHeight;
+    signedTx.recentBlockhash ??= recentBlockhash;
+    if (signedTx.recentBlockhash !== recentBlockhash) {
+      signedTx.lastValidBlockHeight =
+        (await this.connection.getLatestBlockhash()).lastValidBlockHeight +
+        WALLET_BLOCKHASH_MARGIN;
+    } else {
+      signedTx.lastValidBlockHeight ??= lastValidBlockHeight;
+    }
     return { signedTx, signature: Uint8Array.from(signature) };
   }
 

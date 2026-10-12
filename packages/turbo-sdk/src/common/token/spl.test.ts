@@ -25,8 +25,12 @@ function walletFor(
   key: Keypair,
   {
     addInstruction = false,
+    replaceBlockhash,
+    inPlace = false,
   }: {
     addInstruction?: boolean;
+    replaceBlockhash?: string;
+    inPlace?: boolean;
   } = {},
 ) {
   const calls = { signTransaction: 0, signMessage: 0 };
@@ -38,10 +42,21 @@ function walletFor(
     },
     signTransaction: async (tx: Transaction) => {
       calls.signTransaction++;
+      if (inPlace) {
+        // A wallet that changes and signs the very object it was given.
+        if (replaceBlockhash !== undefined)
+          tx.recentBlockhash = replaceBlockhash;
+        tx.sign(key);
+        return tx;
+      }
       // What a wallet hands back is a new, deserialized transaction.
       const copy = Transaction.from(
         tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
       );
+      if (replaceBlockhash !== undefined) {
+        // A wallet that fetches its own blockhash before signing.
+        copy.recentBlockhash = replaceBlockhash;
+      }
       if (addInstruction) {
         // Wallets such as Phantom may add compute-budget or guard instructions.
         const modified = new Transaction({
@@ -66,11 +81,17 @@ function walletFor(
 function stubbedToken() {
   const token = new SolanaUsdcToken();
   const sent: Buffer[] = [];
-  const confirmed: { signature: string; lastValidBlockHeight: number }[] = [];
+  const confirmed: {
+    signature: string;
+    blockhash?: string;
+    lastValidBlockHeight: number;
+  }[] = [];
+  let blockhashCalls = 0;
   (token as unknown as { connection: unknown }).connection = {
+    // Each later call is a later block, as on a live chain.
     getLatestBlockhash: async () => ({
       blockhash: BLOCKHASH,
-      lastValidBlockHeight: 1_000,
+      lastValidBlockHeight: 1_000 + 500 * blockhashCalls++,
     }),
     sendRawTransaction: async (raw: Buffer) => {
       sent.push(raw);
@@ -165,6 +186,56 @@ describe('SplToken.createAndSubmitTx', () => {
       ),
     );
     assert.equal(id, bs58.encode(submitted.signature!));
+  });
+
+  it('confirms against a fresh height when the wallet replaces the blockhash', async () => {
+    const key = Keypair.generate();
+    const walletBlockhash = bs58.encode(new Uint8Array(32).fill(9));
+    const { adapter } = walletFor(key, { replaceBlockhash: walletBlockhash });
+    const { token, sent, confirmed } = stubbedToken();
+
+    const { id } = await token.createAndSubmitTx(
+      params({
+        walletAdapter: adapter,
+        getPublicKey: async () => Buffer.from(key.publicKey.toBytes()),
+      }),
+    );
+
+    const submitted = Transaction.from(sent[0]);
+    assert.ok(submitted.verifySignatures());
+    assert.equal(submitted.recentBlockhash, walletBlockhash);
+    assert.deepEqual(confirmed, [
+      {
+        signature: id,
+        blockhash: walletBlockhash,
+        lastValidBlockHeight: 1_650,
+      },
+    ]);
+  });
+
+  it('notices a blockhash the wallet replaced on the transaction it was given', async () => {
+    const key = Keypair.generate();
+    const walletBlockhash = bs58.encode(new Uint8Array(32).fill(9));
+    const { adapter } = walletFor(key, {
+      replaceBlockhash: walletBlockhash,
+      inPlace: true,
+    });
+    const { token, confirmed } = stubbedToken();
+
+    const { id } = await token.createAndSubmitTx(
+      params({
+        walletAdapter: adapter,
+        getPublicKey: async () => Buffer.from(key.publicKey.toBytes()),
+      }),
+    );
+
+    assert.deepEqual(confirmed, [
+      {
+        signature: id,
+        blockhash: walletBlockhash,
+        lastValidBlockHeight: 1_650,
+      },
+    ]);
   });
 
   it('rejects a transaction the wallet returned unsigned', async () => {
