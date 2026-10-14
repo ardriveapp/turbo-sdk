@@ -908,7 +908,7 @@ describe('Node environment', () => {
         assert.ok(error instanceof FailedRequestError);
         assert.equal(
           error.message,
-          'Failed request: Failed to upload file after 6 attempts\n',
+          'Failed request: Failed to upload file after 5 attempts\n',
         );
       });
 
@@ -929,7 +929,7 @@ describe('Node environment', () => {
         // ('' vs 'fetch failed' across Node/undici versions). Assert the stable prefix.
         assert.ok(
           error.message.startsWith(
-            'Failed request: Failed to upload file after 6 attempts',
+            'Failed request: Failed to upload file after 5 attempts',
           ),
         );
       });
@@ -1487,7 +1487,7 @@ describe('Node environment', () => {
         assert.ok(error instanceof FailedRequestError);
         assert.equal(
           error.message,
-          'Failed request: Failed to upload file after 6 attempts\n',
+          'Failed request: Failed to upload file after 5 attempts\n',
         );
       });
 
