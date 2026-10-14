@@ -76,7 +76,13 @@ const paymentRequired = (resource: string) =>
     402,
   );
 
-type PaidOutcome = '503' | 'network' | 'ok';
+type PaidOutcome =
+  | '503'
+  | 'network'
+  | 'abortLike'
+  | 'brokenBody'
+  | '400'
+  | 'ok';
 
 /**
  * Stands in for the upload service. The paid route answers 402 until a request
@@ -109,6 +115,19 @@ function stubService({
       }
       if (paidOutcome === 'network') {
         throw new TypeError('fetch failed');
+      }
+      if (paidOutcome === 'abortLike') {
+        // Not the caller's abort: the message merely says "aborted".
+        throw new Error('read ECONNRESET: request aborted');
+      }
+      if (paidOutcome === 'brokenBody') {
+        return new Response('{"id": "trunc', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (paidOutcome === '400') {
+        return new Response('invalid data item', { status: 400 });
       }
       return json({
         id: 'paid-upload-1',
@@ -187,7 +206,7 @@ describe('uploadFile pays at most once when a paid answer is lost', () => {
         assert.equal(service.nonces.length, 1, 'one paid request');
         assert.equal(new Set(service.nonces).size, 1, 'one distinct nonce');
         assert.ok(error instanceof X402PaymentOutcomeUnknownError);
-        assert.match(error.message, /after 1 attempts/);
+        assert.match(error.message, /after 1 attempt\n/);
         assert.match(error.message, /might have settled/);
         assert.equal(error.payer, payer);
         assert.equal(error.network, 'base-sepolia');
@@ -198,6 +217,57 @@ describe('uploadFile pays at most once when a paid answer is lost', () => {
       });
     }
   }
+
+  it('treats an error that only says "aborted" as an unknown outcome', async () => {
+    const service = stubService({
+      paidRoute: singleRequest,
+      paidOutcome: 'abortLike',
+    });
+    globalThis.fetch = service.fetchStub;
+
+    const error = await upload({ byteCount: 1024 }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+
+    assert.equal(service.nonces.length, 1, 'one paid request');
+    assert.ok(error instanceof X402PaymentOutcomeUnknownError);
+  });
+
+  it('treats an unreadable body on a paid 200 as an unknown outcome', async () => {
+    const service = stubService({
+      paidRoute: singleRequest,
+      paidOutcome: 'brokenBody',
+    });
+    globalThis.fetch = service.fetchStub;
+
+    const error = await upload({ byteCount: 1024 }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+
+    assert.equal(service.nonces.length, 1, 'one paid request');
+    assert.ok(error instanceof X402PaymentOutcomeUnknownError);
+    assert.equal(error.status, 200);
+  });
+
+  it('throws a 4xx after payment unchanged: the service answered', async () => {
+    const service = stubService({
+      paidRoute: singleRequest,
+      paidOutcome: '400',
+    });
+    globalThis.fetch = service.fetchStub;
+
+    const error = await upload({ byteCount: 1024 }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+
+    assert.equal(service.nonces.length, 1, 'one paid request');
+    assert.ok(error instanceof FailedRequestError);
+    assert.ok(!(error instanceof X402PaymentOutcomeUnknownError));
+    assert.equal(error.status, 400);
+  });
 
   it('chunked: resumes without paying again when the upload id is known', async () => {
     // Finalize fails past the uploader's own retries, so uploadFile retries.
@@ -261,6 +331,6 @@ describe('uploadFile attempt count', () => {
   it('makes one attempt with retries: 0', async () => {
     const { posts, error } = await failingUpload(0);
     assert.equal(posts, 1);
-    assert.match(String(error?.message), /after 1 attempts/);
+    assert.match(String(error?.message), /after 1 attempt\n/);
   });
 });

@@ -124,10 +124,11 @@ export class ArNSActionExpiredError extends FailedRequestError {
 
 /**
  * Raised when a request that carried an x402 payment ends without an answer
- * the SDK can trust: a 5xx, a network error or a timeout. The service might
- * have settled the payment before the answer was lost, so the SDK does not
- * retry with a new authorization, and neither must the caller until it has
- * checked.
+ * the SDK can trust: a 5xx, a network error, or a body that cannot be read.
+ * The service might have settled the payment before the answer was lost, so
+ * the SDK does not retry with a new authorization, and neither must the
+ * caller until it has checked. An abort of the caller's own signal, including
+ * `AbortSignal.timeout`, is thrown as {@link AbortError} instead.
  *
  * To check, ask the token contract whether `nonce` is used for `payer`
  * (`authorizationState(payer, nonce)` on USDC), or compare the payer's

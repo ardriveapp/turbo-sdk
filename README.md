@@ -761,6 +761,13 @@ credential, so the SDK refuses to send one over cleartext. Loopback is the
 exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
 local development against a bundler on your own machine still works.
 
+If a request that carried a payment ends with a 5xx, a network error or a body
+the SDK cannot read, the payment might have settled, so `uploadFile` does not
+retry and throws `X402PaymentOutcomeUnknownError` with the `payer`, `network`
+and `nonce`. Before you upload again, check whether the payment settled: call
+`authorizationState(payer, nonce)` on the USDC contract, and a used nonce means
+it did.
+
 #### Pricing an x402 Upload Before Sending It
 
 `getX402PriceForDataItem` prices a signed data item from its byte count, so you

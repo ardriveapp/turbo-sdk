@@ -748,9 +748,9 @@ export abstract class TurboAuthenticatedBaseUploadService
       }
     }
 
-    const msg = `Failed to upload file after ${attempt} attempts\n${
-      lastError instanceof Error ? lastError.message : lastError
-    }`;
+    const msg = `Failed to upload file after ${attempt} attempt${
+      attempt === 1 ? '' : 's'
+    }\n${lastError instanceof Error ? lastError.message : lastError}`;
     // After all retries, throw the last error for catching
     if (lastError instanceof FailedRequestError) {
       lastError.message = msg;

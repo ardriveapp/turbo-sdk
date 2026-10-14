@@ -707,7 +707,7 @@ describe('Node environment', () => {
       //   testName: 'tag name too long',
       //   errorType: 'FailedRequestError',
       //   errorMessage:
-      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+      //     'Failed to upload file after 5 attempts\nFailed request (Status 400): Data item parsing error!',
       //   dataItemOpts: {
       //     tags: [
       //       {
@@ -721,7 +721,7 @@ describe('Node environment', () => {
       //   testName: 'tag value too long',
       //   errorType: 'FailedRequestError',
       //   errorMessage:
-      //     'Failed to upload file after 6 attempts\nFailed request (Status 400): Data item parsing error!',
+      //     'Failed to upload file after 5 attempts\nFailed request (Status 400): Data item parsing error!',
       //   dataItemOpts: {
       //     tags: [
       //       {
