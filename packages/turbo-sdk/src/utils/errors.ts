@@ -122,6 +122,55 @@ export class ArNSActionExpiredError extends FailedRequestError {
   }
 }
 
+/**
+ * Raised when a request that carried an x402 payment ends without an answer
+ * the SDK can trust: a 5xx, a network error, or a body that cannot be read.
+ * The service might have settled the payment before the answer was lost, so
+ * the SDK does not retry with a new authorization, and neither must the
+ * caller until it has checked. An abort of the caller's own signal, including
+ * `AbortSignal.timeout`, is thrown as {@link AbortError} instead.
+ *
+ * To check, ask the token contract whether `nonce` is used for `payer`
+ * (`authorizationState(payer, nonce)` on USDC), or compare the payer's
+ * balance. A used nonce means the payment settled.
+ *
+ * Extends {@link FailedRequestError}, so existing `status` checks still work.
+ */
+export class X402PaymentOutcomeUnknownError extends FailedRequestError {
+  /** The address that signed the payment authorization. */
+  public readonly payer?: string;
+  /** The x402 network name the authorization was signed for. */
+  public readonly network?: string;
+  /** The authorization nonce, unique to this payment. */
+  public readonly nonce?: string;
+  constructor({
+    payer,
+    network,
+    nonce,
+    status,
+    cause,
+  }: {
+    payer?: string;
+    network?: string;
+    nonce?: string;
+    status?: number;
+    cause?: unknown;
+  }) {
+    super(
+      `An x402 payment was sent and the request ended without a usable ` +
+        `answer, so the payment might have settled. Check the payment ` +
+        `before you upload again (payer: ${payer ?? 'unknown'}, network: ` +
+        `${network ?? 'unknown'}, nonce: ${nonce ?? 'unknown'}). Cause: ` +
+        `${cause instanceof Error ? cause.message : String(cause)}`,
+      status,
+    );
+    this.payer = payer;
+    this.network = network;
+    this.nonce = nonce;
+    this.cause = cause;
+  }
+}
+
 export class AbortError extends BaseError {
   constructor(message = 'Request was aborted') {
     super(message);
