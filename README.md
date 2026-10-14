@@ -768,8 +768,11 @@ error, an error that says "aborted" when your own signal did not abort, and a
 body the SDK cannot read, including on a 4xx. The error carries the `payer`,
 `network` and `nonce`; each is `undefined` if the payment header could not be
 decoded. Before you upload again, call `authorizationState(payer, nonce)` on
-the USDC contract: a used nonce means the payment settled. An abort of your own
-signal, including `AbortSignal.timeout`, is thrown as `AbortError`.
+the USDC contract: a used nonce means the payment settled. If your own signal,
+including `AbortSignal.timeout`, aborts while the paid request is being sent,
+the SDK throws `AbortError`. If it aborts after the answer starts to arrive,
+the payment might have settled, so the SDK throws
+`X402PaymentOutcomeUnknownError`.
 
 #### Pricing an x402 Upload Before Sending It
 
