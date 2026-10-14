@@ -772,7 +772,8 @@ the USDC contract: a used nonce means the payment settled. If your own signal,
 including `AbortSignal.timeout`, aborts while the paid request is being sent,
 the SDK throws `AbortError`. If it aborts after the answer starts to arrive,
 the payment might have settled, so the SDK throws
-`X402PaymentOutcomeUnknownError`.
+`X402PaymentOutcomeUnknownError`. The paid request that opens a chunked upload
+does not take your signal, so an abort waits until it finishes.
 
 #### Pricing an x402 Upload Before Sending It
 
