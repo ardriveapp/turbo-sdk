@@ -138,7 +138,7 @@ describe('Credit Sharing', () => {
           approvedAddress: 'invalidAddress',
         }),
         errorMessage:
-          'Failed to upload file after 1 attempts\nFailed request (Status 400): Unable to create delegated payment approval : Invalid approved address',
+          'Failed to upload file after 1 attempt\nFailed request (Status 400): Unable to create delegated payment approval : Invalid approved address',
         errorType: 'FailedRequestError',
       });
     });
@@ -149,7 +149,7 @@ describe('Credit Sharing', () => {
           approvedWincAmount: '10000',
           approvedAddress: unfundedSignerAddress1,
         }),
-        errorMessage: `Failed to upload file after 1 attempts\nFailed request (Status 400): Unable to create delegated payment approval : Insufficient balance for '${arweavePayerAddress}'`,
+        errorMessage: `Failed to upload file after 1 attempt\nFailed request (Status 400): Unable to create delegated payment approval : Insufficient balance for '${arweavePayerAddress}'`,
         errorType: 'FailedRequestError',
       });
     });
@@ -248,7 +248,7 @@ describe('Credit Sharing', () => {
         promiseToError: turbo.revokeCredits({
           revokedAddress: 'stub-43-char-address-stub-43-char-address-0',
         }),
-        errorMessage: `Failed to upload file after 1 attempts\nFailed request (Status 400): Unable to revoke delegated payment approval : No valid approvals found for approved address 'stub-43-char-address-stub-43-char-address-0' and paying address '${arweavePayerAddress}'`,
+        errorMessage: `Failed to upload file after 1 attempt\nFailed request (Status 400): Unable to revoke delegated payment approval : No valid approvals found for approved address 'stub-43-char-address-stub-43-char-address-0' and paying address '${arweavePayerAddress}'`,
         errorType: 'FailedRequestError',
       });
     });
