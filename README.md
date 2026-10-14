@@ -761,12 +761,15 @@ credential, so the SDK refuses to send one over cleartext. Loopback is the
 exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
 local development against a bundler on your own machine still works.
 
-If a request that carried a payment ends with a 5xx, a network error or a body
-the SDK cannot read, the payment might have settled, so `uploadFile` does not
-retry and throws `X402PaymentOutcomeUnknownError` with the `payer`, `network`
-and `nonce`. Before you upload again, check whether the payment settled: call
-`authorizationState(payer, nonce)` on the USDC contract, and a used nonce means
-it did.
+If a request that carried a payment ends without a complete 4xx answer or a
+success, the payment might have settled, so `uploadFile` does not retry and
+throws `X402PaymentOutcomeUnknownError`. That covers a 3xx or 5xx, a network
+error, an error that says "aborted" when your own signal did not abort, and a
+body the SDK cannot read, including on a 4xx. The error carries the `payer`,
+`network` and `nonce`; each is `undefined` if the payment header could not be
+decoded. Before you upload again, call `authorizationState(payer, nonce)` on
+the USDC contract: a used nonce means the payment settled. An abort of your own
+signal, including `AbortSignal.timeout`, is thrown as `AbortError`.
 
 #### Pricing an x402 Upload Before Sending It
 

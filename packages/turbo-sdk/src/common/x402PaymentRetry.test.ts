@@ -82,6 +82,7 @@ type PaidOutcome =
   | 'abortLike'
   | 'brokenBody'
   | '400'
+  | '400BrokenBody'
   | 'ok';
 
 /**
@@ -125,6 +126,15 @@ function stubService({
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
+      }
+      if (paidOutcome === '400BrokenBody') {
+        // A 4xx whose body fails mid-read is not a complete answer.
+        const body = new ReadableStream({
+          start(controller) {
+            controller.error(new TypeError('terminated'));
+          },
+        });
+        return new Response(body, { status: 400 });
       }
       if (paidOutcome === '400') {
         return new Response('invalid data item', { status: 400 });
@@ -268,6 +278,25 @@ describe('uploadFile pays at most once when a paid answer is lost', () => {
     assert.ok(!(error instanceof X402PaymentOutcomeUnknownError));
     assert.equal(error.status, 400);
   });
+
+  for (const [name, paidRoute, chunkingMode] of [
+    ['chunked create', chunkedCreate, 'force'],
+    ['single signed request', singleRequest, undefined],
+  ] as const) {
+    it(`${name}: treats a 4xx whose body cannot be read as an unknown outcome`, async () => {
+      const service = stubService({ paidRoute, paidOutcome: '400BrokenBody' });
+      globalThis.fetch = service.fetchStub;
+
+      const error = await upload({ byteCount: 1024, chunkingMode }).then(
+        () => undefined,
+        (e: unknown) => e,
+      );
+
+      assert.equal(service.nonces.length, 1, 'one paid request');
+      assert.ok(error instanceof X402PaymentOutcomeUnknownError);
+      assert.equal(error.status, 400);
+    });
+  }
 
   it('chunked: resumes without paying again when the upload id is known', async () => {
     // Finalize fails past the uploader's own retries, so uploadFile retries.

@@ -348,21 +348,25 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         allowedStatuses,
       );
     } catch (error) {
-      const status =
-        error instanceof FailedRequestError ? error.status : paidStatus;
-      // A 4xx is an answer: the service refused, it did not settle. An
-      // AbortError only counts as an abort when the caller's signal fired:
-      // tryRequest also maps any error whose message says "aborted" to one.
+      // Only a 4xx the service answered in full passes through: the service
+      // refused, it did not settle. An error raised while reading a 4xx body
+      // is not that answer. An AbortError only counts as an abort when the
+      // caller's signal fired: tryRequest also maps any error whose message
+      // says "aborted" to one.
+      const answeredStatus =
+        error instanceof FailedRequestError ? error.status : undefined;
       if (
         paymentHeader === undefined ||
         (error instanceof AbortError && signal?.aborted === true) ||
-        (status !== undefined && status >= 400 && status < 500)
+        (answeredStatus !== undefined &&
+          answeredStatus >= 400 &&
+          answeredStatus < 500)
       ) {
         throw error;
       }
       throw new X402PaymentOutcomeUnknownError({
         ...decodePaymentHeader(paymentHeader),
-        status,
+        status: answeredStatus ?? paidStatus,
         cause: error,
       });
     }
