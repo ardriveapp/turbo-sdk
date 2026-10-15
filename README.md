@@ -824,15 +824,7 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-NOTE: For free uploads under 105 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
-
-```ts
-// Unsigned free upload of raw data under 105 KiB
-const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
-await turbo.uploadRawX402Data({
-  data: myRawData,
-});
-```
+The raw x402 route has no free tier: every upload pays, however small. An unauthenticated client cannot pay, so it gets a `402` with a price. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
 
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions, folderIndex, manifestDataItemOpts })`
 
