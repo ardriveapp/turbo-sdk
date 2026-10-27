@@ -1887,18 +1887,21 @@ export interface TurboAuthenticatedPaymentServiceInterface
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   transferArNSAnt(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   setArNSRecordMetadata(params: {
@@ -1909,12 +1912,14 @@ export interface TurboAuthenticatedPaymentServiceInterface
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSRecordMetadata(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   transferArNSRecord(params: {
@@ -1922,6 +1927,7 @@ export interface TurboAuthenticatedPaymentServiceInterface
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
 }

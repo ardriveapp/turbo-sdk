@@ -1394,6 +1394,16 @@ await turbo.setArNSRecord({
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 
+// Every action above and below takes an optional `paidBy`: wallets that shared
+// credits with the paying wallet (credit-share approvals), spent in order
+// before its own balance. It is not part of the owner's signed message.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  paidBy: ['<sharing-wallet-address>'],
+});
+
 // Record metadata — display name, logo, description, keywords. Same margin,
 // same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
 await turbo.setArNSRecordMetadata({
@@ -2351,6 +2361,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
 - `--target <address>` - Target Solana pubkey to transfer the ANT to
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2370,6 +2381,7 @@ Command Options:
 - `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
 - `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
 - `--ttl-seconds <ttlSeconds>` - TTL in seconds for the record
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2388,6 +2400,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a record from
 - `--undername <undername>` - Undername record to remove
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2409,6 +2422,7 @@ Command Options:
 - `--record-logo <transactionId>` / `--clear-record-logo`
 - `--record-description <description>` / `--clear-record-description`
 - `--record-keywords <keywords...>` / `--clear-record-keywords`
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2434,6 +2448,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove record metadata from
 - `--undername <undername>` - Undername record whose metadata to clear
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2452,6 +2467,7 @@ Command Options:
 - `--ant-id <antId>` - ANT ID whose record to transfer
 - `--undername <undername>` - Undername record to transfer
 - `--target <address>` - Target Solana pubkey to transfer the record to
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2469,6 +2485,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to add a controller to
 - `--target <address>` - Solana pubkey to grant controller rights to (omit for Turbo itself, which is what makes `set-arns-record` a single call)
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2486,6 +2503,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a controller from
 - `--target <address>` - Solana pubkey to revoke (omit to revoke Turbo)
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 

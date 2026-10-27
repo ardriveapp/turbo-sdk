@@ -38,6 +38,7 @@ import {
   ArNSPriceClient,
   ArNSPurchaseClient,
   ArNSStatusClient,
+  addArNSController,
   arnsActionStatus,
   arnsFiatQuote,
   arnsPrice,
@@ -46,10 +47,13 @@ import {
   buyArNSName,
   extendArNSLease,
   increaseArNSUndernames,
+  removeArNSController,
   removeArNSRecord,
+  removeArNSRecordMetadata,
   setArNSRecord,
   setArNSRecordMetadata,
   transferArNSAnt,
+  transferArNSRecord,
   upgradeArNSName,
 } from './arns.js';
 
@@ -609,6 +613,7 @@ describe('ArNS CLI commands', () => {
       assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         antId: 'ant-1',
         target: 'tgt-1',
+        paidBy: undefined,
         ownerAddress: TEST_OWNER_ADDRESS,
       });
     });
@@ -639,6 +644,42 @@ describe('ArNS CLI commands', () => {
         /target/,
       );
     });
+  });
+
+  describe('--paid-by on the other paid custody commands', () => {
+    const base = {
+      token: 'arweave',
+      ownerKey: TEST_OWNER_KEY,
+      antId: 'ant-1',
+      undername: 'docs',
+      target: 'tgt-1',
+      paidBy: ['payer-a'],
+    };
+    const commands: [
+      string,
+      (options: never, client: ArNSCustodyClient) => Promise<void>,
+    ][] = [
+      ['transferArNSAnt', transferArNSAnt],
+      ['transferArNSRecord', transferArNSRecord],
+      ['setArNSRecordMetadata', setArNSRecordMetadata],
+      ['removeArNSRecordMetadata', removeArNSRecordMetadata],
+      ['addArNSController', addArNSController],
+      ['removeArNSController', removeArNSController],
+    ];
+    for (const [method, command] of commands) {
+      it(`${method} forwards --paid-by, and drops an empty one`, async () => {
+        await command(base as never, turbo);
+        assert.equal(turbo.last.method, method);
+        assert.deepEqual((turbo.last.params as { paidBy?: string[] }).paidBy, [
+          'payer-a',
+        ]);
+        await command({ ...base, paidBy: [] } as never, turbo);
+        assert.equal(
+          (turbo.last.params as { paidBy?: string[] }).paidBy,
+          undefined,
+        );
+      });
+    }
   });
 
   describe('setArNSRecord', () => {

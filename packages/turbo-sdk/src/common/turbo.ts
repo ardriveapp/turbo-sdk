@@ -567,6 +567,7 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.addArNSController(params);
@@ -577,6 +578,7 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSController(params);
@@ -596,6 +598,7 @@ export class TurboAuthenticatedClient
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.setArNSRecordMetadata(params);
@@ -606,6 +609,7 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSRecordMetadata(params);
@@ -617,6 +621,7 @@ export class TurboAuthenticatedClient
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.transferArNSRecord(params);
@@ -627,6 +632,7 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.transferArNSAnt(params);

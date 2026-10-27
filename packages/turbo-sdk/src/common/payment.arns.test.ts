@@ -403,6 +403,79 @@ describe('ArNS actions - the thin wrappers', () => {
 
     await svc.removeArNSRecord({ antId: 'ant1', owner, undername: 'docs' });
     assert.ok(!('paidBy' in body(http.last)), 'omitted when undefined');
+
+    // An empty list is left out too, so it cannot mask an `x-paid-by` header.
+    await svc.removeArNSRecord({
+      antId: 'ant1',
+      owner,
+      undername: 'docs',
+      paidBy: [],
+    });
+    assert.ok(!('paidBy' in body(http.last)), 'omitted when empty');
+  });
+
+  it('every other paid custody action forwards paidBy', async () => {
+    const calls: [
+      string,
+      (svc: TurboAuthenticatedPaymentService) => unknown,
+    ][] = [
+      [
+        'set-record-metadata',
+        (svc) =>
+          svc.setArNSRecordMetadata({
+            antId: 'ant1',
+            owner,
+            displayName: 'Docs',
+            paidBy: ['a'],
+          }),
+      ],
+      [
+        'remove-record-metadata',
+        (svc) =>
+          svc.removeArNSRecordMetadata({
+            antId: 'ant1',
+            owner,
+            undername: 'docs',
+            paidBy: ['a'],
+          }),
+      ],
+      [
+        'transfer-record',
+        (svc) =>
+          svc.transferArNSRecord({
+            antId: 'ant1',
+            owner,
+            undername: 'docs',
+            target: 'T',
+            paidBy: ['a'],
+          }),
+      ],
+      [
+        'add-controller',
+        (svc) => svc.addArNSController({ antId: 'ant1', owner, paidBy: ['a'] }),
+      ],
+      [
+        'remove-controller',
+        (svc) =>
+          svc.removeArNSController({ antId: 'ant1', owner, paidBy: ['a'] }),
+      ],
+      [
+        'transfer',
+        (svc) =>
+          svc.transferArNSAnt({
+            antId: 'ant1',
+            owner,
+            target: 'T',
+            paidBy: ['a'],
+          }),
+      ],
+    ];
+    for (const [action, call] of calls) {
+      const http = new FakeHttp();
+      http.responses = [completed(action)];
+      await call(serviceWith(http));
+      assert.deepEqual(body(http.last).paidBy, ['a'], action);
+    }
   });
 
   it('addArNSController omits target so the service defaults to Turbo', async () => {
