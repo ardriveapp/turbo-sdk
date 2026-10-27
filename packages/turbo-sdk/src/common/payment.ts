@@ -1148,6 +1148,9 @@ export class TurboAuthenticatedPaymentService
    * controller authority over an asset someone else owns, so nothing on chain
    * records the owner's consent and we demand it. It is a MESSAGE signature,
    * not a transaction — cheap and offline, but still a wallet prompt.
+   *
+   * `paidBy` spends credits other wallets shared with the payer (credit-share
+   * approvals), as for uploads. It is not part of the owner's signed message.
    */
   public async setArNSRecord({
     antId,
@@ -1155,6 +1158,7 @@ export class TurboAuthenticatedPaymentService
     transactionId,
     undername = '@',
     ttlSeconds = 3600,
+    paidBy,
     onNonce,
   }: {
     antId: string;
@@ -1162,6 +1166,7 @@ export class TurboAuthenticatedPaymentService
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
@@ -1172,6 +1177,7 @@ export class TurboAuthenticatedPaymentService
         transactionId,
         undername,
         ttlSeconds,
+        ...(paidBy !== undefined ? { paidBy } : {}),
       },
       owner,
       { onNonce },
@@ -1184,21 +1190,31 @@ export class TurboAuthenticatedPaymentService
     );
   }
 
-  /** Remove a record (an undername). Costs credits, never SOL. */
+  /**
+   * Remove a record (an undername). Costs credits, never SOL. `paidBy` works
+   * as on {@link setArNSRecord}.
+   */
   public async removeArNSRecord({
     antId,
     owner,
     undername,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'remove-record',
-      { antId, ownerAddress: await owner.getAddress(), undername },
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        undername,
+        ...(paidBy !== undefined ? { paidBy } : {}),
+      },
       owner,
       { onNonce },
       buildArNSCustodyMessage('remove-record', [antId, undername]),

@@ -127,11 +127,13 @@ export type ArNSCustodyClient = {
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   addArNSController(params: {
     antId: string;
@@ -629,6 +631,7 @@ export async function setArNSRecord(
       undername: options.undername ?? '@',
       transactionId: options.transactionId,
       ttlSeconds,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -654,6 +657,7 @@ export async function removeArNSRecord(
       antId: options.antId,
       owner: ownerFromOptions(options),
       undername: options.undername,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 

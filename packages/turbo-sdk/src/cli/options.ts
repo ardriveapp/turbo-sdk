@@ -430,6 +430,7 @@ export const setArNSRecordOptions = [
   optionMap.arnsUndername,
   optionMap.arnsTransactionId,
   optionMap.arnsTtlSeconds,
+  optionMap.paidBy,
 ];
 
 export const removeArNSRecordOptions = [
@@ -437,6 +438,7 @@ export const removeArNSRecordOptions = [
   optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
+  optionMap.paidBy,
 ];
 
 export const addArNSControllerOptions = [

@@ -362,6 +362,49 @@ describe('ArNS actions - the thin wrappers', () => {
     assert.deepEqual(body(http.last).paidBy, ['a']);
   });
 
+  it('set-record and remove-record forward paidBy outside the owner proof', async () => {
+    const http = new FakeHttp();
+    http.responses = [
+      completed('set-record'),
+      completed('remove-record'),
+      completed('remove-record'),
+    ];
+    const svc = serviceWith(http);
+
+    await svc.setArNSRecord({
+      antId: 'ant1',
+      owner,
+      transactionId: 'tx1',
+      paidBy: ['a', 'b'],
+    });
+    assert.deepEqual(body(http.last).paidBy, ['a', 'b']);
+    // The owner signs the record fields only; who pays is the payer's call.
+    const h = http.last.headers;
+    assert.ok(
+      nacl.sign.detached.verify(
+        Uint8Array.from(
+          Buffer.from(
+            'arns\nset-record\nant1\n@\ntx1\n3600' + h['x-owner-nonce'],
+          ),
+        ),
+        fromB64Url(h['x-owner-signature']),
+        ownerKeypair.publicKey.toBytes(),
+      ),
+      'owner proof unchanged by paidBy',
+    );
+
+    await svc.removeArNSRecord({
+      antId: 'ant1',
+      owner,
+      undername: 'docs',
+      paidBy: 'a',
+    });
+    assert.equal(body(http.last).paidBy, 'a');
+
+    await svc.removeArNSRecord({ antId: 'ant1', owner, undername: 'docs' });
+    assert.ok(!('paidBy' in body(http.last)), 'omitted when undefined');
+  });
+
   it('addArNSController omits target so the service defaults to Turbo', async () => {
     const http = new FakeHttp();
     const prepared = await buildPreparedTx();

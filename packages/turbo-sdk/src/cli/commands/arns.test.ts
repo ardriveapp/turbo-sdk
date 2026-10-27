@@ -660,8 +660,27 @@ describe('ArNS CLI commands', () => {
         undername: 'docs',
         transactionId: 'tx-1',
         ttlSeconds: 900,
+        paidBy: undefined,
         ownerAddress: TEST_OWNER_ADDRESS,
       });
+    });
+
+    it('forwards --paid-by', async () => {
+      await setArNSRecord(
+        {
+          token: 'arweave',
+          ownerKey: TEST_OWNER_KEY,
+          antId: 'ant-1',
+          transactionId: 'tx-1',
+          ttlSeconds: '900',
+          paidBy: ['payer-a', 'payer-b'],
+        } as SetArNSRecordOptions,
+        turbo,
+      );
+      assert.deepEqual((turbo.last.params as { paidBy?: string[] }).paidBy, [
+        'payer-a',
+        'payer-b',
+      ]);
     });
 
     it("defaults --undername to '@'", async () => {
@@ -724,8 +743,25 @@ describe('ArNS CLI commands', () => {
       assert.deepEqual(await paramsWithOwnerAddress(turbo.last.params), {
         antId: 'ant-1',
         undername: 'docs',
+        paidBy: undefined,
         ownerAddress: TEST_OWNER_ADDRESS,
       });
+    });
+
+    it('forwards --paid-by', async () => {
+      await removeArNSRecord(
+        {
+          token: 'arweave',
+          ownerKey: TEST_OWNER_KEY,
+          antId: 'ant-1',
+          undername: 'docs',
+          paidBy: ['payer-a'],
+        } as RemoveArNSRecordOptions,
+        turbo,
+      );
+      assert.deepEqual((turbo.last.params as { paidBy?: string[] }).paidBy, [
+        'payer-a',
+      ]);
     });
 
     it('requires --ant-id and --undername', async () => {

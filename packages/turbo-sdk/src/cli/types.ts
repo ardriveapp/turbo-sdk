@@ -158,12 +158,14 @@ export type SetArNSRecordOptions = ArNSOwnerKeyOption &
     undername: string | undefined;
     transactionId: string | undefined;
     ttlSeconds: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type RemoveArNSRecordOptions = ArNSOwnerKeyOption &
   WalletOptions & {
     antId: string | undefined;
     undername: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type AddArNSControllerOptions = ArNSOwnerKeyOption &

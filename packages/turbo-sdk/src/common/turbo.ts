@@ -542,6 +542,7 @@ export class TurboAuthenticatedClient
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.setArNSRecord(params);
@@ -555,6 +556,7 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSRecord(params);

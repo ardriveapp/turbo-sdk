@@ -1873,12 +1873,14 @@ export interface TurboAuthenticatedPaymentServiceInterface
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   addArNSController(params: {
