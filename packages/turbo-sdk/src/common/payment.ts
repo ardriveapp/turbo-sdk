@@ -117,6 +117,19 @@ export const defaultPaymentServiceURL = 'https://payment.ardrive.io';
  * - Anything else — including 503 "Blockhash not found", which the service
  *   returns only when it cannot PROVE expiry — is returned unchanged.
  */
+/**
+ * `paidBy` for an ArNS action body: left out when absent OR empty, so an empty
+ * list never masks the payers a request names another way (the service reads
+ * query, then body, then the `x-paid-by` header, and the first present wins).
+ */
+function arNSPaidByParam(paidBy: UserAddress | UserAddress[] | undefined): {
+  paidBy?: UserAddress | UserAddress[];
+} {
+  return paidBy === undefined || (Array.isArray(paidBy) && paidBy.length === 0)
+    ? {}
+    : { paidBy };
+}
+
 function arNSSignError(nonce: string, error: unknown): unknown {
   if (!(error instanceof FailedRequestError)) return error;
   const { status, message } = error;
@@ -1064,7 +1077,7 @@ export class TurboAuthenticatedPaymentService
         ownerAddress: await owner.getAddress(),
         type,
         ...(years !== undefined ? { years } : {}),
-        ...(paidBy !== undefined ? { paidBy } : {}),
+        ...arNSPaidByParam(paidBy),
         /*
           Spread conditionally, like `paidBy` — an `antState: undefined` key
           would serialize into the body and is not the same request as omitting
@@ -1092,7 +1105,7 @@ export class TurboAuthenticatedPaymentService
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'extend-lease',
-      { name, years, ...(paidBy !== undefined ? { paidBy } : {}) },
+      { name, years, ...arNSPaidByParam(paidBy) },
       undefined,
       { onNonce },
     );
@@ -1110,7 +1123,7 @@ export class TurboAuthenticatedPaymentService
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'upgrade-name',
-      { name, ...(paidBy !== undefined ? { paidBy } : {}) },
+      { name, ...arNSPaidByParam(paidBy) },
       undefined,
       { onNonce },
     );
@@ -1130,7 +1143,7 @@ export class TurboAuthenticatedPaymentService
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'increase-undername-limit',
-      { name, increaseQty, ...(paidBy !== undefined ? { paidBy } : {}) },
+      { name, increaseQty, ...arNSPaidByParam(paidBy) },
       undefined,
       { onNonce },
     );
@@ -1148,6 +1161,9 @@ export class TurboAuthenticatedPaymentService
    * controller authority over an asset someone else owns, so nothing on chain
    * records the owner's consent and we demand it. It is a MESSAGE signature,
    * not a transaction — cheap and offline, but still a wallet prompt.
+   *
+   * `paidBy` spends credits other wallets shared with the payer (credit-share
+   * approvals), as for uploads. It is not part of the owner's signed message.
    */
   public async setArNSRecord({
     antId,
@@ -1155,6 +1171,7 @@ export class TurboAuthenticatedPaymentService
     transactionId,
     undername = '@',
     ttlSeconds = 3600,
+    paidBy,
     onNonce,
   }: {
     antId: string;
@@ -1162,6 +1179,7 @@ export class TurboAuthenticatedPaymentService
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
@@ -1172,6 +1190,7 @@ export class TurboAuthenticatedPaymentService
         transactionId,
         undername,
         ttlSeconds,
+        ...arNSPaidByParam(paidBy),
       },
       owner,
       { onNonce },
@@ -1184,21 +1203,31 @@ export class TurboAuthenticatedPaymentService
     );
   }
 
-  /** Remove a record (an undername). Costs credits, never SOL. */
+  /**
+   * Remove a record (an undername). Costs credits, never SOL. `paidBy` works
+   * as on {@link setArNSRecord}.
+   */
   public async removeArNSRecord({
     antId,
     owner,
     undername,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'remove-record',
-      { antId, ownerAddress: await owner.getAddress(), undername },
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        undername,
+        ...arNSPaidByParam(paidBy),
+      },
       owner,
       { onNonce },
       buildArNSCustodyMessage('remove-record', [antId, undername]),
@@ -1229,6 +1258,7 @@ export class TurboAuthenticatedPaymentService
     recordLogo,
     recordDescription,
     recordKeywords,
+    paidBy,
     onNonce,
   }: {
     antId: string;
@@ -1238,6 +1268,7 @@ export class TurboAuthenticatedPaymentService
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
@@ -1252,6 +1283,7 @@ export class TurboAuthenticatedPaymentService
         ...(recordLogo !== undefined ? { recordLogo } : {}),
         ...(recordDescription !== undefined ? { recordDescription } : {}),
         ...(recordKeywords !== undefined ? { recordKeywords } : {}),
+        ...arNSPaidByParam(paidBy),
       },
       owner,
       { onNonce },
@@ -1271,16 +1303,23 @@ export class TurboAuthenticatedPaymentService
     antId,
     owner,
     undername,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'remove-record-metadata',
-      { antId, ownerAddress: await owner.getAddress(), undername },
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        undername,
+        ...arNSPaidByParam(paidBy),
+      },
       owner,
       { onNonce },
       buildArNSCustodyMessage('remove-record-metadata', [antId, undername]),
@@ -1298,17 +1337,25 @@ export class TurboAuthenticatedPaymentService
     owner,
     undername,
     target,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'transfer-record',
-      { antId, ownerAddress: await owner.getAddress(), undername, target },
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        undername,
+        target,
+        ...arNSPaidByParam(paidBy),
+      },
       owner,
       { onNonce },
       buildArNSCustodyMessage('transfer-record', [antId, undername, target]),
@@ -1327,11 +1374,13 @@ export class TurboAuthenticatedPaymentService
     antId,
     owner,
     target,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
@@ -1340,6 +1389,7 @@ export class TurboAuthenticatedPaymentService
         antId,
         ownerAddress: await owner.getAddress(),
         ...(target !== undefined ? { target } : {}),
+        ...arNSPaidByParam(paidBy),
       },
       owner,
       { onNonce },
@@ -1359,11 +1409,13 @@ export class TurboAuthenticatedPaymentService
     antId,
     owner,
     target,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
@@ -1372,6 +1424,7 @@ export class TurboAuthenticatedPaymentService
         antId,
         ownerAddress: await owner.getAddress(),
         ...(target !== undefined ? { target } : {}),
+        ...arNSPaidByParam(paidBy),
       },
       owner,
       { onNonce },
@@ -1386,16 +1439,23 @@ export class TurboAuthenticatedPaymentService
     antId,
     owner,
     target,
+    paidBy,
     onNonce,
   }: {
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
+    paidBy?: UserAddress | UserAddress[];
     onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.completeArNSAction(
       'transfer',
-      { antId, ownerAddress: await owner.getAddress(), target },
+      {
+        antId,
+        ownerAddress: await owner.getAddress(),
+        target,
+        ...arNSPaidByParam(paidBy),
+      },
       owner,
       { onNonce },
     );
