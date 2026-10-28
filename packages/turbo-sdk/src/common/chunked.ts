@@ -61,7 +61,7 @@ export class ChunkedUploader {
   /**
    * The upload id of an x402 upload we have ALREADY PAID FOR.
    *
-   * `uploadFile` retries a failed upload up to 6 times. Without this memo each
+   * `uploadFile` makes up to 5 attempts by default. Without this memo each
    * retry opens a NEW paid upload, so one 12 MiB upload whose finalization
    * timed out billed the customer five times over — observed, not theoretical.
    * The payment is bound to an upload id, so a retry must resume THAT upload,
