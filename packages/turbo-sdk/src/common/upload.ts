@@ -57,7 +57,11 @@ import {
   X402RequestCredentials,
 } from '../types.js';
 import { isBlob, isValidArweaveBase64URL, sleep } from '../utils/common.js';
-import { AbortError, ProvidedInputError } from '../utils/errors.js';
+import {
+  AbortError,
+  ProvidedInputError,
+  X402PaymentOutcomeUnknownError,
+} from '../utils/errors.js';
 import { FailedRequestError } from '../utils/errors.js';
 import {
   contentHashFromFolderIndexKey,
@@ -103,9 +107,7 @@ export const creditSharingTagNames = {
 export const developmentUploadServiceURL = 'https://upload.services.ar-io.dev';
 export const defaultUploadServiceURL = 'https://upload.ardrive.io';
 
-export class TurboUnauthenticatedUploadService
-  implements TurboUnauthenticatedUploadServiceInterface
-{
+export class TurboUnauthenticatedUploadService implements TurboUnauthenticatedUploadServiceInterface {
   protected httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected token: TokenType;
@@ -503,7 +505,7 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     // Checked here, with the other x402 preconditions, so a missing optional
     // peer dependency fails before signing and before the retry loop, where it
-    // would otherwise read as an upload failure after six attempts.
+    // would otherwise read as an upload failure after five attempts.
     if (fundingMode instanceof X402Funding) {
       await requireX402Fetch();
     }
@@ -532,13 +534,16 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     this.logger.debug('Starting file upload', { params });
 
-    let retries = 0;
+    // Attempts made so far, reported in the final error.
+    let attempt = 0;
     // Carried ACROSS retry attempts. A paid chunked upload is bought before any
     // chunk is accepted, so an attempt that fails after paying must hand its
     // upload id to the next attempt. Rebuilding the uploader with no id is how
     // a single upload gets billed once per retry.
     let paidUploadId: string | undefined;
-    const maxRetries = this.retryConfig.retries ?? 3;
+    // `retries` is the attempt budget, as in TurboHTTPService.withRetry, and at
+    // least one attempt is always made: `retries: 0` used to make none.
+    const maxAttempts = Math.max(1, this.retryConfig.retries ?? 3);
     const retryDelay =
       this.retryConfig.retryDelay ??
       ((retryNumber: number) => retryNumber * 1000);
@@ -574,10 +579,11 @@ export abstract class TurboAuthenticatedBaseUploadService
 
     // TODO: move the retry implementation to the http class, and avoid awaiting here. This will standardize the retry logic across all upload methods.
 
-    while (retries < maxRetries) {
+    while (attempt < maxAttempts) {
       if (signal?.aborted) {
         throw new AbortError();
       }
+      attempt++;
 
       // TODO: create a SigningError class and throw that instead of the generic Error
       const { dataItemStreamFactory, dataItemSizeFactory } =
@@ -711,6 +717,12 @@ export abstract class TurboAuthenticatedBaseUploadService
           lastStatusCode = error.response?.status;
         }
 
+        // A retry would sign a new authorization, and the service might
+        // already have settled this one. Stop and let the caller check.
+        if (error instanceof X402PaymentOutcomeUnknownError) {
+          break;
+        }
+
         if (
           lastStatusCode !== undefined &&
           lastStatusCode >= 400 &&
@@ -721,23 +733,22 @@ export abstract class TurboAuthenticatedBaseUploadService
         }
 
         this.logger.debug(
-          `Upload failed on attempt ${retries + 1}/${maxRetries + 1}`,
+          `Upload failed on attempt ${attempt}/${maxAttempts}`,
           { message: error instanceof Error ? error.message : error },
           error,
         );
-        retries++;
         const abortEventPromise = new Promise<void>((resolve) => {
           signal?.addEventListener('abort', () => {
             resolve();
           });
         });
-        await Promise.race([sleep(retryDelay(retries)), abortEventPromise]);
+        await Promise.race([sleep(retryDelay(attempt)), abortEventPromise]);
       }
     }
 
-    const msg = `Failed to upload file after ${retries + 1} attempts\n${
-      lastError instanceof Error ? lastError.message : lastError
-    }`;
+    const msg = `Failed to upload file after ${attempt} attempt${
+      attempt === 1 ? '' : 's'
+    }\n${lastError instanceof Error ? lastError.message : lastError}`;
     // After all retries, throw the last error for catching
     if (lastError instanceof FailedRequestError) {
       lastError.message = msg;
@@ -794,17 +805,17 @@ export abstract class TurboAuthenticatedBaseUploadService
       indexFile !== undefined && paths[indexFile]?.id !== undefined
         ? indexFile
         : // Else use index.html if it exists,
-        paths['index.html']?.id !== undefined
-        ? 'index.html'
-        : // Else use the first file in the paths object.
-          Object.keys(paths)[0];
+          paths['index.html']?.id !== undefined
+          ? 'index.html'
+          : // Else use the first file in the paths object.
+            Object.keys(paths)[0];
 
     const fallbackId =
       // Use the user provided fallback file if it exists,
       fallbackFile !== undefined && paths[fallbackFile]?.id !== undefined
         ? paths[fallbackFile].id
         : // Else use 404.html if it exists, else use the index path.
-          paths['404.html']?.id ?? paths[indexPath].id;
+          (paths['404.html']?.id ?? paths[indexPath].id);
 
     const manifest: ArweaveManifest = {
       manifest: 'arweave/paths',

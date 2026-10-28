@@ -18,6 +18,7 @@ import { BigNumber } from 'bignumber.js';
 import {
   ArNSAction,
   ArNSActionCompleted,
+  ArNSActionNonceCallback,
   ArNSActionPriceResponse,
   ArNSActionResult,
   ArNSBuyNameActionParams,
@@ -61,6 +62,7 @@ import {
   TurboRatesResponse,
   TurboRevokeCreditsParams,
   TurboSignedDataItemFactory,
+  TurboSignedRequestHeaders,
   TurboSubmitFundTxResponse,
   TurboTokenPriceForBytesResponse,
   TurboUnauthenticatedClientConfiguration,
@@ -122,9 +124,7 @@ export const defaultTurboConfiguration = {
   },
 };
 
-export class TurboUnauthenticatedClient
-  implements TurboUnauthenticatedClientInterface
-{
+export class TurboUnauthenticatedClient implements TurboUnauthenticatedClientInterface {
   protected paymentService: TurboUnauthenticatedPaymentServiceInterface;
   protected uploadService: TurboUnauthenticatedUploadServiceInterface;
 
@@ -454,12 +454,21 @@ export class TurboAuthenticatedClient
     return this.paymentService.createArNSAction(action, params, ownerProof);
   }
 
-  /** Submit the owner-signed transaction (FULL serialized tx, base64). */
+  /**
+   * Submit the owner-signed transaction (FULL serialized tx, base64).
+   * Authorised by the owner's signature inside the transaction; payer
+   * `headers` are optional, for services that require them.
+   */
   signArNSAction(
     nonce: string,
     signedTransaction: string,
+    headers?: TurboSignedRequestHeaders,
   ): Promise<ArNSActionCompleted> {
-    return this.paymentService.signArNSAction(nonce, signedTransaction);
+    return this.paymentService.signArNSAction(
+      nonce,
+      signedTransaction,
+      headers,
+    );
   }
 
   /** Status by nonce — open, needs no signature. Use it to resume. */
@@ -497,7 +506,7 @@ export class TurboAuthenticatedClient
     name: string;
     years: number;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.extendArNSLease(params);
   }
@@ -507,7 +516,7 @@ export class TurboAuthenticatedClient
     name: string;
     increaseQty: number;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.increaseArNSUndernameLimit(params);
   }
@@ -516,7 +525,7 @@ export class TurboAuthenticatedClient
   upgradeArNSName(params: {
     name: string;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.upgradeArNSName(params);
   }
@@ -531,7 +540,8 @@ export class TurboAuthenticatedClient
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.setArNSRecord(params);
   }
@@ -544,7 +554,8 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSRecord(params);
   }
@@ -554,7 +565,8 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.addArNSController(params);
   }
@@ -564,7 +576,8 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSController(params);
   }
@@ -583,7 +596,8 @@ export class TurboAuthenticatedClient
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.setArNSRecordMetadata(params);
   }
@@ -593,7 +607,8 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.removeArNSRecordMetadata(params);
   }
@@ -604,7 +619,8 @@ export class TurboAuthenticatedClient
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.transferArNSRecord(params);
   }
@@ -614,7 +630,8 @@ export class TurboAuthenticatedClient
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted> {
     return this.paymentService.transferArNSAnt(params);
   }

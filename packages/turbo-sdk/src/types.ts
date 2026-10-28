@@ -83,6 +83,17 @@ export const tokenTypes = [
 ] as const;
 export type TokenType = (typeof tokenTypes)[number];
 
+/**
+ * Tokens paid from a Solana wallet: SOL natively, and ARIO and USDC as SPL
+ * transfers signed by the same ed25519 key. A private key for any of these
+ * builds a Solana signer, so a Solana wallet adapter must as well.
+ */
+export const supportedSolanaSignerTokens = new Set<TokenType>([
+  'solana',
+  'ario',
+  'solana-usdc',
+]);
+
 export const supportedEvmSignerTokens = new Set([
   'ethereum',
   'base-eth',
@@ -292,8 +303,7 @@ export type TurboFiatPaymentHistoryItem = {
 };
 
 export type TurboPaymentHistoryItem =
-  | TurboCryptoPaymentHistoryItem
-  | TurboFiatPaymentHistoryItem;
+  TurboCryptoPaymentHistoryItem | TurboFiatPaymentHistoryItem;
 
 export type TurboPaymentHistoryResponse = {
   /** One page of the signer's own top-ups, newest first. */
@@ -471,8 +481,7 @@ export class OnDemandFunding {
  * not installed `x402-fetch`.
  */
 export type TurboX402Signer =
-  | WalletClient<Transport, Chain, Account>
-  | LocalAccount;
+  WalletClient<Transport, Chain, Account> | LocalAccount;
 
 export class X402Funding {
   public signer: TurboX402Signer | undefined;
@@ -707,8 +716,7 @@ export type WebUploadFolderParams = {
   files: File[];
 } & UploadFolderParams;
 export type TurboUploadFolderParams =
-  | NodeUploadFolderParams
-  | WebUploadFolderParams;
+  NodeUploadFolderParams | WebUploadFolderParams;
 export const isNodeUploadFolderParams = (
   p: TurboUploadFolderParams,
 ): p is NodeUploadFolderParams =>
@@ -1134,8 +1142,7 @@ export type TurboUploadFileWithFileOrPathParams = {
   TurboChunkingParams;
 
 export type TurboUploadFileParams =
-  | TurboUploadFileWithStreamFactoryParams
-  | TurboUploadFileWithFileOrPathParams;
+  TurboUploadFileWithStreamFactoryParams | TurboUploadFileWithFileOrPathParams;
 
 export type FileStreamFactory = WebFileStreamFactory | NodeFileStreamFactory;
 
@@ -1279,8 +1286,7 @@ export type ArNSBuyNamePermabuyParams = {
   processId?: string;
 };
 export type ArNSBuyNameParams =
-  | ArNSBuyNameLeaseParams
-  | ArNSBuyNamePermabuyParams;
+  ArNSBuyNameLeaseParams | ArNSBuyNamePermabuyParams;
 export type ArNSExtendLeaseParams = {
   intent: 'Extend-Lease';
   name: string;
@@ -1429,7 +1435,7 @@ export type ArNSBuyNameActionParams = {
   type?: ArNSNameType;
   years?: number;
   paidBy?: UserAddress | UserAddress[];
-  onNonce?: (nonce: string) => void | Promise<void>;
+  onNonce?: ArNSActionNonceCallback;
   /**
    * The new ANT's opening state. Buy-name only — the server 400s `antState` on
    * every other action.
@@ -1466,11 +1472,35 @@ export type ArNSActionAwaitingSignature = {
   transaction: string;
   feePayer?: string;
   antId?: string;
+  /**
+   * The last block height at which `transaction`'s blockhash is valid. This,
+   * not `expiresAt`, bounds signing: Solana accepts the transaction for only
+   * about 30 seconds after Turbo builds it. Past that, `/sign` fails with
+   * {@link ArNSActionExpiredError}.
+   */
   lastValidBlockHeight?: string;
-  /** The blockhash dies in ~60-90s; past this, create a new action. */
+  /**
+   * The RESERVATION deadline (~15 min after creation): when Turbo refunds an
+   * action that was never completed. It is NOT the signing deadline — see
+   * `lastValidBlockHeight`.
+   */
   expiresAt?: string;
   [key: string]: unknown;
 };
+
+/**
+ * Called once an action exists — BEFORE any wallet prompt — with its nonce.
+ * Credits are already debited at that point, so persist the nonce: polling it
+ * is the only way back to a paid-for action after a reload.
+ *
+ * `action` is the full create response (`completed` or
+ * `awaiting-signature`). Optional and additive: a callback that reads only
+ * `nonce` is unaffected.
+ */
+export type ArNSActionNonceCallback = (
+  nonce: string,
+  action?: ArNSActionResult,
+) => void | Promise<void>;
 
 /**
  * An action has exactly one of two shapes, and THE SERVER picks which.
@@ -1479,8 +1509,7 @@ export type ArNSActionAwaitingSignature = {
  * `awaiting-signature` the moment the customer revokes Turbo.
  */
 export type ArNSActionResult =
-  | ArNSActionCompleted
-  | ArNSActionAwaitingSignature;
+  ArNSActionCompleted | ArNSActionAwaitingSignature;
 
 /**
  * The flat-margin credits price for one of the eight actions that don't
@@ -1585,8 +1614,7 @@ export const arNSFiatPurchaseMethods = [
   'checkout-session',
 ] as const;
 export type ArNSFiatPurchaseMethod =
-  | (typeof arNSFiatPurchaseMethods)[number]
-  | (string & Record<never, never>);
+  (typeof arNSFiatPurchaseMethods)[number] | (string & Record<never, never>);
 
 /**
  * Params for a fiat (Stripe) ArNS purchase quote.
@@ -1760,8 +1788,7 @@ export type TurboFundWithTokensParams = {
   turboCreditDestinationAddress?: UserAddress;
 };
 
-export interface TurboAuthenticatedPaymentServiceInterface
-  extends TurboUnauthenticatedPaymentServiceInterface {
+export interface TurboAuthenticatedPaymentServiceInterface extends TurboUnauthenticatedPaymentServiceInterface {
   getBalance: (userAddress?: UserAddress) => Promise<TurboBalanceResponse>;
   /** `address` defaults to the signer's native address. */
   getArNSFiatPurchaseQuote(
@@ -1799,10 +1826,15 @@ export interface TurboAuthenticatedPaymentServiceInterface
     params?: Record<string, unknown>,
     ownerProof?: { owner: ArNSOwnerSigner; message: string },
   ): Promise<ArNSActionResult>;
-  /** Submit the owner-signed transaction (full serialized tx, base64). */
+  /**
+   * Submit the owner-signed transaction (full serialized tx, base64).
+   * Authorised by the owner's signature inside the transaction; `headers`
+   * (payer) are optional, for services that require them.
+   */
   signArNSAction(
     nonce: string,
     signedTransaction: string,
+    headers?: TurboSignedRequestHeaders,
   ): Promise<ArNSActionCompleted>;
   /** Status by nonce. Open — needs no signature. */
   getArNSActionStatus(
@@ -1814,18 +1846,18 @@ export interface TurboAuthenticatedPaymentServiceInterface
     name: string;
     years: number;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   upgradeArNSName(params: {
     name: string;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   increaseArNSUndernameLimit(params: {
     name: string;
     increaseQty: number;
     paidBy?: UserAddress | UserAddress[];
-    onNonce?: (nonce: string) => void | Promise<void>;
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   setArNSRecord(params: {
     antId: string;
@@ -1833,31 +1865,36 @@ export interface TurboAuthenticatedPaymentServiceInterface
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   addArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   transferArNSAnt(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   setArNSRecordMetadata(params: {
     antId: string;
@@ -1867,20 +1904,23 @@ export interface TurboAuthenticatedPaymentServiceInterface
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   removeArNSRecordMetadata(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
   transferArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
-    onNonce?: (nonce: string) => void | Promise<void>;
+    paidBy?: UserAddress | UserAddress[];
+    onNonce?: ArNSActionNonceCallback;
   }): Promise<ArNSActionCompleted>;
 }
 
@@ -1993,8 +2033,7 @@ export interface TurboUnauthenticatedUploadServiceInterface {
   ): Promise<TurboX402RawDataPriceResponse>;
 }
 
-export interface TurboAuthenticatedUploadServiceInterface
-  extends TurboUnauthenticatedUploadServiceInterface {
+export interface TurboAuthenticatedUploadServiceInterface extends TurboUnauthenticatedUploadServiceInterface {
   upload({
     data,
     events,
@@ -2017,10 +2056,12 @@ export interface TurboAuthenticatedUploadServiceInterface
 }
 
 export interface TurboUnauthenticatedClientInterface
-  extends TurboUnauthenticatedPaymentServiceInterface,
+  extends
+    TurboUnauthenticatedPaymentServiceInterface,
     TurboUnauthenticatedUploadServiceInterface {}
 export interface TurboAuthenticatedClientInterface
-  extends TurboAuthenticatedPaymentServiceInterface,
+  extends
+    TurboAuthenticatedPaymentServiceInterface,
     TurboAuthenticatedUploadServiceInterface {}
 
 export type TokenCreateTxParams = {
