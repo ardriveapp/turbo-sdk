@@ -23,7 +23,11 @@ import {
   X402RequestCredentials,
 } from '../types.js';
 import { sleep } from '../utils/common.js';
-import { AbortError, FailedRequestError } from '../utils/errors.js';
+import {
+  AbortError,
+  FailedRequestError,
+  X402PaymentOutcomeUnknownError,
+} from '../utils/errors.js';
 import { readableToReadableStream } from '../utils/readableStream.js';
 import { version } from '../version.js';
 
@@ -192,27 +196,31 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
         x402Options.maxMUSDCAmount !== undefined
           ? BigInt(x402Options.maxMUSDCAmount.toString())
           : undefined;
-      return this.tryRequest(async () => {
-        const { wrapFetchWithPayment } = await loadX402Fetch();
-        const fetchWithPay = wrapFetchWithPayment(
-          fetch,
-          x402Options.signer,
-          maxMUSDCAmount,
-        );
-        return fetchWithPay(this.baseURL + endpoint, {
-          method: 'GET',
-          // This GET is not a read: it settles a payment and returns the
-          // resulting upload id. Nothing between here and the service may
-          // store or replay that response. Sent as a header rather than the
-          // `cache` init option, which undici does not honour consistently.
-          headers: {
-            ...defaultHeaders,
-            ...headers,
-            'Cache-Control': 'no-store',
-          },
-          signal,
-        });
-      }, allowedStatuses) as Promise<T>;
+      return this.tryPaidRequest(
+        async (recordingFetch) => {
+          const { wrapFetchWithPayment } = await loadX402Fetch();
+          const fetchWithPay = wrapFetchWithPayment(
+            recordingFetch,
+            x402Options.signer,
+            maxMUSDCAmount,
+          );
+          return fetchWithPay(this.baseURL + endpoint, {
+            method: 'GET',
+            // This GET is not a read: it settles a payment and returns the
+            // resulting upload id. Nothing between here and the service may
+            // store or replay that response. Sent as a header rather than the
+            // `cache` init option, which undici does not honour consistently.
+            headers: {
+              ...defaultHeaders,
+              ...headers,
+              'Cache-Control': 'no-store',
+            },
+            signal,
+          });
+        },
+        allowedStatuses,
+        signal,
+      ) as Promise<T>;
     }
     return this.withRetry<T>(
       () =>
@@ -308,6 +316,62 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
     }
   }
 
+  /**
+   * {@link tryRequest} for a request that might pay. `send` must route its
+   * requests through the fetch it is given, which records the `X-PAYMENT`
+   * header x402-fetch adds. If a request carried a payment and then ended with
+   * a 5xx, a network error or a body that cannot be read, the payment might
+   * have settled, so the error becomes an
+   * {@link X402PaymentOutcomeUnknownError} that callers must not retry with a
+   * new authorization. A 4xx, and an abort of the caller's own `signal`
+   * (including `AbortSignal.timeout`), are thrown unchanged.
+   */
+  private async tryPaidRequest<T>(
+    send: (recordingFetch: typeof fetch) => Promise<Response>,
+    allowedStatuses: number[],
+    signal: AbortSignal | undefined,
+  ): Promise<T> {
+    let paymentHeader: string | undefined;
+    let paidStatus: number | undefined;
+    const recordingFetch: typeof fetch = async (input, init) => {
+      const payment = new Headers(init?.headers).get('X-PAYMENT');
+      paymentHeader = payment ?? paymentHeader;
+      const response = await fetch(input, init);
+      if (payment !== null) {
+        paidStatus = response.status;
+      }
+      return response;
+    };
+    try {
+      return await this.tryRequest<T>(
+        () => send(recordingFetch),
+        allowedStatuses,
+      );
+    } catch (error) {
+      // Only a 4xx the service answered in full passes through: the service
+      // refused, it did not settle. An error raised while reading a 4xx body
+      // is not that answer. An AbortError only counts as an abort when the
+      // caller's signal fired: tryRequest also maps any error whose message
+      // says "aborted" to one.
+      const answeredStatus =
+        error instanceof FailedRequestError ? error.status : undefined;
+      if (
+        paymentHeader === undefined ||
+        (error instanceof AbortError && signal?.aborted === true) ||
+        (answeredStatus !== undefined &&
+          answeredStatus >= 400 &&
+          answeredStatus < 500)
+      ) {
+        throw error;
+      }
+      throw new X402PaymentOutcomeUnknownError({
+        ...decodePaymentHeader(paymentHeader),
+        status: answeredStatus ?? paidStatus,
+        cause: error,
+      });
+    }
+  }
+
   private async withRetry<T>(
     request: () => Promise<Response>,
     allowedStatuses: number[],
@@ -371,37 +435,59 @@ export class TurboHTTPService implements TurboHTTPServiceInterface {
 
     const { body, duplex } = await toFetchBody(data);
 
-    return this.tryRequest(async () => {
-      const maxMUSDCAmount =
-        x402Options.maxMUSDCAmount !== undefined
-          ? BigInt(x402Options.maxMUSDCAmount.toString())
-          : undefined;
+    return this.tryPaidRequest(
+      async (recordingFetch) => {
+        const maxMUSDCAmount =
+          x402Options.maxMUSDCAmount !== undefined
+            ? BigInt(x402Options.maxMUSDCAmount.toString())
+            : undefined;
 
-      const { wrapFetchWithPayment } = await loadX402Fetch();
-      const fetchWithPay = wrapFetchWithPayment(
-        fetch,
-        x402Options.signer,
-        maxMUSDCAmount,
-      );
+        const { wrapFetchWithPayment } = await loadX402Fetch();
+        const fetchWithPay = wrapFetchWithPayment(
+          recordingFetch,
+          x402Options.signer,
+          maxMUSDCAmount,
+        );
 
-      const res = await fetchWithPay(this.baseURL + endpoint, {
-        method: 'POST',
-        headers: { ...defaultHeaders, ...headers },
-        body,
-        signal,
-        ...(duplex ? { duplex } : {}),
-      });
+        const res = await fetchWithPay(this.baseURL + endpoint, {
+          method: 'POST',
+          headers: { ...defaultHeaders, ...headers },
+          body,
+          signal,
+          ...(duplex ? { duplex } : {}),
+        });
 
-      return res;
-    }, allowedStatuses);
+        return res;
+      },
+      allowedStatuses,
+      signal,
+    );
+  }
+}
+
+/**
+ * Reads who paid, on which network, and with which nonce from an `X-PAYMENT`
+ * header (base64 JSON). Best effort: the error it feeds is thrown either way.
+ */
+function decodePaymentHeader(header: string): {
+  payer?: string;
+  network?: string;
+  nonce?: string;
+} {
+  try {
+    const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8'));
+    return {
+      payer: decoded?.payload?.authorization?.from,
+      network: decoded?.network,
+      nonce: decoded?.payload?.authorization?.nonce,
+    };
+  } catch {
+    return {};
   }
 }
 
 type FetchBodyInput =
-  | ReadableStream<Uint8Array>
-  | Readable
-  | Buffer
-  | Uint8Array;
+  ReadableStream<Uint8Array> | Readable | Buffer | Uint8Array;
 
 const isBrowser =
   typeof window !== 'undefined' && typeof window.document !== 'undefined';

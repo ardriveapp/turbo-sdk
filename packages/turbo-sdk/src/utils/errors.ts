@@ -85,6 +85,92 @@ export class FiatPaymentsDisabledError extends BaseError {
   }
 }
 
+/**
+ * Raised when an ArNS action's owner-signed transaction reaches `/sign` too
+ * late. Solana accepts the transaction for only about 30 seconds after Turbo
+ * builds it; signing again cannot help, because that transaction is dead.
+ *
+ * `creditsReleased` says whether the credits debited at creation are back:
+ * - 409: the chain confirmed the bytes can never land. `true` when the
+ *   service says "Your credits have been returned"; `false` means its
+ *   immediate refund did not go through and the reconciler will refund.
+ * - 400 `Action <nonce> expired …`: `true` for "expired and was refunded";
+ *   `false` for the variant refused before submission, refunded
+ *   automatically once the reservation (`expiresAt`, ~15 min) lapses.
+ *
+ * Extends {@link FailedRequestError}, so existing `status` checks still work.
+ * Recovery: create a NEW action if the change is still wanted.
+ */
+export class ArNSActionExpiredError extends FailedRequestError {
+  public readonly nonce: string;
+  public readonly creditsReleased: boolean;
+  declare public status: number;
+  constructor(
+    nonce: string,
+    status: number,
+    creditsReleased: boolean,
+    /** The service's response body, or a `FailedRequestError` message. */
+    message?: string,
+  ) {
+    super(
+      message?.replace(/^Failed request \(Status \d+\): /, '') ??
+        `ArNS action ${nonce} expired before its signed transaction was submitted.`,
+      status,
+    );
+    this.nonce = nonce;
+    this.creditsReleased = creditsReleased;
+  }
+}
+
+/**
+ * Raised when a request that carried an x402 payment ends without an answer
+ * the SDK can trust: a 5xx, a network error, or a body that cannot be read.
+ * The service might have settled the payment before the answer was lost, so
+ * the SDK does not retry with a new authorization, and neither must the
+ * caller until it has checked. An abort of the caller's own signal, including
+ * `AbortSignal.timeout`, is thrown as {@link AbortError} instead.
+ *
+ * To check, ask the token contract whether `nonce` is used for `payer`
+ * (`authorizationState(payer, nonce)` on USDC), or compare the payer's
+ * balance. A used nonce means the payment settled.
+ *
+ * Extends {@link FailedRequestError}, so existing `status` checks still work.
+ */
+export class X402PaymentOutcomeUnknownError extends FailedRequestError {
+  /** The address that signed the payment authorization. */
+  public readonly payer?: string;
+  /** The x402 network name the authorization was signed for. */
+  public readonly network?: string;
+  /** The authorization nonce, unique to this payment. */
+  public readonly nonce?: string;
+  constructor({
+    payer,
+    network,
+    nonce,
+    status,
+    cause,
+  }: {
+    payer?: string;
+    network?: string;
+    nonce?: string;
+    status?: number;
+    cause?: unknown;
+  }) {
+    super(
+      `An x402 payment was sent and the request ended without a usable ` +
+        `answer, so the payment might have settled. Check the payment ` +
+        `before you upload again (payer: ${payer ?? 'unknown'}, network: ` +
+        `${network ?? 'unknown'}, nonce: ${nonce ?? 'unknown'}). Cause: ` +
+        `${cause instanceof Error ? cause.message : String(cause)}`,
+      status,
+    );
+    this.payer = payer;
+    this.network = network;
+    this.nonce = nonce;
+    this.cause = cause;
+  }
+}
+
 export class AbortError extends BaseError {
   constructor(message = 'Request was aborted') {
     super(message);
