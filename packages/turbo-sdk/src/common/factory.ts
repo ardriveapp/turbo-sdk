@@ -30,6 +30,7 @@ import {
   isEthereumWalletAdapter,
   isSolanaWalletAdapter,
   supportedEvmSignerTokens,
+  supportedSolanaSignerTokens,
 } from '../types.js';
 import { LogLevel, Logger } from './logger.js';
 import {
@@ -193,7 +194,7 @@ export abstract class TurboBaseFactory {
   }
 
   private signerFromAdapter(walletAdapter: WalletAdapter, token: TokenType) {
-    if (token === 'solana') {
+    if (supportedSolanaSignerTokens.has(token)) {
       if (!isSolanaWalletAdapter(walletAdapter)) {
         throw new Error(
           'Unsupported wallet adapter -- must implement publicKey and signMessage',

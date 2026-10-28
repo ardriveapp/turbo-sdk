@@ -761,6 +761,20 @@ credential, so the SDK refuses to send one over cleartext. Loopback is the
 exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
 local development against a bundler on your own machine still works.
 
+If a request that carried a payment ends without a complete 4xx answer or a
+success, the payment might have settled, so `uploadFile` does not retry and
+throws `X402PaymentOutcomeUnknownError`. That covers a 3xx or 5xx, a network
+error, an error that says "aborted" when your own signal did not abort, and a
+body the SDK cannot read, including on a 4xx. The error carries the `payer`,
+`network` and `nonce`; each is `undefined` if the payment header could not be
+decoded. Before you upload again, call `authorizationState(payer, nonce)` on
+the USDC contract: a used nonce means the payment settled. If your own signal,
+including `AbortSignal.timeout`, aborts while the paid request is being sent,
+the SDK throws `AbortError`. If it aborts after the answer starts to arrive,
+the payment might have settled, so the SDK throws
+`X402PaymentOutcomeUnknownError`. The paid request that opens a chunked upload
+does not take your signal, so an abort waits until it finishes.
+
 #### Pricing an x402 Upload Before Sending It
 
 `getX402PriceForDataItem` prices a signed data item from its byte count, so you
@@ -810,15 +824,7 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
-
-```ts
-// Unsigned free upload of raw data under 100 KiB
-const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
-await turbo.uploadRawX402Data({
-  data: myRawData,
-});
-```
+The raw x402 route has no free tier: every upload pays, however small. An unauthenticated client cannot pay, so it gets a `402` with a price. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
 
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions, folderIndex, manifestDataItemOpts })`
 
@@ -1388,6 +1394,16 @@ await turbo.setArNSRecord({
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 
+// Every action above and below takes an optional `paidBy`: wallets that shared
+// credits with the paying wallet (credit-share approvals), spent in order
+// before its own balance. It is not part of the owner's signed message.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  paidBy: ['<sharing-wallet-address>'],
+});
+
 // Record metadata — display name, logo, description, keywords. Same margin,
 // same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
 await turbo.setArNSRecordMetadata({
@@ -1571,6 +1587,27 @@ Credits are debited when the action is **created**, not when it is signed. So:
 
 `InsufficientCreditsError` (HTTP 402) is thrown when the balance is short;
 prompt a top-up, then create a **fresh** action.
+
+**The owner has about 30 seconds to sign.** Solana accepts the transaction
+Turbo builds for only about 30 seconds after the action is created, so prompt
+the owner straight away. `expiresAt` is not that deadline: it is the
+~15-minute point at which an uncompleted action is refunded.
+
+`signArNSAction` throws `ArNSActionExpiredError` (a `FailedRequestError`, with
+`nonce`, `status` and `creditsReleased`) when the signature arrived too late:
+a 409, or a 400 reading `Action <nonce> expired...`. `creditsReleased` is
+`true` when the service has already returned the credits, and `false` when
+they are held until the ~15-minute refund. Either way, create a **new**
+action if the change is still wanted.
+
+A 503 `Blockhash not found` is different: the service could not prove the
+transaction expired. Re-post the **same** signed bytes to `signArNSAction`
+rather than creating a new action; a resubmission is idempotent.
+
+`/sign` needs no payer signature: the owner's signature inside the
+transaction authorises it, and the credits were debited at create. So
+`signArNSAction` sends no payer headers by default. Its optional third
+argument, `headers`, is for a service that requires them.
 
 ### Listing a wallet's names
 
@@ -2324,6 +2361,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT (Metaplex Core asset) ID to transfer
 - `--target <address>` - Target Solana pubkey to transfer the ANT to
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2343,6 +2381,7 @@ Command Options:
 - `--undername <undername>` - Undername record to set (defaults to `@`, the apex record)
 - `--transaction-id <transactionId>` - Arweave transaction ID the record resolves to
 - `--ttl-seconds <ttlSeconds>` - TTL in seconds for the record
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2361,6 +2400,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a record from
 - `--undername <undername>` - Undername record to remove
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2382,6 +2422,7 @@ Command Options:
 - `--record-logo <transactionId>` / `--clear-record-logo`
 - `--record-description <description>` / `--clear-record-description`
 - `--record-keywords <keywords...>` / `--clear-record-keywords`
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2407,6 +2448,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove record metadata from
 - `--undername <undername>` - Undername record whose metadata to clear
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2425,6 +2467,7 @@ Command Options:
 - `--ant-id <antId>` - ANT ID whose record to transfer
 - `--undername <undername>` - Undername record to transfer
 - `--target <address>` - Target Solana pubkey to transfer the record to
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2442,6 +2485,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to add a controller to
 - `--target <address>` - Solana pubkey to grant controller rights to (omit for Turbo itself, which is what makes `set-arns-record` a single call)
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2459,6 +2503,7 @@ Command Options:
 - `--owner-key <base58SolanaSecretKey>` - Solana secret key that OWNS the ANT and signs for it. Separate from the wallet paying in Turbo Credits; it needs a key to sign with, not SOL.
 - `--ant-id <antId>` - ANT ID to remove a controller from
 - `--target <address>` - Solana pubkey to revoke (omit to revoke Turbo)
+- `--paid-by <paidBy...>` - Optional delegated payer address(es) whose shared credits (credit-share approvals to the paying wallet) cover the action, in the order given; the paying wallet's own balance covers any remainder
 
 e.g:
 
@@ -2497,7 +2542,7 @@ The Turbo SDK provides the following methods to manage Credit Share Approvals:
 
 - `shareCredits`: Creates a Credit Share Approval for the specified wallet address and amount of Credits.
 - `revokeCredits`: Revokes all Credit Share Approvals for the specified wallet address.
-- `listShares`: Lists all Credit Share Approvals for the specified wallet address or connected wallet.
+- `getCreditShareApprovals`: Lists all Credit Share Approvals given or received by the specified wallet address or the connected wallet.
 - `dataItemOpts: { ...opts, paidBy: string[] }`: Upload methods now accept 'paidBy', an array of wallet addresses that have provided credit share approvals to the user from which to pay, in the order provided and as necessary, for the upload.
 
 The Turbo CLI provides the following commands to manage Credit Share Approvals:

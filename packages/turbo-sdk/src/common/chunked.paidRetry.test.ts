@@ -148,7 +148,7 @@ describe('a paid chunked upload across uploadFile retries', () => {
  *   - a failed CHUNK is retried inside `ChunkedUploader`, so the attempt still
  *     succeeds and `uploadFile` never loops;
  *   - a 4xx anywhere aborts immediately — "Failed to upload file after 1
- *     attempts" — because `http.ts` treats 4xx as non-retryable;
+ *     attempt" — because `http.ts` treats 4xx as non-retryable;
  *   - a single 5xx finalize is likewise absorbed internally.
  *
  * Only exhausting the internal retries surfaces the error to `uploadFile`,

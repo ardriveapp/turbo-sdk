@@ -150,6 +150,7 @@ export type TransferArNSAntOptions = ArNSOwnerKeyOption &
   WalletOptions & {
     antId: string | undefined;
     target: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type SetArNSRecordOptions = ArNSOwnerKeyOption &
@@ -158,18 +159,21 @@ export type SetArNSRecordOptions = ArNSOwnerKeyOption &
     undername: string | undefined;
     transactionId: string | undefined;
     ttlSeconds: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type RemoveArNSRecordOptions = ArNSOwnerKeyOption &
   WalletOptions & {
     antId: string | undefined;
     undername: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type AddArNSControllerOptions = ArNSOwnerKeyOption &
   WalletOptions & {
     antId: string | undefined;
     target: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type RemoveArNSControllerOptions = AddArNSControllerOptions;
@@ -179,6 +183,7 @@ export type TransferArNSRecordOptions = ArNSOwnerKeyOption &
     antId: string | undefined;
     undername: string | undefined;
     target: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 export type SetArNSRecordMetadataOptions = ArNSOwnerKeyOption &
@@ -193,12 +198,14 @@ export type SetArNSRecordMetadataOptions = ArNSOwnerKeyOption &
     clearRecordDescription: boolean;
     recordKeywords: string[] | undefined;
     clearRecordKeywords: boolean;
+    paidBy: string[] | undefined;
   };
 
 export type RemoveArNSRecordMetadataOptions = ArNSOwnerKeyOption &
   WalletOptions & {
     antId: string | undefined;
     undername: string | undefined;
+    paidBy: string[] | undefined;
   };
 
 /** `--action` names one of the eight non-purchase actions to price. */
