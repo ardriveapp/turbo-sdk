@@ -153,9 +153,7 @@ function arNSSignError(nonce: string, error: unknown): unknown {
   return error;
 }
 
-export class TurboUnauthenticatedPaymentService
-  implements TurboUnauthenticatedPaymentServiceInterface
-{
+export class TurboUnauthenticatedPaymentService implements TurboUnauthenticatedPaymentServiceInterface {
   protected readonly httpService: TurboHTTPService;
   protected logger: TurboLogger;
   protected readonly token: TokenType;
