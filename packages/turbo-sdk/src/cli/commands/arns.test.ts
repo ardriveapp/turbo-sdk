@@ -678,6 +678,15 @@ describe('ArNS CLI commands', () => {
           (turbo.last.params as { paidBy?: string[] }).paidBy,
           undefined,
         );
+        await command({ ...base, paidBy: ['', ' '] } as never, turbo);
+        assert.equal(
+          (turbo.last.params as { paidBy?: string[] }).paidBy,
+          undefined,
+        );
+        await command({ ...base, paidBy: ['', 'payer-a'] } as never, turbo);
+        assert.deepEqual((turbo.last.params as { paidBy?: string[] }).paidBy, [
+          'payer-a',
+        ]);
       });
     }
   });
