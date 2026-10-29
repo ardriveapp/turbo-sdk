@@ -104,7 +104,7 @@ export class FiatPaymentsDisabledError extends BaseError {
 export class ArNSActionExpiredError extends FailedRequestError {
   public readonly nonce: string;
   public readonly creditsReleased: boolean;
-  public declare status: number;
+  declare public status: number;
   constructor(
     nonce: string,
     status: number,

@@ -487,10 +487,7 @@ function decodePaymentHeader(header: string): {
 }
 
 type FetchBodyInput =
-  | ReadableStream<Uint8Array>
-  | Readable
-  | Buffer
-  | Uint8Array;
+  ReadableStream<Uint8Array> | Readable | Buffer | Uint8Array;
 
 const isBrowser =
   typeof window !== 'undefined' && typeof window.document !== 'undefined';

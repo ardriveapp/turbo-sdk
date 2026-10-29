@@ -132,7 +132,8 @@ export const optionMap = {
   },
   paidBy: {
     alias: '--paid-by <paidBy...>',
-    description: 'Address to pay for the upload',
+    description:
+      'Addresses that pay for this upload or ArNS action from Turbo Credits they shared with the signer',
     type: 'array',
   },
   expiresBySeconds: {
@@ -421,6 +422,7 @@ export const transferArNSAntOptions = [
   optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsTarget,
+  optionMap.paidBy,
 ];
 
 export const setArNSRecordOptions = [
@@ -430,6 +432,7 @@ export const setArNSRecordOptions = [
   optionMap.arnsUndername,
   optionMap.arnsTransactionId,
   optionMap.arnsTtlSeconds,
+  optionMap.paidBy,
 ];
 
 export const removeArNSRecordOptions = [
@@ -437,6 +440,7 @@ export const removeArNSRecordOptions = [
   optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
+  optionMap.paidBy,
 ];
 
 export const addArNSControllerOptions = [
@@ -444,6 +448,7 @@ export const addArNSControllerOptions = [
   optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsTarget,
+  optionMap.paidBy,
 ];
 
 export const removeArNSControllerOptions = addArNSControllerOptions;
@@ -454,6 +459,7 @@ export const transferArNSRecordOptions = [
   optionMap.arnsAntId,
   optionMap.arnsUndername,
   optionMap.arnsTarget,
+  optionMap.paidBy,
 ];
 
 export const setArNSRecordMetadataOptions = [
@@ -469,6 +475,7 @@ export const setArNSRecordMetadataOptions = [
   optionMap.arnsClearRecordDescription,
   optionMap.arnsRecordKeywords,
   optionMap.arnsClearRecordKeywords,
+  optionMap.paidBy,
 ];
 
 export const removeArNSRecordMetadataOptions = [
@@ -476,6 +483,7 @@ export const removeArNSRecordMetadataOptions = [
   optionMap.arnsOwnerKey,
   optionMap.arnsAntId,
   optionMap.arnsUndername,
+  optionMap.paidBy,
 ];
 
 export const arnsActionPriceOptions = [optionMap.arnsAction];

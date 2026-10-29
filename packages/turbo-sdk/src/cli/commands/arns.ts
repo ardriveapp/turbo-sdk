@@ -120,6 +120,7 @@ export type ArNSCustodyClient = {
     antId: string;
     owner: ArNSOwnerSigner;
     target: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   setArNSRecord(params: {
     antId: string;
@@ -127,21 +128,25 @@ export type ArNSCustodyClient = {
     transactionId: string;
     undername?: string;
     ttlSeconds?: number;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   removeArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   addArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   removeArNSController(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     target?: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   setArNSRecordMetadata(params: {
     antId: string;
@@ -151,17 +156,20 @@ export type ArNSCustodyClient = {
     recordLogo?: string | null;
     recordDescription?: string | null;
     recordKeywords?: string[] | null;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   removeArNSRecordMetadata(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
   transferArNSRecord(params: {
     antId: string;
     owner: ArNSOwnerSigner;
     undername: string;
     target: string;
+    paidBy?: string[];
   }): Promise<ArNSActionCompleted>;
 };
 
@@ -242,10 +250,13 @@ function metadataFieldFromOptions<T>(
   return clear ? null : value;
 }
 
+// Blank payers are dropped too: `--paid-by ""` would otherwise reach the body
+// as `[""]`, which the service reads before the `x-paid-by` header.
 export function paidByFromArNSOptions(
   paidBy: string[] | undefined,
 ): string[] | undefined {
-  return paidBy !== undefined && paidBy.length > 0 ? paidBy : undefined;
+  const payers = paidBy?.filter((payer) => payer.trim() !== '');
+  return payers !== undefined && payers.length > 0 ? payers : undefined;
 }
 
 // A price quote depends only on the name (length), type, and years — NOT on the
@@ -550,8 +561,8 @@ export async function arnsPurchaseStatus(
     status.failedDate !== undefined
       ? 'failed'
       : status.messageId
-      ? 'success'
-      : 'pending';
+        ? 'success'
+        : 'pending';
 
   console.log(JSON.stringify({ state, ...status }, null, 2));
 }
@@ -578,8 +589,8 @@ export async function arnsActionStatus(
     status.failedDate !== undefined
       ? 'failed'
       : status.messageId
-      ? 'success'
-      : 'pending';
+        ? 'success'
+        : 'pending';
 
   console.log(JSON.stringify({ state, ...status }, null, 2));
 }
@@ -601,6 +612,7 @@ export async function transferArNSAnt(
       antId: options.antId,
       owner: ownerFromOptions(options),
       target: options.target,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -629,6 +641,7 @@ export async function setArNSRecord(
       undername: options.undername ?? '@',
       transactionId: options.transactionId,
       ttlSeconds,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -654,6 +667,7 @@ export async function removeArNSRecord(
       antId: options.antId,
       owner: ownerFromOptions(options),
       undername: options.undername,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -676,6 +690,7 @@ export async function addArNSController(
       antId: options.antId,
       owner: ownerFromOptions(options),
       target: options.target,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -698,6 +713,7 @@ export async function removeArNSController(
       antId: options.antId,
       owner: ownerFromOptions(options),
       target: options.target,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -729,6 +745,7 @@ export async function transferArNSRecord(
       owner: ownerFromOptions(options),
       undername: options.undername,
       target: options.target,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -771,6 +788,7 @@ export async function setArNSRecordMetadata(
         options.clearRecordKeywords,
         'record-keywords',
       ),
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
@@ -800,6 +818,7 @@ export async function removeArNSRecordMetadata(
       antId: options.antId,
       owner: ownerFromOptions(options),
       undername: options.undername,
+      paidBy: paidByFromArNSOptions(options.paidBy),
     }),
   );
 
