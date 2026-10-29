@@ -250,10 +250,13 @@ function metadataFieldFromOptions<T>(
   return clear ? null : value;
 }
 
+// Blank payers are dropped too: `--paid-by ""` would otherwise reach the body
+// as `[""]`, which the service reads before the `x-paid-by` header.
 export function paidByFromArNSOptions(
   paidBy: string[] | undefined,
 ): string[] | undefined {
-  return paidBy !== undefined && paidBy.length > 0 ? paidBy : undefined;
+  const payers = paidBy?.filter((payer) => payer.trim() !== '');
+  return payers !== undefined && payers.length > 0 ? payers : undefined;
 }
 
 // A price quote depends only on the name (length), type, and years — NOT on the

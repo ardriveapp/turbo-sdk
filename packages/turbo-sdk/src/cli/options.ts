@@ -132,7 +132,8 @@ export const optionMap = {
   },
   paidBy: {
     alias: '--paid-by <paidBy...>',
-    description: 'Address to pay for the upload',
+    description:
+      'Addresses that pay for this upload or ArNS action from Turbo Credits they shared with the signer',
     type: 'array',
   },
   expiresBySeconds: {

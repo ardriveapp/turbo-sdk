@@ -824,7 +824,7 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-The raw x402 route has no free tier: every upload pays, however small. An unauthenticated client cannot pay, so it gets a `402` with a price. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
+The raw x402 route has no free tier: every upload pays, however small. A request that carries no x402 payment gets a `402` with the price, which `uploadRawX402Data` pays within `maxMUSDCAmount`. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
 
 #### `uploadFolder({ folderPath, files, dataItemOpts, signal, maxConcurrentUploads, throwOnFailure, manifestOptions, folderIndex, manifestDataItemOpts })`
 
