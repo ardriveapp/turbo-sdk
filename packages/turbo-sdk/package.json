@@ -79,11 +79,11 @@
     "docs": "markdown-toc-gen insert README.md --max-depth 3"
   },
   "dependencies": {
-    "@dha-team/arbundles": "^1.1.0",
+    "@dha-team/arbundles": "^1.2.0",
     "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.95.5",
     "arweave": "^1.15.1",
-    "axios": "^1.18.0",
+    "axios": "^1.21.0",
     "bignumber.js": "^9.1.2",
     "bs58": "^5.0.0",
     "cli-progress": "^3.12.0",
@@ -94,7 +94,7 @@
     "plimit-lit": "^3.4.0",
     "prompts": "^2.4.2",
     "tweetnacl": "^1.0.3",
-    "viem": "^2.57.11"
+    "viem": "^2.57.13"
   },
   "peerDependencies": {
     "x402-fetch": "^1.2.0"

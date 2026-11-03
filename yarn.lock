@@ -499,10 +499,10 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@dha-team/arbundles@^1.0.1", "@dha-team/arbundles@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@dha-team/arbundles/-/arbundles-1.1.0.tgz#38e1b16c903ff680a42f7ca774d5999ffd80983e"
-  integrity sha512-guRI5BWUcfq3G20+f4a+8aROc9U2cqbD4kQRTIrl5+TyK6hINqPds4tFN58C+dtP4pkYt3Ah4oiQPdN2rsniOw==
+"@dha-team/arbundles@^1.0.1", "@dha-team/arbundles@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@dha-team/arbundles/-/arbundles-1.2.0.tgz#cb080767426690395989e9836f24934713856619"
+  integrity sha512-HwEHXxfFqYkElCrJI7zVTf+03BLyhW070BEOph/6pCheDm//rm+jMGQQuSQvwglUmKsjiO7lPd+v81H7pJBS1Q==
   dependencies:
     "@ethersproject/bytes" "5.7.0"
     "@ethersproject/hash" "5.7.0"
@@ -4049,7 +4049,7 @@ agent-base@6:
   dependencies:
     debug "4"
 
-agent-base@^7.0.2, agent-base@^7.1.0:
+agent-base@^7.1.0:
   version "7.1.0"
   resolved "https://registry.npmjs.org/agent-base/-/agent-base-7.1.0.tgz"
   integrity sha512-o/zjMZRhJxny7OyEF+Op8X+efiELC7k7yOjMzgfzVqOzXqkBkWI79YoTdOtsuWd5BWhAGAuOY/Xa6xpiaWXiNg==
@@ -4375,7 +4375,7 @@ axios-retry@^4.5.0:
   dependencies:
     is-retry-allowed "^2.2.0"
 
-axios@1.20.0, axios@^1.12.2, axios@^1.18.0, axios@^1.6.0:
+axios@1.20.0, axios@^1.12.2, axios@^1.21.0, axios@^1.6.0:
   version "1.20.0"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.20.0.tgz#515513445aa60e71d04b6521ca6210829ccb4786"
   integrity sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==
@@ -6252,12 +6252,7 @@ flatted@^3.2.7:
   resolved "https://registry.npmjs.org/flatted/-/flatted-3.2.7.tgz"
   integrity sha512-5nqDSxl8nn5BSNxyR3n4I6eDmbolI6WT+QqR547RwxQapgjQBmtktdP+HTBb/a/zLsbzERTONyUB5pefh5TtjQ==
 
-follow-redirects@^1.0.0:
-  version "1.15.11"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.11.tgz#777d73d72a92f8ec4d2e410eb47352a56b8e8340"
-  integrity sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==
-
-follow-redirects@^1.16.0:
+follow-redirects@^1.0.0, follow-redirects@^1.16.0:
   version "1.16.0"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.16.0.tgz#28474a159d3b9d11ef62050a14ed60e4df6d61bc"
   integrity sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==
@@ -6849,15 +6844,7 @@ https-proxy-agent@^5.0.1:
     agent-base "6"
     debug "4"
 
-https-proxy-agent@^7.0.0:
-  version "7.0.1"
-  resolved "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-7.0.1.tgz"
-  integrity sha512-Eun8zV0kcYS1g19r78osiQLEFIRspRUDd9tIfBCTBPBeMieF/EsJNL8VI3xOIdYRDEkjQnqOYPsZ2DsWsVsFwQ==
-  dependencies:
-    agent-base "^7.0.2"
-    debug "4"
-
-https-proxy-agent@^7.0.1:
+https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1:
   version "7.0.6"
   resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-7.0.6.tgz#da8dfeac7da130b05c2ba4b59c9b6cd66611a6b9"
   integrity sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==
@@ -8883,10 +8870,10 @@ own-keys@^1.0.1:
     object-keys "^1.1.1"
     safe-push-apply "^1.0.0"
 
-ox@0.14.57:
-  version "0.14.57"
-  resolved "https://registry.yarnpkg.com/ox/-/ox-0.14.57.tgz#5d0babfd4a19996b4035a9d62f3398843d0bba65"
-  integrity sha512-CPF6aEFyAuqgL0x7VaFM0vI2/CUd5Qk8+BIL6OnViPw+gF07O/VAhqEPOPw5GYnYPwomIk8mD91gTcQ1RAtupA==
+ox@0.14.59:
+  version "0.14.59"
+  resolved "https://registry.yarnpkg.com/ox/-/ox-0.14.59.tgz#815d60b1f89afc306623536794a8a9ef3170c53d"
+  integrity sha512-Y+DPEQScTEGKteQATjtytE1JRQ5cg1R2+DvYQ/lbhUCm/xS9n0Jnkkf2AqQyIntefQxs8xY6dZ+kyNZ7zf2FzA==
   dependencies:
     "@adraffy/ens-normalize" "^1.11.0"
     "@noble/ciphers" "^1.3.0"
@@ -11135,10 +11122,10 @@ viem@2.23.2:
     ox "0.6.7"
     ws "8.18.0"
 
-viem@>=2.29.0, viem@^2.1.1, viem@^2.21.26, viem@^2.27.2, viem@^2.31.7, viem@^2.57.11:
-  version "2.57.11"
-  resolved "https://registry.yarnpkg.com/viem/-/viem-2.57.11.tgz#c0fef8624432557d13fd5d13b7ab7262d1189db7"
-  integrity sha512-kvcBGXzIGmZu3GqaA83ZOLzVC57YO7WCgQrGcUHNKqZ8Cjqc9vV//uGna4Nhv0NGHn2gekw1FNdSvQePNnYePQ==
+viem@>=2.29.0, viem@^2.1.1, viem@^2.21.26, viem@^2.27.2, viem@^2.31.7, viem@^2.57.13:
+  version "2.57.13"
+  resolved "https://registry.yarnpkg.com/viem/-/viem-2.57.13.tgz#f3ff0a801d3e6cf74ddd22a2d0562f57f01a519d"
+  integrity sha512-hSIsR4Y47BKrp89idH11WC3pqYOJFq9nVYBYxuJ9zXCA8Qg3pQhnlhnHn4qnjo7Z5wXs920XhtWbnrAtFidk+Q==
   dependencies:
     "@noble/curves" "1.9.1"
     "@noble/hashes" "1.8.0"
@@ -11146,7 +11133,7 @@ viem@>=2.29.0, viem@^2.1.1, viem@^2.21.26, viem@^2.27.2, viem@^2.31.7, viem@^2.5
     "@scure/bip39" "1.6.0"
     abitype "1.2.3"
     isows "1.0.7"
-    ox "0.14.57"
+    ox "0.14.59"
     ws "8.21.0"
 
 wagmi@^2.15.6:
